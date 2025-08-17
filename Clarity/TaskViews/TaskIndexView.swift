@@ -6,28 +6,28 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct TaskIndexView: View {
-    @State private var tasks : [String] = ["Cuddle Socks", "Take Socks for Walk"]
+    @Query private var tasks: [Task]
+    @Environment(\.modelContext) private var context
     @State private var taskToAdd = ""
     
     var body: some View {
         VStack {
-            List {
-                ForEach(tasks, id: \.description) { task in
-                    Text(task)
-                        .swipeActions(edge: .leading) {
-                            Button{ tasks.remove(at: self.tasks.firstIndex(of: task)!)} label: {
-                                Label("Complete", systemImage: "checkmark")
-                            }
-                            .tint(.green)
+            List(tasks, id: \.id) { task in Text(task.name)
+                    .swipeActions(edge: .leading) {
+                        Button{context.delete(task)} label: {
+                            Label("Complete", systemImage: "checkmark")
                         }
-                }
+                        .tint(.green)
+                    }
             }
         }
         TextField("Add Task", text: $taskToAdd)
             .onSubmit {
-                tasks.append(taskToAdd)
+                let newTask = Task(name: taskToAdd)
+                context.insert(newTask)
                 taskToAdd = ""
             }
         .padding()
@@ -36,4 +36,5 @@ struct TaskIndexView: View {
 
 #Preview {
     TaskIndexView()
+        .modelContainer(for: Task.self, inMemory: true)
 }
