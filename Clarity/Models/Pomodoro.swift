@@ -12,18 +12,20 @@ class Pomodoro  : ObservableObject {
     
     var endTime : Date?
     var interval : TimeInterval = 25 * 60
+    @Published var taskTitle : String
     
     init() {
-        endTime = Date.now + interval
+        taskTitle = "Task Title not set"
     }
     
     func startPomodoro(title : String, description: String) {
+        let taskTitle = title
         let uuidString = UUID().uuidString
         endTime = Date().addingTimeInterval(interval)
         
         // Content
         let content = UNMutableNotificationContent()
-        content.title = title
+        content.title = taskTitle
         content.body = description
         content.sound = UNNotificationSound.default
         

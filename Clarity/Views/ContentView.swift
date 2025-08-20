@@ -8,14 +8,13 @@
 import SwiftUI
 
 struct ContentView: View {
-    //    @State private var tasks : [String] = ["Cuddle Socks", "Take Socks for Walk"]
-    //    @State private var taskToAdd = ""
-
     var body: some View {
         TabView {
-            Tab("Tasks", systemImage: "checkmark.square") {
-                TaskIndexView()
-            }
+            TaskIndexView()
+                .tabItem {
+                    Image(systemName: "checkmark.square")
+                    Text("Tasks")
+                }
         }
     }
 }
