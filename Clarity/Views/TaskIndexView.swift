@@ -13,8 +13,9 @@ struct TaskIndexView: View {
     @Query private var tasks: [Task]
     @Environment(\.modelContext) private var context
     @State private var taskToAdd = ""
-
-    private var pomodoroTimer = Pomodoro()
+    @State private var showSheet = false
+    @State private var pomodoro = Pomodoro()
+    @State private var selectedTask : Task?
 
     var body: some View {
         VStack {
@@ -32,7 +33,11 @@ struct TaskIndexView: View {
                 .tint(.green)
             }
             .swipeActions(edge: .trailing) {
-                Button { pomodoroTimer.startPomodoro(title: task.name, description: "Timer is up!") } label: {
+                Button {
+                    selectedTask = task
+                    showSheet = true
+                    pomodoro.startPomodoro(title: task.name, description: "Timer is up!")
+                } label: {
                     Label("Start Timer", systemImage: "timer")
                 }
             }
@@ -48,6 +53,10 @@ struct TaskIndexView: View {
             .task {
                 await requestNotificationPermission()
             }
+            .sheet(isPresented: $showSheet) {
+                PomodoroView(pomodoro: pomodoro, task: selectedTask??,Task(name: ""))
+            }
+                   
     }
 
     func requestNotificationPermission() async {
