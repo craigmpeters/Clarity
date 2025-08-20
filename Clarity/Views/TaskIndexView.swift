@@ -10,65 +10,69 @@ import SwiftUI
 import UserNotifications
 
 struct TaskIndexView: View {
-    @Query private var tasks: [Task]
-    @Environment(\.modelContext) private var context
-    @State private var taskToAdd = ""
-    @State private var showSheet = false
-    @State private var pomodoro = Pomodoro()
-    @State private var selectedTask : Task?
+  @Query private var tasks: [Task]
+  @Environment(\.modelContext) private var context
+  @State private var taskToAdd = ""
+  @State private var showSheet = false
+  @State private var pomodoro = Pomodoro()
+  @State private var selectedTask: Task?
 
-    var body: some View {
-        VStack {
-            List(tasks, id: \.id) { task in HStack {
-                Text(task.name)
-                Spacer()
-                if task.pomodoro { Text("🍅") }
-                Text(task.friendlyDue)
-                    .foregroundStyle(.secondary)
-            }
-            .swipeActions(edge: .leading) {
-                Button { context.delete(task) } label: {
-                    Label("Complete", systemImage: "checkmark")
-                }
-                .tint(.green)
-            }
-            .swipeActions(edge: .trailing) {
-                Button {
-                    selectedTask = task
-                    showSheet = true
-                    pomodoro.startPomodoro(title: task.name, description: "Timer is up!")
-                } label: {
-                    Label("Start Timer", systemImage: "timer")
-                }
-            }
-            }
-        }
-        TextField("Add Task", text: $taskToAdd)
-            .onSubmit {
-                let newTask = Task(name: taskToAdd)
-                context.insert(newTask)
-                taskToAdd = ""
-            }
-            .padding()
-            .task {
-                await requestNotificationPermission()
-            }
-            .sheet(isPresented: $showSheet) {
-                PomodoroView(pomodoro: pomodoro, task: selectedTask??,Task(name: ""))
-            }
-                   
-    }
+  var body: some View {
+      VStack {
+          List(tasks, id: \.id) { task in
+              HStack {
+                  Text(task.name)
+                  Spacer()
+                  if task.pomodoro {
+                      Text("🍅")
+                  }
+                  Text(task.friendlyDue)
+                      .foregroundStyle(.secondary)
+              }
+              .swipeActions(edge: .leading) {
+                  Button {
+                      context.delete(task)
+                  } label: {
+                      Label("Complete", systemImage: "checkmark")
+                  }
+                  .tint(.green)
+              }
+              .swipeActions(edge: .trailing) {
+                  Button {
+                      selectedTask = task
+                      showSheet = true
+                      pomodoro.startPomodoro(title: task.name, description: "Timer is up!")
+                  } label: {
+                      Label("Start Timer", systemImage: "timer")
+                  }
+              }
+          }
+          TextField("Add Task", text: $taskToAdd)
+              .onSubmit {
+                  let newTask = Task(name: taskToAdd)
+                  context.insert(newTask)
+                  taskToAdd = ""
+              }
+              .padding()
+      }
+      .task {
+          await requestNotificationPermission()
+      }
+      .sheet(isPresented: $showSheet) {
+          PomodoroView(pomodoro: pomodoro, task: selectedTask ?? Task(name: ""))
+      }
+  }
 
-    func requestNotificationPermission() async {
-            do {
-                _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
-            } catch {
-                print("Error requesting notification permission: \(error)")
-            }
-        }
+  func requestNotificationPermission() async {
+      do {
+          _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
+      } catch {
+          print("Error requesting notification permission: \(error)")
+      }
+  }
 }
 
 #Preview {
-    TaskIndexView()
-        .modelContainer(for: Task.self, inMemory: true)
+  TaskIndexView()
+      .modelContainer(for: Task.self, inMemory: true)
 }

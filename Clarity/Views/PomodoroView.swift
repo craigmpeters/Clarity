@@ -1,14 +1,19 @@
 import SwiftUI
+import SwiftData
 
 // Pomodoro class definition
 
-struct CircularCountdownView: View {
+struct PomodoroView: View {
     @ObservedObject var pomodoro: Pomodoro
+    @Query private var tasks: [Task]
+    @Environment(\.modelContext) private var context
     @State private var timeRemaining: TimeInterval = 0
     @State private var timer: Timer?
+    @State var task : Task
     
     var body: some View {
         VStack(spacing: 20) {
+            Text(task.name)
             ZStack {
                 // Background circle
                 Circle()
@@ -48,10 +53,7 @@ struct CircularCountdownView: View {
             setupTimer()
         }
         .onDisappear {
-            timer?.invalidate()
-        }
-        .onChange(of: pomodoro.endTime) { _ in
-            setupTimer()
+            context.delete(task)
         }
     }
     
@@ -103,6 +105,8 @@ struct CircularCountdownView: View {
 
 
 #Preview {
+    var task = Task(name: "Test Task")
     var pomodoro = Pomodoro()
-    CircularCountdownView(pomodoro: pomodoro)
+    PomodoroView(pomodoro: pomodoro, task: task)
+        .modelContainer(for: Task.self, inMemory: true)
 }
