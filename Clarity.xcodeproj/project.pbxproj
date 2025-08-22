@@ -20,6 +20,13 @@
 			remoteGlobalIDString = 4448AD602E579266005CDDDF;
 			remoteInfo = PomodoroExtensionExtension;
 		};
+		44D1037F2E58F00100C59358 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 44FB49562E51F1EB0059CC5B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 44FB495D2E51F1EB0059CC5B;
+			remoteInfo = Clarity;
+		};
 		44FB496F2E51F1ED0059CC5B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 44FB49562E51F1EB0059CC5B /* Project object */;
@@ -67,6 +74,13 @@
 			);
 			target = 4448AD602E579266005CDDDF /* PomodoroExtensionExtension */;
 		};
+		44D103822E58F06200C59358 /* Exceptions for "Clarity" folder in "PomodoroExtensionExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Models/Pomodoro.swift,
+			);
+			target = 4448AD602E579266005CDDDF /* PomodoroExtensionExtension */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -80,6 +94,9 @@
 		};
 		44FB49602E51F1EB0059CC5B /* Clarity */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				44D103822E58F06200C59358 /* Exceptions for "Clarity" folder in "PomodoroExtensionExtension" target */,
+			);
 			path = Clarity;
 			sourceTree = "<group>";
 		};
@@ -175,6 +192,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				44D103802E58F00100C59358 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				4448AD672E579266005CDDDF /* PomodoroExtension */,
@@ -371,6 +389,11 @@
 			isa = PBXTargetDependency;
 			target = 4448AD602E579266005CDDDF /* PomodoroExtensionExtension */;
 			targetProxy = 4448AD732E579268005CDDDF /* PBXContainerItemProxy */;
+		};
+		44D103802E58F00100C59358 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
+			targetProxy = 44D1037F2E58F00100C59358 /* PBXContainerItemProxy */;
 		};
 		44FB49702E51F1ED0059CC5B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
