@@ -13,6 +13,5 @@ struct PomodoroExtensionBundle: WidgetBundle {
     var body: some Widget {
         PomodoroExtension()
         PomodoroExtensionControl()
-        PomodoroExtensionLiveActivity()
     }
 }

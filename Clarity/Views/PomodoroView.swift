@@ -7,100 +7,101 @@ struct PomodoroView: View {
     @ObservedObject var pomodoro: Pomodoro
     @Query private var tasks: [Task]
     @Environment(\.modelContext) private var context
-    @State private var timeRemaining: TimeInterval = 0
-    @State private var timer: Timer?
     @State var task : Task
+    @StateObject private var liveActivityManager = PomodoroLiveActivityManager()
+    @State private var taskDescription = ""
+    
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text(task.name)
-            ZStack {
-                // Background circle
-                Circle()
-                    .stroke(Color.gray.opacity(0.3), lineWidth: 8)
-                    .frame(width: 200, height: 200)
-                
-                // Progress circle
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(
-                        LinearGradient(
-                            colors: [.blue, .purple],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                    )
-                    .frame(width: 200, height: 200)
-                    .rotationEffect(.degrees(-90)) // Start from top
-                    .animation(.linear(duration: 0.1), value: progress)
-                
-                // Timer text
-                VStack {
-                    Text(formattedTime)
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.primary)
-                    
-                    Text("remaining")
+        VStack(spacing: 30) {
+            VStack(spacing: 8) {
+                Text(task.name)
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .multilineTextAlignment(.center)
+                if !taskDescription.isEmpty {
+                    Text(taskDescription)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+            }
+            .padding(.horizontal)
+            VStack(spacing: 20) {
+                ZStack {
+                    // Background circle
+                    Circle()
+                        .stroke(Color.gray.opacity(0.3), lineWidth: 12)
+                        .frame(width: 250, height: 250)
+                    
+                    // Progress circle
+                    Circle()
+                        .trim(from: 0, to: pomodoro.progress)
+                        .stroke(
+                            LinearGradient(
+                                colors: [.blue, .purple],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            style: StrokeStyle(lineWidth: 12, lineCap: .round)
+                        )
+                        .frame(width: 250, height: 250)
+                        .rotationEffect(.degrees(-90)) // Start from top
+                        .animation(.linear(duration: 1), value: pomodoro.progress)
+                    
+                    // Timer text
+                    VStack {
+                        Text(pomodoro.formattedTime)
+                            .font(.system(size: 42, weight: .bold, design: .monospaced))
+                            .foregroundColor(.primary)
+                        
+                        Text(statusText)
+                            .font(.caption)
+                            .foregroundColor(statusColor)
+                    }
                 }
             }
         }
         .padding()
         .onAppear {
-            setupTimer()
+            pomodoro.taskTitle = task.name
+            liveActivityManager.observePomodoros(pomodoro)
         }
         .onDisappear {
             context.delete(task)
+            pomodoro.stopPomodoro()
+            liveActivityManager.endLiveActivity()
+            
         }
+    }
+    
+    private var statusText: String {
+        if pomodoro.isRunning {
+            return "running"
+        } else if pomodoro.remainingTime > 0 && pomodoro.remainingTime < pomodoro.interval {
+            return "paused"
+        } else if pomodoro.remainingTime <= 0 {
+            return "completed"
+        } else {
+            return "ready"
+        }
+    }
+    
+    private var statusColor: Color {
+        switch statusText {
+            case "running": return .green
+            case "paused": return .orange
+            case "completed": return .blue
+            default: return .secondary
+            }
     }
     
     // MARK: - Computed Properties
     
-    private var progress: Double {
-        guard pomodoro.interval > 0 else { return 0 }
-        let remainingRatio = timeRemaining / pomodoro.interval
-        return max(0, min(1, remainingRatio))
-    }
     
-    private var formattedTime: String {
-        let minutes = Int(timeRemaining) / 60
-        let seconds = Int(timeRemaining) % 60
-        return String(format: "%02d:%02d", minutes, seconds)
-    }
     
     // MARK: - Timer Functions
     
-    private func setupTimer() {
-        timer?.invalidate()
-        
-        if let endTime = pomodoro.endTime {
-            timeRemaining = max(0, endTime.timeIntervalSinceNow)
-            
-            timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
-                updateTimer()
-            }
-        } else {
-            timeRemaining = pomodoro.interval
-        }
-    }
-    
-    private func updateTimer() {
-        guard let endTime = pomodoro.endTime else {
-            timer?.invalidate()
-            return
-        }
-        
-        timeRemaining = max(0, endTime.timeIntervalSinceNow)
-        
-        if timeRemaining <= 0 {
-            timer?.invalidate()
-            pomodoro.endTime = nil
-            // Timer completed - you can add completion logic here
-        }
-    }
 }
 
 
