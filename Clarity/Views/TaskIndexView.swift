@@ -8,14 +8,16 @@
 import SwiftData
 import SwiftUI
 import UserNotifications
+import ActivityKit
 
 struct TaskIndexView: View {
-  @Query private var tasks: [Task]
+  @Query private var tasks: [ToDoTask]
   @Environment(\.modelContext) private var context
   @State private var taskToAdd = ""
   @State private var showSheet = false
   @State private var pomodoro = Pomodoro()
-  @State private var selectedTask: Task?
+  @State private var selectedTask: ToDoTask?
+  @StateObject private var liveActivityManager = PomodoroLiveActivityManager()
 
   var body: some View {
       VStack {
@@ -41,7 +43,8 @@ struct TaskIndexView: View {
                   Button {
                       selectedTask = task
                       showSheet = true
-                      pomodoro.startPomodoro(taskTitle: task.name, description: "Timer is up!")
+                      pomodoro.startPomodoro(taskTitle: selectedTask, description: "Timer is up!")
+                      liveActivityManager.startLiveActivity(for: pomodoro)
                   } label: {
                       Label("Start Timer", systemImage: "timer")
                   }
@@ -49,7 +52,7 @@ struct TaskIndexView: View {
           }
           TextField("Add Task", text: $taskToAdd)
               .onSubmit {
-                  let newTask = Task(name: taskToAdd)
+                  let newTask = ToDoTask(name: taskToAdd)
                   context.insert(newTask)
                   taskToAdd = ""
               }
@@ -59,7 +62,7 @@ struct TaskIndexView: View {
           await requestNotificationPermission()
       }
       .sheet(isPresented: $showSheet) {
-          PomodoroView(pomodoro: pomodoro, task: selectedTask ?? Task(name: ""))
+          PomodoroView(pomodoro: pomodoro, task: selectedTask ?? ToDoTask(name: ""))
       }
   }
 
@@ -74,5 +77,5 @@ struct TaskIndexView: View {
 
 #Preview {
   TaskIndexView()
-      .modelContainer(for: Task.self, inMemory: true)
+      .modelContainer(for: ToDoTask.self, inMemory: true)
 }

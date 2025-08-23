@@ -1,9 +1,5 @@
-//
-//  PomodoroLiveActivityManager.swift
-//  Clarity
-//
-//  Created by Craig Peters on 23/08/2025.
-//
+// PomodoroLiveActivityManager.swift
+// Fixed version for iOS 18+
 
 import Foundation
 import ActivityKit
@@ -11,63 +7,115 @@ import Combine
 
 class PomodoroLiveActivityManager: ObservableObject {
     private var activity: Activity<PomodoroAttributes>?
-    private var cancellables = Set<AnyCancellable>()
+    private var updateTimer: Timer?
     
+    // MARK: - Start Live Activity
     func startLiveActivity(for pomodoro: Pomodoro) {
+        print("DEBUG: Attempting to start Live Activity")
+        
+        // Check if Live Activities are enabled
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
-            print("Live Activities are not enabled")
+            print("ERROR: Live Activities are not enabled")
             return
         }
         
+        // End any existing activity first
+        if activity != nil {
+            endLiveActivity()
+        }
+        
+        // Create attributes and initial state
         let attributes = PomodoroAttributes(sessionId: UUID().uuidString)
         let contentState = createContentState(from: pomodoro)
         let activityContent = ActivityContent(state: contentState, staleDate: nil)
         
+        print("DEBUG: Created activity content with state: \(contentState)")
+        
         do {
+            // Request the activity
             activity = try Activity<PomodoroAttributes>.request(
                 attributes: attributes,
                 content: activityContent
             )
-            print("Live Activity started successfully")
+            print("SUCCESS: Live Activity started with ID: \(activity?.id ?? "unknown")")
+            
+            // Start the update timer
+            startUpdateTimer(for: pomodoro)
         } catch {
-            print("Error starting live activity: \(error)")
+            print("ERROR: Failed to start live activity: \(error.localizedDescription)")
         }
     }
     
+    // MARK: - Update Live Activity (Synchronous for iOS 18)
     func updateLiveActivity(for pomodoro: Pomodoro) {
         guard let activity = activity else {
-            print("Live activity not yet started")
+            print("WARNING: No active Live Activity to update")
             return
         }
         
         let contentState = createContentState(from: pomodoro)
-        let activityContent = ActivityContent(state: contentState, staleDate: nil)
+        let updatedContent = ActivityContent(state: contentState, staleDate: nil)
         
         Task {
-            await activity.update(activityContent)
+            do {
+                // Try the async version with proper error handling
+                await activity.update(updatedContent)
+                print("SUCCESS: Live Activity updated")
+            } catch {
+                print("ERROR: Failed to update: \(error.localizedDescription)")
+            }
         }
     }
     
+    // MARK: - End Live Activity
     func endLiveActivity() {
-        guard let activity = activity else { return }
+        print("DEBUG: Attempting to end Live Activity")
         
-        Task {
-            await activity.end(nil, dismissalPolicy: .immediate)
+        // Stop the timer first
+        updateTimer?.invalidate()
+        updateTimer = nil
+        
+        guard let activity = activity else {
+            print("WARNING: No active Live Activity to end")
+            return
         }
         
+        let finalState = activity.content.state
+        let finalContent = ActivityContent(state: finalState, staleDate: Date())
+        
+        Task {
+            do {
+                await activity.end(finalContent, dismissalPolicy: .immediate)
+                print("SUCCESS: Live Activity ended")
+            } catch {
+                print("ERROR: Failed to end: \(error.localizedDescription)")
+            }
+        }
+        
+        // Clear the reference
         self.activity = nil
     }
     
-    func observePomodoro(_ pomodoro: Pomodoro) {
-        pomodoro.objectWillChange
-            .sink { [weak self] _ in
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    self?.updateLiveActivity(for: pomodoro)
-                }
+    // MARK: - Timer-based updates
+    private func startUpdateTimer(for pomodoro: Pomodoro) {
+        // Cancel any existing timer
+        updateTimer?.invalidate()
+        
+        // Create a new timer that updates every second
+        updateTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            
+            // Only update if running
+            if pomodoro.isRunning {
+                self.updateLiveActivity(for: pomodoro)
+            } else if pomodoro.remainingTime <= 0 {
+                // End the activity if time is up
+                self.endLiveActivity()
             }
-            .store(in: &cancellables)
+        }
     }
     
+    // MARK: - Helper to create content state
     private func createContentState(from pomodoro: Pomodoro) -> PomodoroAttributes.ContentState {
         return PomodoroAttributes.ContentState(
             remainingTime: pomodoro.remainingTime,
@@ -76,5 +124,17 @@ class PomodoroLiveActivityManager: ObservableObject {
             taskTitle: pomodoro.taskTitle,
             startTime: pomodoro.endTime?.addingTimeInterval(-pomodoro.interval) ?? Date()
         )
+    }
+    
+    // MARK: - Debug helper
+    func debugActivityStatus() {
+        if let activity = activity {
+            print("=== LIVE ACTIVITY STATUS ===")
+            print("ID: \(activity.id)")
+            print("State: \(activity.activityState)")
+            print("===========================")
+        } else {
+            print("No active Live Activity")
+        }
     }
 }

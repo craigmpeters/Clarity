@@ -1,9 +1,6 @@
-//
-//  Pomodoro.swift
-//  Clarity
-//
-//  Created by Craig Peters on 17/08/2025.
-//
+// ============================================
+// Pomodoro.swift - Fixed notification issue
+// ============================================
 
 import Foundation
 import UserNotifications
@@ -43,12 +40,15 @@ class Pomodoro: ObservableObject {
         taskTitle = "Task Title not set"
     }
     
-    /// Starts a pomodoro with tasKtitle being the title and description being notification description
-    func startPomodoro(taskTitle: String, description: String) {
+    /// Starts a pomodoro with taskTitle being the title and description being notification description
+    func startPomodoro(task: ToDoTask, description: String) { // To Do: Description on Task
         // Stop any existing Pomodoro
         stopPomodoro()
         
-        let notificationIdentifier = UUID().uuidString
+        // FIX: Store the identifier in the instance variable
+        let identifier = UUID().uuidString
+        self.notificationIdentifier = identifier  // Store in instance variable
+        self.taskTitle = task.name  // Also update the task title
         endTime = Date().addingTimeInterval(interval)
         isRunning = true
         
@@ -59,7 +59,7 @@ class Pomodoro: ObservableObject {
         content.sound = UNNotificationSound.default
         
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
-        let request = UNNotificationRequest(identifier: notificationIdentifier, content: content, trigger: trigger)
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
         
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
@@ -68,7 +68,6 @@ class Pomodoro: ObservableObject {
                 print("Notification scheduled successfully")
             }
         }
-        
         startUITimer()
     }
     
@@ -79,6 +78,48 @@ class Pomodoro: ObservableObject {
         if let identifier = notificationIdentifier {
             UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
         }
+        notificationIdentifier = nil  // Clear the identifier
+    }
+    
+    func pausePomodoro() {
+        guard isRunning else { return }
+        
+        isRunning = false
+        timer?.invalidate()
+        
+        // Cancel notification
+        if let identifier = notificationIdentifier {
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
+        }
+    }
+
+    func resumePomodoro() {
+        guard !isRunning, let _ = endTime else { return }
+        
+        isRunning = true
+        
+        // Reschedule notification for remaining time
+        let remaining = remainingTime
+        if remaining > 0 {
+            let identifier = UUID().uuidString
+            notificationIdentifier = identifier
+            
+            let content = UNMutableNotificationContent()
+            content.title = taskTitle
+            content.body = "Pomodoro session resumed"
+            content.sound = UNNotificationSound.default
+            
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: remaining, repeats: false)
+            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+            
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error = error {
+                    print("Error scheduling notification: \(error)")
+                }
+            }
+        }
+        
+        startUITimer()
     }
     
     private func startUITimer() {

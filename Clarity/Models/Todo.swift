@@ -9,7 +9,7 @@ import Foundation
 import SwiftData
 
 @Model
-class Task {
+class ToDoTask {
     var id: UUID
     var name: String
     var created: Date

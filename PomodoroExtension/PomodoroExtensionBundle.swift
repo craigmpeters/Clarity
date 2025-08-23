@@ -11,7 +11,6 @@ import SwiftUI
 @main
 struct PomodoroExtensionBundle: WidgetBundle {
     var body: some Widget {
-        PomodoroExtension()
-        PomodoroExtensionControl()
+        PomodoroLiveActivityWidget()
     }
 }

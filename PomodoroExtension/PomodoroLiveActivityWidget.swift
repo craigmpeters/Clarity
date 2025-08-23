@@ -21,7 +21,7 @@ struct PomodoroLiveActivityWidget: Widget {
                         .font(.headline)
                         .lineLimit(1)
                     Spacer()
-                    Text("🍅")
+                    Text("📝")
                         .font(.title2)
                 }
                 
@@ -51,7 +51,7 @@ struct PomodoroLiveActivityWidget: Widget {
                 // Expanded UI
                 DynamicIslandExpandedRegion(.leading) {
                     VStack {
-                        Text("🍅")
+                        Text("📝")
                             .font(.title2)
                         Text(context.state.isRunning ? "Running" : "Paused")
                             .font(.caption2)
@@ -85,7 +85,7 @@ struct PomodoroLiveActivityWidget: Widget {
                 }
                 
             } compactLeading: {
-                Text("🍅")
+                Text("📝")
                     .font(.body)
                 
             } compactTrailing: {
@@ -95,7 +95,7 @@ struct PomodoroLiveActivityWidget: Widget {
                     .fontWeight(.semibold)
                 
             } minimal: {
-                Text("🍅")
+                Text("📝")
                     .font(.caption)
             }
         }
