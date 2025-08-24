@@ -72,6 +72,7 @@
 			membershipExceptions = (
 				Models/Pomodoro.swift,
 				Models/PomodoroAttributes.swift,
+				Models/Todo.swift,
 			);
 			target = 4448AD602E579266005CDDDF /* PomodoroExtensionExtension */;
 		};

@@ -43,7 +43,7 @@ struct TaskIndexView: View {
                   Button {
                       selectedTask = task
                       showSheet = true
-                      pomodoro.startPomodoro(taskTitle: selectedTask, description: "Timer is up!")
+                      pomodoro.startPomodoro(task: task, description: "Timer is up!")
                       liveActivityManager.startLiveActivity(for: pomodoro)
                   } label: {
                       Label("Start Timer", systemImage: "timer")

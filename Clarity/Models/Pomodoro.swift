@@ -79,6 +79,7 @@ class Pomodoro: ObservableObject {
             UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
         }
         notificationIdentifier = nil  // Clear the identifier
+        
     }
     
     func pausePomodoro() {
