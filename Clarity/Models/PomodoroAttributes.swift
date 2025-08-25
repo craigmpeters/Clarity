@@ -10,11 +10,9 @@ import ActivityKit
 
 struct PomodoroAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {
-        var remainingTime: TimeInterval
-        var totalTime: TimeInterval
-        var isRunning: Bool
-        var taskTitle: String
+        var taskName: String
         var startTime: Date
+        var endTime: Date
     }
     var sessionId: String
 }

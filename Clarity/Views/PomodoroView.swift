@@ -1,15 +1,19 @@
-
-import SwiftUI
-import SwiftData
 import ActivityKit
+import SwiftData
+import SwiftUI
 
 struct PomodoroView: View {
-    @ObservedObject var pomodoro: Pomodoro
-    @Query private var tasks: [ToDoTask]
-    @Environment(\.modelContext) private var context
-    @State var task: ToDoTask
-    @StateObject private var liveActivityManager = PomodoroLiveActivityManager()
-    @State private var taskDescription = ""
+    @StateObject private var coordinator: PomodoroCoordinator
+    @Environment(\.dismiss) private var dismiss
+    
+    private var pomodoro: Pomodoro {
+        coordinator.pomodoro
+    }
+    
+    init(task: ToDoTask, toDoStore: ToDoStore) {
+        let pomodoro = Pomodoro()
+        self._coordinator = StateObject(wrappedValue: PomodoroCoordinator(pomodoro: pomodoro, task: task, toDoStore: toDoStore))
+    }
     
     var body: some View {
         VStack(spacing: 30) {
@@ -18,12 +22,6 @@ struct PomodoroView: View {
                     .font(.title2)
                     .fontWeight(.semibold)
                     .multilineTextAlignment(.center)
-                if !taskDescription.isEmpty {
-                    Text(taskDescription)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
             }
             .padding(.horizontal)
             
@@ -60,11 +58,28 @@ struct PomodoroView: View {
         }
         .padding()
         .onAppear {
+            if coordinator.pomodoro.remainingTime <= 0 && coordinator.pomodoro.endTime != nil {
+                coordinator.endPomodoro()
+                dismiss()
+            }
         }
         .onDisappear {
-            liveActivityManager.endLiveActivity()
-            pomodoro.stopPomodoro()
-            context.delete(task)
+            coordinator.endPomodoro()
         }
     }
+}
+
+// MARK: - Preview
+
+#Preview {
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: ToDoTask.self, configurations: config)
+    
+    let sampleTask = ToDoTask(name: "Sample Pomodoro Task", pomodoro: true, pomodoroTime: 20) // 20 Seconds
+    container.mainContext.insert(sampleTask)
+    
+    let toDoStore = ToDoStore(modelContext: container.mainContext)
+    
+    return PomodoroView(task: sampleTask, toDoStore: toDoStore)
+        .modelContainer(container)
 }

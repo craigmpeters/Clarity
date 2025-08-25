@@ -70,8 +70,10 @@
 		44D103822E58F06200C59358 /* Exceptions for "Clarity" folder in "PomodoroExtensionExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Assets.xcassets,
 				Models/Pomodoro.swift,
 				Models/PomodoroAttributes.swift,
+				Models/PomodoroCoordinator.swift,
 				Models/Todo.swift,
 			);
 			target = 4448AD602E579266005CDDDF /* PomodoroExtensionExtension */;

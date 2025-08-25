@@ -7,7 +7,7 @@ import UserNotifications
 
 class Pomodoro: ObservableObject {
     var endTime: Date?
-    var interval: TimeInterval = 25 * 60 // TODO: Passed by task at some point
+    var interval: TimeInterval
     @Published var taskTitle: String
     @Published var isRunning: Bool = false
     
@@ -38,15 +38,18 @@ class Pomodoro: ObservableObject {
     
     init() {
         taskTitle = "Task Title not set"
+        interval = 25 * 60
     }
     
     /// Starts a pomodoro with taskTitle being the title and description being notification description
-    func startPomodoro(task: ToDoTask, description: String) { // To Do: Description on Task
+    func startPomodoro(task: ToDoTask, description: String, interval: TimeInterval) { // To Do: Description on Task
+        print("Pomodoro for task \(task.name) started (interval: \(interval))")
         // Stop any existing Pomodoro
         stopPomodoro()
         
         // FIX: Store the identifier in the instance variable
         let identifier = UUID().uuidString
+        self.interval = interval
         self.notificationIdentifier = identifier  // Store in instance variable
         self.taskTitle = task.name  // Also update the task title
         endTime = Date().addingTimeInterval(interval)
@@ -123,6 +126,7 @@ class Pomodoro: ObservableObject {
         startUITimer()
     }
     
+    
     private func startUITimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             guard let self = self else { return }
@@ -130,11 +134,18 @@ class Pomodoro: ObservableObject {
             if self.remainingTime <= 0 {
                 self.isRunning = false
                 self.timer?.invalidate()
-                self.endTime = nil
+                // DON'T set endTime = nil here
+                
+                // Post completion notification
+                NotificationCenter.default.post(name: .pomodoroCompleted, object: nil)
             }
             
-            // This will trigger UI updates via @Published
             self.objectWillChange.send()
         }
     }
+}
+
+
+extension Notification.Name {
+    static let pomodoroCompleted = Notification.Name("pomodoroCompleted")
 }

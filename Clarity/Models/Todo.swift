@@ -10,13 +10,13 @@ import SwiftData
 
 @Model
 class ToDoTask {
-    var id: UUID
     var name: String
     var created: Date
     var due: Date
-    var pomodoro: Bool = true //Todo: Set to False as default
+    var pomodoro: Bool
+    var pomodoroTime: TimeInterval
     
-    // Todo: Created, Due, Type, Tags
+    // TODO: Created, Due, Type, Tags
     
     var friendlyDue: String {
         // Today
@@ -28,17 +28,59 @@ class ToDoTask {
             dateFormatter.setLocalizedDateFormatFromTemplate("MMMMd")
             return dateFormatter.string(from: due)
         }
-        
-        
-    }
+     }
     
-    init(name: String) {
+    init(name: String, pomodoro: Bool, pomodoroTime: TimeInterval) {
         self.name = name
-        self.id = UUID()
         self.created = Date.now
         self.due = Date.now
-        
+        self.pomodoro = pomodoro
+        self.pomodoroTime = pomodoroTime
     }
+}
+
+@Observable
+class ToDoStore {
+    private var modelContext: ModelContext
+    var toDoTasks: [ToDoTask] = []
+    
+    init(modelContext: ModelContext) {
+        self.modelContext = modelContext
+        loadToDoTasks()
+    }
+    
+    func addTodoTask(toDoTask: ToDoTask) {
+        guard !toDoTask.name.isEmpty else { return }
+        modelContext.insert(toDoTask)
+        saveContext()
+        loadToDoTasks()
+    }
+    
+    func deleteToDoTask(toDoTask: ToDoTask) {
+        modelContext.delete(toDoTask)
+        saveContext()
+        loadToDoTasks()
+    }
+    
+    private func loadToDoTasks() {
+        do {
+            let descriptor = FetchDescriptor<ToDoTask>(
+                sortBy: [SortDescriptor(\.created, order:.reverse)]
+            )
+            toDoTasks = try modelContext.fetch(descriptor)
+        } catch {
+            print("Failed to load tasks: \(error.localizedDescription)")
+        }
+    }
+    
+    private func saveContext() {
+        do {
+            try modelContext.save()
+        } catch {
+            print("Failed to save context: \(error.localizedDescription)")
+        }
+    }
+    
     
     
 }

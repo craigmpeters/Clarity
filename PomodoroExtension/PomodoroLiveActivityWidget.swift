@@ -17,30 +17,22 @@ struct PomodoroLiveActivityWidget: Widget {
             // Lock screen/banner UI
             VStack(spacing: 8) {
                 HStack {
-                    Text(context.state.taskTitle.isEmpty ? "Pomodoro" : context.state.taskTitle)
-                        .font(.headline)
-                        .lineLimit(1)
+                    VStack(alignment: .leading) {
+                        Text(context.state.taskName.isEmpty ? "Pomodoro" : context.state.taskName)
+                            .font(.headline)
+                            .lineLimit(1)
+                        // Native countdown timer - no updates needed!
+                        Text(context.state.endTime, style: .timer)
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .monospacedDigit()
+                    }
                     Spacer()
-                    Text("📝")
-                        .font(.title2)
+                    Image("clarity")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 80, height: 80)
                 }
-                
-                HStack {
-                    Text(formatTime(context.state.remainingTime))
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .monospacedDigit()
-                    
-                    Spacer()
-                    
-                    Image(systemName: context.state.isRunning ? "play.fill" : "pause.fill")
-                        .foregroundColor(context.state.isRunning ? .green : .orange)
-                        .font(.caption)
-                }
-                
-                // Progress bar
-                ProgressView(value: progressValue(context.state))
-                    .progressViewStyle(LinearProgressViewStyle(tint: .red))
             }
             .padding()
             .background(Color.black.opacity(0.1))
@@ -48,67 +40,78 @@ struct PomodoroLiveActivityWidget: Widget {
             
         } dynamicIsland: { context in
             DynamicIsland {
-                // Expanded UI
-                DynamicIslandExpandedRegion(.leading) {
-                    VStack {
-                        Text("📝")
-                            .font(.title2)
-                        Text(context.state.isRunning ? "Running" : "Paused")
-                            .font(.caption2)
-                            .foregroundColor(context.state.isRunning ? .green : .orange)
-                    }
-                }
-                
-                DynamicIslandExpandedRegion(.trailing) {
-                    VStack(alignment: .trailing) {
-                        Text(formatTime(context.state.remainingTime))
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .monospacedDigit()
-                        Text("\(Int(progressValue(context.state) * 100))%")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
+                // Minimal expanded region - just the timer
                 DynamicIslandExpandedRegion(.center) {
-                    Text(context.state.taskTitle)
-                        .font(.body)
-                        .fontWeight(.medium)
-                        .lineLimit(1)
-                }
-                
-                DynamicIslandExpandedRegion(.bottom) {
-                    ProgressView(value: progressValue(context.state))
-                        .progressViewStyle(LinearProgressViewStyle(tint: .red))
-                        .scaleEffect(x: 1, y: 0.5)
+                    HStack(spacing: 8) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(context.state.taskName)
+                                .font(.subheadline)  // Smaller than .headline
+                                .lineLimit(1)
+                            Text(context.state.endTime, style: .timer)
+                                .font(.title3)       // Smaller than .title2
+                                .fontWeight(.semibold)
+                                .monospacedDigit()
+                        }
+                        Image("clarity")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 32, height: 32)  // Much smaller than 80x80
+                    }
                 }
                 
             } compactLeading: {
-                Text("📝")
-                    .font(.body)
+                Image("clarity")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 16, height: 16)
                 
             } compactTrailing: {
-                Text(formatTime(context.state.remainingTime))
+                Text(context.state.endTime, style: .timer)
                     .monospacedDigit()
-                    .font(.caption)
-                    .fontWeight(.semibold)
+                    .font(.caption2)
+                    .frame(maxWidth: .minimum(50, 50), alignment: .leading)
                 
             } minimal: {
-                Text("📝")
-                    .font(.caption)
+                Image("clarity")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 12, height: 12)
             }
         }
+        
+        
+        
     }
     
-    private func formatTime(_ timeInterval: TimeInterval) -> String {
-        let minutes = Int(timeInterval) / 60
-        let seconds = Int(timeInterval) % 60
-        return String(format: "%02d:%02d", minutes, seconds)
-    }
-    
-    private func progressValue(_ state: PomodoroAttributes.ContentState) -> Double {
-        guard state.totalTime > 0 else { return 0 }
-        return 1.0 - (state.remainingTime / state.totalTime)
-    }
+}
+
+// MARK: - Preview
+#Preview("Live Activity", as: .content, using: PomodoroAttributes(sessionId: "preview")) {
+    PomodoroLiveActivityWidget()
+} contentStates: {
+    PomodoroAttributes.ContentState(
+        taskName: "Complete SwiftUI Project",
+        startTime: Date(),
+        endTime: Date().addingTimeInterval(25 * 60)
+    )
+}
+
+#Preview("Dynamic Island Compact", as: .dynamicIsland(.compact), using: PomodoroAttributes(sessionId: "preview")) {
+    PomodoroLiveActivityWidget()
+} contentStates: {
+    PomodoroAttributes.ContentState(
+        taskName: "Complete SwiftUI Project",
+        startTime: Date(),
+        endTime: Date().addingTimeInterval(25 * 60)
+    )
+}
+
+#Preview("Dynamic Island Expanded", as: .dynamicIsland(.expanded), using: PomodoroAttributes(sessionId: "preview")) {
+    PomodoroLiveActivityWidget()
+} contentStates: {
+    PomodoroAttributes.ContentState(
+        taskName: "Complete SwiftUI Project",
+        startTime: Date(),
+        endTime: Date().addingTimeInterval(25 * 60)
+    )
 }
