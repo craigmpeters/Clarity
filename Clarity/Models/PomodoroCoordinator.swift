@@ -50,7 +50,12 @@ class PomodoroCoordinator: ObservableObject {
         pomodoro.stopPomodoro()
         endLiveActivity()
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
-        toDoStore.deleteToDoTask(toDoTask: task)
+        if !task.repeating {
+            toDoStore.deleteToDoTask(toDoTask: task)
+        } else {
+            toDoStore.scheduleTomorrow(toDoTask: task)
+        }
+        
     }
     
     private func startLiveActivity(pomodoro: Pomodoro) {

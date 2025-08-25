@@ -15,27 +15,32 @@ class ToDoTask {
     var due: Date
     var pomodoro: Bool
     var pomodoroTime: TimeInterval
+    var repeating: Bool
     
-    // TODO: Created, Due, Type, Tags
+    // TODO: Tags
     
     var friendlyDue: String {
-        // Today
-        if Calendar.current.isDateInToday(due) {
+        switch due {
+        case let date where Calendar.current.isDateInToday(date):
             return "Today"
-        } else {
+        case let date where Calendar.current.isDateInTomorrow(date):
+            return "Tomorrow"
+        case let date where Calendar.current.isDateInYesterday(date):
+            return "Yesterday"
+        default:
             let dateFormatter = DateFormatter()
-            dateFormatter.locale = Locale(identifier: Locale.current.identifier)
             dateFormatter.setLocalizedDateFormatFromTemplate("MMMMd")
             return dateFormatter.string(from: due)
         }
-     }
+    }
     
-    init(name: String, pomodoro: Bool, pomodoroTime: TimeInterval) {
+    init(name: String, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, due: Date = Date.now) {
         self.name = name
         self.created = Date.now
-        self.due = Date.now
+        self.due = due
         self.pomodoro = pomodoro
         self.pomodoroTime = pomodoroTime
+        self.repeating = repeating
     }
 }
 
@@ -52,6 +57,13 @@ class ToDoStore {
     func addTodoTask(toDoTask: ToDoTask) {
         guard !toDoTask.name.isEmpty else { return }
         modelContext.insert(toDoTask)
+        saveContext()
+        loadToDoTasks()
+    }
+    
+    func scheduleTomorrow(toDoTask: ToDoTask) {
+        guard !toDoTask.name.isEmpty else { return }
+        toDoTask.due =  Date.now.addingTimeInterval(60 * 60 * 24)
         saveContext()
         loadToDoTasks()
     }

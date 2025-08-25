@@ -13,7 +13,7 @@ import UserNotifications
 struct TaskIndexView: View {
     @Environment(\.modelContext) private var context
     @Bindable var toDoStore: ToDoStore
-    @State private var taskToAdd = ""
+    @State private var taskToAdd = ToDoTask(name: "")
     @State private var showSheet = false
     @State private var pomodoro = Pomodoro()
     @State private var selectedTask: ToDoTask? = nil
@@ -27,6 +27,9 @@ struct TaskIndexView: View {
                     Spacer()
                     if task.pomodoro {
                         Text("🍅")
+                    }
+                    if task.repeating {
+                        Image(systemName: "repeat")
                     }
                     Text(task.friendlyDue)
                         .foregroundStyle(.secondary)
@@ -48,14 +51,28 @@ struct TaskIndexView: View {
                 }
             }
             HStack {
-                TextField("Add Task", text: $taskToAdd)
+                TextField("Add Task", text: $taskToAdd.name)
                     .onSubmit {
-                        let newTask = ToDoTask(name: taskToAdd, pomodoro: true, pomodoroTime: selectedDuration)
-                        toDoStore.addTodoTask(toDoTask: newTask)
-                        taskToAdd = ""
+                        guard !taskToAdd.name.isEmpty else { return }
+                        toDoStore.addTodoTask(toDoTask: taskToAdd)
+                        taskToAdd = ToDoTask(name: "")
                     }
-                Spacer()
-                MinutePickerView(selectedTimeInterval: $selectedDuration)
+                    .toolbar {
+                        ToolbarItemGroup(placement: .keyboard){
+                            HStack {
+                                MinutePickerView(selectedTimeInterval: $taskToAdd.pomodoroTime)
+                                    .lineLimit(1)
+                                    .layoutPriority(1)
+                                Spacer()
+                                Toggle(isOn: $taskToAdd.repeating) {
+                                    Image(systemName: "repeat.circle")
+                                        .foregroundStyle(.primary)
+                                }
+                                .toggleStyle(.switch)
+                            }
+                            Spacer()
+                        }
+                    }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 5)
@@ -89,13 +106,21 @@ struct TaskIndexView: View {
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: ToDoTask.self, configurations: config)
+    
+    var previewTomorrowDate: Date {
+        .now.addingTimeInterval(60 * 60 * 24)
+    }
+    
+    var previewYesterdayDate: Date {
+        .now.addingTimeInterval(-60 * 60 * 24)
+    }
 
     // Create sample data
     let sampleTasks = [
-        ToDoTask(name: "Twenty Second Task", pomodoro: true, pomodoroTime: 20),
+        ToDoTask(name: "Twenty Second Task", pomodoro: true, pomodoroTime: 20, repeating: true, due: previewYesterdayDate),
         ToDoTask(name: "Review code changes", pomodoro: false, pomodoroTime: 15 * 60),
-        ToDoTask(name: "Write unit tests", pomodoro: true, pomodoroTime: 30 * 60),
-        ToDoTask(name: "Update documentation", pomodoro: true, pomodoroTime: 20 * 60)
+        ToDoTask(name: "Write unit tests", pomodoro: true, pomodoroTime: 30 * 60, due: previewYesterdayDate),
+        ToDoTask(name: "Update documentation", pomodoro: true, pomodoroTime: 20 * 60, due: previewTomorrowDate)
     ]
 
     // Add sample tasks to the container

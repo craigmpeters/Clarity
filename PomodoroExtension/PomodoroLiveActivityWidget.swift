@@ -42,8 +42,8 @@ struct PomodoroLiveActivityWidget: Widget {
             DynamicIsland {
                 // Minimal expanded region - just the timer
                 DynamicIslandExpandedRegion(.center) {
-                    HStack(spacing: 8) {
-                        VStack(alignment: .leading, spacing: 2) {
+                    HStack() {
+                        VStack(alignment: .leading) {
                             Text(context.state.taskName)
                                 .font(.subheadline)  // Smaller than .headline
                                 .lineLimit(1)
@@ -55,15 +55,18 @@ struct PomodoroLiveActivityWidget: Widget {
                         Image("clarity")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 32, height: 32)  // Much smaller than 80x80
+                            .frame(width: 80, height: 80)
+
                     }
+                    .padding(.vertical, -15.0)
                 }
+                
                 
             } compactLeading: {
                 Image("clarity")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 16, height: 16)
+                    
                 
             } compactTrailing: {
                 Text(context.state.endTime, style: .timer)
@@ -74,8 +77,8 @@ struct PomodoroLiveActivityWidget: Widget {
             } minimal: {
                 Image("clarity")
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 12, height: 12)
+                    .aspectRatio(contentMode: .fill)
+                    
             }
         }
         
@@ -107,6 +110,17 @@ struct PomodoroLiveActivityWidget: Widget {
 }
 
 #Preview("Dynamic Island Expanded", as: .dynamicIsland(.expanded), using: PomodoroAttributes(sessionId: "preview")) {
+    PomodoroLiveActivityWidget()
+} contentStates: {
+    PomodoroAttributes.ContentState(
+        taskName: "Complete SwiftUI Project",
+        startTime: Date(),
+        endTime: Date().addingTimeInterval(25 * 60)
+    )
+}
+
+#Preview("Dynamic Island Minimal", as: .dynamicIsland(.minimal), using:
+            PomodoroAttributes(sessionId: "preview")) {
     PomodoroLiveActivityWidget()
 } contentStates: {
     PomodoroAttributes.ContentState(
