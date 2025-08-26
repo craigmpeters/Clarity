@@ -8,9 +8,7 @@ struct MinutePickerView: View {
     
     var body: some View {
         HStack {
-            Image(systemName: "clock")
-                .foregroundColor(.blue)
-                .font(.system(size: 16))
+            Image(systemName: "timer")
                 
             Picker("Minutes", selection: Binding(
                 get: { Int(selectedTimeInterval / 60) },
@@ -21,8 +19,7 @@ struct MinutePickerView: View {
                         .tag(minutes)
                 }
             }
-            .pickerStyle(MenuPickerStyle())
-            .accentColor(.blue)
+            .accentColor(.primary)
         }
     }
     

@@ -20,7 +20,8 @@ struct TaskIndexView: View {
     @State private var selectedDuration: TimeInterval = 25 * 60
 
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
+            // Main content area
             List(toDoStore.toDoTasks, id: \.id) { task in
                 HStack {
                     Text(task.name)
@@ -50,47 +51,50 @@ struct TaskIndexView: View {
                     }
                 }
             }
-            HStack {
-                TextField("Add Task", text: $taskToAdd.name)
-                    .onSubmit {
-                        guard !taskToAdd.name.isEmpty else { return }
-                        toDoStore.addTodoTask(toDoTask: taskToAdd)
-                        taskToAdd = ToDoTask(name: "")
-                    }
-                    .toolbar {
-                        ToolbarItemGroup(placement: .keyboard){
-                            HStack {
-                                MinutePickerView(selectedTimeInterval: $taskToAdd.pomodoroTime)
-                                    .lineLimit(1)
-                                    .layoutPriority(1)
-                                Spacer()
-                                Toggle(isOn: $taskToAdd.repeating) {
-                                    Image(systemName: "repeat.circle")
-                                        .foregroundStyle(.primary)
-                                }
-                                .toggleStyle(.switch)
-                            }
-                            Spacer()
+
+            // Bottom form - no Spacer needed here
+            Form {
+                HStack {
+                    TextField("Add Task", text: $taskToAdd.name)
+                        .onSubmit {
+                            guard !taskToAdd.name.isEmpty else { return }
+                            toDoStore.addTodoTask(toDoTask: taskToAdd)
+                            taskToAdd = ToDoTask(name: "")
                         }
+                        .toolbar {
+                            ToolbarItemGroup(placement: .keyboard) {
+                                HStack {
+                                    MinutePickerView(selectedTimeInterval: $taskToAdd.pomodoroTime)
+                                        .lineLimit(1)
+                                    Spacer()
+                                    Toggle(isOn: $taskToAdd.repeating) {
+                                        Image(systemName: "repeat")
+                                            .foregroundStyle(.primary)
+                                    }
+                                    .toggleStyle(.switch)
+                                }
+                            }
+                        }
+                    Button(action: {
+                        guard !taskToAdd.name.isEmpty else { return }
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            toDoStore.addTodoTask(toDoTask: taskToAdd)
+                            taskToAdd = ToDoTask(name: "")
+                        }
+                    }) {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundStyle(.blue.gradient)
+                            .font(.system(size: 24, weight: .medium))
                     }
+                }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 5)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(.systemGray6))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color(.systemGray4), lineWidth: 0.5)
-                    )
-            )
+            .frame(maxHeight: 80) // Limit the form height
         }
         .task {
             await requestNotificationPermission()
         }
         .sheet(item: $selectedTask) { task in
-            PomodoroView(task: task,
-                         toDoStore: toDoStore)
+            PomodoroView(task: task, toDoStore: toDoStore)
         }
     }
 
@@ -106,11 +110,11 @@ struct TaskIndexView: View {
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: ToDoTask.self, configurations: config)
-    
+
     var previewTomorrowDate: Date {
         .now.addingTimeInterval(60 * 60 * 24)
     }
-    
+
     var previewYesterdayDate: Date {
         .now.addingTimeInterval(-60 * 60 * 24)
     }
