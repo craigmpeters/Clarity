@@ -67,10 +67,16 @@
 			);
 			target = 4448AD602E579266005CDDDF /* PomodoroExtensionExtension */;
 		};
+		44BCDE032E5D2E5F00B61B9C /* Exceptions for "Clarity" folder in "Clarity" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
+		};
 		44D103822E58F06200C59358 /* Exceptions for "Clarity" folder in "PomodoroExtensionExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Assets.xcassets,
 				Models/Pomodoro.swift,
 				Models/PomodoroAttributes.swift,
 				Models/PomodoroCoordinator.swift,
@@ -89,9 +95,15 @@
 			path = PomodoroExtension;
 			sourceTree = "<group>";
 		};
+		44BCDDFA2E5D2A7E00B61B9C /* Icon Composer */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Icon Composer";
+			sourceTree = "<group>";
+		};
 		44FB49602E51F1EB0059CC5B /* Clarity */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				44BCDE032E5D2E5F00B61B9C /* Exceptions for "Clarity" folder in "Clarity" target */,
 				44D103822E58F06200C59358 /* Exceptions for "Clarity" folder in "PomodoroExtensionExtension" target */,
 			);
 			path = Clarity;
@@ -159,6 +171,7 @@
 				44FB49712E51F1ED0059CC5B /* ClarityTests */,
 				44FB497B2E51F1ED0059CC5B /* ClarityUITests */,
 				4448AD672E579266005CDDDF /* PomodoroExtension */,
+				44BCDDFA2E5D2A7E00B61B9C /* Icon Composer */,
 				4448AD622E579266005CDDDF /* Frameworks */,
 				44FB495F2E51F1EB0059CC5B /* Products */,
 			);
@@ -215,6 +228,7 @@
 				4448AD742E579268005CDDDF /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
+				44BCDDFA2E5D2A7E00B61B9C /* Icon Composer */,
 				44FB49602E51F1EB0059CC5B /* Clarity */,
 			);
 			name = Clarity;
@@ -579,12 +593,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Clarity/Preview Content\"";
 				DEVELOPMENT_TEAM = 4VL692ZU4A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Clarity/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -611,12 +627,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Clarity/Preview Content\"";
 				DEVELOPMENT_TEAM = 4VL692ZU4A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Clarity/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
