@@ -10,6 +10,8 @@ class Pomodoro: ObservableObject {
     var interval: TimeInterval
     @Published var taskTitle: String
     @Published var isRunning: Bool = false
+    @Published var currentRemainingTime: TimeInterval = 0  // Add this
+    @Published var currentProgress: Double = 0            // Add this
     
     private var timer: Timer?
     private var notificationIdentifier: String?
@@ -130,6 +132,10 @@ class Pomodoro: ObservableObject {
     private func startUITimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             guard let self = self else { return }
+            
+            let remaining = self.remainingTime
+            self.currentRemainingTime = remaining  // Update published property
+            self.currentProgress = self.progress  
             
             if self.remainingTime <= 0 {
                 self.isRunning = false
