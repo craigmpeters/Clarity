@@ -6,32 +6,54 @@ import UserNotifications
 struct TaskIndexView: View {
     @Environment(\.modelContext) private var context
     @Bindable var toDoStore: ToDoStore
+    
     @Binding var selectedTask: ToDoTask?
     @Binding var showingPomodoro: Bool
     @State private var showingAddTask = false
 
     var body: some View {
         List(toDoStore.toDoTasks, id: \.id) { task in
-            HStack {
-                Text(task.name)
-                Spacer()
-                if task.pomodoro {
-                    Text("🍅")
+            VStack(alignment: .leading, spacing: 6) {
+                    // First line - task info
+                    HStack {
+                        Text(task.name)
+                            .lineLimit(1)
+                        Spacer()
+                        if task.pomodoro {
+                            Text("🍅")
+                        }
+                        Text(task.friendlyDue)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    // Second line - compact categories
+//                    if !task.categories.isEmpty {
+                        HStack(spacing: 6) {
+                            ForEach(task.categories) { category in
+                                Text(category.name)
+                                    .font(.caption2)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 2)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .fill(category.color.SwiftUIColor)
+                                    )
+                                    .foregroundColor(.white)
+                            }
+                            Spacer()
+                        }
+//                    }
                 }
-                if task.repeating {
-                    Image(systemName: "repeat")
-                }
-                Text(task.friendlyDue)
-                    .foregroundStyle(.secondary)
-            }
-            .swipeActions(edge: .leading) {
-                Button {
-                    context.delete(task)
-                } label: {
-                    Label("Complete", systemImage: "checkmark")
-                }
-                .tint(.green)
-            }
+            
+            // TODO: Fix, broken currently
+//            .swipeActions(edge: .leading) {
+//                Button {
+//                    context.delete(task)
+//                } label: {
+//                    Label("Complete", systemImage: "checkmark")
+//                }
+//                .tint(.green)
+//            }
             .swipeActions(edge: .trailing) {
                 Button {
                     selectedTask = task
@@ -74,6 +96,7 @@ struct AddTaskView: View {
     @Bindable var toDoStore: ToDoStore
     @Environment(\.dismiss) private var dismiss
     @State private var taskToAdd = ToDoTask(name: "")
+    @State private var selectedCategories: [Category] = []
     
     var body: some View {
         NavigationView {
@@ -83,7 +106,7 @@ struct AddTaskView: View {
                         .textFieldStyle(.roundedBorder)
                 }
                 
-                Section("Pomodoro Settings") {
+                Section("Task Settings") {
                     HStack {
                         Image(systemName: "timer")
                             .foregroundStyle(.orange)
@@ -106,6 +129,7 @@ struct AddTaskView: View {
                             Text("Repeating Task")
                         }
                     }
+                    CategorySelectionView(selectedCategories: $selectedCategories)
                 }
             }
             .navigationTitle("Add Task")
@@ -120,6 +144,7 @@ struct AddTaskView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Add") {
                         withAnimation(.easeInOut(duration: 0.2)) {
+                            taskToAdd.categories = selectedCategories
                             toDoStore.addTodoTask(toDoTask: taskToAdd)
                         }
                         dismiss()
@@ -135,9 +160,19 @@ struct AddTaskView: View {
     @Previewable @State var showingPomodoro = false
     @Previewable @State var selectedTask: ToDoTask? = nil
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: ToDoTask.self, configurations: config)
+    let container = try! ModelContainer(for: ToDoTask.self, Category.self, configurations: config) // Add Category.self
     
-    // Create the ToDoStore with the container's context
+    // Add some sample categories for testing
+    let workCategory = Category(name: "Work", color: .Blue)
+    let personalCategory = Category(name: "Personal", color: .Green)
+    container.mainContext.insert(workCategory)
+    container.mainContext.insert(personalCategory)
+    
+    // Create sample task with categories
+    let sampleTask = ToDoTask(name: "Sample Task")
+    sampleTask.categories = [workCategory]
+    container.mainContext.insert(sampleTask)
+    
     let toDoStore = ToDoStore(modelContext: container.mainContext)
     
     return TaskIndexView(
