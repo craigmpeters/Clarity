@@ -16,6 +16,7 @@ class ToDoTask {
     var pomodoro: Bool
     var pomodoroTime: TimeInterval
     var repeating: Bool
+    @Relationship var categories: [Category] = []
     
     // TODO: Tags
     
@@ -34,13 +35,16 @@ class ToDoTask {
         }
     }
     
-    init(name: String, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, due: Date = Date.now) {
+    init(name: String, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, due: Date = Date.now, category: Category? = nil) {
         self.name = name
         self.created = Date.now
         self.due = due
         self.pomodoro = pomodoro
         self.pomodoroTime = pomodoroTime
         self.repeating = repeating
+        
+        guard let category else { return }
+        self.categories.append(category)
     }
 }
 
