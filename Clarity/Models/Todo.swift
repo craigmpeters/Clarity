@@ -89,7 +89,7 @@ class ToDoStore {
         }
     }
     
-    private func saveContext() {
+    func saveContext() {
         do {
             try modelContext.save()
         } catch {

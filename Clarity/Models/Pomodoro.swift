@@ -92,48 +92,6 @@ class Pomodoro: ObservableObject {
         
     }
     
-//    func pausePomodoro() {
-//        guard isRunning else { return }
-//        
-//        isRunning = false
-//        timer?.invalidate()
-//        
-//        // Cancel notification
-//        if let identifier = notificationIdentifier {
-//            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
-//        }
-//    }
-
-//    func resumePomodoro() {
-//        guard !isRunning, let _ = endTime else { return }
-//        
-//        isRunning = true
-//        
-//        // Reschedule notification for remaining time
-//        let remaining = remainingTime
-//        if remaining > 0 {
-//            let identifier = UUID().uuidString
-//            notificationIdentifier = identifier
-//            
-//            let content = UNMutableNotificationContent()
-//            content.title = taskTitle
-//            content.body = "Pomodoro session resumed"
-//            content.sound = UNNotificationSound.default
-//            
-//            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: remaining, repeats: false)
-//            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
-//            
-//            UNUserNotificationCenter.current().add(request) { error in
-//                if let error = error {
-//                    print("Error scheduling notification: \(error)")
-//                }
-//            }
-//        }
-//        
-//        startUITimer()
-//    }
-    
-    
     private func startUITimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             guard let self = self else { return }

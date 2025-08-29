@@ -6,10 +6,10 @@
 //
 //  TARGET MEMBERSHIP: ✅ Widget Extension ONLY
 
-import Foundation
 import ActivityKit
-import WidgetKit
+import Foundation
 import SwiftUI
+import WidgetKit
 
 struct PomodoroLiveActivityWidget: Widget {
     var body: some WidgetConfiguration {
@@ -22,10 +22,17 @@ struct PomodoroLiveActivityWidget: Widget {
                             .font(.headline)
                             .lineLimit(1)
                         // Native countdown timer - no updates needed!
-                        Text(context.state.endTime, style: .timer)
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .monospacedDigit()
+                        if context.isStale {
+                            Text("Timer Finished!")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .monospacedDigit()
+                        } else {
+                            Text(context.state.endTime, style: .timer)
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .monospacedDigit()
+                        }
                     }
                     Spacer()
                     Image("clarity")
@@ -37,58 +44,62 @@ struct PomodoroLiveActivityWidget: Widget {
             .padding()
             .background(Color.black.opacity(0.1))
             .cornerRadius(12)
-            
+
         } dynamicIsland: { context in
             DynamicIsland {
                 // Minimal expanded region - just the timer
                 DynamicIslandExpandedRegion(.center) {
-                    HStack() {
+                    HStack {
                         VStack(alignment: .leading) {
                             Text(context.state.taskName)
-                                .font(.subheadline)  // Smaller than .headline
+                                .font(.subheadline) // Smaller than .headline
                                 .lineLimit(1)
-                            Text(context.state.endTime, style: .timer)
-                                .font(.title3)       // Smaller than .title2
-                                .fontWeight(.semibold)
-                                .monospacedDigit()
+                            if context.isStale {
+                                Text("Timer Finished!")
+                                    .font(.title3) // Smaller than .title2
+                                    .fontWeight(.semibold)
+                                    .monospacedDigit()
+                            } else {
+                                Text(context.state.endTime, style: .timer)
+                                    .font(.title3) // Smaller than .title2
+                                    .fontWeight(.semibold)
+                                    .monospacedDigit()
+                            }
                         }
                         Image("clarity")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 80, height: 80)
-
                     }
                     .padding(.vertical, -15.0)
                 }
-                
-                
+
             } compactLeading: {
                 Image("clarity")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    
-                
+
             } compactTrailing: {
-                Text(context.state.endTime, style: .timer)
-                    .monospacedDigit()
-                    .font(.caption2)
-                    .frame(maxWidth: .minimum(50, 50), alignment: .leading)
-                
+                if context.isStale {
+                    Text("✅")
+                } else {
+                    Text(context.state.endTime, style: .timer)
+                        .monospacedDigit()
+                        .font(.caption2)
+                        .frame(maxWidth: .minimum(50, 50), alignment: .leading)
+                }
+
             } minimal: {
                 Image("clarity")
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    
             }
         }
-        
-        
-        
     }
-    
 }
 
 // MARK: - Preview
+
 #Preview("Live Activity", as: .content, using: PomodoroAttributes(sessionId: "preview")) {
     PomodoroLiveActivityWidget()
 } contentStates: {
@@ -120,7 +131,8 @@ struct PomodoroLiveActivityWidget: Widget {
 }
 
 #Preview("Dynamic Island Minimal", as: .dynamicIsland(.minimal), using:
-            PomodoroAttributes(sessionId: "preview")) {
+    PomodoroAttributes(sessionId: "preview"))
+{
     PomodoroLiveActivityWidget()
 } contentStates: {
     PomodoroAttributes.ContentState(

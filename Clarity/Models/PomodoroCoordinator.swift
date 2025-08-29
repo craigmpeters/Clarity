@@ -26,7 +26,6 @@ class PomodoroCoordinator: ObservableObject {
         self.task = task
         self.toDoStore = toDoStore
         
-        
         pomodoro.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()
@@ -35,15 +34,6 @@ class PomodoroCoordinator: ObservableObject {
             
         pomodoro.startPomodoro(task: task, description: "Timer is up!", interval: task.pomodoroTime)
         startLiveActivity(pomodoro: pomodoro)
-        
-        NotificationCenter.default.addObserver(
-            forName: .pomodoroCompleted,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            print("Co-ordinator ending pomodoro for \(task.name)")
-            self?.endPomodoro()
-        }
     }
     
     func endPomodoro() {
@@ -58,7 +48,6 @@ class PomodoroCoordinator: ObservableObject {
         } else {
             toDoStore.scheduleTomorrow(toDoTask: task)
         }
-        
     }
     
     private func startLiveActivity(pomodoro: Pomodoro) {
@@ -71,11 +60,6 @@ class PomodoroCoordinator: ObservableObject {
             endTime: pomodoro.endTime!
         )
         let activityContent = ActivityContent(state: contentState, staleDate: pomodoro.endTime)
-        
-        // Ending in background task
-        let request = BGAppRefreshTaskRequest(identifier: "me.craigpeters.clarity.pomodoro-cleanup")
-        request.earliestBeginDate = pomodoro.endTime
-        try? BGTaskScheduler.shared.submit(request)
         
         do {
             activity = try Activity.request(

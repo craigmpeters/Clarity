@@ -9,7 +9,9 @@ struct TaskIndexView: View {
     
     @Binding var selectedTask: ToDoTask?
     @Binding var showingPomodoro: Bool
-    @State private var showingAddTask = false
+    
+    @State private var showingTaskForm = false
+    @State private var taskToEdit: ToDoTask?
 
     var body: some View {
         List(toDoStore.toDoTasks, id: \.id) { task in
@@ -44,6 +46,11 @@ struct TaskIndexView: View {
                         }
 //                    }
                 }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                taskToEdit = task
+                showingTaskForm = true
+            }
             
             .swipeActions(edge: .leading) {
                 Button {
@@ -67,7 +74,8 @@ struct TaskIndexView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
-                    showingAddTask = true
+                    taskToEdit = nil
+                    showingTaskForm = true
                 }) {
                     Image(systemName: "plus")
                         .foregroundStyle(.blue)
@@ -77,8 +85,10 @@ struct TaskIndexView: View {
         .task {
             await requestNotificationPermission()
         }
-        .sheet(isPresented: $showingAddTask) {
-            AddTaskView(toDoStore: toDoStore)
+        .sheet(isPresented: $showingTaskForm, onDismiss: {
+            taskToEdit = nil
+        }) {
+            TaskFormView(toDoStore: toDoStore, task: taskToEdit)
         }
     }
 
@@ -91,63 +101,7 @@ struct TaskIndexView: View {
     }
 }
 
-struct AddTaskView: View {
-    @Bindable var toDoStore: ToDoStore
-    @Environment(\.dismiss) private var dismiss
-    @State private var taskToAdd = ToDoTask(name: "")
-    @State private var selectedCategories: [Category] = []
-    
-    var body: some View {
-        NavigationView {
-            Form {
-                Section("Task Details") {
-                    TextField("Task name", text: $taskToAdd.name)
-                        .textFieldStyle(.roundedBorder)
-                }
-                
-                Section("Task Settings") {
-                    HStack {
-                        Image(systemName: "timer")
-                            .foregroundStyle(.orange)
-                        Text("Duration")
-                        Spacer()
-                        MinutePickerView(selectedTimeInterval: $taskToAdd.pomodoroTime)
-                    }
-                    
-                    Toggle(isOn: $taskToAdd.repeating) {
-                        HStack {
-                            Image(systemName: "repeat")
-                                .foregroundStyle(.blue)
-                            Text("Repeating Task")
-                        }
-                    }
-                    CategorySelectionView(selectedCategories: $selectedCategories)
-                }
-            }
-            .navigationTitle("Add Task")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Add") {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            taskToAdd.categories = selectedCategories
-                            toDoStore.addTodoTask(toDoTask: taskToAdd)
-                        }
-                        dismiss()
-                    }
-                    .disabled(taskToAdd.name.isEmpty)
-                    .fontWeight(.semibold)
-                }
-            }
-        }
-    }
-}
+
 #Preview {
     @Previewable @State var showingPomodoro = false
     @Previewable @State var selectedTask: ToDoTask? = nil
