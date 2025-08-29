@@ -39,7 +39,7 @@ class ToDoTask {
         self.name = name
         self.created = Date.now
         self.due = due
-        self.pomodoro = pomodoro
+        self.pomodoro = true // No longer an option
         self.pomodoroTime = pomodoroTime
         self.repeating = repeating
         

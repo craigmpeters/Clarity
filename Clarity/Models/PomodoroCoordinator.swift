@@ -9,6 +9,7 @@ import ActivityKit
 import Combine
 import Foundation
 import UserNotifications
+import BackgroundTasks
 
 class PomodoroCoordinator: ObservableObject {
     @Published var pomodoro: Pomodoro
@@ -25,11 +26,15 @@ class PomodoroCoordinator: ObservableObject {
         self.task = task
         self.toDoStore = toDoStore
         
+        
         pomodoro.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
+            
+        pomodoro.startPomodoro(task: task, description: "Timer is up!", interval: task.pomodoroTime)
+        startLiveActivity(pomodoro: pomodoro)
         
         NotificationCenter.default.addObserver(
             forName: .pomodoroCompleted,
@@ -39,12 +44,10 @@ class PomodoroCoordinator: ObservableObject {
             print("Co-ordinator ending pomodoro for \(task.name)")
             self?.endPomodoro()
         }
-            
-        pomodoro.startPomodoro(task: task, description: "Timer is up!", interval: task.pomodoroTime)
-        startLiveActivity(pomodoro: pomodoro)
     }
     
     func endPomodoro() {
+        print("Pomodoro Ending for task: \(task.name)")
         guard !hasEnded else { return }
         hasEnded = true
         pomodoro.stopPomodoro()
@@ -68,6 +71,11 @@ class PomodoroCoordinator: ObservableObject {
             endTime: pomodoro.endTime!
         )
         let activityContent = ActivityContent(state: contentState, staleDate: pomodoro.endTime)
+        
+        // Ending in background task
+        let request = BGAppRefreshTaskRequest(identifier: "me.craigpeters.clarity.pomodoro-cleanup")
+        request.earliestBeginDate = pomodoro.endTime
+        try? BGTaskScheduler.shared.submit(request)
         
         do {
             activity = try Activity.request(

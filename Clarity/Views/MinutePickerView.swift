@@ -8,7 +8,7 @@ struct MinutePickerView: View {
     
     var body: some View {
         HStack {
-            Picker("Minutes", selection: Binding(
+            Picker("", selection: Binding(
                 get: { Int(selectedTimeInterval / 60) },
                 set: { selectedTimeInterval = TimeInterval($0 * 60) }
             )) {

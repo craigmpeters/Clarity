@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import UserNotifications
+import BackgroundTasks
 
 @main
 struct ClarityApp: App {
@@ -24,11 +25,26 @@ struct ClarityApp: App {
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
+        BGTaskScheduler.shared.register(forTaskWithIdentifier: "me.craigpeters.clarity.pomodoro-cleanup", using: nil) { task in
+            self.handlePomodoroCleanup(task: task as! BGAppRefreshTask)
+        }
         return true
     }
     
     // This allows notifications to show when app is in foreground
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .badge, .sound])
+    }
+    
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        if let isPomodoro = response.notification.request.content.userInfo["pomodoro"] as? Bool, isPomodoro {
+            NotificationCenter.default.post(name: .pomodoroCompleted, object: nil)
+        }
+        completionHandler()
+    }
+    
+    private func handlePomodoroCleanup(task: BGAppRefreshTask) {
+        NotificationCenter.default.post(name: .pomodoroCompleted, object: nil)
+        task.setTaskCompleted(success: true)
     }
 }

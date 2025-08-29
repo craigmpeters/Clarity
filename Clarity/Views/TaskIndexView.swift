@@ -19,8 +19,8 @@ struct TaskIndexView: View {
                         Text(task.name)
                             .lineLimit(1)
                         Spacer()
-                        if task.pomodoro {
-                            Text("🍅")
+                        if task.repeating {
+                            Image(systemName: "repeat")
                         }
                         Text(task.friendlyDue)
                             .foregroundStyle(.secondary)
@@ -38,22 +38,21 @@ struct TaskIndexView: View {
                                         RoundedRectangle(cornerRadius: 6)
                                             .fill(category.color.SwiftUIColor)
                                     )
-                                    .foregroundColor(.white)
+                                    .foregroundColor(category.color.contrastingTextColor)
                             }
                             Spacer()
                         }
 //                    }
                 }
             
-            // TODO: Fix, broken currently
-//            .swipeActions(edge: .leading) {
-//                Button {
-//                    context.delete(task)
-//                } label: {
-//                    Label("Complete", systemImage: "checkmark")
-//                }
-//                .tint(.green)
-//            }
+            .swipeActions(edge: .leading) {
+                Button {
+                    toDoStore.deleteToDoTask(toDoTask: task)
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+                .tint(.red)
+            }
             .swipeActions(edge: .trailing) {
                 Button {
                     selectedTask = task
@@ -115,13 +114,6 @@ struct AddTaskView: View {
                         MinutePickerView(selectedTimeInterval: $taskToAdd.pomodoroTime)
                     }
                     
-                    Toggle(isOn: $taskToAdd.pomodoro) {
-                        HStack {
-                            Text("🍅")
-                            Text("Enable Pomodoro")
-                        }
-                    }
-                    
                     Toggle(isOn: $taskToAdd.repeating) {
                         HStack {
                             Image(systemName: "repeat")
@@ -169,7 +161,7 @@ struct AddTaskView: View {
     container.mainContext.insert(personalCategory)
     
     // Create sample task with categories
-    let sampleTask = ToDoTask(name: "Sample Task")
+    let sampleTask = ToDoTask(name: "Sample Task", pomodoroTime: 20.0, repeating: true)
     sampleTask.categories = [workCategory]
     container.mainContext.insert(sampleTask)
     

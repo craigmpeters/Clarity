@@ -95,7 +95,7 @@ struct PomodoroLiveActivityWidget: Widget {
     PomodoroAttributes.ContentState(
         taskName: "Complete SwiftUI Project",
         startTime: Date(),
-        endTime: Date().addingTimeInterval(25 * 60)
+        endTime: Date().addingTimeInterval(20)
     )
 }
 

@@ -44,6 +44,15 @@ class Category {
             case .Orange: return .orange
             }
         }
+        
+        var contrastingTextColor: Color {
+            switch self {
+            case .Yellow, .Cyan, .Pink:
+                return .black
+            case .Red, .Blue, .Green, .Brown, .Orange:
+                return .white
+            }
+        }
     }
 }
 
