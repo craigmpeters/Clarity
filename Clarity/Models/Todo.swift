@@ -78,7 +78,7 @@ class ToDoStore {
         loadToDoTasks()
     }
     
-    private func loadToDoTasks() {
+    func loadToDoTasks() {
         do {
             let descriptor = FetchDescriptor<ToDoTask>(
                 sortBy: [SortDescriptor(\.created, order:.reverse)]

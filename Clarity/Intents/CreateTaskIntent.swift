@@ -8,7 +8,6 @@
 import Foundation
 import AppIntents
 
-// Update your CreateTaskIntent
 struct CreateTaskIntent: AppIntent {
     static var title: LocalizedStringResource = "Create Task"
     static var description = IntentDescription("Create a new task in Clarity")
@@ -27,14 +26,14 @@ struct CreateTaskIntent: AppIntent {
     var categories: [CategoryEntity]?
     
     func perform() async throws -> some IntentResult {
-        await SharedDataManager.shared.addTask(
+        await SharedDataActor.shared.addTask(
             name: taskName,
             duration: TimeInterval(duration * 60),
             repeating: isRepeating,
             categoryIds: categories?.map { $0.id } ?? []
         )
         
-        return .result(dialog: "Created task '\(taskName)'")
+        return .result()
     }
 }
 

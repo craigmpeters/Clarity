@@ -73,7 +73,12 @@ struct ContentView: View {
                 toDoStore = ToDoStore(modelContext: modelContext)
             }
         }
+        // In your TaskIndexView or ContentView
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            toDoStore?.loadToDoTasks() // Refresh the data when app becomes active
+        }
     }
+
 }
 
 // Placeholder views - replace with your actual views

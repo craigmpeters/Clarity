@@ -32,7 +32,7 @@ struct CategoryEntity: AppEntity {
 // Query provider for categories
 struct CategoryQuery: EntityQuery {
     func entities(for identifiers: [String]) async throws -> [CategoryEntity] { // Fixed typo
-        let categories = await SharedDataManager.shared.getCategories()
+        let categories = await SharedDataActor.shared.getCategories()
         return categories.compactMap { category in
             if identifiers.contains(category.id.storeIdentifier ?? "") { // Unwrap here too
                 return CategoryEntity(from: category)
@@ -42,7 +42,7 @@ struct CategoryQuery: EntityQuery {
     }
     
     func suggestedEntities() async throws -> [CategoryEntity] {
-        let categories = await SharedDataManager.shared.getCategories()
-        return categories.map { CategoryEntity(from: $0) } // Add this return statement
+        let categories = await SharedDataActor.shared.getCategories()
+        return categories.map { CategoryEntity(from: $0) }
     }
 }
