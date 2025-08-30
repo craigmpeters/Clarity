@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftData
 import UserNotifications
 import BackgroundTasks
+import AppIntents
 
 @main
 struct ClarityApp: App {
@@ -20,6 +21,10 @@ struct ClarityApp: App {
                 .modelContainer(for: [ToDoTask.self, Category.self])
         }
     }
+    
+    static var appShortcuts: AppShortcutsProvider.Type {
+            ClarityShortcuts.self
+        }
 }
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
