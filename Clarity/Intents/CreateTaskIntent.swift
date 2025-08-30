@@ -8,30 +8,36 @@
 import Foundation
 import AppIntents
 
+// Update your CreateTaskIntent
 struct CreateTaskIntent: AppIntent {
     static var title: LocalizedStringResource = "Create Task"
     static var description = IntentDescription("Create a new task in Clarity")
     static var openAppWhenRun: Bool = false
     
     @Parameter(title: "Task Name")
-    var taskName : String
+    var taskName: String
     
-    // ToDo: Settings
     @Parameter(title: "Duration (Minutes)", default: 5)
-    var duration : Int
+    var duration: Int
     
     @Parameter(title: "Repeating Task?", default: false)
     var isRepeating: Bool
     
-    func perform() async throws -> some IntentResult {
-        let newTask = ToDoTask(name: taskName)
-        newTask.pomodoroTime = TimeInterval(duration * 60)
-        newTask.repeating = isRepeating
-        
-        return .result()
-    }
+    @Parameter(title: "Categories")
+    var categories: [CategoryEntity]?
     
+    func perform() async throws -> some IntentResult {
+        await SharedDataManager.shared.addTask(
+            name: taskName,
+            duration: TimeInterval(duration * 60),
+            repeating: isRepeating,
+            categoryIds: categories?.map { $0.id } ?? []
+        )
+        
+        return .result(dialog: "Created task '\(taskName)'")
+    }
 }
+
 
 struct ClarityShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
