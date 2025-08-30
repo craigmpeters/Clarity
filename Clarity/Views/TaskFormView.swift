@@ -20,7 +20,6 @@ struct TaskFormView: View {
         editingTask != nil
     }
     
-    // TODO: Bug on this where it creates an empty task when you click on a task for the first time
     init(toDoStore: ToDoStore, task: ToDoTask? = nil) {
         self.toDoStore = toDoStore
         self.editingTask = task

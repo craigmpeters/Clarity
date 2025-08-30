@@ -88,6 +88,8 @@ struct TaskIndexView: View {
         .sheet(isPresented: $showingTaskForm, onDismiss: {
             taskToEdit = nil
         }) {
+            // Swift UI Evaluation Hack
+            [showingTaskForm] in
             TaskFormView(toDoStore: toDoStore, task: taskToEdit)
         }
     }
