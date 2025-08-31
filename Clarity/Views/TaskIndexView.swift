@@ -12,40 +12,65 @@ struct TaskIndexView: View {
     
     @State private var showingTaskForm = false
     @State private var taskToEdit: ToDoTask?
+    @State private var selectedFilter: ToDoStore.TaskFilter = .all
+    @State private var selectedCategory: Category?
+    @Query private var allCategories: [Category]
+    
+    private var filteredTasks: [ToDoTask] {
+        let filtered = toDoStore.toDoTasks.filter { task in
+            let dueDateMatches = selectedFilter.matches(task: task)
+            let categoryMatches = selectedCategory == nil ||
+            task.categories.contains { $0.name == selectedCategory?.name }
+            
+            print("Task: \(task.name)")
+            print("  Due: \(task.due)")
+            print("  Task categories: \(task.categories.map { $0.name })")  // Add this line
+            print("  Selected filter: \(selectedFilter.rawValue)")
+            print("  Due date matches: \(dueDateMatches)")
+            print("  Selected category: \(selectedCategory?.name ?? "nil")")
+            print("  Category matches: \(categoryMatches)")
+            print("  Overall match: \(dueDateMatches && categoryMatches)")
+            print("---")
+            
+            return dueDateMatches && categoryMatches
+        }
+        print("Total tasks: \(toDoStore.toDoTasks.count), Filtered: \(filtered.count)")
+        return filtered
+    }
 
     var body: some View {
-        List(toDoStore.toDoTasks, id: \.id) { task in
+        List(filteredTasks, id: \.id) { task in
             VStack(alignment: .leading, spacing: 6) {
-                    // First line - task info
-                    HStack {
-                        Text(task.name)
-                            .lineLimit(1)
-                        Spacer()
-                        if task.repeating {
-                            Image(systemName: "repeat")
-                        }
-                        Text(task.friendlyDue())
-                            .foregroundStyle(.secondary)
+                // First line - task info
+                HStack {
+                    Text(task.name)
+                        .lineLimit(1)
+                    Spacer()
+                    if task.repeating {
+                        Image(systemName: "repeat")
                     }
-                    
-                    // Second line - compact categories
-//                    if !task.categories.isEmpty {
-                        HStack(spacing: 6) {
-                            ForEach(task.categories) { category in
-                                Text(category.name)
-                                    .font(.caption2)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 2)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 6)
-                                            .fill(category.color.SwiftUIColor)
-                                    )
-                                    .foregroundColor(category.color.contrastingTextColor)
-                            }
-                            Spacer()
-                        }
-//                    }
+                    Text(task.friendlyDue())
+                        .foregroundStyle(.secondary)
                 }
+                    
+                // Second line - compact categories
+//                    if !task.categories.isEmpty {
+                HStack(spacing: 6) {
+                    ForEach(task.categories) { category in
+                        Text(category.name)
+                            .font(.caption2)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(category.color.SwiftUIColor)
+                            )
+                            .foregroundColor(category.color.contrastingTextColor)
+                    }
+                    Spacer()
+                }
+//                    }
+            }
             .contentShape(Rectangle())
             .onTapGesture {
                 taskToEdit = task
@@ -72,6 +97,54 @@ struct TaskIndexView: View {
             }
         }
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Menu {
+                    // Due date filters
+                    Section("Due Date") {
+                        ForEach(ToDoStore.TaskFilter.allCases, id: \.self) { filter in
+                            Button(action: { selectedFilter = filter }) {
+                                HStack {
+                                    Text(filter.rawValue)
+                                    if selectedFilter == filter {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                                
+                    // Category filters
+                    if !allCategories.isEmpty {
+                        Section("Category") {
+                            Button(action: { selectedCategory = nil }) {
+                                HStack {
+                                    Text("All Categories")
+                                    if selectedCategory == nil {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                                        
+                            ForEach(allCategories, id: \.id) { category in
+                                Button(action: { selectedCategory = category }) {
+                                    HStack {
+                                        Circle()
+                                            .fill(category.color.SwiftUIColor)
+                                            .frame(width: 12, height: 12)
+                                        Text(category.name)
+                                        if selectedCategory?.name == category.name {
+                                            Image(systemName: "checkmark")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    Image(systemName: "line.3.horizontal.decrease.circle")
+                        .foregroundStyle(.blue)
+                }
+            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
                     taskToEdit = nil
@@ -102,7 +175,6 @@ struct TaskIndexView: View {
         }
     }
 }
-
 
 #Preview {
     @Previewable @State var showingPomodoro = false

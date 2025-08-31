@@ -12,7 +12,7 @@ import SwiftUI
 @Model
 
 class Category {
-    var name: String
+    @Attribute(.unique) var name: String 
     var color: CategoryColor
     @Relationship(inverse: \ToDoTask.categories) var tasks: [ToDoTask] = []
     
