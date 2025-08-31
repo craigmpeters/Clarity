@@ -104,17 +104,6 @@ struct StatsView: View {
     }
 }
 
-struct SettingsView: View {
-    var body: some View {
-        VStack {
-            Text("Settings")
-                .font(.largeTitle)
-            Button("Fix Category Data") {
-            }
-        }
-    }
-}
-
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: ToDoTask.self, configurations: config)
