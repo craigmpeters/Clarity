@@ -16,6 +16,9 @@ class ToDoTask {
     var pomodoro: Bool
     var pomodoroTime: TimeInterval
     var repeating: Bool
+    var completed: Bool
+    var completedAt: Date?
+    
     @Relationship var categories: [Category] = []
     
     // TODO: Tags
@@ -43,6 +46,7 @@ class ToDoTask {
         self.pomodoroTime = pomodoroTime
         self.repeating = repeating
         self.categories = categories
+        self.completed = false
     }
 }
 
@@ -66,12 +70,16 @@ class ToDoStore {
     func scheduleTomorrow(toDoTask: ToDoTask) {
         guard !toDoTask.name.isEmpty else { return }
         toDoTask.due =  Date.now.addingTimeInterval(60 * 60 * 24)
+        addTodoTask(toDoTask: toDoTask)
+        toDoTask.completed = true
+        toDoTask.completedAt = Date.now
         saveContext()
         loadToDoTasks()
     }
     
-    func deleteToDoTask(toDoTask: ToDoTask) {
-        modelContext.delete(toDoTask)
+    func completeToDoTask(toDoTask: ToDoTask) {
+        toDoTask.completed = true
+        toDoTask.completedAt = Date.now
         saveContext()
         loadToDoTasks()
     }
@@ -94,6 +102,11 @@ class ToDoStore {
             print("Failed to save context: \(error.localizedDescription)")
         }
     }
+    
+    let descriptor = FetchDescriptor<ToDoTask>(
+        predicate: #Predicate { !$0.completed },
+        sortBy: [SortDescriptor(\.created, order: .reverse)]
+    )
     
     enum TaskFilter: String, CaseIterable {
         case all = "All Tasks"

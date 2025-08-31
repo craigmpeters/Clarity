@@ -44,7 +44,7 @@ class PomodoroCoordinator: ObservableObject {
         endLiveActivity()
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         if !task.repeating {
-            toDoStore.deleteToDoTask(toDoTask: task)
+            toDoStore.completeToDoTask(toDoTask: task)
         } else {
             toDoStore.scheduleTomorrow(toDoTask: task)
         }

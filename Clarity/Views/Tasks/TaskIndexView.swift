@@ -22,16 +22,6 @@ struct TaskIndexView: View {
             let categoryMatches = selectedCategory == nil ||
             task.categories.contains { $0.name == selectedCategory?.name }
             
-            print("Task: \(task.name)")
-            print("  Due: \(task.due)")
-            print("  Task categories: \(task.categories.map { $0.name })")  // Add this line
-            print("  Selected filter: \(selectedFilter.rawValue)")
-            print("  Due date matches: \(dueDateMatches)")
-            print("  Selected category: \(selectedCategory?.name ?? "nil")")
-            print("  Category matches: \(categoryMatches)")
-            print("  Overall match: \(dueDateMatches && categoryMatches)")
-            print("---")
-            
             return dueDateMatches && categoryMatches
         }
         print("Total tasks: \(toDoStore.toDoTasks.count), Filtered: \(filtered.count)")
@@ -79,7 +69,7 @@ struct TaskIndexView: View {
             
             .swipeActions(edge: .leading) {
                 Button {
-                    toDoStore.deleteToDoTask(toDoTask: task)
+                    toDoStore.completeToDoTask(toDoTask: task)
                 } label: {
                     Label("Delete", systemImage: "trash")
                 }

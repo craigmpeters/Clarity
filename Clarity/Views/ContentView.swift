@@ -93,17 +93,6 @@ struct TimerView: View {
     }
 }
 
-struct StatsView: View {
-    var body: some View {
-        VStack {
-            Text("Statistics")
-                .font(.largeTitle)
-            Text("Your productivity stats will go here")
-                .foregroundColor(.secondary)
-        }
-    }
-}
-
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: ToDoTask.self, configurations: config)
