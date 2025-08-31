@@ -26,6 +26,8 @@ struct CreateTaskIntent: AppIntent {
     var categories: [CategoryEntity]?
     
     func perform() async throws -> some IntentResult {
+        print("Received categoryIds: \(String(describing: categories))")
+        
         await SharedDataActor.shared.addTask(
             name: taskName,
             duration: TimeInterval(duration * 60),

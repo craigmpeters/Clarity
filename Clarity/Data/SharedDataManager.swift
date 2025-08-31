@@ -22,11 +22,18 @@ actor SharedDataActor {
     }
     
     func addTask(name: String, duration: TimeInterval, repeating: Bool, categoryIds: [String]) {
+        print("Data Manager: Category IDs: \(String(describing: categoryIds))")
         let task = ToDoTask(name: name)
         task.pomodoroTime = duration
         task.repeating = repeating
         
-        let categories = getCategories().filter { categoryIds.contains($0.id.storeIdentifier ?? "") }
+        let allCategories: [Category] = getCategories()
+        for category in allCategories {
+                print("  - Name: \(category.name), ID: \(category.id.storeIdentifier ?? "nil")")
+            }
+        let categories = getCategories().filter {
+            categoryIds.contains(String(describing: $0.id))
+        }
         task.categories = categories
         
         modelContext.insert(task)

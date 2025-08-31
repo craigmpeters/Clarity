@@ -23,7 +23,7 @@ struct CategoryEntity: AppEntity {
     let colorRawValue: String
     
     init(from category: Category) {
-        self.id = category.id.storeIdentifier ?? "unknown" // Unwrap with nil coalescing
+        self.id = String(describing: category.id)
         self.name = category.name
         self.colorRawValue = category.color.rawValue
     }
@@ -31,10 +31,10 @@ struct CategoryEntity: AppEntity {
 
 // Query provider for categories
 struct CategoryQuery: EntityQuery {
-    func entities(for identifiers: [String]) async throws -> [CategoryEntity] { // Fixed typo
+    func entities(for identifiers: [String]) async throws -> [CategoryEntity] {
         let categories = await SharedDataActor.shared.getCategories()
         return categories.compactMap { category in
-            if identifiers.contains(category.id.storeIdentifier ?? "") { // Unwrap here too
+            if identifiers.contains(String(describing: category.id)) {
                 return CategoryEntity(from: category)
             }
             return nil

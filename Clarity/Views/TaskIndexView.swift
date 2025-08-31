@@ -24,7 +24,7 @@ struct TaskIndexView: View {
                         if task.repeating {
                             Image(systemName: "repeat")
                         }
-                        Text(task.friendlyDue)
+                        Text(task.friendlyDue())
                             .foregroundStyle(.secondary)
                     }
                     

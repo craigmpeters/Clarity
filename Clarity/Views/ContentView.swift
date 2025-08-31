@@ -109,8 +109,8 @@ struct SettingsView: View {
         VStack {
             Text("Settings")
                 .font(.largeTitle)
-            Text("App settings will go here")
-                .foregroundColor(.secondary)
+            Button("Fix Category Data") {
+            }
         }
     }
 }

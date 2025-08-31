@@ -6,6 +6,8 @@ struct CategorySelectionView: View {
     @Query private var allCategories: [Category]
     @State private var showingAddCategory = false
     
+    
+    
     var body: some View {
         VStack(spacing: 8) {
             // Header row with label and add button
@@ -54,7 +56,12 @@ struct CategorySelectionView: View {
         .sheet(isPresented: $showingAddCategory) {
             AddCategoryView()
         }
+        .onAppear {
+            print("Available categories: \(allCategories.map { $0.id.storeIdentifier ?? "nil" })")
+        }
     }
+
+        
     
     private func toggleCategory(_ category: Category) {
         if let index = selectedCategories.firstIndex(where: { $0.id == category.id }) {
@@ -107,6 +114,8 @@ struct AddCategoryView: View {
     
     @State private var name = ""
     @State private var selectedColor: Category.CategoryColor = .Red
+    
+    
     
     var body: some View {
         NavigationView {
@@ -168,10 +177,14 @@ struct AddCategoryView: View {
     
     private func saveCategory() {
         let newCategory = Category(name: name, color: selectedColor)
+        print("Created category: \(name), ID before insert: \(newCategory.id)")
+        
         modelContext.insert(newCategory)
+        print("Category ID after insert: \(newCategory.id)")
         
         do {
             try modelContext.save()
+            print("Category ID after save: \(newCategory.id)")
             dismiss()
         } catch {
             print("Failed to save category: \(error)")
@@ -203,23 +216,23 @@ struct TaskCreationView: View {
     }
 }
 
-#Preview {
-    do {
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: Category.self, ToDoTask.self, configurations: config)
-        
-        let workCategory = Category(name: "Work", color: .Blue)
-        let personalCategory = Category(name: "Personal", color: .Green)
-        let urgentCategory = Category(name: "Urgent", color: .Red)
-        
-        container.mainContext.insert(workCategory)
-        container.mainContext.insert(personalCategory)
-        container.mainContext.insert(urgentCategory)
-        
-        return CategorySelectionView(selectedCategories: .constant([workCategory]))
-            .modelContainer(container)
-            .padding()
-    } catch {
-        return Text("Preview Error: \(error.localizedDescription)")
-    }
-}
+//#Preview {
+//    do {
+//        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+//        let container = try ModelContainer(for: Category.self, ToDoTask.self, configurations: config)
+//        
+//        let workCategory = Category(name: "Work", color: .Blue)
+//        let personalCategory = Category(name: "Personal", color: .Green)
+//        let urgentCategory = Category(name: "Urgent", color: .Red)
+//        
+//        container.mainContext.insert(workCategory)
+//        container.mainContext.insert(personalCategory)
+//        container.mainContext.insert(urgentCategory)
+//        
+//        return CategorySelectionView(selectedCategories: .constant([workCategory]))
+//            .modelContainer(container)
+//            .padding()
+//    } catch {
+//        return Text("Preview Error: \(error.localizedDescription)")
+//    }
+//}

@@ -20,7 +20,7 @@ class ToDoTask {
     
     // TODO: Tags
     
-    var friendlyDue: String {
+    func friendlyDue() -> String {
         switch due {
         case let date where Calendar.current.isDateInToday(date):
             return "Today"
@@ -35,16 +35,14 @@ class ToDoTask {
         }
     }
     
-    init(name: String, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, due: Date = Date.now, category: Category? = nil) {
+    init(name: String, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, due: Date = Date.now, categories: [Category] = []) {
         self.name = name
         self.created = Date.now
         self.due = due
         self.pomodoro = true // No longer an option
         self.pomodoroTime = pomodoroTime
         self.repeating = repeating
-        
-        guard let category else { return }
-        self.categories.append(category)
+        self.categories = categories
     }
 }
 
