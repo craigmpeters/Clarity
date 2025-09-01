@@ -1,5 +1,5 @@
 //
-//  AddTaskView.swift
+//  TaskFormView.swift
 //  Clarity
 //
 //  Created by Craig Peters on 29/08/2025.
@@ -13,10 +13,12 @@ struct TaskFormView: View {
     @Environment(\.dismiss) private var dismiss
     
     let editingTask: ToDoTask?
-    @State private var toDoTask : ToDoTask
+    @State private var toDoTask: ToDoTask
     @State private var selectedCategories: [Category] = []
+    @State private var selectedRecurrence: ToDoTask.RecurrenceInterval = .daily
+    @State private var customDays: Int = 1
     
-    private var isEditing : Bool{
+    private var isEditing: Bool {
         editingTask != nil
     }
     
@@ -27,23 +29,33 @@ struct TaskFormView: View {
         if let task = task {
             self._toDoTask = State(initialValue: task)
             self._selectedCategories = State(initialValue: task.categories)
+            self._selectedRecurrence = State(initialValue: task.recurrenceInterval ?? .daily)
+            self._customDays = State(initialValue: task.customRecurrenceDays)
         } else {
             self._toDoTask = State(initialValue: ToDoTask(name: ""))
             self._selectedCategories = State(initialValue: [])
+            self._selectedRecurrence = State(initialValue: .daily)
+            self._customDays = State(initialValue: 1)
         }
-        
     }
     
-    private func saveTask(){
+    private func saveTask() {
         withAnimation(.easeInOut(duration: 0.2)) {
             toDoTask.categories = selectedCategories
+            
+            // Set recurrence properties
+            if toDoTask.repeating {
+                toDoTask.recurrenceInterval = selectedRecurrence
+                toDoTask.customRecurrenceDays = customDays
+            } else {
+                toDoTask.recurrenceInterval = nil
+            }
             
             if isEditing {
                 toDoStore.saveContext()
             } else {
                 toDoStore.addTodoTask(toDoTask: toDoTask)
             }
-            
         }
         dismiss()
     }
@@ -72,6 +84,64 @@ struct TaskFormView: View {
                             Text("Repeating Task")
                         }
                     }
+                    
+                    // Show recurrence options when repeating is enabled
+                    if toDoTask.repeating {
+                        // Recurrence interval picker
+                        Picker(selection: $selectedRecurrence) {
+                            ForEach(ToDoTask.RecurrenceInterval.allCases, id: \.self) { interval in
+                                Text(interval.displayName)
+                                    .tag(interval)
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "calendar.badge.clock")
+                                    .foregroundStyle(.purple)
+                                Text("Repeat Interval")
+                            }
+                        }
+                        .pickerStyle(.wheel)
+                        .frame(maxHeight: 120)
+                        
+                        // Show custom days input if custom is selected
+                        if selectedRecurrence == .custom {
+                            HStack {
+                                Image(systemName: "calendar.badge.plus")
+                                    .foregroundStyle(.indigo)
+                                Text("Every")
+                                
+                                TextField("Days", value: $customDays, format: .number)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 60)
+                                    .keyboardType(.numberPad)
+                                    .onChange(of: customDays) { _, newValue in
+                                        // Ensure at least 1 day
+                                        if newValue < 1 {
+                                            customDays = 1
+                                        }
+                                    }
+                                
+                                Text(customDays == 1 ? "day" : "days")
+                                Spacer()
+                            }
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+                        
+                        // Preview of next occurrence
+                        if let nextDate = getNextOccurrenceDate() {
+                            HStack {
+                                Image(systemName: "arrow.right.circle.fill")
+                                    .foregroundStyle(.green)
+                                Text("Next occurrence")
+                                Spacer()
+                                Text(nextDate, style: .date)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .font(.subheadline)
+                            .padding(.vertical, 4)
+                        }
+                    }
+                    
                     CategorySelectionView(selectedCategories: $selectedCategories)
                 }
             }
@@ -92,6 +162,16 @@ struct TaskFormView: View {
                     .fontWeight(.semibold)
                 }
             }
+        }
+    }
+    
+    private func getNextOccurrenceDate() -> Date? {
+        guard toDoTask.repeating else { return nil }
+        
+        if selectedRecurrence == .custom {
+            return Calendar.current.date(byAdding: .day, value: customDays, to: toDoTask.due)
+        } else {
+            return selectedRecurrence.nextDate(from: toDoTask.due)
         }
     }
 }

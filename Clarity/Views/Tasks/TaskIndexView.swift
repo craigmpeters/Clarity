@@ -36,11 +36,7 @@ struct TaskIndexView: View {
                     Text(task.name)
                         .lineLimit(1)
                     Spacer()
-                    if task.repeating {
-                        Image(systemName: "repeat")
-                    }
-                    Text(task.friendlyDue())
-                        .foregroundStyle(.secondary)
+                    RecurrenceIndicatorBadge(task: task)
                 }
                     
                 // Second line - compact categories
@@ -58,6 +54,8 @@ struct TaskIndexView: View {
                             .foregroundColor(category.color.contrastingTextColor)
                     }
                     Spacer()
+                    Text(task.friendlyDue())
+                        .foregroundStyle(.secondary)
                 }
 //                    }
             }
