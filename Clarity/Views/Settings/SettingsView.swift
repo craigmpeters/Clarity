@@ -7,19 +7,16 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section("Categories") {
-                Button(action: { showingCategoryManagement = true }) {
+                NavigationLink(destination: CategorySettingsView()) {
                     HStack {
                         Image(systemName: "tag")
                             .foregroundColor(.blue)
-                        Text("Manage Categories")
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        Text("Manage Categories & Targets")
                     }
                 }
                 .foregroundColor(.primary)
             }
+            
             
             Section("General") {
                 HStack {

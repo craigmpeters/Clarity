@@ -21,7 +21,9 @@ struct CategorySelectionView: View {
             }
         }
         .sheet(isPresented: $showingAddCategory) {
-            AddCategoryView()
+            AddCategoryView(onCategoryCreated: { newCategory in
+                    selectedCategories.append(newCategory)
+                })
         }
         if !allCategories.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -91,19 +93,40 @@ struct AddCategoryView: View {
     
     @State private var name = ""
     @State private var selectedColor: Category.CategoryColor = .Red
+    @State private var weeklyTarget: Int = 0
+    
+    // Callback to notify parent when category is created
+    var onCategoryCreated: ((Category) -> Void)?
     
     var body: some View {
         NavigationView {
             Form {
                 Section("Category Details") {
                     TextField("Category Name", text: $name)
+                        .textFieldStyle(.roundedBorder)
+                }
+                
+                Section("Weekly Target") {
+                    HStack {
+                        Image(systemName: "target")
+                            .foregroundColor(.orange)
+                        Text("Tasks per week")
+                        Spacer()
+                        Stepper(value: $weeklyTarget, in: 0...50) {
+                            Text("\(weeklyTarget)")
+                                .frame(minWidth: 30)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
                 
                 Section("Color") {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 16) {
                         ForEach(Category.CategoryColor.allCases, id: \.self) { color in
                             Button(action: {
-                                selectedColor = color
+                                withAnimation(.easeInOut(duration: 0.15)) {
+                                    selectedColor = color
+                                }
                             }) {
                                 VStack(spacing: 4) {
                                     Circle()
@@ -119,6 +142,7 @@ struct AddCategoryView: View {
                                                 .stroke(Color.primary, lineWidth: 1)
                                                 .opacity(selectedColor == color ? 1 : 0)
                                         )
+                                        .scaleEffect(selectedColor == color ? 1.1 : 1.0)
                                     
                                     Text(color.rawValue)
                                         .font(.caption2)
@@ -145,21 +169,23 @@ struct AddCategoryView: View {
                         saveCategory()
                     }
                     .disabled(name.isEmpty)
+                    .fontWeight(.semibold)
                 }
             }
         }
     }
     
     private func saveCategory() {
-        let newCategory = Category(name: name, color: selectedColor)
-        print("Created category: \(name), ID before insert: \(newCategory.id)")
+        let newCategory = Category(name: name, color: selectedColor, weeklyTarget: weeklyTarget)
         
         modelContext.insert(newCategory)
-        print("Category ID after insert: \(newCategory.id)")
         
         do {
             try modelContext.save()
-            print("Category ID after save: \(newCategory.id)")
+            
+            // Call the callback to notify parent and auto-select
+            onCategoryCreated?(newCategory)
+            
             dismiss()
         } catch {
             print("Failed to save category: \(error)")
@@ -191,13 +217,13 @@ struct TaskCreationView: View {
     }
 }
 
- #Preview {
+#Preview {
     do {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: Category.self, ToDoTask.self, configurations: config)
+        let container = try ModelContainer(for: Category.self, ToDoTask.self, GlobalTargetSettings.self, configurations: config)
 
-        let workCategory = Category(name: "Work", color: .Blue)
-        let personalCategory = Category(name: "Personal", color: .Green)
+        let workCategory = Category(name: "Work", color: .Blue, weeklyTarget: 5)
+        let personalCategory = Category(name: "Personal", color: .Green, weeklyTarget: 3)
         let urgentCategory = Category(name: "Urgent", color: .Red)
 
         container.mainContext.insert(workCategory)
@@ -210,4 +236,4 @@ struct TaskCreationView: View {
     } catch {
         return Text("Preview Error: \(error.localizedDescription)")
     }
- }
+}

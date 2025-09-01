@@ -18,7 +18,7 @@ struct ClarityApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .modelContainer(for: [ToDoTask.self, Category.self])
+                .modelContainer(for: [ToDoTask.self, Category.self, GlobalTargetSettings.self])
         }
     }
     

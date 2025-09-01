@@ -108,6 +108,14 @@ struct StatsView: View {
                             .padding(.horizontal)
                     }
                     
+                    // Weekly Targets Progress - NEW SECTION
+                    // This replaces the old CategorySummaryView
+                    WeeklyTargetsProgressView(tasks: completedTasks)
+                        .padding(.horizontal)
+                    
+                    Divider()
+                        .padding(.horizontal)
+                    
                     // Category completion chart
                     CategoryCompletionChart(
                         tasks: filteredTasks,
@@ -127,10 +135,6 @@ struct StatsView: View {
                     )
                     .padding(.horizontal)
                     
-                    // Category summary with completion rates
-                    CategorySummaryView(tasks: allTasks, filteredTasks: filteredTasks)
-                        .padding(.horizontal)
-                    
                     // Streak tracking
                     StreakView(tasks: allTasks)
                         .padding(.horizontal)
@@ -143,6 +147,11 @@ struct StatsView: View {
                     Menu {
                         Button(action: { exportStats() }) {
                             Label("Export Stats", systemImage: "square.and.arrow.up")
+                        }
+                        
+                        // Add quick link to settings
+                        NavigationLink(destination: CategorySettingsView()) {
+                            Label("Manage Targets", systemImage: "target")
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
