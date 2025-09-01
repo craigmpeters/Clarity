@@ -75,7 +75,7 @@ class ToDoTask {
         case custom = "Custom"
         
         var displayName: String {
-            return self.rawValue
+            return rawValue
         }
         
         func nextDate(from date: Date) -> Date {
@@ -149,12 +149,12 @@ class ToDoStore {
     
     // Complete ToDoTask when it is something where it is done
     func completeToDoTask(toDoTask: ToDoTask) {
+        toDoTask.completed = true
+        toDoTask.completedAt = Date.now
         if toDoTask.repeating {
             let nextTask = createNextOccurrence(from: toDoTask)
             modelContext.insert(nextTask)
         }
-        toDoTask.completed = true
-        toDoTask.completedAt = Date.now
         saveContext()
         loadToDoTasks()
     }
@@ -168,7 +168,8 @@ class ToDoStore {
     func loadToDoTasks() {
         do {
             let descriptor = FetchDescriptor<ToDoTask>(
-                sortBy: [SortDescriptor(\.created, order:.reverse)]
+                predicate: #Predicate { !$0.completed },
+                sortBy: [SortDescriptor(\.due, order: .forward)]
             )
             toDoTasks = try modelContext.fetch(descriptor)
         } catch {
@@ -186,7 +187,7 @@ class ToDoStore {
     
     let descriptor = FetchDescriptor<ToDoTask>(
         predicate: #Predicate { !$0.completed },
-        sortBy: [SortDescriptor(\.created, order: .reverse)]
+        sortBy: [SortDescriptor(\.due, order: .forward)]
     )
     
     enum TaskFilter: String, CaseIterable {
@@ -213,6 +214,4 @@ class ToDoStore {
             }
         }
     }
-    
-
 }
