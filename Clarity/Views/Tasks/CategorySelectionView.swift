@@ -1,68 +1,45 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct CategorySelectionView: View {
     @Binding var selectedCategories: [Category]
     @Query private var allCategories: [Category]
     @State private var showingAddCategory = false
     
-    
-    
     var body: some View {
-        VStack(spacing: 8) {
-            // Header row with label and add button
-            HStack {
-                Text("Categories")
+        HStack {
+            Image(systemName: "tag")
+                .foregroundColor(.blue)
+            Text("Categories")
+                
+            Spacer()
+                
+            Button(action: { showingAddCategory = true }) {
+                Image(systemName: "plus")
                     .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.secondary)
-                
-                Spacer()
-                
-                Button(action: { showingAddCategory = true }) {
-                    Image(systemName: "plus")
-                        .font(.subheadline)
-                        .foregroundColor(.blue)
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(.systemGray6))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color(.systemGray4), lineWidth: 0.5)
-                    )
-            )
-            
-            // Categories row
-            if !allCategories.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(allCategories) { category in
-                            CategoryChip(
-                                category: category,
-                                isSelected: selectedCategories.contains { $0.id == category.id }
-                            ) {
-                                toggleCategory(category)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 12)
-                }
+                    .foregroundColor(.blue)
             }
         }
         .sheet(isPresented: $showingAddCategory) {
             AddCategoryView()
         }
-        .onAppear {
-            print("Available categories: \(allCategories.map { $0.id.storeIdentifier ?? "nil" })")
+        if !allCategories.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(allCategories) { category in
+                        CategoryChip(
+                            category: category,
+                            isSelected: selectedCategories.contains { $0.id == category.id }
+                        ) {
+                            toggleCategory(category)
+                        }
+                    }
+                }
+                .padding(.horizontal, 12)
+            }
         }
     }
 
-        
-    
     private func toggleCategory(_ category: Category) {
         if let index = selectedCategories.firstIndex(where: { $0.id == category.id }) {
             selectedCategories.remove(at: index)
@@ -114,8 +91,6 @@ struct AddCategoryView: View {
     
     @State private var name = ""
     @State private var selectedColor: Category.CategoryColor = .Red
-    
-    
     
     var body: some View {
         NavigationView {
@@ -216,23 +191,23 @@ struct TaskCreationView: View {
     }
 }
 
-//#Preview {
-//    do {
-//        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-//        let container = try ModelContainer(for: Category.self, ToDoTask.self, configurations: config)
-//        
-//        let workCategory = Category(name: "Work", color: .Blue)
-//        let personalCategory = Category(name: "Personal", color: .Green)
-//        let urgentCategory = Category(name: "Urgent", color: .Red)
-//        
-//        container.mainContext.insert(workCategory)
-//        container.mainContext.insert(personalCategory)
-//        container.mainContext.insert(urgentCategory)
-//        
-//        return CategorySelectionView(selectedCategories: .constant([workCategory]))
-//            .modelContainer(container)
-//            .padding()
-//    } catch {
-//        return Text("Preview Error: \(error.localizedDescription)")
-//    }
-//}
+ #Preview {
+    do {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: Category.self, ToDoTask.self, configurations: config)
+
+        let workCategory = Category(name: "Work", color: .Blue)
+        let personalCategory = Category(name: "Personal", color: .Green)
+        let urgentCategory = Category(name: "Urgent", color: .Red)
+
+        container.mainContext.insert(workCategory)
+        container.mainContext.insert(personalCategory)
+        container.mainContext.insert(urgentCategory)
+
+        return CategorySelectionView(selectedCategories: .constant([workCategory]))
+            .modelContainer(container)
+            .padding()
+    } catch {
+        return Text("Preview Error: \(error.localizedDescription)")
+    }
+ }

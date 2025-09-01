@@ -69,7 +69,7 @@ struct TaskIndexView: View {
             
             .swipeActions(edge: .leading) {
                 Button {
-                    toDoStore.completeToDoTask(toDoTask: task)
+                    toDoStore.deleteToDoTask(toDoTask: task)
                 } label: {
                     Label("Delete", systemImage: "trash")
                 }
@@ -84,7 +84,17 @@ struct TaskIndexView: View {
                 } label: {
                     Label("Start Timer", systemImage: "timer")
                 }
+                .tint(.blue)
             }
+            .swipeActions(edge: .trailing) {
+                Button {
+                    toDoStore.completeToDoTask(toDoTask: task)
+                } label: {
+                    Label("Complete", systemImage: "checkmark")
+                }
+                .tint(.green)
+            }
+
         }
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {

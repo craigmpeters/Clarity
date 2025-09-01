@@ -77,9 +77,20 @@ class ToDoStore {
         loadToDoTasks()
     }
     
+    // Complete ToDoTask when it is something where it is done
     func completeToDoTask(toDoTask: ToDoTask) {
+        if toDoTask.repeating {
+            scheduleTomorrow(toDoTask: toDoTask)
+            return
+        }
         toDoTask.completed = true
         toDoTask.completedAt = Date.now
+        saveContext()
+        loadToDoTasks()
+    }
+    
+    func deleteToDoTask(toDoTask: ToDoTask) {
+        modelContext.delete(toDoTask)
         saveContext()
         loadToDoTasks()
     }
