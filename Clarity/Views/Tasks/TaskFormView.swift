@@ -7,6 +7,9 @@
 
 import SwiftData
 import SwiftUI
+#if canImport(FoundationModels)
+import FoundationModels
+#endif
 
 struct TaskFormView: View {
     @Bindable var toDoStore: ToDoStore
@@ -66,6 +69,9 @@ struct TaskFormView: View {
                 Section("Task Details") {
                     TextField("Task name", text: $toDoTask.name)
                         .textFieldStyle(.roundedBorder)
+                }
+                if #available(iOS 26.0, *) {
+                    aiSplitterSection
                 }
                 
                 Section("Task Settings") {
@@ -172,6 +178,49 @@ struct TaskFormView: View {
             return Calendar.current.date(byAdding: .day, value: customDays, to: toDoTask.due)
         } else {
             return selectedRecurrence.nextDate(from: toDoTask.due)
+        }
+    }
+}
+
+@available(iOS 26.0, *)
+extension TaskFormView {
+
+    @ViewBuilder
+    var aiSplitterSection: some View {
+        if #available(iOS 26.0, *) {
+            if (SystemLanguageModel.default.isAvailable) {
+                Section {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Need help breaking this down?")
+                                .font(.subheadline)
+                            Text("AI can suggest subtasks")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        TaskSplitterView(
+                            taskName: $toDoTask.name,
+                            toDoStore: toDoStore
+                        )
+                        .disabled(toDoTask.name.isEmpty)
+                    }
+                } footer: {
+                    Text("Requires iOS 26 or later • Powered by Apple Intelligence")
+                        .font(.caption2)
+                }
+            } else if (SystemLanguageModel.default.availability == .unavailable(.modelNotReady)) {
+                Section {
+                    HStack {
+                        Label("Apple Intelligence has not finished downloading. Come back soon for the ability to split tasks", systemImage: "apple.intelligence")
+                        .font(.caption2)
+                        
+                    }
+                }
+            }
+            
         }
     }
 }
