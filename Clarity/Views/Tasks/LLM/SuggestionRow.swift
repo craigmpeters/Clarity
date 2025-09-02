@@ -36,12 +36,11 @@ struct SuggestionRow: View {
                                 .font(.caption)
                                 .foregroundStyle(.orange)
                             
-                            Stepper(value: $suggestion.estimatedMinutes, in: 5...120, step: 5) {
+                            Stepper(value: $suggestion.estimatedMinutes, in: 5...25, step: 5) {
                                 Text("\(suggestion.estimatedMinutes) min")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
-                            .labelsHidden()
                         }
                         
                         Divider()
