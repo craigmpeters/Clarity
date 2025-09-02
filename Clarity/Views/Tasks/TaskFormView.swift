@@ -221,7 +221,7 @@ struct TaskFormView: View {
         guard toDoTask.repeating else { return nil }
         
         if selectedRecurrence == .custom {
-            return Calendar.current.date(byAdding: .day, value: customDays, to: toDoTask.due)
+            return Calendar.current.date(byAdding: .day, value: customDays, to: dueDate)
         } else {
             return selectedRecurrence.nextDate(from: toDoTask.due)
         }
