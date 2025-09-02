@@ -1,5 +1,5 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 @available(iOS 26.0, *)
 struct TaskSplitterSheet: View {
@@ -10,6 +10,9 @@ struct TaskSplitterSheet: View {
     @StateObject private var splitter = TaskSplitterService()
     @State private var suggestions: [SplitTaskSuggestion] = []
     @Environment(\.dismiss) private var dismiss
+    @Query private var allCategories: [Category]
+    @State private var applyCategoriesToAll = false
+    @State private var globalCategories: [Category] = []
     
     var body: some View {
         NavigationView {
@@ -27,6 +30,32 @@ struct TaskSplitterSheet: View {
                 .background(Color(.systemBackground))
                 
                 Divider()
+                // Category application toggle
+                if !allCategories.isEmpty && !suggestions.isEmpty {
+                    VStack(spacing: 12) {
+                        Toggle("Apply categories to all tasks", isOn: $applyCategoriesToAll)
+                            .font(.subheadline)
+                        
+                        if applyCategoriesToAll {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(allCategories) { category in
+                                        CategoryChip(
+                                            category: category,
+                                            isSelected: globalCategories.contains { $0.id == category.id }
+                                        ) {
+                                            toggleGlobalCategory(category)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(Color(.secondarySystemBackground))
+                    
+                    Divider()
+                }
                 
                 // Content
                 if splitter.isProcessing {
@@ -43,7 +72,10 @@ struct TaskSplitterSheet: View {
                     ScrollView {
                         VStack(spacing: 12) {
                             ForEach($suggestions) { $suggestion in
-                                SuggestionRow(suggestion: $suggestion)
+                                SuggestionRow(suggestion: $suggestion,
+                                              allCategories: allCategories,
+                                              applyGlobalCategories: applyCategoriesToAll,
+                                              globalCategories: globalCategories)
                             }
                         }
                         .padding()
@@ -64,10 +96,6 @@ struct TaskSplitterSheet: View {
                     .padding()
                     Spacer()
                 }
-                
-                Divider()
-                
-                Text(splitter.appleIntelligenceResponse?.debugDescription ?? "No additional information available")
                 
                 Divider()
                 
@@ -117,23 +145,37 @@ struct TaskSplitterSheet: View {
     
     private func createSelectedTasks() {
         let selected = suggestions.filter(\.isSelected)
-        
+            
         for (index, suggestion) in selected.enumerated() {
             let dueDate = Calendar.current.date(
                 byAdding: .day,
                 value: index,
                 to: Date()
             ) ?? Date()
-            
+                
             let task = ToDoTask(
                 name: suggestion.name,
                 pomodoroTime: TimeInterval(suggestion.estimatedMinutes * 60),
-                due: dueDate
+                due: dueDate,
+                categories: applyCategoriesToAll ? globalCategories : suggestion.selectedCategories
             )
-            
+                
             toDoStore.addTodoTask(toDoTask: task)
         }
-        
+            
         dismiss()
+    }
+
+    private func toggleGlobalCategory(_ category: Category) {
+        if let index = globalCategories.firstIndex(where: { $0.id == category.id }) {
+            globalCategories.remove(at: index)
+        } else {
+            globalCategories.append(category)
+        }
+        
+        // Update all selected suggestions with global categories
+        for index in suggestions.indices where suggestions[index].isSelected {
+            suggestions[index].selectedCategories = globalCategories
+        }
     }
 }

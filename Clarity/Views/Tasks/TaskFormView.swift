@@ -223,7 +223,7 @@ struct TaskFormView: View {
         if selectedRecurrence == .custom {
             return Calendar.current.date(byAdding: .day, value: customDays, to: dueDate)
         } else {
-            return selectedRecurrence.nextDate(from: toDoTask.due)
+            return selectedRecurrence.nextDate(from: dueDate)
         }
     }
     

@@ -1,9 +1,8 @@
-// Updated Category.swift with weekly targets
-import Foundation
-import SwiftData
-import SwiftUI
+// CategorySettingsView.swift with full edit capabilities
 
-// MARK: - Category Settings View with Targets
+import SwiftUI
+import SwiftData
+
 struct CategorySettingsView: View {
     @Query private var categories: [Category]
     @Query private var globalSettings: [GlobalTargetSettings]
@@ -34,6 +33,9 @@ struct CategorySettingsView: View {
                                     .frame(width: 50)
                                     .multilineTextAlignment(.center)
                                     .keyboardType(.numberPad)
+                                Text("tasks")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -47,7 +49,12 @@ struct CategorySettingsView: View {
                 // Individual Category Targets
                 Section {
                     ForEach(categories) { category in
-                        CategoryTargetRow(category: category)
+                        CategoryTargetRow(
+                            category: category,
+                            onEdit: {
+                                editingCategory = category
+                            }
+                        )
                     }
                     .onDelete(perform: deleteCategories)
                     
@@ -58,7 +65,7 @@ struct CategorySettingsView: View {
                 } header: {
                     Text("Category Targets")
                 } footer: {
-                    Text("Set individual weekly targets for each category. Week resets on Monday.")
+                    Text("Tap a category to edit name and color. Adjust targets with +/- buttons.")
                         .font(.caption)
                 }
                 
@@ -84,11 +91,6 @@ struct CategorySettingsView: View {
                 }
             }
             .navigationTitle("Categories & Targets")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    EditButton()
-                }
-            }
             .onAppear {
                 loadGlobalSettings()
             }
@@ -108,7 +110,6 @@ struct CategorySettingsView: View {
         if let settings = currentGlobalSettings {
             globalTarget = settings.weeklyGlobalTarget
         } else {
-            // Create default settings if none exist
             let settings = GlobalTargetSettings()
             modelContext.insert(settings)
             try? modelContext.save()
@@ -133,24 +134,35 @@ struct CategorySettingsView: View {
     }
 }
 
-// MARK: - Category Target Row
+// Updated CategoryTargetRow with edit button
 struct CategoryTargetRow: View {
     @Bindable var category: Category
     @Environment(\.modelContext) private var modelContext
+    let onEdit: () -> Void
     
     var body: some View {
         HStack {
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(category.color.SwiftUIColor)
-                    .frame(width: 16, height: 16)
-                
-                Text(category.name)
-                    .fontWeight(.medium)
+            // Tappable category info
+            Button(action: onEdit) {
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(category.color.SwiftUIColor)
+                        .frame(width: 16, height: 16)
+                    
+                    Text(category.name)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.primary)
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
             }
+            .buttonStyle(.plain)
             
             Spacer()
             
+            // Target adjustment buttons
             HStack(spacing: 4) {
                 Button(action: { decrementTarget() }) {
                     Image(systemName: "minus.circle")
@@ -190,232 +202,127 @@ struct CategoryTargetRow: View {
     }
 }
 
-// MARK: - Weekly Targets Progress View for Stats
-struct WeeklyTargetsProgressView: View {
-    let tasks: [ToDoTask] // Completed tasks for the current week
-    @Query private var categories: [Category]
-    @Query private var globalSettings: [GlobalTargetSettings]
+// Edit Category View for name and color
+struct EditCategoryView: View {
+    @Bindable var category: Category
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     
-    private var currentWeekStart: Date {
-        let calendar = Calendar.current
-        let now = Date()
-        // Get start of week (Monday)
-        var components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
-        components.weekday = 2 // Monday
-        return calendar.date(from: components) ?? now
-    }
+    @State private var name: String
+    @State private var selectedColor: Category.CategoryColor
+    @State private var weeklyTarget: Int
     
-    private var tasksThisWeek: [ToDoTask] {
-        tasks.filter { task in
-            guard let completedAt = task.completedAt else { return false }
-            return completedAt >= currentWeekStart
-        }
-    }
-    
-    private var globalTarget: Int {
-        globalSettings.first?.weeklyGlobalTarget ?? 0
-    }
-    
-    private var totalCompletedThisWeek: Int {
-        tasksThisWeek.count
-    }
-    
-    private var categoryProgress: [(category: Category, completed: Int, target: Int, progress: Double)] {
-        categories.compactMap { category in
-            let completed = tasksThisWeek.filter { task in
-                task.categories.contains(category)
-            }.count
-            
-            let target = category.weeklyTarget
-            let progress = target > 0 ? Double(completed) / Double(target) : 0
-            
-            // Only show categories with targets set
-            if target > 0 {
-                return (category, completed, target, min(progress, 1.0))
-            }
-            return nil
-        }.sorted { $0.progress > $1.progress }
+    init(category: Category) {
+        self.category = category
+        self._name = State(initialValue: category.name)
+        self._selectedColor = State(initialValue: category.color)
+        self._weeklyTarget = State(initialValue: category.weeklyTarget)
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Header with week dates
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Weekly Targets")
-                        .font(.headline)
-                    Text(weekDateRange)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+        NavigationView {
+            Form {
+                Section("Category Name") {
+                    TextField("Category Name", text: $name)
+                        .textFieldStyle(.roundedBorder)
                 }
-                Spacer()
                 
-                // Days remaining in week
-                Text("\(daysRemainingInWeek) days left")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.secondary.opacity(0.1))
-                    .cornerRadius(8)
-            }
-            
-            // Global Progress (if set)
-            if globalTarget > 0 {
-                VStack(alignment: .leading, spacing: 8) {
+                Section("Weekly Target") {
                     HStack {
-                        Label("Overall Progress", systemImage: "target")
-                            .font(.subheadline)
+                        Image(systemName: "target")
                             .foregroundStyle(.orange)
-                        
+                        Text("Tasks per week")
                         Spacer()
-                        
-                        Text("\(totalCompletedThisWeek) / \(globalTarget)")
-                            .font(.system(.subheadline, design: .monospaced))
-                            .fontWeight(.medium)
-                    }
-                    
-                    GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.secondary.opacity(0.2))
-                                .frame(height: 24)
-                            
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(progressColor(for: Double(totalCompletedThisWeek) / Double(globalTarget)))
-                                .frame(
-                                    width: geometry.size.width * min(Double(totalCompletedThisWeek) / Double(globalTarget), 1.0),
-                                    height: 24
-                                )
-                            
-                            Text("\(Int(min(Double(totalCompletedThisWeek) / Double(globalTarget), 1.0) * 100))%")
-                                .font(.caption.bold())
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 8)
+                        Stepper(value: $weeklyTarget, in: 0...50) {
+                            Text("\(weeklyTarget)")
+                                .frame(minWidth: 30)
+                                .foregroundStyle(.secondary)
                         }
                     }
-                    .frame(height: 24)
                 }
-                .padding()
-                .background(Color.orange.opacity(0.1))
-                .cornerRadius(12)
+                
+                Section("Color") {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 16) {
+                        ForEach(Category.CategoryColor.allCases, id: \.self) { color in
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.15)) {
+                                    selectedColor = color
+                                }
+                            }) {
+                                VStack(spacing: 4) {
+                                    Circle()
+                                        .fill(color.SwiftUIColor)
+                                        .frame(width: 32, height: 32)
+                                        .overlay(
+                                            Circle()
+                                                .stroke(Color.white, lineWidth: 2)
+                                                .opacity(selectedColor == color ? 1 : 0)
+                                        )
+                                        .overlay(
+                                            Circle()
+                                                .stroke(Color.primary, lineWidth: 1)
+                                                .opacity(selectedColor == color ? 1 : 0)
+                                        )
+                                        .scaleEffect(selectedColor == color ? 1.1 : 1.0)
+                                    
+                                    Text(color.rawValue)
+                                        .font(.caption2)
+                                        .foregroundColor(selectedColor == color ? color.SwiftUIColor : .secondary)
+                                }
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                    }
+                    .padding(.vertical, 8)
+                }
+                
+                Section("Preview") {
+                    HStack {
+                        Circle()
+                            .fill(selectedColor.SwiftUIColor)
+                            .frame(width: 20, height: 20)
+                        Text(name.isEmpty ? "Category Name" : name)
+                            .foregroundColor(name.isEmpty ? .secondary : .primary)
+                        Spacer()
+                        if weeklyTarget > 0 {
+                            Text("\(weeklyTarget) / week")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
             }
-            
-            // Category Progress
-            if !categoryProgress.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(categoryProgress, id: \.category.id) { item in
-                        CategoryProgressRow(
-                            category: item.category,
-                            completed: item.completed,
-                            target: item.target,
-                            progress: item.progress
-                        )
+            .navigationTitle("Edit Category")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
                     }
                 }
-            } else if globalTarget == 0 {
-                // No targets set
-                VStack(spacing: 12) {
-                    Image(systemName: "target")
-                        .font(.largeTitle)
-                        .foregroundStyle(.secondary)
-                    
-                    Text("No weekly targets set")
-                        .font(.headline)
-                    
-                    Text("Set targets in Category Settings")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        saveChanges()
+                    }
+                    .disabled(name.isEmpty)
+                    .fontWeight(.semibold)
                 }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(12)
             }
         }
     }
     
-    private var weekDateRange: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d"
-        let endOfWeek = Calendar.current.date(byAdding: .day, value: 6, to: currentWeekStart) ?? Date()
-        return "\(formatter.string(from: currentWeekStart)) - \(formatter.string(from: endOfWeek))"
-    }
-    
-    private var daysRemainingInWeek: Int {
-        let calendar = Calendar.current
-        let now = Date()
-        let endOfWeek = calendar.date(byAdding: .day, value: 6, to: currentWeekStart) ?? now
-        let days = calendar.dateComponents([.day], from: now, to: endOfWeek).day ?? 0
-        return max(0, days + 1) // +1 to include today
-    }
-    
-    private func progressColor(for progress: Double) -> Color {
-        if progress >= 1.0 { return .green }
-        if progress >= 0.7 { return .blue }
-        if progress >= 0.4 { return .orange }
-        return .red
-    }
-}
-
-// MARK: - Category Progress Row
-struct CategoryProgressRow: View {
-    let category: Category
-    let completed: Int
-    let target: Int
-    let progress: Double
-    
-    private var progressColor: Color {
-        if progress >= 1.0 { return .green }
-        if progress >= 0.7 { return .blue }
-        if progress >= 0.4 { return .orange }
-        return .red
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(category.color.SwiftUIColor)
-                        .frame(width: 12, height: 12)
-                    
-                    Text(category.name)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                }
-                
-                Spacer()
-                
-                HStack(spacing: 4) {
-                    Text("\(completed) / \(target)")
-                        .font(.system(.caption, design: .monospaced))
-                    
-                    if progress >= 1.0 {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.green)
-                    }
-                }
-            }
-            
-            // Progress bar
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.secondary.opacity(0.2))
-                        .frame(height: 8)
-                    
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(progressColor)
-                        .frame(
-                            width: geometry.size.width * min(progress, 1.0),
-                            height: 8
-                        )
-                }
-            }
-            .frame(height: 8)
+    private func saveChanges() {
+        category.name = name
+        category.color = selectedColor
+        category.weeklyTarget = weeklyTarget
+        
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            print("Failed to save category changes: \(error)")
         }
-        .padding(.vertical, 4)
     }
 }

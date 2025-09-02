@@ -13,6 +13,7 @@ struct SplitTaskSuggestion: Identifiable {
     var name: String
     var estimatedMinutes: Int
     var isSelected: Bool = true
+    var selectedCategories: [Category] = []
 }
 
 // MARK: - AI Task Splitter Service
@@ -21,7 +22,6 @@ class TaskSplitterService: ObservableObject {
     @Published var isProcessing = false
     @Published var suggestions: [SplitTaskSuggestion] = []
     @Published var error: String?
-    @Published var appleIntelligenceResponse: String?
     
     
     func splitTask(_ taskName: String) async {
@@ -53,8 +53,6 @@ class TaskSplitterService: ObservableObject {
                 to: prompt,
                 options: options
             )
-            
-            appleIntelligenceResponse = response.content
             
             // Parse the response into suggestions
             let parsedSuggestions = parseResponse(response.content, taskName: taskName)

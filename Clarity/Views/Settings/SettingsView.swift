@@ -153,103 +153,103 @@ struct CategoryManagementView: View {
     }
 }
 
-struct EditCategoryView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
-    @Query private var allCategories: [Category]
-    
-    let category: Category
-    @State private var name: String
-    @State private var selectedColor: Category.CategoryColor
-    
-    init(category: Category) {
-        self.category = category
-        self._name = State(initialValue: category.name)
-        self._selectedColor = State(initialValue: category.color)
-    }
-    
-    private var isNameValid: Bool {
-        !name.isEmpty && (name == category.name || !allCategories.contains { $0.name.lowercased() == name.lowercased() })
-    }
-    
-    var body: some View {
-        NavigationView {
-            Form {
-                Section("Category Details") {
-                    TextField("Category Name", text: $name)
-                }
-                
-                Section("Color") {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 16) {
-                        ForEach(Category.CategoryColor.allCases, id: \.self) { color in
-                            Button(action: {
-                                selectedColor = color
-                            }) {
-                                VStack(spacing: 4) {
-                                    Circle()
-                                        .fill(color.SwiftUIColor)
-                                        .frame(width: 32, height: 32)
-                                        .overlay(
-                                            Circle()
-                                                .stroke(Color.white, lineWidth: 2)
-                                                .opacity(selectedColor == color ? 1 : 0)
-                                        )
-                                        .overlay(
-                                            Circle()
-                                                .stroke(Color.primary, lineWidth: 1)
-                                                .opacity(selectedColor == color ? 1 : 0)
-                                        )
-                                    
-                                    Text(color.rawValue)
-                                        .font(.caption2)
-                                        .foregroundColor(selectedColor == color ? color.SwiftUIColor : .secondary)
-                                }
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                        }
-                    }
-                    .padding(.vertical, 8)
-                }
-                
-                if category.tasks.count > 0 {
-                    Section {
-                        Text("This category is used by \(category.tasks.count) task\(category.tasks.count == 1 ? "" : "s")")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            .navigationTitle("Edit Category")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        saveChanges()
-                    }
-                    .disabled(!isNameValid)
-                }
-            }
-        }
-    }
-    
-    private func saveChanges() {
-        category.name = name
-        category.color = selectedColor
-        
-        do {
-            try modelContext.save()
-            dismiss()
-        } catch {
-            print("Failed to update category: \(error)")
-        }
-    }
-}
+//struct EditCategoryView: View {
+//    @Environment(\.modelContext) private var modelContext
+//    @Environment(\.dismiss) private var dismiss
+//    @Query private var allCategories: [Category]
+//    
+//    let category: Category
+//    @State private var name: String
+//    @State private var selectedColor: Category.CategoryColor
+//    
+//    init(category: Category) {
+//        self.category = category
+//        self._name = State(initialValue: category.name)
+//        self._selectedColor = State(initialValue: category.color)
+//    }
+//    
+//    private var isNameValid: Bool {
+//        !name.isEmpty && (name == category.name || !allCategories.contains { $0.name.lowercased() == name.lowercased() })
+//    }
+//    
+//    var body: some View {
+//        NavigationView {
+//            Form {
+//                Section("Category Details") {
+//                    TextField("Category Name", text: $name)
+//                }
+//                
+//                Section("Color") {
+//                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 16) {
+//                        ForEach(Category.CategoryColor.allCases, id: \.self) { color in
+//                            Button(action: {
+//                                selectedColor = color
+//                            }) {
+//                                VStack(spacing: 4) {
+//                                    Circle()
+//                                        .fill(color.SwiftUIColor)
+//                                        .frame(width: 32, height: 32)
+//                                        .overlay(
+//                                            Circle()
+//                                                .stroke(Color.white, lineWidth: 2)
+//                                                .opacity(selectedColor == color ? 1 : 0)
+//                                        )
+//                                        .overlay(
+//                                            Circle()
+//                                                .stroke(Color.primary, lineWidth: 1)
+//                                                .opacity(selectedColor == color ? 1 : 0)
+//                                        )
+//                                    
+//                                    Text(color.rawValue)
+//                                        .font(.caption2)
+//                                        .foregroundColor(selectedColor == color ? color.SwiftUIColor : .secondary)
+//                                }
+//                            }
+//                            .buttonStyle(PlainButtonStyle())
+//                        }
+//                    }
+//                    .padding(.vertical, 8)
+//                }
+//                
+//                if category.tasks.count > 0 {
+//                    Section {
+//                        Text("This category is used by \(category.tasks.count) task\(category.tasks.count == 1 ? "" : "s")")
+//                            .font(.caption)
+//                            .foregroundColor(.secondary)
+//                    }
+//                }
+//            }
+//            .navigationTitle("Edit Category")
+//            .navigationBarTitleDisplayMode(.inline)
+//            .toolbar {
+//                ToolbarItem(placement: .navigationBarLeading) {
+//                    Button("Cancel") {
+//                        dismiss()
+//                    }
+//                }
+//                
+//                ToolbarItem(placement: .navigationBarTrailing) {
+//                    Button("Save") {
+//                        saveChanges()
+//                    }
+//                    .disabled(!isNameValid)
+//                }
+//            }
+//        }
+//    }
+//    
+//    private func saveChanges() {
+//        category.name = name
+//        category.color = selectedColor
+//        
+//        do {
+//            try modelContext.save()
+//            dismiss()
+//        } catch {
+//            print("Failed to update category: \(error)")
+//        }
+//    }
+//}
 
 #Preview {
     SettingsView()

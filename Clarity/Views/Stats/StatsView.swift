@@ -79,6 +79,27 @@ struct StatsView: View {
                     // Overview Cards
                     OverviewCardsView(tasks: filteredTasks)
                         .padding(.horizontal)
+                
+                    
+                    // Weekly Targets Progress - NEW SECTION
+                    // This replaces the old CategorySummaryView
+//                    WeeklyTargetsProgressView(tasks: completedTasks)
+//                        .padding(.horizontal)
+                    
+                    Divider()
+                        .padding(.horizontal)
+                    
+                    // Category completion chart
+                    CategoryCompletionChart(
+                        tasks: filteredTasks,
+                        timeframe: selectedTimeframe
+                    )
+                    .frame(height: 300)
+                    .padding(.horizontal)
+                    
+                    // Productivity Heatmap
+                    ProductivityHeatmap(tasks: filteredTasks)
+                        .padding()
                     
                     // Timeframe selector with horizontal scroll
                     VStack(alignment: .leading, spacing: 12) {
@@ -107,26 +128,6 @@ struct StatsView: View {
                             .foregroundColor(.secondary)
                             .padding(.horizontal)
                     }
-                    
-                    // Weekly Targets Progress - NEW SECTION
-                    // This replaces the old CategorySummaryView
-                    WeeklyTargetsProgressView(tasks: completedTasks)
-                        .padding(.horizontal)
-                    
-                    Divider()
-                        .padding(.horizontal)
-                    
-                    // Category completion chart
-                    CategoryCompletionChart(
-                        tasks: filteredTasks,
-                        timeframe: selectedTimeframe
-                    )
-                    .frame(height: 300)
-                    .padding(.horizontal)
-                    
-                    // Productivity Heatmap
-                    ProductivityHeatmap(tasks: filteredTasks)
-                        .padding()
                     
                     // Weekly breakdown
                     WeeklyBreakdownView(

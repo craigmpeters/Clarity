@@ -58,26 +58,31 @@ struct CategoryChip: View {
     
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 8) {
-                // Color indicator circle
+            HStack(spacing: 6) {
                 Circle()
                     .fill(category.color.SwiftUIColor)
-                    .frame(width: 12, height: 12)
+                    .frame(width: 10, height: 10)
                 
                 Text(category.name)
                     .font(.caption)
                     .lineLimit(1)
+                
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
             .background(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: 12)
                     .fill(isSelected ? category.color.SwiftUIColor.opacity(0.15) : Color(.systemGray6))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16)
+                        RoundedRectangle(cornerRadius: 12)
                             .stroke(
                                 isSelected ? category.color.SwiftUIColor : Color(.systemGray4),
-                                lineWidth: isSelected ? 2 : 0.5
+                                lineWidth: isSelected ? 1.5 : 0.5
                             )
                     )
             )
@@ -86,6 +91,7 @@ struct CategoryChip: View {
         .buttonStyle(PlainButtonStyle())
     }
 }
+
 
 struct AddCategoryView: View {
     @Environment(\.modelContext) private var modelContext
