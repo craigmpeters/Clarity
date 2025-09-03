@@ -38,6 +38,15 @@ struct CategorySettingsView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
+                        .labelsHidden()
+                    }
+                    if globalTarget > 0 {
+                        HStack {
+                            Text("Global Target")
+                            Spacer()
+                            Text("\(globalTarget)")
+                                .foregroundStyle(.orange)
+                        }
                     }
                 } header: {
                     Text("Overall Target")
@@ -79,14 +88,7 @@ struct CategorySettingsView: View {
                                 .foregroundStyle(.secondary)
                         }
                         
-                        if globalTarget > 0 {
-                            HStack {
-                                Text("Global Target")
-                                Spacer()
-                                Text("\(globalTarget)")
-                                    .foregroundStyle(.orange)
-                            }
-                        }
+
                     }
                 }
             }
