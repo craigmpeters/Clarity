@@ -77,9 +77,61 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             toDoStore?.loadToDoTasks() // Refresh the data when app becomes active
         }
+        
+        .onOpenURL { url in
+            if url.scheme == "clarity" {
+                if url.host == "timer",
+                   let taskId = url.pathComponents.last {
+                    // Find the task and start the timer
+                    if let task = findTask(withId: taskId) {
+                        selectedTask = task
+                        showingPomodoro = true
+                    }
+                }
+            }
+        }
+
+    }
+    func findTask(withId id: String) -> ToDoTask? {
+        // Search through your tasks for matching ID
+        return toDoStore!.toDoTasks.first {
+            String(describing: $0.id) == id
+        }
     }
 
+    func handleWidgetDeepLink(_ url: URL) {
+        guard url.scheme == "clarity" else { return }
+        
+        if url.host == "task" {
+            // Parse task ID and action
+            let pathComponents = url.pathComponents
+            if pathComponents.count > 1 {
+                let taskId = pathComponents[1]
+                
+                if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+                   let action = components.queryItems?.first(where: { $0.name == "action" })?.value {
+                    
+                    if action == "timer" {
+                        // Start timer for task
+                        // Find task by ID and start pomodoro
+                    } else if action == "view" {
+                        // Navigate to task detail
+                    }
+                }
+            }
+        } else if url.host == "tasks" {
+            // Parse filter and category
+            if let components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+                let filter = components.queryItems?.first(where: { $0.name == "filter" })?.value
+                let categoryId = components.queryItems?.first(where: { $0.name == "categoryId" })?.value
+                
+                // Navigate to filtered task list
+            }
+        }
+    }
 }
+
+
 
 // Placeholder views - replace with your actual views
 struct TimerView: View {

@@ -12,5 +12,6 @@ import SwiftUI
 struct PomodoroExtensionBundle: WidgetBundle {
     var body: some Widget {
         PomodoroLiveActivityWidget()
+        ClarityTaskWidget()
     }
 }
