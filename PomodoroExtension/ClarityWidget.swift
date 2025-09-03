@@ -9,38 +9,39 @@ import SwiftUI
 import SwiftData
 import AppIntents
 
+// MARK: - Main Widget
 struct ClarityTaskWidget: Widget {
     let kind: String = "ClarityTaskWidget"
     
     var body: some WidgetConfiguration {
         AppIntentConfiguration(
             kind: kind,
-            intent: TaskWidgetConfigurationIntent.self,
+            intent: TaskWidgetIntent.self,
             provider: TaskWidgetProvider()
         ) { entry in
-            ClarityTaskWidgetEntryView(entry: entry)
+            ClarityTaskWidgetView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("Clarity Tasks")
-        .description("View and start timers for your tasks")
+        .description("View your tasks and weekly progress")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
 
-struct ClarityTaskWidgetEntryView: View {
+struct ClarityTaskWidgetView: View {
     @Environment(\.widgetFamily) var widgetFamily
     let entry: TaskWidgetEntry
     
     var body: some View {
         switch widgetFamily {
         case .systemSmall:
-            SmallWidgetView(entry: entry)
+            SmallTaskWidgetView(entry: entry)
         case .systemMedium:
-            MediumWidgetView(entry: entry)
+            MediumTaskWidgetView(entry: entry)
         case .systemLarge:
-            LargeWidgetView(entry: entry)
+            LargeTaskWidgetView(entry: entry)
         default:
-            SmallWidgetView(entry: entry)
+            SmallTaskWidgetView(entry: entry)
         }
     }
 }

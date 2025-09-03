@@ -7,155 +7,90 @@
 
 import SwiftUI
 
-struct LargeWidgetView: View {
+struct LargeTaskWidgetView: View {
     let entry: TaskWidgetEntry
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack {
-                Label {
-                    HStack(spacing: 4) {
-                        Text(entry.category?.name ?? entry.filter.rawValue)
-                        if let category = entry.category {
-                            Circle()
-                                .fill(Category.CategoryColor(rawValue: category.colorRawValue)?.SwiftUIColor ?? .gray)
-                                .frame(width: 10, height: 10)
-                        }
-                    }
-                } icon: {
-                    Image(systemName: entry.filter.systemImage)
-                }
-                .font(.headline)
-                .foregroundStyle(entry.filter.accentColor)
+                Label(entry.filter.rawValue, systemImage: entry.filter.systemImage)
+                    .font(.headline)
+                    .foregroundStyle(entry.filter.color)
                 
                 Spacer()
                 
-                VStack(alignment: .trailing) {
-                    Text("\(entry.taskCount)")
-                        .font(.title2.bold())
-                    Text("tasks")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                Text("\(entry.taskCount) tasks")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
             
             Divider()
             
-            // Task list with timer buttons
-            if entry.tasks.isEmpty {
-                Spacer()
-                VStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle")
-                        .font(.largeTitle)
-                        .foregroundStyle(.green)
-                    Text("All done!")
-                        .font(.headline)
-                    Text("No tasks for \(entry.filter.rawValue.lowercased())")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            // Task list (show up to 5)
+            if !entry.tasks.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(entry.tasks.prefix(5), id: \.name) { task in
+                        WidgetTaskRow(task: task, compact: true)
+                    }
                 }
-                .frame(maxWidth: .infinity)
-                Spacer()
             } else {
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(entry.tasks.prefix(5)) { task in
-                        LargeTaskRow(task: task)
+                Text("No tasks")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical)
+            }
+            
+            Spacer()
+            
+            // Weekly Progress
+            if let progress = entry.weeklyProgress {
+                Divider()
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Label("Weekly Target", systemImage: "target")
+                            .font(.caption.bold())
+                            .foregroundStyle(.orange)
                         
-                        if task.id != entry.tasks.prefix(5).last?.id {
-                            Divider()
+                        Spacer()
+                        
+                        Text("\(progress.completed) / \(progress.target)")
+                            .font(.caption)
+                    }
+                    
+                    // Progress bar
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.secondary.opacity(0.2))
+                                .frame(height: 6)
+                            
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(progressColor(for: progress))
+                                .frame(
+                                    width: geometry.size.width * progressPercentage(for: progress),
+                                    height: 6
+                                )
                         }
                     }
-                }
-                
-                Spacer(minLength: 0)
-                
-                if entry.taskCount > 5 {
-                    Link(destination: viewAllURL) {
-                        HStack {
-                            Text("View all \(entry.taskCount) tasks")
-                                .font(.caption)
-                            Image(systemName: "arrow.right")
-                                .font(.caption)
-                        }
-                        .foregroundStyle(entry.filter.accentColor)
-                    }
+                    .frame(height: 6)
                 }
             }
         }
         .padding()
     }
     
-    private var viewAllURL: URL {
-        var components = URLComponents(string: "clarity://tasks")!
-        components.queryItems = [
-            URLQueryItem(name: "filter", value: entry.filter.rawValue)
-        ]
-        return components.url!
-    }
-}
-
-struct LargeTaskRow: View {
-    let task: TaskWidgetEntry.TaskInfo
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            // Task info
-            VStack(alignment: .leading, spacing: 4) {
-                Text(task.name)
-                    .font(.subheadline)
-                    .lineLimit(2)
-                    .foregroundStyle(.primary)
-                
-                HStack(spacing: 6) {
-                    // Categories
-                    if !task.categoryColors.isEmpty {
-                        HStack(spacing: 4) {
-                            ForEach(task.categoryColors.prefix(3), id: \.self) { color in
-                                Circle()
-                                    .fill(color.SwiftUIColor)
-                                    .frame(width: 8, height: 8)
-                            }
-                        }
-                    }
-                    
-                    // Time
-                    Text(formatDueTime(task.dueDate))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    
-                    // Duration
-                    Label("\(Int(task.pomodoroTime / 60))m", systemImage: "timer")
-                        .font(.caption2)
-                        .foregroundStyle(.orange)
-                }
-            }
-            
-            Spacer()
-            
-            // Timer button
-            Link(destination: timerURL) {
-                Image(systemName: "play.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(.blue)
-            }
-        }
+    private func progressColor(for progress: TaskWidgetEntry.WeeklyProgress) -> Color {
+        let percentage = progressPercentage(for: progress)
+        if percentage >= 1.0 { return .green }
+        if percentage >= 0.7 { return .blue }
+        if percentage >= 0.4 { return .orange }
+        return .red
     }
     
-    private var timerURL: URL {
-        URL(string: "clarity://task/\(task.id)?action=timer")!
-    }
-    
-    private func formatDueTime(_ date: Date) -> String {
-        let calendar = Calendar.current
-        if calendar.isDateInToday(date) {
-            let formatter = DateFormatter()
-            formatter.timeStyle = .short
-            return formatter.string(from: date)
-        } else {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "MMM d"
-            return formatter.string(from: date)
-        }
+    private func progressPercentage(for progress: TaskWidgetEntry.WeeklyProgress) -> Double {
+        guard progress.target > 0 else { return 0 }
+        return min(Double(progress.completed) / Double(progress.target), 1.0)
     }
 }
