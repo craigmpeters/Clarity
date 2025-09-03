@@ -79,27 +79,6 @@ struct StatsView: View {
                     // Overview Cards
                     OverviewCardsView(tasks: filteredTasks)
                         .padding(.horizontal)
-                
-                    
-                    // Weekly Targets Progress - NEW SECTION
-                    // This replaces the old CategorySummaryView
-//                    WeeklyTargetsProgressView(tasks: completedTasks)
-//                        .padding(.horizontal)
-                    
-                    Divider()
-                        .padding(.horizontal)
-                    
-                    // Category completion chart
-                    CategoryCompletionChart(
-                        tasks: filteredTasks,
-                        timeframe: selectedTimeframe
-                    )
-                    .frame(height: 300)
-                    .padding(.horizontal)
-                    
-                    // Productivity Heatmap
-                    ProductivityHeatmap(tasks: filteredTasks)
-                        .padding()
                     
                     // Timeframe selector with horizontal scroll
                     VStack(alignment: .leading, spacing: 12) {
@@ -129,7 +108,26 @@ struct StatsView: View {
                             .padding(.horizontal)
                     }
                     
-                    // Weekly breakdown
+                    // Weekly Targets Progress
+                    WeeklyTargetsProgressView(tasks: completedTasks)
+                        .padding(.horizontal)
+                    
+                    Divider()
+                        .padding(.horizontal)
+                    
+                    // Category completion chart
+                    CategoryCompletionChart(
+                        tasks: filteredTasks,
+                        timeframe: selectedTimeframe
+                    )
+                    .frame(height: 300)
+                    .padding(.horizontal)
+                    
+                    // Productivity Heatmap
+                    ProductivityHeatmap(tasks: filteredTasks)
+                        .padding()
+                    
+                    // Daily breakdown
                     WeeklyBreakdownView(
                         tasks: filteredTasks,
                         timeframe: selectedTimeframe
@@ -554,65 +552,6 @@ struct WeeklyBreakdownView: View {
                     .padding(.vertical, 8)
                     
                     Divider()
-                }
-            }
-        }
-    }
-}
-
-struct CategorySummaryView: View {
-    let tasks: [ToDoTask]
-    let filteredTasks: [ToDoTask]
-    @Query private var allCategories: [Category]
-    
-    private var categoryStats: [(category: Category, completed: Int, total: Int, rate: Double)] {
-        allCategories.map { category in
-            let totalInCategory = tasks.filter { task in
-                task.categories.contains(category)
-            }.count
-            
-            let completedInCategory = filteredTasks.filter { task in
-                task.categories.contains(category)
-            }.count
-            
-            let rate = totalInCategory > 0 ? Double(completedInCategory) / Double(totalInCategory) : 0
-            
-            return (category, completedInCategory, totalInCategory, rate)
-        }.sorted { $0.completed > $1.completed }
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Category Performance")
-                .font(.headline)
-            
-            if categoryStats.isEmpty {
-                Text("No categories created yet")
-                    .foregroundColor(.secondary)
-            } else {
-                ForEach(categoryStats, id: \.category.id) { stat in
-                    HStack {
-                        Circle()
-                            .fill(stat.category.color.SwiftUIColor)
-                            .frame(width: 12, height: 12)
-                        
-                        Text(stat.category.name)
-                            .fontWeight(.medium)
-                        
-                        Spacer()
-                        
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text("\(stat.completed) tasks")
-                                .font(.caption)
-                            
-                            if stat.total > 0 {
-                                Text("\(Int(stat.rate * 100))% completion")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                    .padding(.vertical, 4)
                 }
             }
         }
