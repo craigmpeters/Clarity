@@ -11,13 +11,26 @@ struct SmallTaskWidgetView: View {
     let entry: TaskWidgetEntry
     
     var body: some View {
+        // For small widgets, we'll use a Link to open the app with filtered tasks
+        // Since there's limited space for interactive elements
         Link(destination: widgetURL) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Image(systemName: entry.filter.systemImage)
                         .font(.title3)
                         .foregroundStyle(entry.filter.color)
+                    
                     Spacer()
+                    
+                    // If there's a single task today, show play button
+                    if entry.filter == .today && entry.tasks.count == 1 {
+                        Button(intent: StartPomodoroIntent(taskId: entry.tasks.first!.id)) {
+                            Image(systemName: "play.circle.fill")
+                                .font(.title3)
+                                .foregroundStyle(.blue)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
                 
                 Spacer()

@@ -4,6 +4,7 @@
 //
 //  Created by Craig Peters on 03/09/2025.
 //
+
 import WidgetKit
 import AppIntents
 
@@ -13,6 +14,15 @@ struct TaskWidgetIntent: WidgetConfigurationIntent {
     
     @Parameter(title: "Filter", default: .today)
     var filter: TaskFilterOption
+    
+    // Add this initializer to help with intent mapping
+    init() {
+        self.filter = .today
+    }
+    
+    init(filter: TaskFilterOption) {
+        self.filter = filter
+    }
 }
 
 enum TaskFilterOption: String, AppEnum, CaseIterable {

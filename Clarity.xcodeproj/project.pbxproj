@@ -71,7 +71,10 @@
 		44B3D8ED2E68A212000FD549 /* Exceptions for "PomodoroExtension" folder in "Clarity" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Widget/TimelineEntry.swift,
+				Widget/Intents/ClarityAppIntentsProvider.swift,
+				Widget/Intents/StartPomodoroIntent.swift,
+				Widget/Intents/TaskIntents.swift,
+				Widget/Moels/TimelineEntry.swift,
 			);
 			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
 		};
@@ -85,8 +88,8 @@
 		44D103822E58F06200C59358 /* Exceptions for "Clarity" folder in "PomodoroExtensionExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Data/CategoryEntity.swift,
 				Data/SharedDataActor.swift,
-				Intents/CategoryEntity.swift,
 				Models/Category.swift,
 				Models/Pomodoro.swift,
 				Models/PomodoroAttributes.swift,

@@ -18,6 +18,7 @@ struct ClarityApp: App {
     let modelContainer: ModelContainer
         
         init() {
+            //ClarityShortcutsProvider.register(ClarityShortcutsProvider.self)
             do {
                 let schema = Schema([
                     ToDoTask.self,
@@ -50,7 +51,7 @@ struct ClarityApp: App {
     }
     
     static var appShortcuts: AppShortcutsProvider.Type {
-            ClarityShortcuts.self
+            ClarityShortcutsProvider.self
         }
 }
 

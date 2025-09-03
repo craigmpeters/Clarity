@@ -127,6 +127,75 @@ actor WidgetDataActor {
         }
     }
     
+    func completeTask(taskId: String) async {
+        do {
+            // Fetch all incomplete tasks and filter in Swift
+            let descriptor = FetchDescriptor<ToDoTask>(
+                predicate: #Predicate { task in
+                    !task.completed
+                }
+            )
+            
+            let tasks = try modelContext.fetch(descriptor)
+            
+            // Find the task by ID in Swift code (not in predicate)
+            guard let task = tasks.first(where: { String(describing: $0.id) == taskId }) else {
+                print("Widget: Task not found with ID: \(taskId)")
+                return
+            }
+            
+            print("Widget: Completing task: \(task.name)")
+            
+            // Mark as completed
+            task.completed = true
+            task.completedAt = Date()
+            
+            // Handle recurring tasks
+            if task.repeating {
+                let nextTask = createNextOccurrence(from: task)
+                modelContext.insert(nextTask)
+                print("Widget: Created next occurrence for recurring task")
+            }
+            
+            try modelContext.save()
+            print("Widget: Task completed successfully")
+            
+        } catch {
+            print("Widget: Failed to complete task: \(error)")
+        }
+    }
+    
+    private func createNextOccurrence(from task: ToDoTask) -> ToDoTask {
+        let nextDueDate: Date
+        
+        if let interval = task.recurrenceInterval {
+            if interval == .custom {
+                nextDueDate = Calendar.current.date(
+                    byAdding: .day,
+                    value: task.customRecurrenceDays,
+                    to: task.due
+                ) ?? task.due
+            } else {
+                nextDueDate = interval.nextDate(from: task.due)
+            }
+        } else {
+            // Fallback to daily if no interval set
+            nextDueDate = Calendar.current.date(byAdding: .day, value: 1, to: task.due) ?? task.due
+        }
+        
+        let newTask = ToDoTask(
+            name: task.name,
+            pomodoroTime: task.pomodoroTime,
+            repeating: true,
+            recurrenceInterval: task.recurrenceInterval,
+            customRecurrenceDays: task.customRecurrenceDays,
+            due: nextDueDate,
+            categories: task.categories
+        )
+        
+        return newTask
+    }
+    
     private func fetchWeeklyProgress() async -> TaskWidgetEntry.WeeklyProgress? {
         do {
             // Get current week start (Monday)

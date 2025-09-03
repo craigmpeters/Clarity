@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+
 struct WidgetTaskRow: View {
     let task: TaskWidgetEntry.TaskInfo
     var compact: Bool = false
@@ -24,28 +25,13 @@ struct WidgetTaskRow: View {
             
             if !task.categoryColors.isEmpty {
                 Circle()
-                    .fill(colorFromString(task.categoryColors.first!))
+                    .fill(WidgetColorUtility.colorFromString(task.categoryColors.first!))
                     .frame(width: 6, height: 6)
             }
             
             Text("\(task.pomodoroMinutes)m")
                 .font(.caption2)
                 .foregroundStyle(.orange)
-        }
-    }
-    
-    private func colorFromString(_ colorName: String) -> Color {
-        switch colorName {
-        case "Red": return .red
-        case "Blue": return .blue
-        case "Green": return .green
-        case "Yellow": return .yellow
-        case "Brown": return .brown
-        case "Cyan": return .cyan
-        case "Pink": return Color(red: 1.0, green: 0.08, blue: 0.58)
-        case "Purple": return Color(red: 0.58, green: 0.0, blue: 0.83)
-        case "Orange": return .orange
-        default: return .gray
         }
     }
 }

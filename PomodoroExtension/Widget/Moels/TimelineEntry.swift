@@ -17,7 +17,8 @@ struct TaskWidgetEntry: TimelineEntry {
     let tasks: [TaskInfo]
     let weeklyProgress: WeeklyProgress?
     
-    struct TaskInfo {
+    struct TaskInfo: Identifiable {
+        let id: String
         let name: String
         let dueTime: String
         let categoryColors: [String]
@@ -30,5 +31,3 @@ struct TaskWidgetEntry: TimelineEntry {
         let categories: [(name: String, completed: Int, target: Int, color: String)]
     }
 }
-
-
