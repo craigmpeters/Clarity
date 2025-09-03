@@ -14,11 +14,38 @@ import AppIntents
 @main
 struct ClarityApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    
+    let modelContainer: ModelContainer
+        
+        init() {
+            do {
+                let schema = Schema([
+                    ToDoTask.self,
+                    Category.self,
+                    GlobalTargetSettings.self
+                ])
+                
+                let modelConfiguration = ModelConfiguration(
+                    schema: schema,
+                    isStoredInMemoryOnly: false,
+                    allowsSave: true,
+                    groupContainer: .identifier("group.me.craigpeters.clarity") // Same as widget
+                )
+                
+                modelContainer = try ModelContainer(
+                    for: schema,
+                    configurations: [modelConfiguration]
+                )
+            } catch {
+                fatalError("Could not create ModelContainer: \(error)")
+            }
+        }
+        
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .modelContainer(for: [ToDoTask.self, Category.self, GlobalTargetSettings.self])
+                .modelContainer(modelContainer)
         }
     }
     

@@ -68,6 +68,13 @@
 			);
 			target = 4448AD602E579266005CDDDF /* PomodoroExtensionExtension */;
 		};
+		44B3D8ED2E68A212000FD549 /* Exceptions for "PomodoroExtension" folder in "Clarity" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Widget/TimelineEntry.swift,
+			);
+			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
+		};
 		44BCDE032E5D2E5F00B61B9C /* Exceptions for "Clarity" folder in "Clarity" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -95,6 +102,7 @@
 		4448AD672E579266005CDDDF /* PomodoroExtension */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				44B3D8ED2E68A212000FD549 /* Exceptions for "PomodoroExtension" folder in "Clarity" target */,
 				4448AD792E579268005CDDDF /* Exceptions for "PomodoroExtension" folder in "PomodoroExtensionExtension" target */,
 			);
 			path = PomodoroExtension;
