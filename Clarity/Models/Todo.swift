@@ -124,10 +124,10 @@ class ToDoStore {
                 nextDueDate = Calendar.current.date(
                     byAdding: .day,
                     value: task.customRecurrenceDays,
-                    to: task.due
+                    to: Date.now
                 ) ?? task.due
             } else {
-                nextDueDate = interval.nextDate(from: task.due)
+                nextDueDate = interval.nextDate(from: Date.now)
             }
         } else {
             // Fallback to daily if no interval set
