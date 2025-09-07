@@ -6,7 +6,20 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		4448AD642E579266005CDDDF /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4448AD632E579266005CDDDF /* WidgetKit.framework */; };
+		4448AD662E579266005CDDDF /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4448AD652E579266005CDDDF /* SwiftUI.framework */; };
+		4448AD752E579268005CDDDF /* PomodoroExtensionExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4448AD612E579266005CDDDF /* PomodoroExtensionExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
+		4448AD732E579268005CDDDF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 44FB49562E51F1EB0059CC5B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4448AD602E579266005CDDDF;
+			remoteInfo = PomodoroExtensionExtension;
+		};
 		44FB496F2E51F1ED0059CC5B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 44FB49562E51F1EB0059CC5B /* Project object */;
@@ -23,15 +36,99 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		4448AD762E579268005CDDDF /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				4448AD752E579268005CDDDF /* PomodoroExtensionExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		4448AD612E579266005CDDDF /* PomodoroExtensionExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PomodoroExtensionExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		4448AD632E579266005CDDDF /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		4448AD652E579266005CDDDF /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		44B3D8E52E689EDA000FD549 /* PomodoroExtensionExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PomodoroExtensionExtension.entitlements; sourceTree = "<group>"; };
 		44FB495E2E51F1EB0059CC5B /* Clarity.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Clarity.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		44FB496E2E51F1ED0059CC5B /* ClarityTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClarityTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		44FB49782E51F1ED0059CC5B /* ClarityUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClarityUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4448AD792E579268005CDDDF /* Exceptions for "PomodoroExtension" folder in "PomodoroExtensionExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 4448AD602E579266005CDDDF /* PomodoroExtensionExtension */;
+		};
+		44B3D8ED2E68A212000FD549 /* Exceptions for "PomodoroExtension" folder in "Clarity" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Widget/Intents/ClarityAppIntentsProvider.swift,
+				Widget/Intents/StartPomodoroIntent.swift,
+				Widget/Intents/TaskIntents.swift,
+				Widget/Moels/TimelineEntry.swift,
+			);
+			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
+		};
+		44B3DA2B2E6D9C8A000FD549 /* Exceptions for "ClarityUITests" folder in "Clarity" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				FirstRunViewTests.swift,
+			);
+			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
+		};
+		44BCDE032E5D2E5F00B61B9C /* Exceptions for "Clarity" folder in "Clarity" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
+		};
+		44D103822E58F06200C59358 /* Exceptions for "Clarity" folder in "PomodoroExtensionExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Data/CategoryEntity.swift,
+				Data/SharedDataActor.swift,
+				Models/Category.swift,
+				Models/Pomodoro.swift,
+				Models/PomodoroAttributes.swift,
+				Models/PomodoroCoordinator.swift,
+				Models/Statistics.swift,
+				Models/Todo.swift,
+			);
+			target = 4448AD602E579266005CDDDF /* PomodoroExtensionExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		4448AD672E579266005CDDDF /* PomodoroExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				44B3D8ED2E68A212000FD549 /* Exceptions for "PomodoroExtension" folder in "Clarity" target */,
+				4448AD792E579268005CDDDF /* Exceptions for "PomodoroExtension" folder in "PomodoroExtensionExtension" target */,
+			);
+			path = PomodoroExtension;
+			sourceTree = "<group>";
+		};
+		44BCDDFA2E5D2A7E00B61B9C /* Icon Composer */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Icon Composer";
+			sourceTree = "<group>";
+		};
 		44FB49602E51F1EB0059CC5B /* Clarity */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				44BCDE032E5D2E5F00B61B9C /* Exceptions for "Clarity" folder in "Clarity" target */,
+				44D103822E58F06200C59358 /* Exceptions for "Clarity" folder in "PomodoroExtensionExtension" target */,
+			);
 			path = Clarity;
 			sourceTree = "<group>";
 		};
@@ -42,12 +139,24 @@
 		};
 		44FB497B2E51F1ED0059CC5B /* ClarityUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				44B3DA2B2E6D9C8A000FD549 /* Exceptions for "ClarityUITests" folder in "Clarity" target */,
+			);
 			path = ClarityUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		4448AD5E2E579266005CDDDF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4448AD662E579266005CDDDF /* SwiftUI.framework in Frameworks */,
+				4448AD642E579266005CDDDF /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		44FB495B2E51F1EB0059CC5B /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -72,12 +181,25 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		4448AD622E579266005CDDDF /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				4448AD632E579266005CDDDF /* WidgetKit.framework */,
+				4448AD652E579266005CDDDF /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		44FB49552E51F1EB0059CC5B = {
 			isa = PBXGroup;
 			children = (
+				44B3D8E52E689EDA000FD549 /* PomodoroExtensionExtension.entitlements */,
 				44FB49602E51F1EB0059CC5B /* Clarity */,
 				44FB49712E51F1ED0059CC5B /* ClarityTests */,
 				44FB497B2E51F1ED0059CC5B /* ClarityUITests */,
+				4448AD672E579266005CDDDF /* PomodoroExtension */,
+				44BCDDFA2E5D2A7E00B61B9C /* Icon Composer */,
+				4448AD622E579266005CDDDF /* Frameworks */,
 				44FB495F2E51F1EB0059CC5B /* Products */,
 			);
 			sourceTree = "<group>";
@@ -88,6 +210,7 @@
 				44FB495E2E51F1EB0059CC5B /* Clarity.app */,
 				44FB496E2E51F1ED0059CC5B /* ClarityTests.xctest */,
 				44FB49782E51F1ED0059CC5B /* ClarityUITests.xctest */,
+				4448AD612E579266005CDDDF /* PomodoroExtensionExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -95,6 +218,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		4448AD602E579266005CDDDF /* PomodoroExtensionExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4448AD7A2E579268005CDDDF /* Build configuration list for PBXNativeTarget "PomodoroExtensionExtension" */;
+			buildPhases = (
+				4448AD5D2E579266005CDDDF /* Sources */,
+				4448AD5E2E579266005CDDDF /* Frameworks */,
+				4448AD5F2E579266005CDDDF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4448AD672E579266005CDDDF /* PomodoroExtension */,
+			);
+			name = PomodoroExtensionExtension;
+			packageProductDependencies = (
+			);
+			productName = PomodoroExtensionExtension;
+			productReference = 4448AD612E579266005CDDDF /* PomodoroExtensionExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		44FB495D2E51F1EB0059CC5B /* Clarity */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 44FB49822E51F1ED0059CC5B /* Build configuration list for PBXNativeTarget "Clarity" */;
@@ -102,12 +247,15 @@
 				44FB495A2E51F1EB0059CC5B /* Sources */,
 				44FB495B2E51F1EB0059CC5B /* Frameworks */,
 				44FB495C2E51F1EB0059CC5B /* Resources */,
+				4448AD762E579268005CDDDF /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				4448AD742E579268005CDDDF /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
+				44BCDDFA2E5D2A7E00B61B9C /* Icon Composer */,
 				44FB49602E51F1EB0059CC5B /* Clarity */,
 			);
 			name = Clarity;
@@ -173,6 +321,9 @@
 				LastSwiftUpdateCheck = 1620;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
+					4448AD602E579266005CDDDF = {
+						CreatedOnToolsVersion = 16.2;
+					};
 					44FB495D2E51F1EB0059CC5B = {
 						CreatedOnToolsVersion = 16.2;
 					};
@@ -203,11 +354,19 @@
 				44FB495D2E51F1EB0059CC5B /* Clarity */,
 				44FB496D2E51F1ED0059CC5B /* ClarityTests */,
 				44FB49772E51F1ED0059CC5B /* ClarityUITests */,
+				4448AD602E579266005CDDDF /* PomodoroExtensionExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		4448AD5F2E579266005CDDDF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		44FB495C2E51F1EB0059CC5B /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -232,6 +391,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		4448AD5D2E579266005CDDDF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		44FB495A2E51F1EB0059CC5B /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -256,6 +422,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		4448AD742E579268005CDDDF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4448AD602E579266005CDDDF /* PomodoroExtensionExtension */;
+			targetProxy = 4448AD732E579268005CDDDF /* PBXContainerItemProxy */;
+		};
 		44FB49702E51F1ED0059CC5B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
@@ -269,6 +440,64 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		4448AD772E579268005CDDDF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = PomodoroExtensionExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4VL692ZU4A;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PomodoroExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = PomodoroExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.PomodoroExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		4448AD782E579268005CDDDF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = PomodoroExtensionExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4VL692ZU4A;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PomodoroExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = PomodoroExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.PomodoroExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		44FB49802E51F1ED0059CC5B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -393,18 +622,24 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = Clarity/Clarity.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Clarity/Preview Content\"";
 				DEVELOPMENT_TEAM = 4VL692ZU4A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Clarity/Info.plist;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -423,18 +658,24 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = Clarity/Clarity.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Clarity/Preview Content\"";
 				DEVELOPMENT_TEAM = 4VL692ZU4A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Clarity/Info.plist;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -519,6 +760,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		4448AD7A2E579268005CDDDF /* Build configuration list for PBXNativeTarget "PomodoroExtensionExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4448AD772E579268005CDDDF /* Debug */,
+				4448AD782E579268005CDDDF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		44FB49592E51F1EB0059CC5B /* Build configuration list for PBXProject "Clarity" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

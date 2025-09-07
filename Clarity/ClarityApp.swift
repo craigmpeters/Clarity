@@ -8,17 +8,51 @@
 import SwiftUI
 import SwiftData
 import UserNotifications
+import BackgroundTasks
+import AppIntents
 
 @main
 struct ClarityApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    
+    let modelContainer: ModelContainer
+        
+        init() {
+            //ClarityShortcutsProvider.register(ClarityShortcutsProvider.self)
+            do {
+                let schema = Schema([
+                    ToDoTask.self,
+                    Category.self,
+                    GlobalTargetSettings.self
+                ])
+                
+                let modelConfiguration = ModelConfiguration(
+                    schema: schema,
+                    isStoredInMemoryOnly: false,
+                    allowsSave: true,
+                    groupContainer: .identifier("group.me.craigpeters.clarity") // Same as widget
+                )
+                
+                modelContainer = try ModelContainer(
+                    for: schema,
+                    configurations: [modelConfiguration]
+                )
+            } catch {
+                fatalError("Could not create ModelContainer: \(error)")
+            }
+        }
+        
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .modelContainer(for: Task.self)
+                .modelContainer(modelContainer)
         }
     }
+    
+    static var appShortcuts: AppShortcutsProvider.Type {
+            ClarityShortcutsProvider.self
+        }
 }
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
@@ -30,5 +64,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     // This allows notifications to show when app is in foreground
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .badge, .sound])
+    }
+    
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        completionHandler()
     }
 }
