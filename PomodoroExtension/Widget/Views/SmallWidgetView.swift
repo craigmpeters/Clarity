@@ -23,14 +23,15 @@ struct SmallTaskWidgetView: View {
                     Spacer()
                     
                     // If there's a single task today, show play button
-                    if entry.filter == .today && entry.tasks.count == 1 {
-                        Button(intent: StartPomodoroIntent(taskId: entry.tasks.first!.id)) {
-                            Image(systemName: "play.circle.fill")
-                                .font(.title3)
-                                .foregroundStyle(.blue)
-                        }
-                        .buttonStyle(.plain)
-                    }
+                    // ToDo: Fix Pomodoro Widget
+//                    if entry.filter == .today && entry.tasks.count == 1 {
+//                        Button(intent: StartPomodoroIntent(taskId: entry.tasks.first!.id)) {
+//                            Image(systemName: "play.circle.fill")
+//                                .font(.title3)
+//                                .foregroundStyle(.blue)
+//                        }
+//                        .buttonStyle(.plain)
+//                    }
                 }
                 
                 Spacer()

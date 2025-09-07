@@ -1,11 +1,12 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var toDoStore: ToDoStore?
     @State private var selectedTask: ToDoTask? = nil
     @State private var showingPomodoro = false
+    @State private var showingFirstRun = !UserDefaults.hasCompletedOnboarding
     
     var body: some View {
         ZStack {
@@ -28,7 +29,6 @@ struct ContentView: View {
                     Image(systemName: "list.bullet")
                     Text("Tasks")
                 }
-                
                 
                 // Stats Tab
                 NavigationStack {
@@ -67,6 +67,10 @@ struct ContentView: View {
                 .zIndex(1)
             }
         }
+        .sheet(isPresented: $showingFirstRun) {
+            FirstRunView()
+                .interactiveDismissDisabled()
+        }
         .animation(.easeInOut(duration: 0.3), value: showingPomodoro)
         .onAppear {
             if toDoStore == nil {
@@ -81,7 +85,8 @@ struct ContentView: View {
         .onOpenURL { url in
             if url.scheme == "clarity" {
                 if url.host == "timer",
-                   let taskId = url.pathComponents.last {
+                   let taskId = url.pathComponents.last
+                {
                     // Find the task and start the timer
                     if let task = findTask(withId: taskId) {
                         selectedTask = task
@@ -90,8 +95,8 @@ struct ContentView: View {
                 }
             }
         }
-
     }
+
     func findTask(withId id: String) -> ToDoTask? {
         // Search through your tasks for matching ID
         return toDoStore!.toDoTasks.first {
@@ -109,8 +114,8 @@ struct ContentView: View {
                 let taskId = pathComponents[1]
                 
                 if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-                   let action = components.queryItems?.first(where: { $0.name == "action" })?.value {
-                    
+                   let action = components.queryItems?.first(where: { $0.name == "action" })?.value
+                {
                     if action == "timer" {
                         // Start timer for task
                         // Find task by ID and start pomodoro
@@ -130,8 +135,6 @@ struct ContentView: View {
         }
     }
 }
-
-
 
 // Placeholder views - replace with your actual views
 struct TimerView: View {

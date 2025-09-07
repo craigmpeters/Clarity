@@ -78,6 +78,13 @@
 			);
 			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
 		};
+		44B3DA2B2E6D9C8A000FD549 /* Exceptions for "ClarityUITests" folder in "Clarity" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				FirstRunViewTests.swift,
+			);
+			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
+		};
 		44BCDE032E5D2E5F00B61B9C /* Exceptions for "Clarity" folder in "Clarity" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -132,6 +139,9 @@
 		};
 		44FB497B2E51F1ED0059CC5B /* ClarityUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				44B3DA2B2E6D9C8A000FD549 /* Exceptions for "ClarityUITests" folder in "Clarity" target */,
+			);
 			path = ClarityUITests;
 			sourceTree = "<group>";
 		};

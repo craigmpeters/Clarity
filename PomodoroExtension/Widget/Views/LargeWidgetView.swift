@@ -127,11 +127,12 @@ struct LargeTaskRowInteractive: View {
             }
             
             // Timer button - Now uses StartPomodoroIntent
-            Button(intent: StartPomodoroIntent(taskId: task.id)) {
-                Image(systemName: "play.circle.fill")
-                    .font(.system(size: 18))
-                    .foregroundStyle(.blue)
-            }
+            // ToDo: Fix Pomodoro Widget
+//            Button(intent: StartPomodoroIntent(taskId: task.id)) {
+//                Image(systemName: "play.circle.fill")
+//                    .font(.system(size: 18))
+//                    .foregroundStyle(.blue)
+//            }
             .buttonStyle(.plain)
         }
     }

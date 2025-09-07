@@ -17,24 +17,24 @@ struct SettingsView: View {
                 .foregroundColor(.primary)
             }
             
-            
-            Section("General") {
-                HStack {
-                    Image(systemName: "bell")
-                        .foregroundColor(.orange)
-                    Text("Notifications")
-                    Spacer()
-                    // Add notification settings here
-                }
-                
-                HStack {
-                    Image(systemName: "paintbrush")
-                        .foregroundColor(.purple)
-                    Text("Appearance")
-                    Spacer()
-                    // Add appearance settings here
-                }
-            }
+            // ToDo: Version 1.1 Stuff
+//            Section("General") {
+//                HStack {
+//                    Image(systemName: "bell")
+//                        .foregroundColor(.orange)
+//                    Text("Notifications")
+//                    Spacer()
+//                    // Add notification settings here
+//                }
+//                
+//                HStack {
+//                    Image(systemName: "paintbrush")
+//                        .foregroundColor(.purple)
+//                    Text("Appearance")
+//                    Spacer()
+//                    // Add appearance settings here
+//                }
+//            }
             
             Section("About") {
                 HStack {

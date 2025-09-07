@@ -81,12 +81,13 @@ struct MediumTaskRowInteractive: View {
             Spacer()
             
             // Timer button - Now uses StartPomodoroIntent
-            Button(intent: StartPomodoroIntent(taskId: task.id)) {
-                Image(systemName: "play.circle.fill")
-                    .font(.system(size: 20))
-                    .foregroundStyle(.blue)
-            }
-            .buttonStyle(.plain)
+            // ToDo: Fix Pomodoro Widget
+//            Button(intent: StartPomodoroIntent(taskId: task.id)) {
+//                Image(systemName: "play.circle.fill")
+//                    .font(.system(size: 20))
+//                    .foregroundStyle(.blue)
+//            }
+//            .buttonStyle(.plain)
         }
     }
 }
