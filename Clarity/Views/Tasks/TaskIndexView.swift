@@ -65,7 +65,7 @@ struct TaskIndexView: View {
                 showingTaskForm = true
             }
             
-            .swipeActions(edge: .leading) {
+            .swipeActions(edge: .trailing) {
                 Button {
                     toDoStore.deleteToDoTask(toDoTask: task)
                 } label: {
@@ -73,7 +73,7 @@ struct TaskIndexView: View {
                 }
                 .tint(.red)
             }
-            .swipeActions(edge: .trailing) {
+            .swipeActions(edge: .leading) {
                 Button {
                     selectedTask = task
                     withAnimation(.easeInOut(duration: 0.3)) {
@@ -84,7 +84,7 @@ struct TaskIndexView: View {
                 }
                 .tint(.blue)
             }
-            .swipeActions(edge: .trailing) {
+            .swipeActions(edge: .leading) {
                 Button {
                     toDoStore.completeToDoTask(toDoTask: task)
                 } label: {
