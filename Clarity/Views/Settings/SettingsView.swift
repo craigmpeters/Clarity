@@ -46,6 +46,10 @@ struct SettingsView: View {
                         .foregroundColor(.secondary)
                 }
             }
+            // Development tools section - only shows in DEBUG builds
+            #if DEBUG
+            DevelopmentSection()
+            #endif
         }
         .sheet(isPresented: $showingCategoryManagement) {
             CategoryManagementView()
