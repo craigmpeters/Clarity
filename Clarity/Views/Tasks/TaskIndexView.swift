@@ -3,6 +3,26 @@ import SwiftData
 import SwiftUI
 import UserNotifications
 
+struct DayChangeTimelineSchedule: TimelineSchedule {
+    func entries(from startDate: Date, mode: TimelineScheduleMode) -> AnyIterator<Date> {
+        let calendar = Calendar.current
+        var current = startDate
+        
+        return AnyIterator {
+            let result = current
+            
+            // Calculate next significant update time
+            let nextMidnight = calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: current) ?? current)
+            let nextHour = calendar.date(bySettingHour: calendar.component(.hour, from: current) + 1, minute: 0, second: 0, of: current) ?? current
+            
+            // Choose whichever comes first - next hour or midnight
+            current = min(nextMidnight, nextHour)
+            
+            return result
+        }
+    }
+}
+
 struct TaskIndexView: View {
     @Environment(\.modelContext) private var context
     @Bindable var toDoStore: ToDoStore
@@ -14,6 +34,7 @@ struct TaskIndexView: View {
     @State private var taskToEdit: ToDoTask?
     @State private var selectedFilter: ToDoStore.TaskFilter = .all
     @State private var selectedCategory: Category?
+
     @Query private var allCategories: [Category]
     
     private var filteredTasks: [ToDoTask] {
@@ -29,7 +50,8 @@ struct TaskIndexView: View {
     }
 
     var body: some View {
-        List(filteredTasks, id: \.id) { task in
+        TimelineView(DayChangeTimelineSchedule()) { context in
+            List(filteredTasks, id: \.id) { task in
             VStack(alignment: .leading, spacing: 6) {
                 // First line - task info
                 HStack {
@@ -54,8 +76,10 @@ struct TaskIndexView: View {
                             .foregroundColor(category.color.contrastingTextColor)
                     }
                     Spacer()
-                    Text(task.friendlyDue())
-                        .foregroundStyle(.secondary)
+                    TimelineView(DayChangeTimelineSchedule()) { context in
+                        Text(task.friendlyDue())
+                            .foregroundStyle(.secondary)
+                    }
                 }
 //                    }
             }
@@ -75,6 +99,14 @@ struct TaskIndexView: View {
             }
             .swipeActions(edge: .leading) {
                 Button {
+                    toDoStore.completeToDoTask(toDoTask: task)
+                } label: {
+                    Label("Complete", systemImage: "checkmark")
+                }
+                .tint(.green)
+            }
+            .swipeActions(edge: .leading) {
+                Button {
                     selectedTask = task
                     withAnimation(.easeInOut(duration: 0.3)) {
                         showingPomodoro = true
@@ -84,17 +116,10 @@ struct TaskIndexView: View {
                 }
                 .tint(.blue)
             }
-            .swipeActions(edge: .leading) {
-                Button {
-                    toDoStore.completeToDoTask(toDoTask: task)
-                } label: {
-                    Label("Complete", systemImage: "checkmark")
-                }
-                .tint(.green)
-            }
 
-        }
-        .toolbar {
+
+            }
+            .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Menu {
                     // Due date filters
@@ -152,16 +177,17 @@ struct TaskIndexView: View {
                         .foregroundStyle(.blue)
                 }
             }
-        }
-        .task {
-            await requestNotificationPermission()
-        }
-        .sheet(isPresented: $showingTaskForm, onDismiss: {
-            taskToEdit = nil
-        }) {
-            // Swift UI Evaluation Hack
-            [showingTaskForm] in
-            TaskFormView(toDoStore: toDoStore, task: taskToEdit)
+            }
+            .task {
+                await requestNotificationPermission()
+            }
+            .sheet(isPresented: $showingTaskForm, onDismiss: {
+                taskToEdit = nil
+            }) {
+                // Swift UI Evaluation Hack
+                [showingTaskForm] in
+                TaskFormView(toDoStore: toDoStore, task: taskToEdit)
+            }
         }
     }
 

@@ -102,6 +102,9 @@ class ToDoTask {
 @Observable
 class ToDoStore {
     private var modelContext: ModelContext
+    private var lastLoadDate = Date()
+    
+    
     var toDoTasks: [ToDoTask] = []
     
     init(modelContext: ModelContext) {
