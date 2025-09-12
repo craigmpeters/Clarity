@@ -97,15 +97,14 @@ struct TaskIndexView: View {
                 }
                 .tint(.red)
             }
-            .swipeActions(edge: .leading) {
-                Button {
+
+            .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                Button(role: .destructive) {
                     toDoStore.completeToDoTask(toDoTask: task)
                 } label: {
                     Label("Complete", systemImage: "checkmark")
                 }
                 .tint(.green)
-            }
-            .swipeActions(edge: .leading) {
                 Button {
                     selectedTask = task
                     withAnimation(.easeInOut(duration: 0.3)) {
