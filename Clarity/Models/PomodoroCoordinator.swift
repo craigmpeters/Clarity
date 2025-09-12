@@ -36,7 +36,7 @@ class PomodoroCoordinator: ObservableObject {
         startLiveActivity(pomodoro: pomodoro)
     }
     
-    func endPomodoro() {
+    @MainActor func endPomodoro() {
         print("Pomodoro Ending for task: \(task.name)")
         guard !hasEnded else { return }
         hasEnded = true

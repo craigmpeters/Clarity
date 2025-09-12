@@ -35,6 +35,7 @@ class Category {
         case Pink = "Pink"
         case Purple = "Purple"
         case Orange = "Orange"
+        case Gray = "Gray"
         
         var SwiftUIColor : Color {
             switch self {
@@ -50,12 +51,13 @@ class Category {
             case .Purple: return
                 Color(red: 0.58, green: 0.0, blue: 0.83)
             case .Orange: return .orange
+            case .Gray : return .gray
             }
         }
         
         var contrastingTextColor: Color {
             switch self {
-            case .Yellow, .Cyan, .Pink:
+            case .Yellow, .Cyan, .Pink, .Gray:
                 return .black
             case .Red, .Blue, .Green, .Brown, .Orange, .Purple:
                 return .white

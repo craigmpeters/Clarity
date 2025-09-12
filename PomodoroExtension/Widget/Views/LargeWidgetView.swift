@@ -103,7 +103,7 @@ struct LargeTaskRowInteractive: View {
             // Complete button
             Button(intent: CompleteTaskIntent(taskId: task.id)) {
                 Image(systemName: "circle")
-                    .font(.system(size: 14))
+                    .font(.system(size: 24))
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)

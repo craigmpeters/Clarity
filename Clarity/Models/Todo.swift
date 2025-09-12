@@ -9,6 +9,7 @@ import Foundation
 import SwiftData
 import CoreData
 import CloudKit
+import SwiftUI
 
 @Model
 class ToDoTask {
@@ -101,6 +102,7 @@ class ToDoTask {
     }
 }
 
+@MainActor
 @Observable
 class ToDoStore {
     private var modelContext: ModelContext
@@ -112,12 +114,22 @@ class ToDoStore {
         self.modelContext = modelContext
         loadToDoTasks()
         
-        // Observe Core Data context saves to refresh tasks (works with CloudKit sync as well)
+        let observer = NotificationCenter.default.addObserver(
+            forName: NSPersistentCloudKitContainer.eventChangedNotification,
+            object: nil,
+            queue: .main
+            ) { [weak self] _ in
+                print("eventChangedNotification...")
+                self?.loadToDoTasks()
+        }
+        
+        
         NotificationCenter.default.addObserver(
             forName: NSNotification.Name.NSManagedObjectContextDidSave,
             object: nil,
             queue: .main
         ) { [weak self] _ in
+            print("NSManagedObjectContextDidSave...")
             self?.loadToDoTasks()
         }
             
@@ -195,6 +207,7 @@ class ToDoStore {
     func saveContext() {
         do {
             try modelContext.save()
+            
         } catch {
             print("Failed to save context: \(error.localizedDescription)")
         }
@@ -235,3 +248,24 @@ class ToDoStore {
     }
 }
 
+extension ToDoStore.TaskFilter {
+    var systemImage: String {
+        switch self {
+        case .all: return "tray.full"
+        case .today: return "calendar.circle"
+        case .tomorrow: return "calendar.badge.plus"
+        case .thisWeek: return "calendar"
+        case .overdue: return "exclamationmark.triangle"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .all: return .gray
+        case .today: return .blue
+        case .tomorrow: return .green
+        case .thisWeek: return .purple
+        case .overdue: return .red
+        }
+    }
+}

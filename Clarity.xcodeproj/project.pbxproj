@@ -74,7 +74,7 @@
 				Widget/Intents/ClarityAppIntentsProvider.swift,
 				Widget/Intents/StartPomodoroIntent.swift,
 				Widget/Intents/TaskIntents.swift,
-				Widget/Moels/TimelineEntry.swift,
+				Widget/TimelineEntry/TimelineEntry.swift,
 			);
 			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
 		};
