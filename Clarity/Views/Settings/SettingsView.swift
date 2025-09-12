@@ -46,6 +46,10 @@ struct SettingsView: View {
                         .foregroundColor(.secondary)
                 }
             }
+            // Development tools section - only shows in DEBUG builds
+            #if DEBUG
+            DevelopmentSection()
+            #endif
         }
         .sheet(isPresented: $showingCategoryManagement) {
             CategoryManagementView()
@@ -63,41 +67,15 @@ struct CategoryManagementView: View {
     @State private var showingDeleteAlert = false
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             List {
                 ForEach(allCategories, id: \.id) { category in
-                    HStack {
-                        Circle()
-                            .fill(category.color.SwiftUIColor)
-                            .frame(width: 20, height: 20)
-                        
-                        Text(category.name)
-                        
-                        Spacer()
-                        
-                        Text("\(category.tasks.count) tasks")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
+                    CategoryRow(category: category, onEdit: {
                         categoryToEdit = category
-                    }
-                    .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
-                            categoryToDelete = category
-                            showingDeleteAlert = true
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                        
-                        Button {
-                            categoryToEdit = category
-                        } label: {
-                            Label("Edit", systemImage: "pencil")
-                        }
-                        .tint(.blue)
-                    }
+                    }, onDelete: {
+                        categoryToDelete = category
+                        showingDeleteAlert = true
+                    })
                 }
             }
             .navigationTitle("Categories")
@@ -131,16 +109,22 @@ struct CategoryManagementView: View {
             }
         } message: {
             if let category = categoryToDelete {
-                Text("Remove '\(category.name)' from \(category.tasks.count) tasks and delete the category?")
+                Text("Remove '\(category.name)' from \(category.tasks?.count ?? 0) tasks and delete the category?")
             }
         }
     }
     
     private func deleteCategory(_ category: Category) {
         // Remove this category from all tasks that use it
-        for task in category.tasks {
-            task.categories.removeAll { $0.name == category.name }
+        if let tasks = category.tasks {
+            for task in tasks {
+                var cats = task.categories ?? []
+                cats.removeAll { $0.id == category.id }
+                task.categories = cats
+            }
+
         }
+
         
         // Delete the category
         modelContext.delete(category)
@@ -153,103 +137,39 @@ struct CategoryManagementView: View {
     }
 }
 
-//struct EditCategoryView: View {
-//    @Environment(\.modelContext) private var modelContext
-//    @Environment(\.dismiss) private var dismiss
-//    @Query private var allCategories: [Category]
-//    
-//    let category: Category
-//    @State private var name: String
-//    @State private var selectedColor: Category.CategoryColor
-//    
-//    init(category: Category) {
-//        self.category = category
-//        self._name = State(initialValue: category.name)
-//        self._selectedColor = State(initialValue: category.color)
-//    }
-//    
-//    private var isNameValid: Bool {
-//        !name.isEmpty && (name == category.name || !allCategories.contains { $0.name.lowercased() == name.lowercased() })
-//    }
-//    
-//    var body: some View {
-//        NavigationView {
-//            Form {
-//                Section("Category Details") {
-//                    TextField("Category Name", text: $name)
-//                }
-//                
-//                Section("Color") {
-//                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 16) {
-//                        ForEach(Category.CategoryColor.allCases, id: \.self) { color in
-//                            Button(action: {
-//                                selectedColor = color
-//                            }) {
-//                                VStack(spacing: 4) {
-//                                    Circle()
-//                                        .fill(color.SwiftUIColor)
-//                                        .frame(width: 32, height: 32)
-//                                        .overlay(
-//                                            Circle()
-//                                                .stroke(Color.white, lineWidth: 2)
-//                                                .opacity(selectedColor == color ? 1 : 0)
-//                                        )
-//                                        .overlay(
-//                                            Circle()
-//                                                .stroke(Color.primary, lineWidth: 1)
-//                                                .opacity(selectedColor == color ? 1 : 0)
-//                                        )
-//                                    
-//                                    Text(color.rawValue)
-//                                        .font(.caption2)
-//                                        .foregroundColor(selectedColor == color ? color.SwiftUIColor : .secondary)
-//                                }
-//                            }
-//                            .buttonStyle(PlainButtonStyle())
-//                        }
-//                    }
-//                    .padding(.vertical, 8)
-//                }
-//                
-//                if category.tasks.count > 0 {
-//                    Section {
-//                        Text("This category is used by \(category.tasks.count) task\(category.tasks.count == 1 ? "" : "s")")
-//                            .font(.caption)
-//                            .foregroundColor(.secondary)
-//                    }
-//                }
-//            }
-//            .navigationTitle("Edit Category")
-//            .navigationBarTitleDisplayMode(.inline)
-//            .toolbar {
-//                ToolbarItem(placement: .navigationBarLeading) {
-//                    Button("Cancel") {
-//                        dismiss()
-//                    }
-//                }
-//                
-//                ToolbarItem(placement: .navigationBarTrailing) {
-//                    Button("Save") {
-//                        saveChanges()
-//                    }
-//                    .disabled(!isNameValid)
-//                }
-//            }
-//        }
-//    }
-//    
-//    private func saveChanges() {
-//        category.name = name
-//        category.color = selectedColor
-//        
-//        do {
-//            try modelContext.save()
-//            dismiss()
-//        } catch {
-//            print("Failed to update category: \(error)")
-//        }
-//    }
-//}
+private struct CategoryRow: View {
+    let category: Category
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack {
+            Circle()
+                .fill(category.color.SwiftUIColor)
+                .frame(width: 20, height: 20)
+
+            Text(category.name)
+
+            Spacer()
+
+            Text("\(category.tasks?.count ?? 0) tasks")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { onEdit() }
+        .swipeActions(edge: .trailing) {
+            Button(role: .destructive) { onDelete() } label: {
+                Label("Delete", systemImage: "trash")
+            }
+
+            Button { onEdit() } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+            .tint(.blue)
+        }
+    }
+}
 
 #Preview {
     SettingsView()

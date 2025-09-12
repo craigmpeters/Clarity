@@ -190,7 +190,7 @@ actor WidgetDataActor {
             recurrenceInterval: task.recurrenceInterval,
             customRecurrenceDays: task.customRecurrenceDays,
             due: nextDueDate,
-            categories: task.categories
+            categories: task.categories ?? []
         )
         
         return newTask
@@ -231,7 +231,7 @@ actor WidgetDataActor {
             // Calculate category progress
             let categoryProgress = categoriesWithTargets.map { category in
                 let completed = weekCompleted.filter { task in
-                    task.categories.contains(category)
+                    task.categories!.contains(category)
                 }.count
                 
                 return (

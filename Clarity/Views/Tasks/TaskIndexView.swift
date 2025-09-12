@@ -3,6 +3,26 @@ import SwiftData
 import SwiftUI
 import UserNotifications
 
+struct DayChangeTimelineSchedule: TimelineSchedule {
+    func entries(from startDate: Date, mode: TimelineScheduleMode) -> AnyIterator<Date> {
+        let calendar = Calendar.current
+        var current = startDate
+        
+        return AnyIterator {
+            let result = current
+            
+            // Calculate next significant update time
+            let nextMidnight = calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: current) ?? current)
+            let nextHour = calendar.date(bySettingHour: calendar.component(.hour, from: current) + 1, minute: 0, second: 0, of: current) ?? current
+            
+            // Choose whichever comes first - next hour or midnight
+            current = min(nextMidnight, nextHour)
+            
+            return result
+        }
+    }
+}
+
 struct TaskIndexView: View {
     @Environment(\.modelContext) private var context
     @Bindable var toDoStore: ToDoStore
@@ -14,154 +34,160 @@ struct TaskIndexView: View {
     @State private var taskToEdit: ToDoTask?
     @State private var selectedFilter: ToDoStore.TaskFilter = .all
     @State private var selectedCategory: Category?
+
     @Query private var allCategories: [Category]
     
     private var filteredTasks: [ToDoTask] {
-        let filtered = toDoStore.toDoTasks.filter { task in
-            let dueDateMatches = selectedFilter.matches(task: task)
-            let categoryMatches = selectedCategory == nil ||
-            task.categories.contains { $0.name == selectedCategory?.name }
-            
-            return dueDateMatches && categoryMatches
+        let tasks = toDoStore.toDoTasks
+        let filtered = tasks.filter { task in
+            // Due date filter
+            guard selectedFilter.matches(task: task) else { return false }
+            // Category filter
+            if let selectedCategory {
+                let taskCategories = task.categories ?? []
+                return taskCategories.contains { $0.name == selectedCategory.name }
+            }
+            return true
         }
-        print("Total tasks: \(toDoStore.toDoTasks.count), Filtered: \(filtered.count)")
+        print("Total tasks: \(tasks.count), Filtered: \(filtered.count)")
         return filtered
     }
 
     var body: some View {
-        List(filteredTasks, id: \.id) { task in
-            VStack(alignment: .leading, spacing: 6) {
-                // First line - task info
-                HStack {
-                    Text(task.name)
-                        .lineLimit(1)
-                    Spacer()
-                    RecurrenceIndicatorBadge(task: task)
-                }
-                    
-                // Second line - compact categories
-//                    if !task.categories.isEmpty {
-                HStack(spacing: 6) {
-                    ForEach(task.categories) { category in
-                        Text(category.name)
-                            .font(.caption2)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                            .background(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(category.color.SwiftUIColor)
-                            )
-                            .foregroundColor(category.color.contrastingTextColor)
-                    }
-                    Spacer()
-                    Text(task.friendlyDue())
-                        .foregroundStyle(.secondary)
-                }
-//                    }
+        TimelineView(DayChangeTimelineSchedule()) { context in
+            List(filteredTasks, id: \.id) { task in
+                taskRow(task: task)
             }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                taskToEdit = task
-                showingTaskForm = true
-            }
-            
-            .swipeActions(edge: .trailing) {
-                Button {
-                    toDoStore.deleteToDoTask(toDoTask: task)
-                } label: {
-                    Label("Delete", systemImage: "trash")
-                }
-                .tint(.red)
-            }
-            .swipeActions(edge: .leading) {
-                Button {
-                    selectedTask = task
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        showingPomodoro = true
-                    }
-                } label: {
-                    Label("Start Timer", systemImage: "timer")
-                }
-                .tint(.blue)
-            }
-            .swipeActions(edge: .leading) {
-                Button {
-                    toDoStore.completeToDoTask(toDoTask: task)
-                } label: {
-                    Label("Complete", systemImage: "checkmark")
-                }
-                .tint(.green)
-            }
-
-        }
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Menu {
-                    // Due date filters
-                    Section("Due Date") {
-                        ForEach(ToDoStore.TaskFilter.allCases, id: \.self) { filter in
-                            Button(action: { selectedFilter = filter }) {
-                                HStack {
-                                    Text(filter.rawValue)
-                                    if selectedFilter == filter {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                                
-                    // Category filters
-                    if !allCategories.isEmpty {
-                        Section("Category") {
-                            Button(action: { selectedCategory = nil }) {
-                                HStack {
-                                    Text("All Categories")
-                                    if selectedCategory == nil {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                                        
-                            ForEach(allCategories, id: \.id) { category in
-                                Button(action: { selectedCategory = category }) {
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Menu {
+                        // Due date filters
+                        Section("Due Date") {
+                            ForEach(ToDoStore.TaskFilter.allCases, id: \.self) { filter in
+                                Button(action: { selectedFilter = filter }) {
                                     HStack {
-                                        Circle()
-                                            .fill(category.color.SwiftUIColor)
-                                            .frame(width: 12, height: 12)
-                                        Text(category.name)
-                                        if selectedCategory?.name == category.name {
+                                        Text(filter.rawValue)
+                                        if selectedFilter == filter {
                                             Image(systemName: "checkmark")
                                         }
                                     }
                                 }
                             }
                         }
+                                    
+                        // Category filters
+                        if !allCategories.isEmpty {
+                            Section("Category") {
+                                Button(action: { selectedCategory = nil }) {
+                                    HStack {
+                                        Text("All Categories")
+                                        if selectedCategory == nil {
+                                            Image(systemName: "checkmark")
+                                        }
+                                    }
+                                }
+                                            
+                                ForEach(allCategories, id: \.id) { category in
+                                    Button(action: { selectedCategory = category }) {
+                                        HStack {
+                                            Circle()
+                                                .fill(category.color.SwiftUIColor)
+                                                .frame(width: 12, height: 12)
+                                            Text(category.name)
+                                            if selectedCategory?.name == category.name {
+                                                Image(systemName: "checkmark")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "line.3.horizontal.decrease.circle")
+                            .foregroundStyle(.blue)
                     }
-                } label: {
-                    Image(systemName: "line.3.horizontal.decrease.circle")
-                        .foregroundStyle(.blue)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        taskToEdit = nil
+                        showingTaskForm = true
+                    }) {
+                        Image(systemName: "plus")
+                            .foregroundStyle(.blue)
+                    }
                 }
             }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    taskToEdit = nil
-                    showingTaskForm = true
-                }) {
-                    Image(systemName: "plus")
-                        .foregroundStyle(.blue)
-                }
+            .task {
+                await requestNotificationPermission()
+            }
+            .sheet(isPresented: $showingTaskForm, onDismiss: {
+                taskToEdit = nil
+            }) {
+                // Swift UI Evaluation Hack
+                [showingTaskForm] in
+                TaskFormView(toDoStore: toDoStore, task: taskToEdit)
             }
         }
-        .task {
-            await requestNotificationPermission()
+    }
+    
+    @ViewBuilder
+    private func taskRow(task: ToDoTask) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            // First line - task info
+            HStack {
+                Text(task.name)
+                    .lineLimit(1)
+                Spacer()
+                RecurrenceIndicatorBadge(task: task)
+            }
+
+            // Second line - compact categories
+            HStack(spacing: 6) {
+                ForEach(task.categories ?? []) { category in
+                    Text(category.name)
+                        .font(.caption2)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(category.color.SwiftUIColor)
+                        )
+                        .foregroundColor(category.color.contrastingTextColor)
+                }
+                Spacer()
+                Text(task.friendlyDue())
+                    .foregroundStyle(.secondary)
+            }
         }
-        .sheet(isPresented: $showingTaskForm, onDismiss: {
-            taskToEdit = nil
-        }) {
-            // Swift UI Evaluation Hack
-            [showingTaskForm] in
-            TaskFormView(toDoStore: toDoStore, task: taskToEdit)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            taskToEdit = task
+            showingTaskForm = true
+        }
+        .swipeActions(edge: .trailing) {
+            Button {
+                toDoStore.deleteToDoTask(toDoTask: task)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+            .tint(.red)
+        }
+        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                toDoStore.completeToDoTask(toDoTask: task)
+            } label: {
+                Label("Complete", systemImage: "checkmark")
+            }
+            .tint(.green)
+            Button {
+                selectedTask = task
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    showingPomodoro = true
+                }
+            } label: {
+                Label("Start Timer", systemImage: "timer")
+            }
+            .tint(.blue)
         }
     }
 

@@ -35,8 +35,18 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
     func timeline(for configuration: TaskWidgetIntent, in context: Context) async -> Timeline<TaskWidgetEntry> {
         let entry = await fetchEntry(for: configuration.filter.toTaskFilter())
         
-        // Update every 15 minutes for better responsiveness
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
+        // Calculate next significant update times
+        let calendar = Calendar.current
+        let now = Date()
+        
+        // Always update at midnight (when day changes)
+        let nextMidnight = calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: now) ?? now)
+        
+        // For frequent updates during the day, update every 15 minutes
+        let next15Minutes = calendar.date(byAdding: .minute, value: 15, to: now) ?? now
+        
+        // Use whichever comes first - this ensures we update at midnight for date changes
+        let nextUpdate = min(nextMidnight, next15Minutes)
         
         return Timeline(entries: [entry], policy: .after(nextUpdate))
     }
@@ -53,7 +63,7 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
                     id: String(describing: task.id),
                     name: task.name,
                     dueTime: formatter.string(from: task.due),
-                    categoryColors: task.categories.map { $0.color.rawValue },
+                    categoryColors: task.categories!.map { $0.color.rawValue },
                     pomodoroMinutes: Int(task.pomodoroTime / 60)
                 )
             }
