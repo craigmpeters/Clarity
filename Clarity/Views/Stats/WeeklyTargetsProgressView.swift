@@ -34,7 +34,7 @@ struct WeeklyTargetsProgressView: View {
     private var categoryProgress: [(category: Category, completed: Int, target: Int, progress: Double)] {
         categories.compactMap { category in
             let completed = tasksThisWeek.filter { task in
-                task.categories.contains(category)
+                task.categories!.contains(category)
             }.count
             
             let target = category.weeklyTarget

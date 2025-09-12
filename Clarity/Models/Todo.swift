@@ -7,21 +7,23 @@
 
 import Foundation
 import SwiftData
+import CoreData
+import CloudKit
 
 @Model
 class ToDoTask {
-    var name: String
-    var created: Date
-    var due: Date
-    var pomodoro: Bool
-    var pomodoroTime: TimeInterval
-    var repeating: Bool
-    var completed: Bool
+    var name: String = "Task"
+    var created: Date = Date.now
+    var due: Date = Date.now.addingTimeInterval(60 * 60 * 24) // Tomorrow
+    var pomodoro: Bool = true
+    var pomodoroTime: TimeInterval = 25 * 60
+    var repeating: Bool = false
+    var completed: Bool = false
     var completedAt: Date?
     var recurrenceInterval: RecurrenceInterval?
     var customRecurrenceDays: Int = 1
     
-    @Relationship var categories: [Category] = []
+    @Relationship var categories: [Category]? = []
     
     // TODO: Tags
     
@@ -104,12 +106,22 @@ class ToDoStore {
     private var modelContext: ModelContext
     private var lastLoadDate = Date()
     
-    
     var toDoTasks: [ToDoTask] = []
     
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
         loadToDoTasks()
+        
+        // Observe Core Data context saves to refresh tasks (works with CloudKit sync as well)
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name.NSManagedObjectContextDidSave,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.loadToDoTasks()
+        }
+            
+        
     }
     
     func addTodoTask(toDoTask: ToDoTask) {
@@ -144,7 +156,7 @@ class ToDoStore {
             recurrenceInterval: task.recurrenceInterval,
             customRecurrenceDays: task.customRecurrenceDays,
             due: nextDueDate,
-            categories: task.categories
+            categories: task.categories ?? []
         )
         
         return newTask
@@ -217,4 +229,9 @@ class ToDoStore {
             }
         }
     }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name.NSManagedObjectContextDidSave, object: nil)
+    }
 }
+

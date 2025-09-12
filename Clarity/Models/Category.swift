@@ -12,10 +12,12 @@ import SwiftUI
 @Model
 
 class Category {
-    @Attribute(.unique) var name: String 
-    var color: CategoryColor
+    // FIXME: I need to fix this properly before I check this in
+    //@Attribute(.unique) var name: String = "Category"
+    var name: String = "Category"
+    var color: CategoryColor = CategoryColor.Red
     var weeklyTarget: Int = 0
-    @Relationship(inverse: \ToDoTask.categories) var tasks: [ToDoTask] = []
+    @Relationship(inverse: \ToDoTask.categories) var tasks: [ToDoTask]? = []
     
     init(name: String, color: CategoryColor = .Red, weeklyTarget: Int = 0) {
         self.name = name

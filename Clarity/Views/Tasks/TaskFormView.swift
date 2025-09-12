@@ -33,7 +33,7 @@ struct TaskFormView: View {
         
         if let task = task {
             self._toDoTask = State(initialValue: task)
-            self._selectedCategories = State(initialValue: task.categories)
+            self._selectedCategories = State(initialValue: task.categories!)
             self._selectedRecurrence = State(initialValue: task.recurrenceInterval ?? .daily)
             self._customDays = State(initialValue: task.customRecurrenceDays)
             self._dueDate = State(initialValue: task.due)
