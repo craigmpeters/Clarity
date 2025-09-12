@@ -43,7 +43,10 @@ class PomodoroCoordinator: ObservableObject {
         pomodoro.stopPomodoro()
         endLiveActivity()
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
-        toDoStore.completeToDoTask(toDoTask: task)
+        
+        Task { @MainActor in
+            toDoStore.completeToDoTask(toDoTask: task)
+        }
     }
     
     private func startLiveActivity(pomodoro: Pomodoro) {

@@ -2,6 +2,7 @@
 
 import SwiftUI
 import SwiftData
+import CloudKit
 
 struct CategorySettingsView: View {
     @Query private var categories: [Category]

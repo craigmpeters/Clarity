@@ -1,5 +1,6 @@
 import SwiftData
 import Foundation
+import CloudKit
 
 @ModelActor
 actor SharedDataActor {

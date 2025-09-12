@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct SettingsView: View {
+    let toDoStore: ToDoStore?
     @State private var showingCategoryManagement = false
     
     var body: some View {
@@ -15,6 +16,9 @@ struct SettingsView: View {
                     }
                 }
                 .foregroundColor(.primary)
+            }
+            if let toDoStore = toDoStore, let cloudKitSync = toDoStore.cloudKitSync {
+                CloudKitSyncSettingsView(cloudKitSync: cloudKitSync)
             }
             
             // ToDo: Version 1.1 Stuff
@@ -256,5 +260,10 @@ struct CategoryManagementView: View {
 //}
 
 #Preview {
-    SettingsView()
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: ToDoTask.self, configurations: config)
+    let toDoStore = ToDoStore(modelContext: container.mainContext)
+    
+    SettingsView(toDoStore: toDoStore)
+        .modelContainer(container)
 }

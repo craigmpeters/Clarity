@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftData
+import CloudKit
 
 @Model
 class ToDoTask {
@@ -99,16 +100,18 @@ class ToDoTask {
     }
 }
 
+@MainActor
 @Observable
 class ToDoStore {
     private var modelContext: ModelContext
     private var lastLoadDate = Date()
     
-    
+    var cloudKitSync: CloudKitSyncManager?
     var toDoTasks: [ToDoTask] = []
     
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
+        self.cloudKitSync = CloudKitSyncManager(modelContext: modelContext)
         loadToDoTasks()
     }
     

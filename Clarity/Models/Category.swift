@@ -8,9 +8,9 @@
 import Foundation
 import SwiftData
 import SwiftUI
+import CloudKit
 
 @Model
-
 class Category {
     @Attribute(.unique) var name: String 
     var color: CategoryColor

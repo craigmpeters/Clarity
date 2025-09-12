@@ -42,7 +42,7 @@ struct ContentView: View {
                 
                 // Settings Tab
                 NavigationStack {
-                    SettingsView()
+                    SettingsView(toDoStore: toDoStore)
                         .navigationTitle("Settings")
                 }
                 .tabItem {
@@ -80,6 +80,7 @@ struct ContentView: View {
         // In your TaskIndexView or ContentView
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             toDoStore?.loadToDoTasks() // Refresh the data when app becomes active
+            toDoStore?.cloudKitSync?.checkCloudKitAccountStatus() // Check CloudKit status
         }
         
         .onOpenURL { url in

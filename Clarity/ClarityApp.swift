@@ -10,6 +10,7 @@ import SwiftData
 import UserNotifications
 import BackgroundTasks
 import AppIntents
+import CloudKit
 
 @main
 struct ClarityApp: App {
@@ -30,7 +31,8 @@ struct ClarityApp: App {
                     schema: schema,
                     isStoredInMemoryOnly: false,
                     allowsSave: true,
-                    groupContainer: .identifier("group.me.craigpeters.clarity") // Same as widget
+                    groupContainer: .identifier("group.me.craigpeters.clarity"), // Same as widget
+                    cloudKitDatabase: .private("iCloud.me.craigpeters.clarity")
                 )
                 
                 modelContainer = try ModelContainer(
