@@ -22,15 +22,15 @@ struct ClarityShortcutsProvider: AppShortcutsProvider {
             systemImageName: "plus.circle"
         )
         
-        AppShortcut(
-            intent: StartPomodoroIntent(),
-            phrases: [
-                "Start pomodoro in \(.applicationName)",
-                "Begin focus session in \(.applicationName)",
-                "Start timer in \(.applicationName)"
-            ],
-            shortTitle: "Start Timer",
-            systemImageName: "timer"
-        )
+//        AppShortcut(
+//            intent: StartPomodoroIntent(),
+//            phrases: [
+//                "Start pomodoro in \(.applicationName)",
+//                "Begin focus session in \(.applicationName)",
+//                "Start timer in \(.applicationName)"
+//            ],
+//            shortTitle: "Start Timer",
+//            systemImageName: "timer"
+//        )
     }
 }
