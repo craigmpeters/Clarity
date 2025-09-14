@@ -12,26 +12,15 @@ struct LargeTaskWidgetView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Header
-            HStack {
-                Label(entry.filter.rawValue, systemImage: entry.filter.systemImage)
-                    .font(.headline)
-                    .foregroundStyle(entry.filter.color)
-                
-                Spacer()
-                
-                Text("\(entry.taskCount) tasks")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+            TaskWidgetTitle(entry: entry)
             
             Divider()
             
             // Task list (show up to 4 with buttons)
             if !entry.tasks.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    ForEach(entry.tasks.prefix(4)) { task in
-                        LargeTaskRowInteractive(task: task)
+                    ForEach(entry.tasks.prefix(8)) { task in
+                        TaskRowInteractive(task: task)
                     }
                 }
             } else {
@@ -95,45 +84,4 @@ struct LargeTaskWidgetView: View {
     }
 }
 
-struct LargeTaskRowInteractive: View {
-    let task: TaskWidgetEntry.TaskInfo
-    
-    var body: some View {
-        HStack(spacing: 8) {
-            // Complete button
-            Button(intent: CompleteTaskIntent(taskId: task.id)) {
-                Image(systemName: "circle")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
-            
-            Text(task.name)
-                .font(.caption)
-                .lineLimit(1)
-            
-            Spacer()
-            
-            HStack(spacing: 4) {
-                if !task.categoryColors.isEmpty {
-                    Circle()
-                        .fill(WidgetColorUtility.colorFromString(task.categoryColors.first!))
-                        .frame(width: 6, height: 6)
-                }
-                
-                Text("\(task.pomodoroMinutes)m")
-                    .font(.caption2)
-                    .foregroundStyle(.orange)
-            }
-            
-            // Timer button - Now uses StartPomodoroIntent
-            // ToDo: Fix Pomodoro Widget
-//            Button(intent: StartPomodoroIntent(taskId: task.id)) {
-//                Image(systemName: "play.circle.fill")
-//                    .font(.system(size: 18))
-//                    .foregroundStyle(.blue)
-//            }
-            .buttonStyle(.plain)
-        }
-    }
-}
+

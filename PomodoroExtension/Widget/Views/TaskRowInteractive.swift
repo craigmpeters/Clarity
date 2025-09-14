@@ -1,3 +1,11 @@
+//
+//  TaskRowInteractive.swift
+//  Clarity
+//
+//  Created by Craig Peters on 14/09/2025.
+//
+
+
 import SwiftUI
 
 struct TaskRowInteractive: View {
