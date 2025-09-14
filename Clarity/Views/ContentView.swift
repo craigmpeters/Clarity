@@ -81,7 +81,6 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             toDoStore?.loadToDoTasks() // Refresh the data when app becomes active
         }
-        
         .onOpenURL { url in
             if url.scheme == "clarity" {
                 if url.host == "timer",

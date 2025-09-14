@@ -20,6 +20,7 @@ struct WidgetColorUtility {
         case "Pink": return Color(red: 1.0, green: 0.08, blue: 0.58)
         case "Purple": return Color(red: 0.58, green: 0.0, blue: 0.83)
         case "Orange": return .orange
+        case "Gray": return .gray
         default: return .gray
         }
     }

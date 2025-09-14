@@ -83,5 +83,3 @@ struct LargeTaskWidgetView: View {
         return min(Double(progress.completed) / Double(progress.target), 1.0)
     }
 }
-
-

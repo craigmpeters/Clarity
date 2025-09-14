@@ -21,7 +21,7 @@ struct ClarityShortcutsProvider: AppShortcutsProvider {
             shortTitle: "New Task",
             systemImageName: "plus.circle"
         )
-        
+
 //        AppShortcut(
 //            intent: StartPomodoroIntent(),
 //            phrases: [
