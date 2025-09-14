@@ -180,19 +180,19 @@ struct PomodoroView: View {
 
 // MARK: - Preview
 
-#Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: ToDoTask.self, configurations: config)
-    
-    let sampleTask = ToDoTask(name: "Sample Pomodoro Task", pomodoro: true, pomodoroTime: 20) // 20 Seconds
-    container.mainContext.insert(sampleTask)
-    
-    let toDoStore = ToDoStore(modelContext: container.mainContext)
-    
-    return PomodoroView(
-        task: sampleTask,
-        toDoStore: toDoStore,
-        showingPomodoro: .constant(true)
-    )
-    .modelContainer(container)
-}
+//#Preview {
+//    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+//    let container = try! ModelContainer(for: ToDoTask.self, configurations: config)
+//    
+//    let sampleTask = ToDoTask(name: "Sample Pomodoro Task", pomodoro: true, pomodoroTime: 20) // 20 Seconds
+//    container.mainContext.insert(sampleTask)
+//    
+//    let toDoStore = ToDoStore(modelContext: container.mainContext)
+//    
+//    return PomodoroView(
+//        task: sampleTask,
+//        toDoStore: toDoStore,
+//        showingPomodoro: .constant(true)
+//    )
+//    .modelContainer(container)
+//}

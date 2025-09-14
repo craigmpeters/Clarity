@@ -28,6 +28,5 @@ struct TaskWidgetEntry: TimelineEntry {
     struct WeeklyProgress {
         let completed: Int
         let target: Int
-        let categories: [(name: String, completed: Int, target: Int, color: String)]
     }
 }
