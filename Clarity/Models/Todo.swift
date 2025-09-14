@@ -109,16 +109,12 @@ class ToDoStore {
     
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
-        loadToDoTasks()
     }
     
     func addTodoTask(toDoTask: ToDoTask) {
-        if toDoTask.name != nil {
+        guard let taskName = toDoTask.name, !taskName.isEmpty else { return }
             modelContext.insert(toDoTask)
             saveContext()
-            loadToDoTasks()
-        }
-
     }
     
     func createNextOccurrence(from task: ToDoTask) -> ToDoTask {
@@ -161,22 +157,24 @@ class ToDoStore {
             modelContext.insert(nextTask)
         }
         saveContext()
-        loadToDoTasks()
     }
     
     func deleteToDoTask(toDoTask: ToDoTask) {
         modelContext.delete(toDoTask)
         saveContext()
-        loadToDoTasks()
+    }
+    
+    static var completedTaskDescriptor: FetchDescriptor<ToDoTask> {
+        let descriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate { !$0.completed },
+            sortBy: [SortDescriptor(\.due, order: .forward)]
+            )
+        return descriptor
     }
     
     func loadToDoTasks() {
         do {
-            let descriptor = FetchDescriptor<ToDoTask>(
-                predicate: #Predicate { !$0.completed },
-                sortBy: [SortDescriptor(\.due, order: .forward)]
-            )
-            toDoTasks = try modelContext.fetch(descriptor)
+            toDoTasks = try modelContext.fetch(ToDoStore.completedTaskDescriptor)
         } catch {
             print("Failed to load tasks: \(error.localizedDescription)")
         }
@@ -189,6 +187,20 @@ class ToDoStore {
             print("Failed to save context: \(error.localizedDescription)")
         }
     }
+    
+    func getIncompleteTasks() throws -> [ToDoTask] {
+        return try fetchTasks(predicate: #Predicate { !$0.completed })
+    }
+    
+    // Helper method to get tasks with a specific predicate (for widgets, etc.)
+    func fetchTasks(predicate: Predicate<ToDoTask>? = nil, sortBy: [SortDescriptor<ToDoTask>] = []) throws -> [ToDoTask] {
+        let descriptor = FetchDescriptor<ToDoTask>(
+            predicate: predicate,
+            sortBy: sortBy.isEmpty ? [SortDescriptor(\.due, order: .forward)] : sortBy
+        )
+        return try modelContext.fetch(descriptor)
+    }
+    
     
     let descriptor = FetchDescriptor<ToDoTask>(
         predicate: #Predicate { !$0.completed },
@@ -218,6 +230,29 @@ class ToDoStore {
                 return task.due >= startOfWeek && task.due <= endOfWeek
             }
         }
+        // Create predicate for this filter
+        func predicate() -> Predicate<ToDoTask> {
+            switch self {
+            case .all:
+                return #Predicate { !$0.completed }
+            case .overdue:
+                let startOfToday = Calendar.current.startOfDay(for: Date())
+                return #Predicate { !$0.completed && $0.due < startOfToday }
+            case .today:
+                let startOfToday = Calendar.current.startOfDay(for: Date())
+                let endOfToday = Calendar.current.date(byAdding: .day, value: 1, to: startOfToday)!
+                return #Predicate { !$0.completed && $0.due >= startOfToday && $0.due < endOfToday }
+            case .tomorrow:
+                let startOfTomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: Date()))!
+                let endOfTomorrow = Calendar.current.date(byAdding: .day, value: 1, to: startOfTomorrow)!
+                return #Predicate { !$0.completed && $0.due >= startOfTomorrow && $0.due < endOfTomorrow }
+            case .thisWeek:
+                let startOfWeek = Calendar.current.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
+                let endOfWeek = Calendar.current.dateInterval(of: .weekOfYear, for: Date())?.end ?? Date()
+                return #Predicate { !$0.completed && $0.due >= startOfWeek && $0.due <= endOfWeek }
+            }
+        }
     }
+    
 }
 

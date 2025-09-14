@@ -136,18 +136,6 @@ struct ContentView: View {
     }
 }
 
-// Placeholder views - replace with your actual views
-struct TimerView: View {
-    var body: some View {
-        VStack {
-            Text("Timer View")
-                .font(.largeTitle)
-            Text("Pomodoro timer will go here")
-                .foregroundColor(.secondary)
-        }
-    }
-}
-
 //#Preview {
 //    let config = ModelConfiguration(isStoredInMemoryOnly: true)
 //    let container = try! ModelContainer(for: ToDoTask.self, configurations: config)

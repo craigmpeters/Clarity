@@ -37,32 +37,30 @@ struct TaskIndexView: View {
 
     @Query private var allCategories: [Category]
     
+    @Query(
+            filter: #Predicate<ToDoTask> { !$0.completed },
+            sort: [SortDescriptor(\.due, order: .forward)]
+        ) private var allTasks: [ToDoTask]
+        
     private var filteredTasks: [ToDoTask] {
-        // Pre-filter once with explicit steps to help the type-checker
-        let tasks: [ToDoTask] = toDoStore.toDoTasks
-
-        // Filter by due date first
-        let dueFiltered: [ToDoTask] = tasks.filter { task in
-            selectedFilter.matches(task: task)
-        }
-
-        // Then filter by category if one is selected
-        let finalFiltered: [ToDoTask]
-        if let selected = selectedCategory {
-            let selectedName = selected.name
-            finalFiltered = dueFiltered.filter { task in
-                // Use nil-coalescing in case names are optional in your model
-                    task.categories!.contains { cat in
-                        (cat.name) == selectedName
+            allTasks.filter { task in
+                let dueDateMatches = selectedFilter.matches(task: task)
+                let categoryMatches: Bool = {
+                    guard let selectedCategory = selectedCategory else { return true }
+                    
+                    // Handle optional categories safely
+                    guard let taskCategories = task.categories, !taskCategories.isEmpty else {
+                        return false
                     }
+                    
+                    return taskCategories.contains { category in
+                        category.name == selectedCategory.name
+                    }
+                }()
+                
+                return dueDateMatches && categoryMatches
             }
-        } else {
-            finalFiltered = dueFiltered
         }
-
-        print("Total tasks: \(tasks.count), Filtered: \(finalFiltered.count)")
-        return finalFiltered
-    }
 
     var body: some View {
         List(filteredTasks) { task in
