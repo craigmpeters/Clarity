@@ -7,21 +7,24 @@
 
 import Foundation
 import SwiftData
+import CoreData
+import CloudKit
+import SwiftUI
 
 @Model
 class ToDoTask {
-    var name: String
-    var created: Date
-    var due: Date
-    var pomodoro: Bool
-    var pomodoroTime: TimeInterval
-    var repeating: Bool
-    var completed: Bool
+    var name: String = "Task"
+    var created: Date = Date.now
+    var due: Date = Date.now.addingTimeInterval(60 * 60 * 24) // Tomorrow
+    var pomodoro: Bool = true
+    var pomodoroTime: TimeInterval = 25 * 60
+    var repeating: Bool = false
+    var completed: Bool = false
     var completedAt: Date?
     var recurrenceInterval: RecurrenceInterval?
     var customRecurrenceDays: Int = 1
     
-    @Relationship var categories: [Category] = []
+    @Relationship var categories: [Category]? = []
     
     // TODO: Tags
     
@@ -99,17 +102,38 @@ class ToDoTask {
     }
 }
 
+@MainActor
 @Observable
 class ToDoStore {
     private var modelContext: ModelContext
     private var lastLoadDate = Date()
-    
     
     var toDoTasks: [ToDoTask] = []
     
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
         loadToDoTasks()
+        
+        let observer = NotificationCenter.default.addObserver(
+            forName: NSPersistentCloudKitContainer.eventChangedNotification,
+            object: nil,
+            queue: .main
+            ) { [weak self] _ in
+                print("eventChangedNotification...")
+                self?.loadToDoTasks()
+        }
+        
+        
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name.NSManagedObjectContextDidSave,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            print("NSManagedObjectContextDidSave...")
+            self?.loadToDoTasks()
+        }
+            
+        
     }
     
     func addTodoTask(toDoTask: ToDoTask) {
@@ -144,7 +168,7 @@ class ToDoStore {
             recurrenceInterval: task.recurrenceInterval,
             customRecurrenceDays: task.customRecurrenceDays,
             due: nextDueDate,
-            categories: task.categories
+            categories: task.categories ?? []
         )
         
         return newTask
@@ -183,6 +207,7 @@ class ToDoStore {
     func saveContext() {
         do {
             try modelContext.save()
+            
         } catch {
             print("Failed to save context: \(error.localizedDescription)")
         }
@@ -215,6 +240,32 @@ class ToDoStore {
                 let endOfWeek = Calendar.current.dateInterval(of: .weekOfYear, for: Date())?.end ?? Date()
                 return task.due >= startOfWeek && task.due <= endOfWeek
             }
+        }
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name.NSManagedObjectContextDidSave, object: nil)
+    }
+}
+
+extension ToDoStore.TaskFilter {
+    var systemImage: String {
+        switch self {
+        case .all: return "tray.full"
+        case .today: return "calendar.circle"
+        case .tomorrow: return "calendar.badge.plus"
+        case .thisWeek: return "calendar"
+        case .overdue: return "exclamationmark.triangle"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .all: return .gray
+        case .today: return .blue
+        case .tomorrow: return .green
+        case .thisWeek: return .purple
+        case .overdue: return .red
         }
     }
 }

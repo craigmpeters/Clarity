@@ -207,7 +207,7 @@ struct StatsView: View {
         // Apply category filter if selected
         if let selectedCategory = selectedCategory {
             return dateFilteredTasks.filter { task in
-                task.categories.contains(selectedCategory)
+                task.categories!.contains(selectedCategory)
             }
         }
         
@@ -222,7 +222,7 @@ struct StatsView: View {
         var csv = "Task Name,Completed Date,Categories,Pomodoro Time (min),Was Pomodoro\n"
         
         for task in completedTasks.sorted(by: { ($0.completedAt ?? Date()) > ($1.completedAt ?? Date()) }) {
-            let categories = task.categories.map { $0.name }.joined(separator: "; ")
+            let categories = task.categories!.map { $0.name }.joined(separator: "; ")
             let pomodoroMinutes = Int(task.pomodoroTime / 60)
             let completedDate = task.completedAt.map { formatter.string(from: $0) } ?? "N/A"
             
@@ -347,13 +347,13 @@ struct CategoryCompletionChart: View {
         
         // Count completions per category
         for task in tasks {
-            for category in task.categories {
+            for category in task.categories! {
                 categoryCount[category.name, default: 0] += 1
             }
         }
         
         // Add "Uncategorized" if there are tasks without categories
-        let uncategorizedCount = tasks.filter { $0.categories.isEmpty }.count
+        let uncategorizedCount = tasks.filter { $0.categories!.isEmpty }.count
         if uncategorizedCount > 0 {
             categoryCount["Uncategorized"] = uncategorizedCount
         }
@@ -494,7 +494,7 @@ struct WeeklyBreakdownView: View {
             if dailyCount[startOfDay] == nil {
                 dailyCount[startOfDay] = []
             }
-            dailyCount[startOfDay]?.append(contentsOf: task.categories)
+            dailyCount[startOfDay]?.append(contentsOf: task.categories!)
         }
         
         let formatter = DateFormatter()

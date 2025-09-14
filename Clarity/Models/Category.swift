@@ -12,10 +12,12 @@ import SwiftUI
 @Model
 
 class Category {
-    @Attribute(.unique) var name: String 
-    var color: CategoryColor
+    // FIXME: I need to fix this properly before I check this in
+    //@Attribute(.unique) var name: String = "Category"
+    var name: String = "Category"
+    var color: CategoryColor = CategoryColor.Red
     var weeklyTarget: Int = 0
-    @Relationship(inverse: \ToDoTask.categories) var tasks: [ToDoTask] = []
+    @Relationship(inverse: \ToDoTask.categories) var tasks: [ToDoTask]? = []
     
     init(name: String, color: CategoryColor = .Red, weeklyTarget: Int = 0) {
         self.name = name
@@ -33,6 +35,7 @@ class Category {
         case Pink = "Pink"
         case Purple = "Purple"
         case Orange = "Orange"
+        case Gray = "Gray"
         
         var SwiftUIColor : Color {
             switch self {
@@ -48,12 +51,13 @@ class Category {
             case .Purple: return
                 Color(red: 0.58, green: 0.0, blue: 0.83)
             case .Orange: return .orange
+            case .Gray : return .gray
             }
         }
         
         var contrastingTextColor: Color {
             switch self {
-            case .Yellow, .Cyan, .Pink:
+            case .Yellow, .Cyan, .Pink, .Gray:
                 return .black
             case .Red, .Blue, .Green, .Brown, .Orange, .Purple:
                 return .white
