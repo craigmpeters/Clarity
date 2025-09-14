@@ -42,7 +42,7 @@ struct SettingsView: View {
                         .foregroundColor(.blue)
                     Text("Version")
                     Spacer()
-                    Text("1.0.0")
+                    buildInformation()
                         .foregroundColor(.secondary)
                 }
             }
@@ -54,6 +54,14 @@ struct SettingsView: View {
         .sheet(isPresented: $showingCategoryManagement) {
             CategoryManagementView()
         }
+    }
+    
+    private func buildInformation() -> Text {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown Version"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown Build"
+        
+        return Text("\(version) (\(build))")
+        
     }
 }
 
