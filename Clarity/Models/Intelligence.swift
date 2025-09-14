@@ -47,7 +47,7 @@ class TaskSplitterService: ObservableObject {
             2. [Task name] | [minutes]
             """
             
-            let options = GenerationOptions(temperature: 2.0)
+            let options = GenerationOptions(temperature: 0.5)
             let session = LanguageModelSession()
             let response = try await session.respond(
                 to: prompt,

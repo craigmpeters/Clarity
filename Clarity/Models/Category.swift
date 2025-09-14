@@ -10,7 +10,7 @@ import SwiftData
 import SwiftUI
 
 @Model
-class Category {
+class Category : Identifiable {
     var name: String?
     var color: CategoryColor = CategoryColor.Red
     var weeklyTarget: Int = 0
