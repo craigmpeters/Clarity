@@ -24,7 +24,7 @@ struct CategoryEntity: AppEntity {
     
     init(from category: Category) {
         self.id = String(describing: category.id)
-        self.name = category.name
+        self.name = category.name ?? ""
         self.colorRawValue = category.color.rawValue
     }
 }

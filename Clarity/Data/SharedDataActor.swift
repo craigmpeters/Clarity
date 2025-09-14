@@ -39,9 +39,7 @@ actor SharedDataActor {
     
     func addTask(name: String, duration: TimeInterval, repeating: Bool, categoryIds: [String]) {
         print("Data Manager: Category IDs: \(String(describing: categoryIds))")
-        let task = ToDoTask(name: name)
-        task.pomodoroTime = duration
-        task.repeating = repeating
+        let task = ToDoTask(name: name, pomodoroTime: duration, repeating: repeating)
         
         let allCategories: [Category] = getCategories()
         for category in allCategories {
@@ -229,24 +227,25 @@ actor WidgetDataActor {
             let categoriesWithTargets = try modelContext.fetch(categoryDescriptor)
             
             // Calculate category progress
-            let categoryProgress = categoriesWithTargets.map { category in
-                let completed = weekCompleted.filter { task in
-                    task.categories.contains(category)
-                }.count
-                
-                return (
-                    name: category.name,
-                    completed: completed,
-                    target: category.weeklyTarget,
-                    color: category.color.rawValue
-                )
-            }
+//            let categoryProgress = categoriesWithTargets.map { category in
+//                let completed = weekCompleted.filter { task in
+//                    task.categories.contains(category)
+//                }.count
+//                
+//                return (
+//                    name: category.name,
+//                    completed: completed,
+//                    target: category.weeklyTarget,
+//                    color: category.color.rawValue
+//                )
+//            }
             
-            if globalTarget > 0 || !categoryProgress.isEmpty {
+//            if globalTarget > 0 || !categoryProgress.isEmpty {
+            if globalTarget > 0  {
                 return TaskWidgetEntry.WeeklyProgress(
                     completed: weekCompleted.count,
                     target: globalTarget,
-                    categories: categoryProgress
+//                    categories: categoryProgress
                 )
             }
             

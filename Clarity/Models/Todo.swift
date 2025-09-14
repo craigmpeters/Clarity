@@ -10,18 +10,31 @@ import SwiftData
 
 @Model
 class ToDoTask {
-    var name: String
-    var created: Date
-    var due: Date
-    var pomodoro: Bool
-    var pomodoroTime: TimeInterval
-    var repeating: Bool
-    var completed: Bool
+    var name: String?
+    var created: Date = Date.now
+    var due: Date = Date.now.addingTimeInterval(60 * 60 * 24) // + 24 Hours Default
+    var pomodoro: Bool = true
+    var pomodoroTime: TimeInterval = 25 * 60
+    var repeating: Bool = false
+    var completed: Bool = false
     var completedAt: Date?
     var recurrenceInterval: RecurrenceInterval?
     var customRecurrenceDays: Int = 1
     
-    @Relationship var categories: [Category] = []
+    @Relationship var categories: [Category]? = []
+    
+    init(name: String?, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = true, recurrenceInterval: RecurrenceInterval? = nil, customRecurrenceDays: Int = 0, due: Date = Date.now.addingTimeInterval(60 * 60 * 24), categories: [Category]? = []) {
+        self.name = name ?? "Unnamed Task"
+        self.created = Date.now
+        self.due = due
+        self.pomodoro = true // No longer an option
+        self.pomodoroTime = pomodoroTime
+        self.repeating = repeating
+        self.categories = categories
+        self.completed = false
+        self.recurrenceInterval = recurrenceInterval
+        self.customRecurrenceDays = customRecurrenceDays
+    }
     
     // TODO: Tags
     
@@ -51,19 +64,6 @@ class ToDoTask {
             }
         }
         return interval.displayName
-    }
-    
-    init(name: String, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date.now, categories: [Category] = []) {
-        self.name = name
-        self.created = Date.now
-        self.due = due
-        self.pomodoro = true // No longer an option
-        self.pomodoroTime = pomodoroTime
-        self.repeating = repeating
-        self.categories = categories
-        self.completed = false
-        self.recurrenceInterval = recurrenceInterval
-        self.customRecurrenceDays = customRecurrenceDays
     }
     
     enum RecurrenceInterval: String, CaseIterable, Codable {
@@ -113,10 +113,12 @@ class ToDoStore {
     }
     
     func addTodoTask(toDoTask: ToDoTask) {
-        guard !toDoTask.name.isEmpty else { return }
-        modelContext.insert(toDoTask)
-        saveContext()
-        loadToDoTasks()
+        if toDoTask.name != nil {
+            modelContext.insert(toDoTask)
+            saveContext()
+            loadToDoTasks()
+        }
+
     }
     
     func createNextOccurrence(from task: ToDoTask) -> ToDoTask {
@@ -144,7 +146,7 @@ class ToDoStore {
             recurrenceInterval: task.recurrenceInterval,
             customRecurrenceDays: task.customRecurrenceDays,
             due: nextDueDate,
-            categories: task.categories
+            categories: task.categories ?? []
         )
         
         return newTask
@@ -218,3 +220,4 @@ class ToDoStore {
         }
     }
 }
+

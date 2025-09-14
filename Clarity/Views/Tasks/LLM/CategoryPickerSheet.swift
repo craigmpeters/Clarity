@@ -26,7 +26,7 @@ struct CategoryPickerSheet: View {
                                     .fill(category.color.SwiftUIColor)
                                     .frame(width: 16, height: 16)
                                 
-                                Text(category.name)
+                                Text(category.name ?? "")
                                     .foregroundStyle(.primary)
                                 
                                 Spacer()

@@ -151,7 +151,7 @@ struct CategoryTargetRow: View {
                         .fill(category.color.SwiftUIColor)
                         .frame(width: 16, height: 16)
                     
-                    Text(category.name)
+                    Text(category.name ?? "Category")
                         .fontWeight(.medium)
                         .foregroundStyle(.primary)
                     
@@ -216,7 +216,7 @@ struct EditCategoryView: View {
     
     init(category: Category) {
         self.category = category
-        self._name = State(initialValue: category.name)
+        self._name = State(initialValue: category.name ?? "")
         self._selectedColor = State(initialValue: category.color)
         self._weeklyTarget = State(initialValue: category.weeklyTarget)
     }
@@ -315,6 +315,7 @@ struct EditCategoryView: View {
         }
     }
     
+    // TODO: Extract to Data Manager
     private func saveChanges() {
         category.name = name
         category.color = selectedColor

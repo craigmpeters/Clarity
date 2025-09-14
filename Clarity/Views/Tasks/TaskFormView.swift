@@ -33,7 +33,7 @@ struct TaskFormView: View {
         
         if let task = task {
             self._toDoTask = State(initialValue: task)
-            self._selectedCategories = State(initialValue: task.categories)
+            self._selectedCategories = State(initialValue: task.categories ?? [])
             self._selectedRecurrence = State(initialValue: task.recurrenceInterval ?? .daily)
             self._customDays = State(initialValue: task.customRecurrenceDays)
             self._dueDate = State(initialValue: task.due)
@@ -71,8 +71,12 @@ struct TaskFormView: View {
         NavigationView {
             Form {
                 Section("Task Details") {
-                    TextField("Task name", text: $toDoTask.name)
-                        .textFieldStyle(.roundedBorder)
+                    TextField("Task name", text: Binding<String>(
+                        get: { toDoTask.name ?? ""},
+                        set: { toDoTask.name = $0 }
+                        )
+                    )
+                    .textFieldStyle(.roundedBorder)
                 }
                 if #available(iOS 26.0, *) {
                     aiSplitterSection
@@ -210,7 +214,7 @@ struct TaskFormView: View {
                     Button(isEditing ? "Save" : "Add") {
                         saveTask()
                     }
-                    .disabled(toDoTask.name.isEmpty)
+                    .disabled(toDoTask.name == "")
                     .fontWeight(.semibold)
                 }
             }
@@ -298,10 +302,13 @@ extension TaskFormView {
                         Spacer()
                         
                         TaskSplitterView(
-                            taskName: $toDoTask.name,
+                            taskName: Binding<String> (
+                                get: { toDoTask.name ?? "" },
+                                set: { toDoTask.name = $0 }
+                            ),
                             toDoStore: toDoStore
                         )
-                        .disabled(toDoTask.name.isEmpty)
+                        .disabled(toDoTask.name == "")
                     }
                 } footer: {
                     Text("Requires iOS 26 or later • Powered by Apple Intelligence")

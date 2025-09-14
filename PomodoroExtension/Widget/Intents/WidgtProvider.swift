@@ -61,9 +61,9 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
                 
                 return TaskWidgetEntry.TaskInfo(
                     id: String(describing: task.id),
-                    name: task.name,
+                    name: task.name ?? "",
                     dueTime: formatter.string(from: task.due),
-                    categoryColors: task.categories.map { $0.color.rawValue },
+                    categoryColors: task.categories?.map { $0.color.rawValue } ?? [],
                     pomodoroMinutes: Int(task.pomodoroTime / 60)
                 )
             }
@@ -74,15 +74,6 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
                 taskCount: tasks.count,
                 tasks: Array(taskInfos),
                 weeklyProgress: weeklyProgress
-            )
-        } catch {
-            print("Widget: Error fetching data: \(error)")
-            return TaskWidgetEntry(
-                date: Date(),
-                filter: filter,
-                taskCount: 0,
-                tasks: [],
-                weeklyProgress: nil
             )
         }
     }
@@ -108,10 +99,6 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
         let sampleProgress = TaskWidgetEntry.WeeklyProgress(
             completed: 3,
             target: 7,
-            categories: [
-                (name: "Work", completed: 2, target: 4, color: "Blue"),
-                (name: "Personal", completed: 1, target: 3, color: "Green")
-            ]
         )
         
         return TaskWidgetEntry(

@@ -79,7 +79,7 @@ struct SuggestionRow: View {
                                         Circle()
                                             .fill(category.color.SwiftUIColor)
                                             .frame(width: 8, height: 8)
-                                        Text(category.name)
+                                        Text(category.name ?? "")
                                             .font(.caption2)
                                     }
                                     .padding(.horizontal, 8)
