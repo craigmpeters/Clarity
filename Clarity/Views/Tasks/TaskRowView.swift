@@ -87,7 +87,7 @@ struct TaskRowView: View {
             .tint(.green)
         }
         .confirmationDialog(
-            "Are you sure you want to delete this task?",
+            "Are you sure you want to delete \(task.name)?",
             isPresented: $showingDeleteAlert,
             titleVisibility: .visible
         ) {
