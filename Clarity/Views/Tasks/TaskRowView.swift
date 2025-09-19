@@ -13,6 +13,8 @@ struct TaskRowView: View {
     let onComplete: () -> Void
     let onStartTimer: () -> Void
     
+    @State private var showingDeleteAlert = false
+    
     private func formatDate(date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .long
@@ -49,13 +51,15 @@ struct TaskRowView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture(perform: onEdit)
-        .swipeActions(edge: .leading) {
-            Button(action: onDelete) {
+        .swipeActions(edge: .trailing) {
+            Button {
+                showingDeleteAlert = true
+            } label: {
                 Label("Delete", systemImage: "trash")
             }
             .tint(.red)
         }
-        .swipeActions(edge: .trailing) {
+        .swipeActions(edge: .leading) {
             Button(action: onStartTimer) {
                 Label("Start Timer", systemImage: "timer")
             }
@@ -66,5 +70,19 @@ struct TaskRowView: View {
             }
             .tint(.green)
         }
+        .confirmationDialog(
+            "Are you sure you want to delete this task?",
+            isPresented: $showingDeleteAlert,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                withAnimation {
+                    onDelete()
+                }
+            }
+            Button("Cancel", role: .cancel) { }
+        }
     }
+    
+    
 }
