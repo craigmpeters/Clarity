@@ -165,6 +165,37 @@ actor WidgetDataActor {
         }
     }
     
+    // Optimized task loading with predicates
+    func loadTasks(filter: ToDoStore.TaskFilter) async throws -> [ToDoTask] {
+        let descriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate { !$0.completed },
+            sortBy: [SortDescriptor(\.due, order: .forward)]
+        )
+        
+        var tasks = try modelContext.fetch(descriptor)
+        
+        // Apply filter logic here instead of in UI
+        let calendar = Calendar.current
+        let now = Date()
+        
+        switch filter {
+        case .today:
+            tasks = tasks.filter { calendar.isDateInToday($0.due) }
+        case .tomorrow:
+            tasks = tasks.filter { calendar.isDateInTomorrow($0.due) }
+        case .thisWeek:
+            let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
+            let endOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.end ?? now
+            tasks = tasks.filter { $0.due >= startOfWeek && $0.due <= endOfWeek }
+        case .overdue:
+            tasks = tasks.filter { $0.due < calendar.startOfDay(for: now) }
+        case .all:
+            break
+        }
+        
+        return tasks
+    }
+    
     private func createNextOccurrence(from task: ToDoTask) -> ToDoTask {
         let nextDueDate: Date
         
