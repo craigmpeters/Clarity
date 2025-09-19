@@ -2,10 +2,9 @@ import SwiftData
 import Foundation
 
 @ModelActor
-actor SharedDataActor {
+public actor SharedDataActor {
     static let shared = SharedDataActor(modelContainer: {
         do {
-            // Create model container with app group for widget data sharing
             let schema = Schema([
                 ToDoTask.self,
                 Category.self,
@@ -27,12 +26,50 @@ actor SharedDataActor {
         }
     }())
     
+    // MARK: Category Functions
+    
     func getCategories() -> [Category] {
         do {
             let descriptor = FetchDescriptor<Category>()
             return try modelContext.fetch(descriptor)
         } catch {
             print("Failed to fetch categories: \(error)")
+            return []
+        }
+    }
+    
+    // MARK: Task Functions
+    
+    func fetchTasks(_ filter: ToDoStore.TaskFilter) async throws -> [ToDoTask] {
+        do {
+            let descriptor = FetchDescriptor<ToDoTask>(
+                predicate: #Predicate { !$0.completed },
+                sortBy: [SortDescriptor(\.due, order: .forward)]
+            )
+            
+            var tasks = try modelContext.fetch(descriptor)
+            // Apply filter
+            let calendar = Calendar.current
+            let now = Date()
+            
+            switch filter {
+            case .today:
+                tasks = tasks.filter { calendar.isDateInToday($0.due) }
+            case .tomorrow:
+                tasks = tasks.filter { calendar.isDateInTomorrow($0.due) }
+            case .thisWeek:
+                let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
+                let endOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.end ?? now
+                tasks = tasks.filter { $0.due >= startOfWeek && $0.due <= endOfWeek }
+            case .overdue:
+                tasks = tasks.filter { $0.due < calendar.startOfDay(for: now) }
+            case .all:
+                break // No additional filtering
+            }
+            
+            return tasks
+        } catch {
+            print("Failed to fetch tasks: \(error)")
             return []
         }
     }
@@ -233,6 +270,8 @@ actor WidgetDataActor {
             let calendar = Calendar.current
             let now = Date()
             var components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
+            
+            // TODO: Have the start day configurable
             components.weekday = 2 // Monday
             let weekStart = calendar.date(from: components) ?? now
             

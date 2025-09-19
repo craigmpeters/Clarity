@@ -193,10 +193,10 @@
 		44FB49552E51F1EB0059CC5B = {
 			isa = PBXGroup;
 			children = (
-				44B3D8E52E689EDA000FD549 /* PomodoroExtensionExtension.entitlements */,
 				44FB49602E51F1EB0059CC5B /* Clarity */,
 				44FB49712E51F1ED0059CC5B /* ClarityTests */,
 				44FB497B2E51F1ED0059CC5B /* ClarityUITests */,
+				44B3D8E52E689EDA000FD549 /* PomodoroExtensionExtension.entitlements */,
 				4448AD672E579266005CDDDF /* PomodoroExtension */,
 				44BCDDFA2E5D2A7E00B61B9C /* Icon Composer */,
 				4448AD622E579266005CDDDF /* Frameworks */,
@@ -631,6 +631,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Clarity/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Clarity Task Manager";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
@@ -667,6 +668,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Clarity/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Clarity Task Manager";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;

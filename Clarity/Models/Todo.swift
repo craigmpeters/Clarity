@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftData
+import Observation
 
 @Model
 class ToDoTask {
@@ -110,6 +111,18 @@ class ToDoStore {
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
         loadToDoTasks()
+        startObservingChanges()
+    }
+    
+    func startObservingChanges() {
+        NotificationCenter.default.addObserver(
+            forName: .NSManagedObjectContextObjectsDidChange, // SwiftData bridges this for ModelContext
+            object: modelContext,
+            queue: .main
+        ) { [weak self] _ in
+            self?.loadToDoTasks()
+            print("Observed SwiftData Change in ToDoStore")
+        }
     }
     
     func addTodoTask(toDoTask: ToDoTask) {
