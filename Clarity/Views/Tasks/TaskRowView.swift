@@ -14,6 +14,7 @@ struct TaskRowView: View {
     let onStartTimer: () -> Void
     
     @State private var showingDeleteAlert = false
+    @State private var isDismissing = false
     
     private func formatDate(date: Date) -> String {
         let formatter = DateFormatter()
@@ -49,6 +50,9 @@ struct TaskRowView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .opacity(isDismissing ? 0 : 1)
+        .offset(x: isDismissing ? 40 : 0)
+        .animation(.spring(response: 0.25, dampingFraction: 0.9), value: isDismissing)
         .contentShape(Rectangle())
         .onTapGesture(perform: onEdit)
         .swipeActions(edge: .trailing) {
@@ -59,15 +63,27 @@ struct TaskRowView: View {
             }
             .tint(.red)
         }
-        .swipeActions(edge: .leading) {
-            Button(action: onStartTimer) {
+        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+            Button(action: onStartTimer, label: {
                 Label("Start Timer", systemImage: "timer")
-            }
+            })
             .tint(.blue)
             
-            Button(action: onComplete) {
+            Button(action: {
+                #if canImport(UIKit)
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                #endif
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
+                    isDismissing = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
+                        onComplete()
+                    }
+                }
+            }, label: {
                 Label("Complete", systemImage: "checkmark")
-            }
+            })
             .tint(.green)
         }
         .confirmationDialog(
