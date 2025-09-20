@@ -18,14 +18,17 @@ struct SettingsView: View {
             }
             
             // ToDo: Version 1.1 Stuff
-//            Section("General") {
-//                HStack {
-//                    Image(systemName: "bell")
-//                        .foregroundColor(.orange)
-//                    Text("Notifications")
-//                    Spacer()
-//                    // Add notification settings here
-//                }
+            Section("General") {
+                HStack {
+                    NavigationLink(destination: NotificationSettingsView()) {
+                        Image(systemName: "bell")
+                            .foregroundColor(.orange)
+                        Text("Notifications")
+                        Spacer()
+                    }
+
+                    // Add notification settings here
+                }
 //                
 //                HStack {
 //                    Image(systemName: "paintbrush")
@@ -34,7 +37,7 @@ struct SettingsView: View {
 //                    Spacer()
 //                    // Add appearance settings here
 //                }
-//            }
+            }
             
             Section("About") {
                 HStack {

@@ -631,7 +631,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Clarity/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Clarity Task Manager";
+				INFOPLIST_KEY_CFBundleDisplayName = Clarity;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
@@ -668,7 +668,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Clarity/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Clarity Task Manager";
+				INFOPLIST_KEY_CFBundleDisplayName = Clarity;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
