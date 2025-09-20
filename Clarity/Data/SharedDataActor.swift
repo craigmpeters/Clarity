@@ -97,34 +97,7 @@ public actor SharedDataActor {
             print("Failed to save task: \(error)")
         }
     }
-}
 
-@ModelActor
-actor WidgetDataActor {
-    static let shared = WidgetDataActor(modelContainer: {
-        do {
-            let schema = Schema([
-                ToDoTask.self,
-                Category.self,
-                GlobalTargetSettings.self
-            ])
-            
-            let modelConfiguration = ModelConfiguration(
-                schema: schema,
-                isStoredInMemoryOnly: false,
-                allowsSave: true,
-                groupContainer: .identifier("group.me.craigpeters.clarity")
-            )
-            
-            return try ModelContainer(
-                for: schema,
-                configurations: [modelConfiguration]
-            )
-        } catch {
-            fatalError("Failed to create ModelContainer: \(error)")
-        }
-    }())
-    
     func fetchTasksForWidget(filter: ToDoStore.TaskFilter) async -> (tasks: [ToDoTask], weeklyProgress: TaskWidgetEntry.WeeklyProgress?) {
         do {
             // Fetch incomplete tasks
@@ -264,6 +237,9 @@ actor WidgetDataActor {
         return newTask
     }
     
+    // MARK: Private Functions
+    
+    // TODO: Make Generic
     private func fetchWeeklyProgress() async -> TaskWidgetEntry.WeeklyProgress? {
         do {
             // Get current week start (Monday)
@@ -324,6 +300,139 @@ actor WidgetDataActor {
         } catch {
             print("Failed to fetch weekly progress: \(error)")
             return nil
+        }
+    }
+}
+
+
+@Observable
+class ToDoStore {
+    private var modelContext: ModelContext
+    private var lastLoadDate = Date()
+    
+    
+    var toDoTasks: [ToDoTask] = []
+    
+    init(modelContext: ModelContext) {
+        self.modelContext = modelContext
+        loadToDoTasks()
+        startObservingChanges()
+    }
+    
+    func startObservingChanges() {
+        NotificationCenter.default.addObserver(
+            forName: .NSManagedObjectContextObjectsDidChange, // SwiftData bridges this for ModelContext
+            object: modelContext,
+            queue: .main
+        ) { [weak self] _ in
+            self?.loadToDoTasks()
+            print("Observed SwiftData Change in ToDoStore")
+        }
+    }
+    
+    func addTodoTask(toDoTask: ToDoTask) {
+        guard !toDoTask.name.isEmpty else { return }
+        modelContext.insert(toDoTask)
+        saveContext()
+        loadToDoTasks()
+    }
+    
+    func createNextOccurrence(from task: ToDoTask) -> ToDoTask {
+        let nextDueDate: Date
+        
+        if let interval = task.recurrenceInterval {
+            if interval == .custom {
+                nextDueDate = Calendar.current.date(
+                    byAdding: .day,
+                    value: task.customRecurrenceDays,
+                    to: Date.now
+                ) ?? task.due
+            } else {
+                nextDueDate = interval.nextDate(from: Date.now)
+            }
+        } else {
+            // Fallback to daily if no interval set
+            nextDueDate = Calendar.current.date(byAdding: .day, value: 1, to: task.due) ?? task.due
+        }
+        
+        let newTask = ToDoTask(
+            name: task.name,
+            pomodoroTime: task.pomodoroTime,
+            repeating: true,
+            recurrenceInterval: task.recurrenceInterval,
+            customRecurrenceDays: task.customRecurrenceDays,
+            due: nextDueDate,
+            categories: task.categories
+        )
+        
+        return newTask
+    }
+    
+    // Complete ToDoTask when it is something where it is done
+    func completeToDoTask(toDoTask: ToDoTask) {
+        toDoTask.completed = true
+        toDoTask.completedAt = Date.now
+        if toDoTask.repeating {
+            let nextTask = createNextOccurrence(from: toDoTask)
+            modelContext.insert(nextTask)
+        }
+        saveContext()
+        loadToDoTasks()
+    }
+    
+    func deleteToDoTask(toDoTask: ToDoTask) {
+        modelContext.delete(toDoTask)
+        saveContext()
+        loadToDoTasks()
+    }
+    
+    func loadToDoTasks() {
+        do {
+            let descriptor = FetchDescriptor<ToDoTask>(
+                predicate: #Predicate { !$0.completed },
+                sortBy: [SortDescriptor(\.due, order: .forward)]
+            )
+            toDoTasks = try modelContext.fetch(descriptor)
+        } catch {
+            print("Failed to load tasks: \(error.localizedDescription)")
+        }
+    }
+    
+    func saveContext() {
+        do {
+            try modelContext.save()
+        } catch {
+            print("Failed to save context: \(error.localizedDescription)")
+        }
+    }
+    
+    let descriptor = FetchDescriptor<ToDoTask>(
+        predicate: #Predicate { !$0.completed },
+        sortBy: [SortDescriptor(\.due, order: .forward)]
+    )
+    
+    enum TaskFilter: String, CaseIterable {
+        case all = "All Tasks"
+        case overdue = "Overdue"
+        case today = "Today"
+        case tomorrow = "Tomorrow"
+        case thisWeek = "This Week"
+        
+        func matches(task: ToDoTask) -> Bool {
+            switch self {
+            case .all:
+                return true
+            case .overdue:
+                return task.due < Calendar.current.startOfDay(for: Date())
+            case .today:
+                return Calendar.current.isDateInToday(task.due)
+            case .tomorrow:
+                return Calendar.current.isDateInTomorrow(task.due)
+            case .thisWeek:
+                let startOfWeek = Calendar.current.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
+                let endOfWeek = Calendar.current.dateInterval(of: .weekOfYear, for: Date())?.end ?? Date()
+                return task.due >= startOfWeek && task.due <= endOfWeek
+            }
         }
     }
 }
