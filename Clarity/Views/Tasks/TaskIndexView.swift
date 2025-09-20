@@ -15,14 +15,15 @@ struct TaskIndexView: View {
     @State private var selectedCategory: Category?
     
     @Query private var allCategories: [Category]
-    @Query(sort: \ToDoTask.due, order: .forward) private var allTasks: [ToDoTask]
+    @Query(filter: #Predicate<ToDoTask> {!$0.completed }, sort: \ToDoTask.due, order: .forward) private var allTasks: [ToDoTask]
     
+
     private var filteredTasks: [ToDoTask] {
         let filtered = allTasks.filter { task in
             let dueDateMatches = selectedFilter.matches(task: task)
-            let categoryMatches = selectedCategory == nil ||
-                task.categories.contains { $0.name == selectedCategory?.name }
-            return dueDateMatches && categoryMatches
+            let categoryMatches = selectedCategory == nil // ||
+//            task.categories.contains { $0.name == selectedCategory?.name}
+            return dueDateMatches // && categoryMatches
         }
         return filtered
     }
@@ -85,6 +86,7 @@ struct TaskIndexView: View {
     }
     
     private func completeTask(_ task: ToDoTask) {
+        print("Attempting to complete task \(task.name ?? "")")
         Task {
             await SharedDataActor.shared.completeToDoTask(toDoTask: task)
         }

@@ -30,7 +30,8 @@ struct ClarityApp: App {
                     schema: schema,
                     isStoredInMemoryOnly: false,
                     allowsSave: true,
-                    groupContainer: .identifier("group.me.craigpeters.clarity") // Same as widget
+                    groupContainer: .identifier("group.me.craigpeters.clarity"),
+                    cloudKitDatabase: .private("iCloud.me.craigpeters.clarity")
                 )
                 
                 modelContainer = try ModelContainer(

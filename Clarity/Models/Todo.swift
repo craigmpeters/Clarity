@@ -11,38 +11,21 @@ import Observation
 
 @Model
 class ToDoTask {
-    var name: String
-    var created: Date
-    var due: Date
-    var pomodoro: Bool
-    var pomodoroTime: TimeInterval
-    var repeating: Bool
-    var completed: Bool
+    var name: String?
+    var created: Date = Date()
+    var due: Date = Date.now.addingTimeInterval(24 * 60 * 60)
+    var pomodoro: Bool = true
+    var pomodoroTime: TimeInterval = 25 * 60
+    var repeating: Bool?
+    var completed: Bool = false
     var completedAt: Date?
     var recurrenceInterval: RecurrenceInterval?
     var customRecurrenceDays: Int = 1
     
-    @Relationship var categories: [Category] = []
-    
-    // TODO: Tags
-    
-    func friendlyDue() -> String {
-        switch due {
-        case let date where Calendar.current.isDateInToday(date):
-            return "Today"
-        case let date where Calendar.current.isDateInTomorrow(date):
-            return "Tomorrow"
-        case let date where Calendar.current.isDateInYesterday(date):
-            return "Yesterday"
-        default:
-            let dateFormatter = DateFormatter()
-            dateFormatter.setLocalizedDateFormatFromTemplate("MMMMd")
-            return dateFormatter.string(from: due)
-        }
-    }
+    @Relationship var categories: [Category]? = []
     
     var recurrenceDescription: String? {
-        guard repeating, let interval = recurrenceInterval else { return nil }
+        guard repeating ?? false, let interval = recurrenceInterval else { return nil }
         
         if interval == .custom {
             if customRecurrenceDays == 1 {
@@ -54,8 +37,8 @@ class ToDoTask {
         return interval.displayName
     }
     
-    init(name: String, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date.now, categories: [Category] = []) {
-        self.name = name
+    init(name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date.distantFuture, categories: [Category] = []) {
+        self.name = name ?? ""
         self.created = Date.now
         self.due = due
         self.pomodoro = true // No longer an option
@@ -124,3 +107,4 @@ class ToDoTask {
         }
     }
 }
+

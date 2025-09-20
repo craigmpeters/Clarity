@@ -12,10 +12,11 @@ import SwiftUI
 @Model
 
 class Category {
-    @Attribute(.unique) var name: String 
-    var color: CategoryColor
+    //TODO: Guard against existing categories on create
+    var name: String?
+    var color: CategoryColor?
     var weeklyTarget: Int = 0
-    @Relationship(inverse: \ToDoTask.categories) var tasks: [ToDoTask] = []
+    @Relationship(inverse: \ToDoTask.categories) var tasks: [ToDoTask]? = []
     
     init(name: String, color: CategoryColor = .Red, weeklyTarget: Int = 0) {
         self.name = name

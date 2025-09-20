@@ -148,10 +148,10 @@ struct CategoryTargetRow: View {
             Button(action: onEdit) {
                 HStack(spacing: 8) {
                     Circle()
-                        .fill(category.color.SwiftUIColor)
+                        .fill(category.color!.SwiftUIColor)
                         .frame(width: 16, height: 16)
                     
-                    Text(category.name)
+                    Text(category.name!)
                         .fontWeight(.medium)
                         .foregroundStyle(.primary)
                     
@@ -216,8 +216,8 @@ struct EditCategoryView: View {
     
     init(category: Category) {
         self.category = category
-        self._name = State(initialValue: category.name)
-        self._selectedColor = State(initialValue: category.color)
+        self._name = State(initialValue: category.name ?? "")
+        self._selectedColor = State(initialValue: category.color ?? Category.CategoryColor.Blue)
         self._weeklyTarget = State(initialValue: category.weeklyTarget)
     }
     

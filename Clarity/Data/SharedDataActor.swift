@@ -15,6 +15,8 @@ public actor SharedDataActor {
                 schema: schema,
                 isStoredInMemoryOnly: false,
                 allowsSave: true,
+                groupContainer: .identifier("group.me.craigpeters.clarity"),
+                cloudKitDatabase: .private("iCloud.me.craigpeters.clarity")
             )
             
             return try ModelContainer(
@@ -155,14 +157,14 @@ public actor SharedDataActor {
                 return
             }
             
-            print("Widget: Completing task: \(task.name)")
+            print("Widget: Completing task: \(task.name ?? "Unknown Task Name")")
             
             // Mark as completed
             task.completed = true
             task.completedAt = Date()
             
             // Handle recurring tasks
-            if task.repeating {
+            if task.repeating ?? false {
                 let nextTask = createNextOccurrence(from: task)
                 modelContext.insert(nextTask)
                 print("Widget: Created next occurrence for recurring task")
@@ -232,7 +234,7 @@ public actor SharedDataActor {
             recurrenceInterval: task.recurrenceInterval,
             customRecurrenceDays: task.customRecurrenceDays,
             due: nextDueDate,
-            categories: task.categories
+            categories: task.categories ?? []
         )
         
         return newTask
@@ -278,14 +280,14 @@ public actor SharedDataActor {
             // Calculate category progress
             let categoryProgress = categoriesWithTargets.map { category in
                 let completed = weekCompleted.filter { task in
-                    task.categories.contains(category)
+                    task.categories!.contains(category)
                 }.count
                 
                 return (
-                    name: category.name,
+                    name: category.name ?? "",
                     completed: completed,
                     target: category.weeklyTarget,
-                    color: category.color.rawValue
+                    color: category.color?.rawValue ?? ""
                 )
             }
             
@@ -305,7 +307,7 @@ public actor SharedDataActor {
     }
     
     func addTodoTask(toDoTask: ToDoTask) {
-        guard !toDoTask.name.isEmpty else { return }
+        guard ((toDoTask.name?.isEmpty) == nil) else { return }
         modelContext.insert(toDoTask)
         saveContext()
 //        loadToDoTasks()
@@ -315,12 +317,11 @@ public actor SharedDataActor {
     func completeToDoTask(toDoTask: ToDoTask) {
         toDoTask.completed = true
         toDoTask.completedAt = Date.now
-        if toDoTask.repeating {
+        if toDoTask.repeating! {
             let nextTask = createNextOccurrence(from: toDoTask)
             modelContext.insert(nextTask)
         }
         saveContext()
-//        loadToDoTasks()
     }
     
     func deleteToDoTask(toDoTask: ToDoTask) {
@@ -356,3 +357,4 @@ public actor SharedDataActor {
     
 
 }
+

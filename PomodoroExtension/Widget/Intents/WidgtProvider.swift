@@ -61,9 +61,9 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
                 
                 return TaskWidgetEntry.TaskInfo(
                     id: String(describing: task.id),
-                    name: task.name,
+                    name: task.name!,
                     dueTime: formatter.string(from: task.due),
-                    categoryColors: task.categories.map { $0.color.rawValue },
+                    categoryColors: task.categories!.map { $0.color!.rawValue },
                     pomodoroMinutes: Int(task.pomodoroTime / 60)
                 )
             }

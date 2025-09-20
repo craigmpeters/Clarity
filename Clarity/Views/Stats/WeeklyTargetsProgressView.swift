@@ -34,7 +34,7 @@ struct WeeklyTargetsProgressView: View {
     private var categoryProgress: [(category: Category, completed: Int, target: Int, progress: Double)] {
         categories.compactMap { category in
             let completed = tasksThisWeek.filter { task in
-                task.categories.contains(category)
+                task.categories!.contains(category)
             }.count
             
             let target = category.weeklyTarget
@@ -188,10 +188,10 @@ struct CategoryProgressRow: View {
             HStack {
                 HStack(spacing: 6) {
                     Circle()
-                        .fill(category.color.SwiftUIColor)
+                        .fill(category.color!.SwiftUIColor)
                         .frame(width: 12, height: 12)
                     
-                    Text(category.name)
+                    Text(category.name!)
                         .font(.subheadline)
                         .fontWeight(.medium)
                 }

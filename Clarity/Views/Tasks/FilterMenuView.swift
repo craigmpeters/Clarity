@@ -46,9 +46,9 @@ struct FilterMenuView: View {
                         Button(action: { selectedCategory = category }) {
                             HStack {
                                 Circle()
-                                    .fill(category.color.SwiftUIColor)
+                                    .fill(category.color!.SwiftUIColor)
                                     .frame(width: 12, height: 12)
-                                Text(category.name)
+                                Text(category.name!)
                                 if selectedCategory?.name == category.name {
                                     Image(systemName: "checkmark")
                                 }
