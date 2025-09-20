@@ -12,7 +12,6 @@ import FoundationModels
 #endif
 
 struct TaskFormView: View {
-    @Bindable var toDoStore: ToDoStore
     @Environment(\.dismiss) private var dismiss
     
     let editingTask: ToDoTask?
@@ -27,8 +26,7 @@ struct TaskFormView: View {
         editingTask != nil
     }
     
-    init(toDoStore: ToDoStore, task: ToDoTask? = nil) {
-        self.toDoStore = toDoStore
+    init(task: ToDoTask? = nil) {
         self.editingTask = task
         
         if let task = task {
@@ -58,10 +56,10 @@ struct TaskFormView: View {
                 toDoTask.recurrenceInterval = nil
             }
             
-            if isEditing {
-                toDoStore.saveContext()
-            } else {
-                toDoStore.addTodoTask(toDoTask: toDoTask)
+            if !isEditing {
+                Task {
+                    await SharedDataActor.shared.addTodoTask(toDoTask: toDoTask)
+                }
             }
         }
         dismiss()
@@ -298,8 +296,7 @@ extension TaskFormView {
                         Spacer()
                         
                         TaskSplitterView(
-                            taskName: $toDoTask.name,
-                            toDoStore: toDoStore
+                            taskName: $toDoTask.name
                         )
                         .disabled(toDoTask.name.isEmpty)
                     }

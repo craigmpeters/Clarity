@@ -41,7 +41,8 @@ enum TaskFilterOption: String, AppEnum, CaseIterable {
         .all: DisplayRepresentation(title: "All Tasks")
     ]
     
-    func toTaskFilter() -> ToDoStore.TaskFilter {
+    // FIXME: Is this needed?
+    func toTaskFilter() -> ToDoTask.TaskFilter {
         switch self {
         case .today: return .today
         case .tomorrow: return .tomorrow

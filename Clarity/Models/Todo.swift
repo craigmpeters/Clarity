@@ -98,4 +98,29 @@ class ToDoTask {
             }
         }
     }
+    
+    enum TaskFilter: String, CaseIterable {
+        case all = "All Tasks"
+        case overdue = "Overdue"
+        case today = "Today"
+        case tomorrow = "Tomorrow"
+        case thisWeek = "This Week"
+        
+        func matches(task: ToDoTask) -> Bool {
+            switch self {
+            case .all:
+                return true
+            case .overdue:
+                return task.due < Calendar.current.startOfDay(for: Date())
+            case .today:
+                return Calendar.current.isDateInToday(task.due)
+            case .tomorrow:
+                return Calendar.current.isDateInTomorrow(task.due)
+            case .thisWeek:
+                let startOfWeek = Calendar.current.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
+                let endOfWeek = Calendar.current.dateInterval(of: .weekOfYear, for: Date())?.end ?? Date()
+                return task.due >= startOfWeek && task.due <= endOfWeek
+            }
+        }
+    }
 }

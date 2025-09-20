@@ -3,7 +3,6 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @State private var toDoStore: ToDoStore?
     @State private var selectedTask: ToDoTask? = nil
     @State private var showingPomodoro = false
     @State private var showingFirstRun = !UserDefaults.hasCompletedOnboarding
@@ -14,16 +13,16 @@ struct ContentView: View {
             TabView {
                 // Tasks Tab
                 NavigationStack {
-                    if let toDoStore = toDoStore {
+//                    if let toDoStore = toDoStore {
                         TaskIndexView(
-                            toDoStore: toDoStore,
+//                            toDoStore: toDoStore,
                             selectedTask: $selectedTask,
                             showingPomodoro: $showingPomodoro
                         )
                         .navigationTitle("Tasks")
-                    } else {
-                        ProgressView("Loading...")
-                    }
+//                    } else {
+//                        ProgressView("Loading...")
+//                    }
                 }
                 .tabItem {
                     Image(systemName: "list.bullet")
@@ -54,10 +53,9 @@ struct ContentView: View {
             .scaleEffect(showingPomodoro ? 0.95 : 1.0)
             
             // Pomodoro View Overlay
-            if showingPomodoro, let selectedTask = selectedTask, let toDoStore = toDoStore {
+            if showingPomodoro, let selectedTask = selectedTask {
                 PomodoroView(
                     task: selectedTask,
-                    toDoStore: toDoStore,
                     showingPomodoro: $showingPomodoro
                 )
                 .transition(.asymmetric(
@@ -72,36 +70,41 @@ struct ContentView: View {
                 .interactiveDismissDisabled()
         }
         .animation(.easeInOut(duration: 0.3), value: showingPomodoro)
-        .onAppear {
-            if toDoStore == nil {
-                toDoStore = ToDoStore(modelContext: modelContext)
-            }
-        }
-        // In your TaskIndexView or ContentView
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-            toDoStore?.loadToDoTasks() // Refresh the data when app becomes active
-        }
-        
+//        .onAppear {
+//
+//        }
+//        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+//
+//        }
+//        
         .onOpenURL { url in
             if url.scheme == "clarity" {
                 if url.host == "timer",
                    let taskId = url.pathComponents.last
                 {
                     // Find the task and start the timer
-                    if let task = findTask(withId: taskId) {
-                        selectedTask = task
-                        showingPomodoro = true
+                    Task {
+                        if let task = await findTask(withId: taskId) {
+                            selectedTask = task
+                            showingPomodoro = true
+                        }
                     }
                 }
             }
         }
     }
 
-    func findTask(withId id: String) -> ToDoTask? {
+    func findTask(withId id: String) async -> ToDoTask? {
         // Search through your tasks for matching ID
-        return toDoStore!.toDoTasks.first {
-            String(describing: $0.id) == id
+        do {
+            let tasks = try await SharedDataActor.shared.fetchTasks(ToDoTask.TaskFilter.all)
+            return tasks.first { task in
+                String(describing: task.id) == id
+            }
+        } catch {
+            return nil
         }
+
     }
 
     func handleWidgetDeepLink(_ url: URL) {

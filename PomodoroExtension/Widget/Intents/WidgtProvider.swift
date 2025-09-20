@@ -51,7 +51,7 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
         return Timeline(entries: [entry], policy: .after(nextUpdate))
     }
     
-    private func fetchEntry(for filter: ToDoStore.TaskFilter) async -> TaskWidgetEntry {
+    private func fetchEntry(for filter: ToDoTask.TaskFilter) async -> TaskWidgetEntry {
         do {
             let (tasks, weeklyProgress) = await SharedDataActor.shared.fetchTasksForWidget(filter: filter)
             
@@ -87,7 +87,7 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
         }
     }
     
-    private func createSampleEntry(for filter: ToDoStore.TaskFilter) -> TaskWidgetEntry {
+    private func createSampleEntry(for filter: ToDoTask.TaskFilter) -> TaskWidgetEntry {
         let sampleTasks = [
             TaskWidgetEntry.TaskInfo(
                 id: "sample-1",

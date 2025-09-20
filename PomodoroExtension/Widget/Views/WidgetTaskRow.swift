@@ -36,7 +36,7 @@ struct WidgetTaskRow: View {
     }
 }
 
-extension ToDoStore.TaskFilter {
+extension ToDoTask.TaskFilter {
     var systemImage: String {
         switch self {
         case .all: return "tray.full"
