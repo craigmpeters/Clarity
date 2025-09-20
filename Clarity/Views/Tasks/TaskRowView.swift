@@ -16,6 +16,7 @@ struct TaskRowView: View {
     @State private var showingDeleteAlert = false
     @State private var isDismissing = false
     
+<<<<<<< HEAD
     private func formatDate(date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .long
@@ -24,6 +25,8 @@ struct TaskRowView: View {
         return formatter.string(from: date)
     }
     
+=======
+>>>>>>> Hotfix
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
@@ -46,8 +49,12 @@ struct TaskRowView: View {
                         .foregroundColor(category.color.contrastingTextColor)
                 }
                 Spacer()
+<<<<<<< HEAD
                 Text(formatDate(date: task.due))
                     .foregroundStyle(.secondary)
+=======
+                RelativeDateText(date: task.due)
+>>>>>>> Hotfix
             }
         }
         .opacity(isDismissing ? 0 : 1)
