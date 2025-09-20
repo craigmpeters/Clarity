@@ -16,14 +16,6 @@ struct TaskRowView: View {
     @State private var showingDeleteAlert = false
     @State private var isDismissing = false
     
-    private func formatDate(date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .long
-        formatter.timeStyle = .none
-        formatter.doesRelativeDateFormatting = true
-        return formatter.string(from: date)
-    }
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
@@ -46,8 +38,7 @@ struct TaskRowView: View {
                         .foregroundColor(category.color.contrastingTextColor)
                 }
                 Spacer()
-                Text(formatDate(date: task.due))
-                    .foregroundStyle(.secondary)
+                RelativeDateText(date: task.due)
             }
         }
         .opacity(isDismissing ? 0 : 1)
