@@ -77,14 +77,14 @@ struct SuggestionRow: View {
                                 ForEach(applyGlobalCategories ? globalCategories : suggestion.selectedCategories) { category in
                                     HStack(spacing: 4) {
                                         Circle()
-                                            .fill(category.color.SwiftUIColor)
+                                            .fill(category.color!.SwiftUIColor)
                                             .frame(width: 8, height: 8)
-                                        Text(category.name)
+                                        Text(category.name!)
                                             .font(.caption2)
                                     }
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 2)
-                                    .background(category.color.SwiftUIColor.opacity(0.15))
+                                    .background(category.color!.SwiftUIColor.opacity(0.15))
                                     .cornerRadius(8)
                                 }
                             }

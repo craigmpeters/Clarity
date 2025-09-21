@@ -12,7 +12,7 @@ import AppIntents
 
 struct TaskWidgetEntry: TimelineEntry {
     let date: Date
-    let filter: ToDoStore.TaskFilter
+    let filter: ToDoTask.TaskFilter
     let taskCount: Int
     let tasks: [TaskInfo]
     let weeklyProgress: WeeklyProgress?

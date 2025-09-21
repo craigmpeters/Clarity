@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct FilterMenuView: View {
-    @Binding var selectedFilter: ToDoStore.TaskFilter
+    @Binding var selectedFilter: ToDoTask.TaskFilter
     @Binding var selectedCategory: Category?
     let allCategories: [Category]
     // let onFilterChange: (ToDoStore.TaskFilter) -> Void
@@ -16,7 +16,7 @@ struct FilterMenuView: View {
     var body: some View {
         Menu {
             Section("Due Date") {
-                ForEach(ToDoStore.TaskFilter.allCases, id: \.self) { filter in
+                ForEach(ToDoTask.TaskFilter.allCases, id: \.self) { filter in
                     Button(action: {
                         selectedFilter = filter
                         //onFilterChange(filter)
@@ -46,9 +46,9 @@ struct FilterMenuView: View {
                         Button(action: { selectedCategory = category }) {
                             HStack {
                                 Circle()
-                                    .fill(category.color.SwiftUIColor)
+                                    .fill(category.color!.SwiftUIColor)
                                     .frame(width: 12, height: 12)
-                                Text(category.name)
+                                Text(category.name!)
                                 if selectedCategory?.name == category.name {
                                     Image(systemName: "checkmark")
                                 }

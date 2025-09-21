@@ -16,38 +16,28 @@ struct TaskRowView: View {
     @State private var showingDeleteAlert = false
     @State private var isDismissing = false
     
-    private func formatDate(date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .long
-        formatter.timeStyle = .none
-        formatter.doesRelativeDateFormatting = true
-        return formatter.string(from: date)
-    }
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(task.name)
+                Text(task.name ?? "")
                     .lineLimit(1)
-                Spacer()
-                RecurrenceIndicatorBadge(task: task)
             }
                 
             HStack(spacing: 6) {
-                ForEach(task.categories) { category in
-                    Text(category.name)
+                ForEach(task.categories!) { category in
+                    Text(category.name!)
                         .font(.caption2)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
                         .background(
                             RoundedRectangle(cornerRadius: 6)
-                                .fill(category.color.SwiftUIColor)
+                                .fill(category.color!.SwiftUIColor)
                         )
-                        .foregroundColor(category.color.contrastingTextColor)
+                        .foregroundColor(category.color!.contrastingTextColor)
                 }
                 Spacer()
-                Text(formatDate(date: task.due))
-                    .foregroundStyle(.secondary)
+                RecurrenceIndicatorBadge(task: task)
+                RelativeDateText(date: task.due)
             }
         }
         .opacity(isDismissing ? 0 : 1)
@@ -69,19 +59,7 @@ struct TaskRowView: View {
             })
             .tint(.blue)
             
-            Button(action: {
-                #if canImport(UIKit)
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                #endif
-                withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
-                    isDismissing = true
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
-                        onComplete()
-                    }
-                }
-            }, label: {
+            Button(action: onComplete, label: {
                 Label("Complete", systemImage: "checkmark")
             })
             .tint(.green)

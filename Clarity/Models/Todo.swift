@@ -7,41 +7,25 @@
 
 import Foundation
 import SwiftData
+import Observation
 
 @Model
 class ToDoTask {
-    var name: String
-    var created: Date
-    var due: Date
-    var pomodoro: Bool
-    var pomodoroTime: TimeInterval
-    var repeating: Bool
-    var completed: Bool
+    var name: String?
+    var created: Date = Date()
+    var due: Date = Date.now.addingTimeInterval(24 * 60 * 60)
+    var pomodoro: Bool = true
+    var pomodoroTime: TimeInterval = 25 * 60
+    var repeating: Bool?
+    var completed: Bool = false
     var completedAt: Date?
     var recurrenceInterval: RecurrenceInterval?
     var customRecurrenceDays: Int = 1
     
-    @Relationship var categories: [Category] = []
-    
-    // TODO: Tags
-    
-    func friendlyDue() -> String {
-        switch due {
-        case let date where Calendar.current.isDateInToday(date):
-            return "Today"
-        case let date where Calendar.current.isDateInTomorrow(date):
-            return "Tomorrow"
-        case let date where Calendar.current.isDateInYesterday(date):
-            return "Yesterday"
-        default:
-            let dateFormatter = DateFormatter()
-            dateFormatter.setLocalizedDateFormatFromTemplate("MMMMd")
-            return dateFormatter.string(from: due)
-        }
-    }
+    @Relationship var categories: [Category]? = []
     
     var recurrenceDescription: String? {
-        guard repeating, let interval = recurrenceInterval else { return nil }
+        guard repeating ?? false, let interval = recurrenceInterval else { return nil }
         
         if interval == .custom {
             if customRecurrenceDays == 1 {
@@ -53,8 +37,8 @@ class ToDoTask {
         return interval.displayName
     }
     
-    init(name: String, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date.now, categories: [Category] = []) {
-        self.name = name
+    init(name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date.distantFuture, categories: [Category] = []) {
+        self.name = name ?? ""
         self.created = Date.now
         self.due = due
         self.pomodoro = true // No longer an option
@@ -97,101 +81,6 @@ class ToDoTask {
             }
         }
     }
-}
-
-@Observable
-class ToDoStore {
-    private var modelContext: ModelContext
-    private var lastLoadDate = Date()
-    
-    
-    var toDoTasks: [ToDoTask] = []
-    
-    init(modelContext: ModelContext) {
-        self.modelContext = modelContext
-        loadToDoTasks()
-    }
-    
-    func addTodoTask(toDoTask: ToDoTask) {
-        guard !toDoTask.name.isEmpty else { return }
-        modelContext.insert(toDoTask)
-        saveContext()
-        loadToDoTasks()
-    }
-    
-    func createNextOccurrence(from task: ToDoTask) -> ToDoTask {
-        let nextDueDate: Date
-        
-        if let interval = task.recurrenceInterval {
-            if interval == .custom {
-                nextDueDate = Calendar.current.date(
-                    byAdding: .day,
-                    value: task.customRecurrenceDays,
-                    to: Date.now
-                ) ?? task.due
-            } else {
-                nextDueDate = interval.nextDate(from: Date.now)
-            }
-        } else {
-            // Fallback to daily if no interval set
-            nextDueDate = Calendar.current.date(byAdding: .day, value: 1, to: task.due) ?? task.due
-        }
-        
-        let newTask = ToDoTask(
-            name: task.name,
-            pomodoroTime: task.pomodoroTime,
-            repeating: true,
-            recurrenceInterval: task.recurrenceInterval,
-            customRecurrenceDays: task.customRecurrenceDays,
-            due: nextDueDate,
-            categories: task.categories
-        )
-        
-        return newTask
-    }
-    
-    // Complete ToDoTask when it is something where it is done
-    func completeToDoTask(toDoTask: ToDoTask) {
-        toDoTask.completed = true
-        toDoTask.completedAt = Date.now
-        if toDoTask.repeating {
-            let nextTask = createNextOccurrence(from: toDoTask)
-            modelContext.insert(nextTask)
-        }
-        saveContext()
-        loadToDoTasks()
-    }
-    
-    func deleteToDoTask(toDoTask: ToDoTask) {
-        modelContext.delete(toDoTask)
-        saveContext()
-        loadToDoTasks()
-    }
-    
-    func loadToDoTasks() {
-        do {
-            let descriptor = FetchDescriptor<ToDoTask>(
-                predicate: #Predicate { !$0.completed },
-                sortBy: [SortDescriptor(\.due, order: .forward)]
-            )
-            toDoTasks = try modelContext.fetch(descriptor)
-        } catch {
-            print("Failed to load tasks: \(error.localizedDescription)")
-        }
-    }
-    
-    func saveContext() {
-        do {
-            try modelContext.save()
-        } catch {
-            print("Failed to save context: \(error.localizedDescription)")
-        }
-    }
-    
-    let descriptor = FetchDescriptor<ToDoTask>(
-        predicate: #Predicate { !$0.completed },
-        sortBy: [SortDescriptor(\.due, order: .forward)]
-    )
     
     enum TaskFilter: String, CaseIterable {
         case all = "All Tasks"
@@ -218,3 +107,4 @@ class ToDoStore {
         }
     }
 }
+

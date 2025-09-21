@@ -35,7 +35,7 @@ struct RecurrenceIndicatorBadge: View {
     }
     
     private var recurrenceDescription: String? {
-        guard task.repeating, let interval = task.recurrenceInterval else { return nil }
+        guard task.repeating!, let interval = task.recurrenceInterval else { return nil }
         
         if interval == .custom {
             if task.customRecurrenceDays == 1 {

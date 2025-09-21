@@ -10,9 +10,9 @@ struct PomodoroView: View {
         coordinator.pomodoro
     }
     
-    init(task: ToDoTask, toDoStore: ToDoStore, showingPomodoro: Binding<Bool>) {
+    init(task: ToDoTask, showingPomodoro: Binding<Bool>) {
         let pomodoro = Pomodoro()
-        self._coordinator = StateObject(wrappedValue: PomodoroCoordinator(pomodoro: pomodoro, task: task, toDoStore: toDoStore))
+        self._coordinator = StateObject(wrappedValue: PomodoroCoordinator(pomodoro: pomodoro, task: task))
         self._showingPomodoro = showingPomodoro
     }
     
@@ -108,11 +108,7 @@ struct PomodoroView: View {
                     
                     // Dynamic button based on timer state
                     Button(action: {
-                        coordinator.endPomodoro()
-                        if isCompleted {
-                            // Timer completed - mark task as finished
-                            // Add your task completion logic here if needed
-                        }
+                            coordinator.endPomodoro()
                         withAnimation(.easeInOut(duration: 0.3)) {
                             showingPomodoro = false
                         }
@@ -187,11 +183,8 @@ struct PomodoroView: View {
     let sampleTask = ToDoTask(name: "Sample Pomodoro Task", pomodoro: true, pomodoroTime: 20) // 20 Seconds
     container.mainContext.insert(sampleTask)
     
-    let toDoStore = ToDoStore(modelContext: container.mainContext)
-    
     return PomodoroView(
         task: sampleTask,
-        toDoStore: toDoStore,
         showingPomodoro: .constant(true)
     )
     .modelContainer(container)

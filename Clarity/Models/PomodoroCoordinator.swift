@@ -14,17 +14,15 @@ import BackgroundTasks
 class PomodoroCoordinator: ObservableObject {
     @Published var pomodoro: Pomodoro
     let task: ToDoTask
-    let toDoStore: ToDoStore
     
     private var activity: Activity<PomodoroAttributes>?
     private var hasEnded = false
     private var cancellables = Set<AnyCancellable>()
     
-    init(pomodoro: Pomodoro, task: ToDoTask, toDoStore: ToDoStore) {
+    init(pomodoro: Pomodoro, task: ToDoTask) {
         print("Pomodoro Co-ordinator created for Task: \(task.name) for \(task.pomodoroTime) seconds")
         self.pomodoro = pomodoro
         self.task = task
-        self.toDoStore = toDoStore
         
         pomodoro.objectWillChange
             .sink { [weak self] in
@@ -43,7 +41,10 @@ class PomodoroCoordinator: ObservableObject {
         pomodoro.stopPomodoro()
         endLiveActivity()
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
-        toDoStore.completeToDoTask(toDoTask: task)
+        Task {
+            await SharedDataActor.shared.completeToDoTask(toDoTask: task)
+        }
+        
     }
     
     private func startLiveActivity(pomodoro: Pomodoro) {

@@ -3,14 +3,18 @@ import SwiftUI
 
 @available(iOS 26.0, *)
 struct TaskSplitterSheet: View {
+    
+    // Swiftdata Queries
+    @Query private var allCategories: [Category]
+    @Query private var allTasks: [ToDoTask]
+    
     let taskName: String
-    @Bindable var toDoStore: ToDoStore
     @Binding var isPresented: Bool
     
     @StateObject private var splitter = TaskSplitterService()
     @State private var suggestions: [SplitTaskSuggestion] = []
     @Environment(\.dismiss) private var dismiss
-    @Query private var allCategories: [Category]
+    
     @State private var applyCategoriesToAll = false
     @State private var globalCategories: [Category] = []
     
@@ -159,8 +163,10 @@ struct TaskSplitterSheet: View {
                 due: dueDate,
                 categories: applyCategoriesToAll ? globalCategories : suggestion.selectedCategories
             )
-                
-            toDoStore.addTodoTask(toDoTask: task)
+            Task {
+                await SharedDataActor.shared.addTodoTask(toDoTask: task)
+            }
+            
         }
             
         dismiss()

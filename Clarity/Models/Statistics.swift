@@ -9,7 +9,7 @@ import SwiftData
 import Foundation
 
 @Model
-class GlobalTargetSettings {
+public final class GlobalTargetSettings {
     var weeklyGlobalTarget: Int = 0 // Total tasks per week across all categories
     var created: Date = Date()
     

@@ -34,6 +34,7 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
     
     func timeline(for configuration: TaskWidgetIntent, in context: Context) async -> Timeline<TaskWidgetEntry> {
         let entry = await fetchEntry(for: configuration.filter.toTaskFilter())
+        print("Timeline loading...")
         
         // Calculate next significant update times
         let calendar = Calendar.current
@@ -51,9 +52,10 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
         return Timeline(entries: [entry], policy: .after(nextUpdate))
     }
     
-    private func fetchEntry(for filter: ToDoStore.TaskFilter) async -> TaskWidgetEntry {
+    private func fetchEntry(for filter: ToDoTask.TaskFilter) async -> TaskWidgetEntry {
         do {
-            let (tasks, weeklyProgress) = await WidgetDataActor.shared.fetchTasksForWidget(filter: filter)
+            print("Fetching Tasks for Widget")
+            let (tasks, weeklyProgress) = await SharedDataActor.shared.fetchTasksForWidget(filter: filter)
             
             let taskInfos = tasks.prefix(10).map { task in
                 let formatter = DateFormatter()
@@ -61,9 +63,9 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
                 
                 return TaskWidgetEntry.TaskInfo(
                     id: String(describing: task.id),
-                    name: task.name,
+                    name: task.name!,
                     dueTime: formatter.string(from: task.due),
-                    categoryColors: task.categories.map { $0.color.rawValue },
+                    categoryColors: task.categories!.map { $0.color!.rawValue },
                     pomodoroMinutes: Int(task.pomodoroTime / 60)
                 )
             }
@@ -87,7 +89,7 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
         }
     }
     
-    private func createSampleEntry(for filter: ToDoStore.TaskFilter) -> TaskWidgetEntry {
+    private func createSampleEntry(for filter: ToDoTask.TaskFilter) -> TaskWidgetEntry {
         let sampleTasks = [
             TaskWidgetEntry.TaskInfo(
                 id: "sample-1",
