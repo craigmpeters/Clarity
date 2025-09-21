@@ -17,14 +17,18 @@ struct TaskIndexView: View {
     @Query private var allCategories: [Category]
     @Query(filter: #Predicate<ToDoTask> {!$0.completed }, sort: \ToDoTask.due, order: .forward) private var allTasks: [ToDoTask]
     
-    // FIXME: Broken Filter
     private var filteredTasks: [ToDoTask] {
         let filtered = allTasks.filter { task in
             let dueDateMatches = selectedFilter.matches(task: task)
-            let categoryMatches = selectedCategory == nil // ||
-//            task.categories.contains { $0.name == selectedCategory?.name}
-            return dueDateMatches // && categoryMatches
+            let categoryMatches: Bool = {
+                guard let selectedCategory else { return true }
+                let taskCategories = task.categories ?? []
+                return taskCategories.contains { $0.name == selectedCategory.name }
+            }()
+            
+            return dueDateMatches && categoryMatches
         }
+        print("Total tasks: \(allTasks.count), Filtered: \(filtered.count)")
         return filtered
     }
 
@@ -132,3 +136,4 @@ struct TaskIndexView: View {
 //    )
 //    .modelContainer(container)
 }
+

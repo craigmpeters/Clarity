@@ -214,7 +214,7 @@ struct TaskFormView: View {
                     Button(isEditing ? "Save" : "Add") {
                         saveTask()
                     }
-                    .disabled(toDoTask.name!.isEmpty)
+                    .disabled(toDoTask.name?.isEmpty ?? true)
                     .fontWeight(.semibold)
                 }
             }
@@ -307,7 +307,7 @@ extension TaskFormView {
                                 set: { toDoTask.name = $0.isEmpty ? nil : $0}
                             )
                         )
-                        .disabled(((toDoTask.name?.isEmpty) != nil))
+                        .disabled(toDoTask.name?.isEmpty ?? true)
                     }
                 } footer: {
                     Text("Requires iOS 26 or later • Powered by Apple Intelligence")
