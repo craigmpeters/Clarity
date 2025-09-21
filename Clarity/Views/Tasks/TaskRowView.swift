@@ -17,66 +17,100 @@ struct TaskRowView: View {
     @State private var isDismissing = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
+        HStack(spacing:12) {
+            VStack(spacing: 2) {
+                Text(task.due, format: .dateTime.day())
+                    .font(.title3.weight(.bold))
+                Text(task.due, format: .dateTime.month(.abbreviated))
+                    .font(.caption2.weight(.semibold))
+                    .textCase(.uppercase)
+            }
+            .foregroundStyle(dateAccentTextColor(task.due))
+            .frame(width: 56, height: 48)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(dateAccentBackgroundColor(task.due))
+            )
+            VStack(alignment: .leading, spacing: 6) {
                 Text(task.name ?? "")
-                    .lineLimit(1)
-            }
+                    .font(.headline)
+                    .lineLimit(2)
                 
-            HStack(spacing: 6) {
-                ForEach(task.categories!) { category in
-                    Text(category.name!)
-                        .font(.caption2)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(category.color!.SwiftUIColor)
-                        )
-                        .foregroundColor(category.color!.contrastingTextColor)
-                }
-                Spacer()
-                RecurrenceIndicatorBadge(task: task)
-                RelativeDateText(date: task.due)
-            }
-        }
-        .opacity(isDismissing ? 0 : 1)
-        .offset(x: isDismissing ? 40 : 0)
-        .animation(.spring(response: 0.25, dampingFraction: 0.9), value: isDismissing)
-        .contentShape(Rectangle())
-        .onTapGesture(perform: onEdit)
-        .swipeActions(edge: .trailing) {
-            Button {
-                showingDeleteAlert = true
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
-            .tint(.red)
-        }
-        .swipeActions(edge: .leading, allowsFullSwipe: false) {
-            Button(action: onStartTimer, label: {
-                Label("Start Timer", systemImage: "timer")
-            })
-            .tint(.blue)
-            
-            Button(action: onComplete, label: {
-                Label("Complete", systemImage: "checkmark")
-            })
-            .tint(.green)
-        }
-        .confirmationDialog(
-            "Are you sure you want to delete \(task.name)?",
-            isPresented: $showingDeleteAlert,
-            titleVisibility: .visible
-        ) {
-            Button("Delete", role: .destructive) {
-                withAnimation {
-                    onDelete()
+                HStack(spacing: 6) {
+                    ForEach(task.categories!) { category in
+                        Text(category.name!)
+                            .font(.caption2)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(
+                                Capsule().fill(category.color?.SwiftUIColor ?? .gray.opacity(0.2))
+                            )
+                            .foregroundStyle(category.color!.contrastingTextColor ?? .primary)
+                    }
+                    Spacer()
+                    HStack(spacing: 8) {
+                        RecurrenceIndicatorBadge(task: task)
+                    }
                 }
             }
-            Button("Cancel", role: .cancel) { }
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+            .onTapGesture(perform: onEdit)
+            .swipeActions(edge: .trailing) {
+                Button {
+                    showingDeleteAlert = true
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+                .tint(.red)
+            }
+            .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                Button(action: onStartTimer, label: {
+                    Label("Start Timer", systemImage: "timer")
+                })
+                .tint(.blue)
+                
+                Button(action: onComplete, label: {
+                    Label("Complete", systemImage: "checkmark")
+                })
+                .tint(.green)
+            }
+            .confirmationDialog(
+                "Are you sure you want to delete \(task.name ?? "task")?",
+                isPresented: $showingDeleteAlert,
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    withAnimation {
+                        onDelete()
+                    }
+                }
+                Button("Cancel", role: .cancel) { }
+            }
         }
     }
     
     
+}
+//let isToday = Calendar.current.isDateInToday(due)
+//let isTomorrow = Calendar.current.isDateInTomorrow(due)
+//let isPast = due < Date()
+
+func dateAccentTextColor(_ due: Date) -> Color {
+    let isToday = Calendar.current.isDateInToday(due)
+    let isPast = Date.now.midnight > due.midnight
+    
+    if isPast { return .red }
+    if isToday { return .primary }
+
+    return .primary
+}
+
+func dateAccentBackgroundColor(_ due: Date) -> Color {
+    let isToday = Calendar.current.isDateInToday(due)
+    let isPast = Date.now.midnight > due.midnight
+    
+    if isPast { return .red.opacity(0.15) }
+    if isToday { return .green.opacity(0.15) }
+    return Color.accentColor.opacity(0.12)
 }
