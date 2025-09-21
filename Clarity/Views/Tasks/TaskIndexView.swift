@@ -17,7 +17,7 @@ struct TaskIndexView: View {
     @Query private var allCategories: [Category]
     @Query(filter: #Predicate<ToDoTask> {!$0.completed }, sort: \ToDoTask.due, order: .forward) private var allTasks: [ToDoTask]
     
-
+    // FIXME: Broken Filter
     private var filteredTasks: [ToDoTask] {
         let filtered = allTasks.filter { task in
             let dueDateMatches = selectedFilter.matches(task: task)

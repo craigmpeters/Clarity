@@ -34,6 +34,7 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
     
     func timeline(for configuration: TaskWidgetIntent, in context: Context) async -> Timeline<TaskWidgetEntry> {
         let entry = await fetchEntry(for: configuration.filter.toTaskFilter())
+        print("Timeline loading...")
         
         // Calculate next significant update times
         let calendar = Calendar.current
@@ -53,6 +54,7 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
     
     private func fetchEntry(for filter: ToDoTask.TaskFilter) async -> TaskWidgetEntry {
         do {
+            print("Fetching Tasks for Widget")
             let (tasks, weeklyProgress) = await SharedDataActor.shared.fetchTasksForWidget(filter: filter)
             
             let taskInfos = tasks.prefix(10).map { task in

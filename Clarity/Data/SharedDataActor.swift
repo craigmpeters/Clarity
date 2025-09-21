@@ -1,4 +1,5 @@
 import SwiftData
+import WidgetKit
 import Foundation
 
 @ModelActor
@@ -92,8 +93,7 @@ public actor SharedDataActor {
         }
         task.categories = categories
         
-        modelContext.insert(task)
-        
+        saveContext()
         do {
             try modelContext.save()
         } catch {
@@ -102,6 +102,7 @@ public actor SharedDataActor {
     }
 
     func fetchTasksForWidget(filter: ToDoTask.TaskFilter) async -> (tasks: [ToDoTask], weeklyProgress: TaskWidgetEntry.WeeklyProgress?) {
+        print("Fetching Widget Tasks")
         do {
             // Fetch incomplete tasks
             let descriptor = FetchDescriptor<ToDoTask>(
@@ -132,6 +133,7 @@ public actor SharedDataActor {
             
             // Fetch weekly progress
             let weeklyProgress = await fetchWeeklyProgress()
+            print("Returning \(tasks.count) tasks")
             
             return (tasks, weeklyProgress)
         } catch {
@@ -242,6 +244,13 @@ public actor SharedDataActor {
     
     // MARK: Private Functions
     
+    
+    private func updateTaskWidgets() {
+        DispatchQueue.main.async {
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
+    
     // TODO: Make Generic
     private func fetchWeeklyProgress() async -> TaskWidgetEntry.WeeklyProgress? {
         do {
@@ -343,8 +352,10 @@ public actor SharedDataActor {
 //    }
     
     func saveContext() {
+        
         do {
             try modelContext.save()
+            updateTaskWidgets()
         } catch {
             print("Failed to save context: \(error.localizedDescription)")
         }
