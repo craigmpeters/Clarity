@@ -28,7 +28,7 @@ struct RelativeDateText: View {
     
     private func betweenNowAndMidnight() -> TimeInterval {
         let now = Date()
-        let endOfDay = calendar.date(byAdding: .day, value: 1, to: now)!
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: now)!.midnight
         return endOfDay.timeIntervalSince(now)
     }
 }
