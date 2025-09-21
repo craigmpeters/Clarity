@@ -37,15 +37,31 @@ struct TaskRowView: View {
                     .lineLimit(2)
                 
                 HStack(spacing: 6) {
-                    ForEach(task.categories!) { category in
-                        Text(category.name!)
-                            .font(.caption2)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                            .background(
-                                Capsule().fill(category.color?.SwiftUIColor ?? .gray.opacity(0.2))
-                            )
-                            .foregroundStyle(category.color!.contrastingTextColor ?? .primary)
+                    if task.categories?.count ?? 0 >= 3 {
+                        ForEach(task.categories!) { category in
+                            ZStack {
+                                Circle()
+                                    .fill(category.color?.SwiftUIColor ?? .gray)
+                                    .frame(width: 25, height: 25)
+                                Text(String(category.name!.first!))
+                                    .textCase(.uppercase)
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(.black)
+                                        .blendMode(.colorBurn)
+                            }
+                            .clipShape(Circle())
+                        }
+                    } else {
+                        ForEach(task.categories!) { category in
+                            Text(category.name!)
+                                .font(.caption2)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Capsule().fill(category.color?.SwiftUIColor ?? .gray.opacity(0.2))
+                                )
+                                .foregroundStyle(category.color!.contrastingTextColor)
+                        }
                     }
                     Spacer()
                     HStack(spacing: 8) {
@@ -89,8 +105,6 @@ struct TaskRowView: View {
             }
         }
     }
-    
-    
 }
 //let isToday = Calendar.current.isDateInToday(due)
 //let isTomorrow = Calendar.current.isDateInTomorrow(due)
