@@ -423,6 +423,7 @@ struct DevelopmentMenuView: View {
         }
         
         saveContext()
+        UserDefaults.resetOnboardingState()
         showAlert("Reset all data")
     }
     
