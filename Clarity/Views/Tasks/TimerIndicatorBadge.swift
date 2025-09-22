@@ -30,5 +30,7 @@ struct TimerIndicatorBadge: View {
 }
 
 #Preview {
+    let task = PreviewData.shared.getToDoTask()
+    TimerIndicatorBadge(task: task)
     
 }
