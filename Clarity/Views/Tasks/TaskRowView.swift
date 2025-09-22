@@ -66,6 +66,7 @@ struct TaskRowView: View {
                     Spacer()
                     HStack(spacing: 8) {
                         RecurrenceIndicatorBadge(task: task)
+                        TimerIndicatorBadge(task: task)
                     }
                 }
             }
