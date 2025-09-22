@@ -34,6 +34,10 @@ struct RecurrenceIndicatorBadge: View {
         }
     }
     
+    private var pomodoroDescription: String {
+        return String(Int(task.pomodoroTime / 60 )) + " min"
+    }
+    
     private var recurrenceDescription: String? {
         guard task.repeating!, let interval = task.recurrenceInterval else { return nil }
         
@@ -64,5 +68,17 @@ struct RecurrenceIndicatorBadge: View {
             .background(style.backgroundColor)
             .cornerRadius(6)
         }
+        HStack(spacing: 4) {
+            Image(systemName: "timer")
+                .font(.caption2)
+            Text(pomodoroDescription)
+                .font(.caption2)
+                .lineLimit(1)
+        }
+        .foregroundStyle(style.foregroundColor)
+        .padding(.horizontal, style == .compact ? 0 : 6)
+        .padding(.vertical, style == .compact ? 0 : 2)
+        .background(style.backgroundColor)
+        .cornerRadius(6)
     }
 }
