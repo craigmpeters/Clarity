@@ -129,3 +129,14 @@ func dateAccentBackgroundColor(_ due: Date) -> Color {
     if isToday { return .green.opacity(0.15) }
     return Color.accentColor.opacity(0.12)
 }
+#if DEBUG
+#Preview {
+    TaskRowView(
+        task: PreviewData.shared.getToDoTask(),
+        onEdit: { print("Task Edited") },
+        onDelete: { print("Task Deleted") },
+        onComplete: { print("Task Completed") },
+        onStartTimer: { print("Timer Started") }
+    )
+}
+#endif

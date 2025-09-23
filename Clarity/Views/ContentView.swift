@@ -9,27 +9,18 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
-            // Main TabView
             TabView {
-                // Tasks Tab
                 NavigationStack {
-//                    if let toDoStore = toDoStore {
-                        TaskIndexView(
-//                            toDoStore: toDoStore,
-                            selectedTask: $selectedTask,
-                            showingPomodoro: $showingPomodoro
-                        )
-                        .navigationTitle("Tasks")
-//                    } else {
-//                        ProgressView("Loading...")
-//                    }
+                    TaskIndexView(
+                        selectedTask: $selectedTask,
+                        showingPomodoro: $showingPomodoro
+                    )
+                    .navigationTitle("Tasks")
                 }
                 .tabItem {
                     Image(systemName: "list.bullet")
                     Text("Tasks")
                 }
-                
-                // Stats Tab
                 NavigationStack {
                     StatsView()
                         .navigationTitle("Statistics")
@@ -38,8 +29,6 @@ struct ContentView: View {
                     Image(systemName: "chart.bar")
                     Text("Stats")
                 }
-                
-                // Settings Tab
                 NavigationStack {
                     SettingsView()
                         .navigationTitle("Settings")
@@ -70,19 +59,11 @@ struct ContentView: View {
                 .interactiveDismissDisabled()
         }
         .animation(.easeInOut(duration: 0.3), value: showingPomodoro)
-//        .onAppear {
-//
-//        }
-//        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-//
-//        }
-//        
         .onOpenURL { url in
             if url.scheme == "clarity" {
                 if url.host == "timer",
                    let taskId = url.pathComponents.last
                 {
-                    // Find the task and start the timer
                     Task {
                         if let task = await findTask(withId: taskId) {
                             selectedTask = task
@@ -139,33 +120,9 @@ struct ContentView: View {
     }
 }
 
-// Placeholder views - replace with your actual views
-struct TimerView: View {
-    var body: some View {
-        VStack {
-            Text("Timer View")
-                .font(.largeTitle)
-            Text("Pomodoro timer will go here")
-                .foregroundColor(.secondary)
-        }
-    }
-}
-
+#if DEBUG
 #Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: ToDoTask.self, configurations: config)
-    
-    // Add some sample data
-    let sampleTasks = [
-        ToDoTask(name: "Complete SwiftUI project", pomodoro: true, pomodoroTime: 25 * 60),
-        ToDoTask(name: "Review code changes", pomodoro: false, pomodoroTime: 15 * 60),
-        ToDoTask(name: "Write unit tests", pomodoro: true, pomodoroTime: 30 * 60)
-    ]
-    
-    for task in sampleTasks {
-        container.mainContext.insert(task)
-    }
-    
     return ContentView()
-        .modelContainer(container)
+        .modelContainer(PreviewData.shared.previewContainer)
 }
+#endif

@@ -14,34 +14,9 @@ import AppIntents
 @main
 struct ClarityApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    
-//    let modelContainer: ModelContainer
         
-        init() {
-            //ClarityShortcutsProvider.register(ClarityShortcutsProvider.self)
-//            do {
-//                let schema = Schema([
-//                    ToDoTask.self,
-//                    Category.self,
-//                    GlobalTargetSettings.self
-//                ])
-//                
-//                let modelConfiguration = ModelConfiguration(
-//                    schema: schema,
-//                    isStoredInMemoryOnly: false,
-//                    allowsSave: true,
-//                    groupContainer: .identifier("group.me.craigpeters.clarity"),
-//                    cloudKitDatabase: .private("iCloud.me.craigpeters.clarity")
-//                )
-//                
-//                modelContainer = try ModelContainer(
-//                    for: schema,
-//                    configurations: [modelConfiguration]
-//                )
-//            } catch {
-//                fatalError("Could not create ModelContainer: \(error)")
-//            }
-        }
+    init() {
+    }
         
 
     var body: some Scene {

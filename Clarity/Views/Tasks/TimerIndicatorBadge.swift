@@ -28,9 +28,10 @@ struct TimerIndicatorBadge: View {
         .cornerRadius(6)
     }
 }
-
+#if DEBUG
 #Preview {
     let task = PreviewData.shared.getToDoTask()
     TimerIndicatorBadge(task: task)
     
 }
+#endif

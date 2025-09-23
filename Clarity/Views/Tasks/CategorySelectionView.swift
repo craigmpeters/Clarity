@@ -199,23 +199,20 @@ struct AddCategoryView: View {
     }
 }
 
-#Preview {
-    do {
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: Category.self, ToDoTask.self, GlobalTargetSettings.self, configurations: config)
+#if DEBUG
 
-        let workCategory = Category(name: "Work", color: .Blue, weeklyTarget: 5)
-        let personalCategory = Category(name: "Personal", color: .Green, weeklyTarget: 3)
-        let urgentCategory = Category(name: "Urgent", color: .Red)
-
-        container.mainContext.insert(workCategory)
-        container.mainContext.insert(personalCategory)
-        container.mainContext.insert(urgentCategory)
-
-        return CategorySelectionView(selectedCategories: .constant([workCategory]))
-            .modelContainer(container)
+private struct CategorySelectionView_PreviewWrapper: View {
+    @State private var selectedCategories: [Category] = []
+    var body: some View {
+        CategorySelectionView(selectedCategories: $selectedCategories)
             .padding()
-    } catch {
-        return Text("Preview Error: \(error.localizedDescription)")
     }
 }
+
+#Preview {
+
+    return CategorySelectionView_PreviewWrapper()
+        .modelContainer(PreviewData.shared.previewContainer)
+}
+
+#endif

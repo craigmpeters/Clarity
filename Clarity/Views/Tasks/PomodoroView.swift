@@ -176,16 +176,12 @@ struct PomodoroView: View {
 
 // MARK: - Preview
 
+#if DEBUG
 #Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: ToDoTask.self, configurations: config)
-    
-    let sampleTask = ToDoTask(name: "Sample Pomodoro Task", pomodoro: true, pomodoroTime: 20) // 20 Seconds
-    container.mainContext.insert(sampleTask)
-    
     return PomodoroView(
-        task: sampleTask,
+        task: PreviewData.shared.getToDoTask(),
         showingPomodoro: .constant(true)
     )
-    .modelContainer(container)
+    .modelContainer(PreviewData.shared.previewContainer)
 }
+#endif

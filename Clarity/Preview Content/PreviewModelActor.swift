@@ -12,10 +12,10 @@ final class PreviewData {
     
     static let shared = PreviewData()
     
-    let container: ModelContainer
+    let previewContainer: ModelContainer
     
-    var modelContext: ModelContext {
-        container.mainContext
+    var previewContext: ModelContext {
+        previewContainer.mainContext
     }
     
     private init() {
@@ -32,7 +32,7 @@ final class PreviewData {
         )
         
         do {
-            container = try ModelContainer(for: schema, configurations: [modelConfiguration])
+            previewContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
             insertPreviewCategories()
             insertPreviewTasks()
             insertPreviewGlobalTarget()
@@ -48,7 +48,7 @@ final class PreviewData {
     func getCategories() -> [Category] {
         do {
             let descriptor = FetchDescriptor<Category>()
-            return try modelContext.fetch(descriptor)
+            return try previewContext.fetch(descriptor)
         } catch {
             print("Failed to fetch categories: \(error)")
             return []
@@ -62,7 +62,7 @@ final class PreviewData {
     func getToDoTasks() -> [ToDoTask] {
         do {
             let descriptor = FetchDescriptor<ToDoTask>()
-            return try modelContext.fetch(descriptor)
+            return try previewContext.fetch(descriptor)
         } catch {
             print("Failed to fetch tasks: \(error)")
             return []
@@ -87,7 +87,7 @@ final class PreviewData {
         ]
         
         for category in categories {
-            modelContext.insert(category)
+            previewContext.insert(category)
         }
         
         saveContext()
@@ -130,7 +130,7 @@ final class PreviewData {
                 due: dueDate,
                 categories: taskCategories
             )
-            modelContext.insert(task)
+            previewContext.insert(task)
         }
         saveContext()
     }
@@ -138,13 +138,13 @@ final class PreviewData {
     private func insertPreviewGlobalTarget() {
         let settings = GlobalTargetSettings()
         settings.weeklyGlobalTarget = 10
-        modelContext.insert(settings)
+        previewContext.insert(settings)
         
     }
     
     private func saveContext() {
         do {
-            try modelContext.save()
+            try previewContext.save()
         } catch {
             print("Failed to save context: \(error)")
         }

@@ -69,3 +69,9 @@ struct RecurrenceIndicatorBadge: View {
 
     }
 }
+
+#if DEBUG
+#Preview {
+    RecurrenceIndicatorBadge(task: PreviewData.shared.getToDoTask())
+}
+#endif

@@ -64,3 +64,16 @@ struct FilterMenuView: View {
     }
 }
 
+#if DEBUG
+#Preview {
+    
+    @Previewable @State var selectedFilter: ToDoTask.TaskFilter = ToDoTask.TaskFilter.allCases.first!
+    @Previewable @State var selectedCategory: Category? = nil
+    FilterMenuView(
+        selectedFilter: $selectedFilter,
+        selectedCategory: $selectedCategory,
+        allCategories: PreviewData.shared.getCategories()
+    )
+}
+#endif
+

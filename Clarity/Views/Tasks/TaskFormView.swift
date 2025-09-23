@@ -324,3 +324,13 @@ extension TaskFormView {
          }
     }
 }
+
+#if DEBUG
+#Preview("New Task") {
+    TaskFormView()
+}
+
+#Preview("Edit Task") {
+    TaskFormView(task: PreviewData.shared.getToDoTask())
+}
+#endif
