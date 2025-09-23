@@ -2,9 +2,13 @@ import SwiftData
 import WidgetKit
 import Foundation
 
-@ModelActor
-public actor SharedDataActor {
-    static let shared = SharedDataActor(modelContainer: {
+@MainActor @Observable
+public final class SharedDataActor: Sendable {
+    static let shared: SharedDataActor = SharedDataActor()
+    let modelContainer: ModelContainer
+    let modelContext: ModelContext
+    
+    private init() {
         do {
             let schema = Schema([
                 ToDoTask.self,
@@ -20,14 +24,16 @@ public actor SharedDataActor {
                 cloudKitDatabase: .private("iCloud.me.craigpeters.clarity")
             )
             
-            return try ModelContainer(
+            
+            modelContainer = try ModelContainer(
                 for: schema,
                 configurations: [modelConfiguration]
             )
+            self.modelContext = modelContainer.mainContext
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
         }
-    }())
+    }
     
     // MARK: Category Functions
     

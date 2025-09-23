@@ -84,6 +84,7 @@ struct TaskIndexView: View {
     
     private func deleteTask(_ task: ToDoTask) {
         Task {
+            print("Deleting: (\(task.name ?? ""))")
             await SharedDataActor.shared.deleteToDoTask(toDoTask: task)
 
         }

@@ -131,12 +131,16 @@ func dateAccentBackgroundColor(_ due: Date) -> Color {
 }
 #if DEBUG
 #Preview {
-    TaskRowView(
-        task: PreviewData.shared.getToDoTask(),
-        onEdit: { print("Task Edited") },
-        onDelete: { print("Task Deleted") },
-        onComplete: { print("Task Completed") },
-        onStartTimer: { print("Timer Started") }
-    )
+    HStack() {
+        TaskRowView(
+            task: PreviewData.shared.getToDoTask(),
+            onEdit: { print("Task Edited") },
+            onDelete: { print("Task Deleted") },
+            onComplete: { print("Task Completed") },
+            onStartTimer: { print("Timer Started") }
+        )
+    }
+    .padding(30)
+
 }
 #endif
