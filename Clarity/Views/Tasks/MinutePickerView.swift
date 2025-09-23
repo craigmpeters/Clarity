@@ -38,8 +38,10 @@ struct MinutePickerView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     @Previewable @State var selectedTime: TimeInterval = 900
     
     MinutePickerView(selectedTimeInterval: $selectedTime)
 }
+#endif

@@ -34,8 +34,10 @@ struct RecurrenceIndicatorBadge: View {
         }
     }
     
+    
+    
     private var recurrenceDescription: String? {
-        guard task.repeating, let interval = task.recurrenceInterval else { return nil }
+        guard task.repeating!, let interval = task.recurrenceInterval else { return nil }
         
         if interval == .custom {
             if task.customRecurrenceDays == 1 {
@@ -64,5 +66,12 @@ struct RecurrenceIndicatorBadge: View {
             .background(style.backgroundColor)
             .cornerRadius(6)
         }
+
     }
 }
+
+#if DEBUG
+#Preview {
+    RecurrenceIndicatorBadge(task: PreviewData.shared.getToDoTask())
+}
+#endif

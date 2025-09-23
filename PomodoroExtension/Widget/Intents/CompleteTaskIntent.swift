@@ -38,7 +38,7 @@ struct CompleteTaskIntent: AppIntent {
         print("Widget: Attempting to complete task with ID: \(taskId)")
         
         // Use the WidgetDataActor to complete the task
-        await WidgetDataActor.shared.completeTask(taskId: taskId)
+        await SharedDataActor.shared.completeTask(taskId: taskId)
         
         return .result()
     }

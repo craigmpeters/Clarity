@@ -4,7 +4,6 @@ import SwiftData
 @available(iOS 26.0, *)
 struct TaskSplitterView: View {
     @Binding var taskName: String
-    @Bindable var toDoStore: ToDoStore
     @State private var showingSplitter = false
     @State private var selectedSuggestions: [SplitTaskSuggestion] = []
     
@@ -18,7 +17,6 @@ struct TaskSplitterView: View {
             .sheet(isPresented: $showingSplitter) {
                 TaskSplitterSheet(
                     taskName: taskName,
-                    toDoStore: toDoStore,
                     isPresented: $showingSplitter
                 )
             }

@@ -18,14 +18,17 @@ struct SettingsView: View {
             }
             
             // ToDo: Version 1.1 Stuff
-//            Section("General") {
-//                HStack {
-//                    Image(systemName: "bell")
-//                        .foregroundColor(.orange)
-//                    Text("Notifications")
-//                    Spacer()
-//                    // Add notification settings here
-//                }
+            Section("General") {
+                HStack {
+                    NavigationLink(destination: NotificationSettingsView()) {
+                        Image(systemName: "bell")
+                            .foregroundColor(.orange)
+                        Text("Notifications")
+                        Spacer()
+                    }
+
+                    // Add notification settings here
+                }
 //                
 //                HStack {
 //                    Image(systemName: "paintbrush")
@@ -34,7 +37,7 @@ struct SettingsView: View {
 //                    Spacer()
 //                    // Add appearance settings here
 //                }
-//            }
+            }
             
             Section("About") {
                 HStack {
@@ -78,38 +81,11 @@ struct CategoryManagementView: View {
         NavigationView {
             List {
                 ForEach(allCategories, id: \.id) { category in
-                    HStack {
-                        Circle()
-                            .fill(category.color.SwiftUIColor)
-                            .frame(width: 20, height: 20)
-                        
-                        Text(category.name)
-                        
-                        Spacer()
-                        
-                        Text("\(category.tasks.count) tasks")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        categoryToEdit = category
-                    }
-                    .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
-                            categoryToDelete = category
-                            showingDeleteAlert = true
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                        
-                        Button {
-                            categoryToEdit = category
-                        } label: {
-                            Label("Edit", systemImage: "pencil")
-                        }
-                        .tint(.blue)
-                    }
+                    CategorySettingsRow(
+                        category: category,
+                        onDelete: { deleteCategory(category)},
+                        onEdit: { editCategory(category)}
+                    )
                 }
             }
             .navigationTitle("Categories")
@@ -143,15 +119,21 @@ struct CategoryManagementView: View {
             }
         } message: {
             if let category = categoryToDelete {
-                Text("Remove '\(category.name)' from \(category.tasks.count) tasks and delete the category?")
+                Text("Remove '\(category.name!)' from \(category.tasks!.count) tasks and delete the category?")
             }
         }
     }
     
+    private func editCategory(_ category: Category) {
+        print("Editing \(category.name ?? "")")
+        categoryToEdit = category
+    }
+    
     private func deleteCategory(_ category: Category) {
         // Remove this category from all tasks that use it
-        for task in category.tasks {
-            task.categories.removeAll { $0.name == category.name }
+        guard let tasks = category.tasks else { return }
+        for task in tasks {
+            task.categories!.removeAll { $0.name == category.name }
         }
         
         // Delete the category

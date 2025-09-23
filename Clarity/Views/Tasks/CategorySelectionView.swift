@@ -60,10 +60,10 @@ struct CategoryChip: View {
         Button(action: onTap) {
             HStack(spacing: 6) {
                 Circle()
-                    .fill(category.color.SwiftUIColor)
+                    .fill(category.color!.SwiftUIColor)
                     .frame(width: 10, height: 10)
                 
-                Text(category.name)
+                Text(category.name!)
                     .font(.caption)
                     .lineLimit(1)
                 
@@ -77,16 +77,16 @@ struct CategoryChip: View {
             .padding(.vertical, 6)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? category.color.SwiftUIColor.opacity(0.15) : Color(.systemGray6))
+                    .fill(isSelected ? category.color!.SwiftUIColor.opacity(0.15) : Color(.systemGray6))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(
-                                isSelected ? category.color.SwiftUIColor : Color(.systemGray4),
+                                isSelected ? category.color!.SwiftUIColor : Color(.systemGray4),
                                 lineWidth: isSelected ? 1.5 : 0.5
                             )
                     )
             )
-            .foregroundColor(isSelected ? category.color.SwiftUIColor : .primary)
+            .foregroundColor(isSelected ? category.color!.SwiftUIColor : .primary)
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -199,47 +199,20 @@ struct AddCategoryView: View {
     }
 }
 
-// Usage in your task creation form:
-struct TaskCreationView: View {
-    @State private var taskToAdd = ToDoTask(name: "", pomodoro: true, pomodoroTime: 25 * 60)
+#if DEBUG
+
+private struct CategorySelectionView_PreviewWrapper: View {
     @State private var selectedCategories: [Category] = []
-    
     var body: some View {
-        VStack(spacing: 16) {
-            TextField("Task Name", text: $taskToAdd.name)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-            
-            CategorySelectionView(selectedCategories: $selectedCategories)
-            
-            // Your other task creation controls...
-            
-            Button("Create Task") {
-                taskToAdd.categories = selectedCategories
-                // Save task logic
-            }
-            .disabled(taskToAdd.name.isEmpty)
-        }
-        .padding()
+        CategorySelectionView(selectedCategories: $selectedCategories)
+            .padding()
     }
 }
 
 #Preview {
-    do {
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: Category.self, ToDoTask.self, GlobalTargetSettings.self, configurations: config)
 
-        let workCategory = Category(name: "Work", color: .Blue, weeklyTarget: 5)
-        let personalCategory = Category(name: "Personal", color: .Green, weeklyTarget: 3)
-        let urgentCategory = Category(name: "Urgent", color: .Red)
-
-        container.mainContext.insert(workCategory)
-        container.mainContext.insert(personalCategory)
-        container.mainContext.insert(urgentCategory)
-
-        return CategorySelectionView(selectedCategories: .constant([workCategory]))
-            .modelContainer(container)
-            .padding()
-    } catch {
-        return Text("Preview Error: \(error.localizedDescription)")
-    }
+    return CategorySelectionView_PreviewWrapper()
+        .modelContainer(PreviewData.shared.previewContainer)
 }
+
+#endif

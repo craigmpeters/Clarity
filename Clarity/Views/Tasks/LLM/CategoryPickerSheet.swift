@@ -23,10 +23,10 @@ struct CategoryPickerSheet: View {
                         Button(action: { toggleCategory(category) }) {
                             HStack {
                                 Circle()
-                                    .fill(category.color.SwiftUIColor)
+                                    .fill(category.color!.SwiftUIColor)
                                     .frame(width: 16, height: 16)
                                 
-                                Text(category.name)
+                                Text(category.name!)
                                     .foregroundStyle(.primary)
                                 
                                 Spacer()

@@ -12,7 +12,6 @@ import FoundationModels
 #endif
 
 struct TaskFormView: View {
-    @Bindable var toDoStore: ToDoStore
     @Environment(\.dismiss) private var dismiss
     
     let editingTask: ToDoTask?
@@ -27,13 +26,12 @@ struct TaskFormView: View {
         editingTask != nil
     }
     
-    init(toDoStore: ToDoStore, task: ToDoTask? = nil) {
-        self.toDoStore = toDoStore
+    init(task: ToDoTask? = nil) {
         self.editingTask = task
         
         if let task = task {
             self._toDoTask = State(initialValue: task)
-            self._selectedCategories = State(initialValue: task.categories)
+            self._selectedCategories = State(initialValue: task.categories ?? [])
             self._selectedRecurrence = State(initialValue: task.recurrenceInterval ?? .daily)
             self._customDays = State(initialValue: task.customRecurrenceDays)
             self._dueDate = State(initialValue: task.due)
@@ -51,17 +49,17 @@ struct TaskFormView: View {
             toDoTask.categories = selectedCategories
             toDoTask.due = dueDate
             // Set recurrence properties
-            if toDoTask.repeating {
+            if toDoTask.repeating ?? false {
                 toDoTask.recurrenceInterval = selectedRecurrence
                 toDoTask.customRecurrenceDays = customDays
             } else {
                 toDoTask.recurrenceInterval = nil
             }
             
-            if isEditing {
-                toDoStore.saveContext()
-            } else {
-                toDoStore.addTodoTask(toDoTask: toDoTask)
+            if !isEditing {
+                Task {
+                    await SharedDataActor.shared.addTodoTask(toDoTask: toDoTask)
+                }
             }
         }
         dismiss()
@@ -71,7 +69,10 @@ struct TaskFormView: View {
         NavigationView {
             Form {
                 Section("Task Details") {
-                    TextField("Task name", text: $toDoTask.name)
+                    TextField("Task name", text: Binding<String>(
+                        get: { toDoTask.name ?? ""},
+                        set: { toDoTask.name = $0.isEmpty ? nil : $0}
+                    ))
                         .textFieldStyle(.roundedBorder)
                 }
                 if #available(iOS 26.0, *) {
@@ -129,7 +130,10 @@ struct TaskFormView: View {
                         .padding(.vertical, 8)
                     }
                     
-                    Toggle(isOn: $toDoTask.repeating) {
+                    Toggle(isOn: Binding<Bool>(
+                        get: { self.toDoTask.repeating ?? false },
+                        set: { self.toDoTask.repeating = $0 }
+                    )) {
                         HStack {
                             Image(systemName: "repeat")
                                 .foregroundStyle(.blue)
@@ -138,7 +142,7 @@ struct TaskFormView: View {
                     }
                     
                     // Show recurrence options when repeating is enabled
-                    if toDoTask.repeating {
+                    if toDoTask.repeating ?? false {
                         // Recurrence interval picker
                         Picker(selection: $selectedRecurrence) {
                             ForEach(ToDoTask.RecurrenceInterval.allCases, id: \.self) { interval in
@@ -210,7 +214,7 @@ struct TaskFormView: View {
                     Button(isEditing ? "Save" : "Add") {
                         saveTask()
                     }
-                    .disabled(toDoTask.name.isEmpty)
+                    .disabled(toDoTask.name?.isEmpty ?? true)
                     .fontWeight(.semibold)
                 }
             }
@@ -218,7 +222,7 @@ struct TaskFormView: View {
     }
     
     private func getNextOccurrenceDate() -> Date? {
-        guard toDoTask.repeating else { return nil }
+        guard toDoTask.repeating ?? false else { return nil }
         
         if selectedRecurrence == .custom {
             return Calendar.current.date(byAdding: .day, value: customDays, to: dueDate)
@@ -298,10 +302,12 @@ extension TaskFormView {
                         Spacer()
                         
                         TaskSplitterView(
-                            taskName: $toDoTask.name,
-                            toDoStore: toDoStore
+                            taskName: Binding<String> (
+                                get: { toDoTask.name ?? ""},
+                                set: { toDoTask.name = $0.isEmpty ? nil : $0}
+                            )
                         )
-                        .disabled(toDoTask.name.isEmpty)
+                        .disabled(toDoTask.name?.isEmpty ?? true)
                     }
                 } footer: {
                     Text("Requires iOS 26 or later • Powered by Apple Intelligence")
@@ -318,3 +324,13 @@ extension TaskFormView {
          }
     }
 }
+
+#if DEBUG
+#Preview("New Task") {
+    TaskFormView()
+}
+
+#Preview("Edit Task") {
+    TaskFormView(task: PreviewData.shared.getToDoTask())
+}
+#endif

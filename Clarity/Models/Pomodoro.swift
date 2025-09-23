@@ -45,7 +45,8 @@ class Pomodoro: ObservableObject {
     
     /// Starts a pomodoro with taskTitle being the title and description being notification description
     func startPomodoro(task: ToDoTask, description: String, interval: TimeInterval) { // To Do: Description on Task
-        print("Pomodoro for task \(task.name) started (interval: \(interval))")
+        guard (task.name != nil) else { return }
+        print("Pomodoro for task \(String(describing: task.name)) started (interval: \(interval))")
         // Stop any existing Pomodoro
         stopPomodoro()
         
@@ -53,7 +54,7 @@ class Pomodoro: ObservableObject {
         let identifier = UUID().uuidString
         self.interval = interval
         self.notificationIdentifier = identifier  // Store in instance variable
-        self.taskTitle = task.name  // Also update the task title
+        self.taskTitle = task.name!  // Also update the task title
         endTime = Date().addingTimeInterval(interval)
         isRunning = true
         

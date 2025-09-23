@@ -131,20 +131,22 @@ struct DevelopmentMenuView: View {
         let learningCategory = categories.first { $0.name == "Learning" }
         
         let sampleTasks = [
+            // Overdue taks
+            ("Review quarterly reports", 25, Date().addingTimeInterval(-86400), [workCategory].compactMap { $0 }),
+            
             // Today's tasks
-            ("Review quarterly reports", 25, Date(), [workCategory].compactMap { $0 }),
             ("Team standup meeting prep", 15, Date(), [workCategory].compactMap { $0 }),
-            ("Grocery shopping", 30, Date(), [personalCategory].compactMap { $0 }),
-            ("SwiftUI documentation reading", 45, Date(), [learningCategory].compactMap { $0 }),
+            ("Grocery shopping", 5, Date(), [personalCategory].compactMap { $0 }),
+            ("SwiftUI documentation reading", 25, Date(), [learningCategory].compactMap { $0 }),
             
             // Tomorrow's tasks
-            ("Client presentation slides", 60, Date().addingTimeInterval(86400), [workCategory].compactMap { $0 }),
+            ("Client presentation slides", 10, Date().addingTimeInterval(86400), [workCategory].compactMap { $0 }),
             ("Doctor appointment", 5, Date().addingTimeInterval(86400), [personalCategory].compactMap { $0 }),
             
             // This week
-            ("Code review session", 30, Date().addingTimeInterval(86400 * 2), [workCategory].compactMap { $0 }),
+            ("Code review session", 25, Date().addingTimeInterval(86400 * 2), [workCategory].compactMap { $0 }),
             ("Weekend hiking preparation", 20, Date().addingTimeInterval(86400 * 3), [personalCategory].compactMap { $0 }),
-            ("iOS 18 features research", 40, Date().addingTimeInterval(86400 * 4), [learningCategory].compactMap { $0 }),
+            ("iOS 18 features research", 25, Date().addingTimeInterval(86400 * 4), [learningCategory].compactMap { $0 }),
         ]
         
         for (name, minutes, dueDate, taskCategories) in sampleTasks {
@@ -231,8 +233,8 @@ struct DevelopmentMenuView: View {
             ("Team planning meeting", 30, calendar.date(byAdding: .day, value: 1, to: weekStart)!, categories.randomElement()),
             ("Bug fix deployment", 15, calendar.date(byAdding: .day, value: 2, to: weekStart)!, categories.randomElement()),
             ("Client feedback review", 20, calendar.date(byAdding: .day, value: 2, to: weekStart)!, categories.randomElement()),
-            ("Weekly report writing", 35, calendar.date(byAdding: .day, value: 3, to: weekStart)!, categories.randomElement()),
-            ("Database optimization", 45, calendar.date(byAdding: .day, value: 3, to: weekStart)!, categories.randomElement()),
+            ("Weekly report writing", 20, calendar.date(byAdding: .day, value: 3, to: weekStart)!, categories.randomElement()),
+            ("Database optimization", 25, calendar.date(byAdding: .day, value: 3, to: weekStart)!, categories.randomElement()),
         ]
         
         for (name, minutes, completedDate, category) in completedTasks {
@@ -421,6 +423,7 @@ struct DevelopmentMenuView: View {
         }
         
         saveContext()
+        UserDefaults.resetOnboardingState()
         showAlert("Reset all data")
     }
     

@@ -1,11 +1,15 @@
 import SwiftData
+import WidgetKit
 import Foundation
 
-@ModelActor
-actor SharedDataActor {
-    static let shared = SharedDataActor(modelContainer: {
+@MainActor @Observable
+public final class SharedDataActor: Sendable {
+    static let shared: SharedDataActor = SharedDataActor()
+    let modelContainer: ModelContainer
+    let modelContext: ModelContext
+    
+    private init() {
         do {
-            // Create model container with app group for widget data sharing
             let schema = Schema([
                 ToDoTask.self,
                 Category.self,
@@ -16,16 +20,22 @@ actor SharedDataActor {
                 schema: schema,
                 isStoredInMemoryOnly: false,
                 allowsSave: true,
+                groupContainer: .identifier("group.me.craigpeters.clarity"),
+                cloudKitDatabase: .private("iCloud.me.craigpeters.clarity")
             )
             
-            return try ModelContainer(
+            
+            modelContainer = try ModelContainer(
                 for: schema,
                 configurations: [modelConfiguration]
             )
+            self.modelContext = modelContainer.mainContext
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
         }
-    }())
+    }
+    
+    // MARK: Category Functions
     
     func getCategories() -> [Category] {
         do {
@@ -33,6 +43,43 @@ actor SharedDataActor {
             return try modelContext.fetch(descriptor)
         } catch {
             print("Failed to fetch categories: \(error)")
+            return []
+        }
+    }
+    
+    // MARK: Task Functions
+    
+    func fetchTasks(_ filter: ToDoTask.TaskFilter) async throws -> [ToDoTask] {
+        do {
+            let descriptor = FetchDescriptor<ToDoTask>(
+                predicate: #Predicate { !$0.completed },
+                sortBy: [SortDescriptor(\.due, order: .forward)]
+            )
+            
+            
+            var tasks = try modelContext.fetch(descriptor)
+            // Apply filter
+            let calendar = Calendar.current
+            let now = Date()
+            
+            switch filter {
+            case .today:
+                tasks = tasks.filter { calendar.isDateInToday($0.due) }
+            case .tomorrow:
+                tasks = tasks.filter { calendar.isDateInTomorrow($0.due) }
+            case .thisWeek:
+                let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
+                let endOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.end ?? now
+                tasks = tasks.filter { $0.due >= startOfWeek && $0.due <= endOfWeek }
+            case .overdue:
+                tasks = tasks.filter { $0.due < calendar.startOfDay(for: now) }
+            case .all:
+                break // No additional filtering
+            }
+            
+            return tasks
+        } catch {
+            print("Failed to fetch tasks: \(error)")
             return []
         }
     }
@@ -52,43 +99,16 @@ actor SharedDataActor {
         }
         task.categories = categories
         
-        modelContext.insert(task)
-        
+        saveContext()
         do {
             try modelContext.save()
         } catch {
             print("Failed to save task: \(error)")
         }
     }
-}
 
-@ModelActor
-actor WidgetDataActor {
-    static let shared = WidgetDataActor(modelContainer: {
-        do {
-            let schema = Schema([
-                ToDoTask.self,
-                Category.self,
-                GlobalTargetSettings.self
-            ])
-            
-            let modelConfiguration = ModelConfiguration(
-                schema: schema,
-                isStoredInMemoryOnly: false,
-                allowsSave: true,
-                groupContainer: .identifier("group.me.craigpeters.clarity")
-            )
-            
-            return try ModelContainer(
-                for: schema,
-                configurations: [modelConfiguration]
-            )
-        } catch {
-            fatalError("Failed to create ModelContainer: \(error)")
-        }
-    }())
-    
-    func fetchTasksForWidget(filter: ToDoStore.TaskFilter) async -> (tasks: [ToDoTask], weeklyProgress: TaskWidgetEntry.WeeklyProgress?) {
+    func fetchTasksForWidget(filter: ToDoTask.TaskFilter) async -> (tasks: [ToDoTask], weeklyProgress: TaskWidgetEntry.WeeklyProgress?) {
+        print("Fetching Widget Tasks")
         do {
             // Fetch incomplete tasks
             let descriptor = FetchDescriptor<ToDoTask>(
@@ -119,6 +139,7 @@ actor WidgetDataActor {
             
             // Fetch weekly progress
             let weeklyProgress = await fetchWeeklyProgress()
+            print("Returning \(tasks.count) tasks")
             
             return (tasks, weeklyProgress)
         } catch {
@@ -144,14 +165,14 @@ actor WidgetDataActor {
                 return
             }
             
-            print("Widget: Completing task: \(task.name)")
+            print("Widget: Completing task: \(task.name ?? "Unknown Task Name")")
             
             // Mark as completed
             task.completed = true
             task.completedAt = Date()
             
             // Handle recurring tasks
-            if task.repeating {
+            if task.repeating ?? false {
                 let nextTask = createNextOccurrence(from: task)
                 modelContext.insert(nextTask)
                 print("Widget: Created next occurrence for recurring task")
@@ -166,7 +187,7 @@ actor WidgetDataActor {
     }
     
     // Optimized task loading with predicates
-    func loadTasks(filter: ToDoStore.TaskFilter) async throws -> [ToDoTask] {
+    func loadTasks(filter: ToDoTask.TaskFilter) async throws -> [ToDoTask] {
         let descriptor = FetchDescriptor<ToDoTask>(
             predicate: #Predicate { !$0.completed },
             sortBy: [SortDescriptor(\.due, order: .forward)]
@@ -221,18 +242,30 @@ actor WidgetDataActor {
             recurrenceInterval: task.recurrenceInterval,
             customRecurrenceDays: task.customRecurrenceDays,
             due: nextDueDate,
-            categories: task.categories
+            categories: task.categories ?? []
         )
         
         return newTask
     }
     
+    // MARK: Private Functions
+    
+    
+    private func updateTaskWidgets() {
+        DispatchQueue.main.async {
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
+    
+    // TODO: Make Generic
     private func fetchWeeklyProgress() async -> TaskWidgetEntry.WeeklyProgress? {
         do {
             // Get current week start (Monday)
             let calendar = Calendar.current
             let now = Date()
             var components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
+            
+            // TODO: Have the start day configurable
             components.weekday = 2 // Monday
             let weekStart = calendar.date(from: components) ?? now
             
@@ -262,14 +295,14 @@ actor WidgetDataActor {
             // Calculate category progress
             let categoryProgress = categoriesWithTargets.map { category in
                 let completed = weekCompleted.filter { task in
-                    task.categories.contains(category)
+                    task.categories!.contains(category)
                 }.count
                 
                 return (
-                    name: category.name,
+                    name: category.name ?? "",
                     completed: completed,
                     target: category.weeklyTarget,
-                    color: category.color.rawValue
+                    color: category.color?.rawValue ?? ""
                 )
             }
             
@@ -287,4 +320,58 @@ actor WidgetDataActor {
             return nil
         }
     }
+    
+    func addTodoTask(toDoTask: ToDoTask) {
+        guard ((toDoTask.name?.isEmpty) == nil) else { return }
+        modelContext.insert(toDoTask)
+        saveContext()
+//        loadToDoTasks()
+    }
+
+    // Complete ToDoTask when it is something where it is done
+    func completeToDoTask(toDoTask: ToDoTask) {
+        toDoTask.completed = true
+        toDoTask.completedAt = Date.now
+        if toDoTask.repeating! {
+            let nextTask = createNextOccurrence(from: toDoTask)
+            modelContext.insert(nextTask)
+        }
+        saveContext()
+    }
+    
+    func deleteToDoTask(toDoTask: ToDoTask) {
+        modelContext.delete(toDoTask)
+        saveContext()
+//        loadToDoTasks()
+    }
+    
+//    func loadToDoTasks() {
+//        do {
+//            let descriptor = FetchDescriptor<ToDoTask>(
+//                predicate: #Predicate { !$0.completed },
+//                sortBy: [SortDescriptor(\.due, order: .forward)]
+//            )
+//            toDoTasks = try modelContext.fetch(descriptor)
+//        } catch {
+//            print("Failed to load tasks: \(error.localizedDescription)")
+//        }
+//    }
+    
+    func saveContext() {
+        
+        do {
+            try modelContext.save()
+            updateTaskWidgets()
+        } catch {
+            print("Failed to save context: \(error.localizedDescription)")
+        }
+    }
+    
+    let descriptor = FetchDescriptor<ToDoTask>(
+        predicate: #Predicate { !$0.completed },
+        sortBy: [SortDescriptor(\.due, order: .forward)]
+    )
+    
+
 }
+

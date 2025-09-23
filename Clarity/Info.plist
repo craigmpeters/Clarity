@@ -8,5 +8,10 @@
 	<array>
 		<string>IntentIntent</string>
 	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+		<string>fetch</string>
+	</array>
 </dict>
 </plist>

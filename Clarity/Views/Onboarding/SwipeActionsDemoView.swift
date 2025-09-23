@@ -135,6 +135,14 @@ struct SwipeActionDemo {
 struct InteractiveTaskDemo: View {
     let action: SwipeActionDemo
     let onActionTriggered: () -> Void
+    let exampleTask = ToDoTask(
+        name: "Sample Task",
+        pomodoro: true,
+        pomodoroTime: TimeInterval(10 * 60),
+        repeating: true,
+        recurrenceInterval: .daily,
+        categories: [Category(name: "Work", color: .Blue, weeklyTarget: 8)].compactMap { $0 }
+    )
     
     @State private var offset: CGFloat = 0
     @State private var hasTriggered = false
@@ -168,36 +176,69 @@ struct InteractiveTaskDemo: View {
             }
             
             // Task row
+            // FIXME: Preview Tasks, Generic?
+            
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Circle()
-                        .strokeBorder(Color.blue.opacity(0.3), lineWidth: 2)
-                        .frame(width: 20, height: 20)
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Sample Task")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(.blue)
-                                .frame(width: 6, height: 6)
-                            Text("Work")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                            
-                            Spacer()
-                            
-                            Text("Today")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
+                    HStack(spacing: 12) {
+                        VStack(spacing: 2) {
+                            Text(exampleTask.due, format: .dateTime.day())
+                                .font(.title3.weight(.bold))
+                            Text(exampleTask.due, format: .dateTime.month(.abbreviated))
+                                .font(.caption2.weight(.semibold))
+                                .textCase(.uppercase)
                         }
+                        .foregroundStyle(dateAccentTextColor(exampleTask.due))
+                        .frame(width: 56, height: 48)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(dateAccentBackgroundColor(exampleTask.due))
+                        )
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(exampleTask.name ?? "")
+                                .font(.headline)
+                                .lineLimit(2)
+
+                            HStack(spacing: 6) {
+                                if exampleTask.categories?.count ?? 0 >= 3 {
+                                    ForEach(exampleTask.categories!) { category in
+                                        ZStack {
+                                            Circle()
+                                                .fill(category.color?.SwiftUIColor ?? .gray)
+                                                .frame(width: 25, height: 25)
+                                            Text(String(category.name!.first!))
+                                                .textCase(.uppercase)
+                                                .font(.system(size: 10, weight: .bold))
+                                                .foregroundStyle(.black)
+                                                .blendMode(.colorBurn)
+                                        }
+                                        .clipShape(Circle())
+                                    }
+                                } else {
+                                    ForEach(exampleTask.categories!) { category in
+                                        Text(category.name!)
+                                            .font(.caption2)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 2)
+                                            .background(
+                                                Capsule().fill(category.color?.SwiftUIColor ?? .gray.opacity(0.2))
+                                            )
+                                            .foregroundStyle(category.color!.contrastingTextColor)
+                                    }
+                                }
+                                Spacer()
+                                HStack(spacing: 8) {
+                                    //RecurrenceIndicatorBadge(task: task)
+                                    //TimerIndicatorBadge(task: task)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 8)
+                        .contentShape(Rectangle())
                     }
-                    
-                    Spacer()
+                    Spacer(minLength: 0)
                 }
-                
+
                 // Animated swipe hint
                 if showingHint {
                     HStack {
@@ -208,6 +249,7 @@ struct InteractiveTaskDemo: View {
                             Text(action.subtitle)
                                 .font(.caption2)
                                 .foregroundStyle(action.color)
+                            Spacer()
                         } else {
                             Spacer()
                             Text(action.subtitle)
@@ -217,7 +259,6 @@ struct InteractiveTaskDemo: View {
                                 .font(.caption)
                                 .foregroundStyle(action.color)
                         }
-                        if action.direction == .right { Spacer() }
                     }
                     .transition(.opacity.combined(with: .move(edge: action.direction == .right ? .leading : .trailing)))
                 }

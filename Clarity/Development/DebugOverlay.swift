@@ -117,7 +117,7 @@ struct DebugOverlay: View {
                 taskCount: allTasks.count,
                 completedTaskCount: allTasks.filter { $0.completed }.count,
                 categoryCount: categories.count,
-                recurringTaskCount: allTasks.filter { $0.repeating }.count,
+                recurringTaskCount: allTasks.filter { $0.repeating! }.count,
                 overdueTaskCount: allTasks.filter { $0.due < startOfDay && !$0.completed }.count
             )
         } catch {
