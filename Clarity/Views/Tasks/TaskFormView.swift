@@ -14,7 +14,6 @@ import FoundationModels
 struct TaskFormView: View {
     @Environment(\.dismiss) private var dismiss
     
-    let editingTask: ToDoTask?
     @State private var toDoTask: ToDoTask
     @State private var selectedCategories: [Category] = []
     @State private var selectedRecurrence: ToDoTask.RecurrenceInterval = .daily
@@ -22,26 +21,12 @@ struct TaskFormView: View {
     @State private var dueDate: Date = Date()
     @State private var showingDatePicker = false
     
-    private var isEditing: Bool {
-        editingTask != nil
-    }
+    private let isEditing: Bool
     
     init(task: ToDoTask? = nil) {
-        self.editingTask = task
-        
-        if let task = task {
-            self._toDoTask = State(initialValue: task)
-            self._selectedCategories = State(initialValue: task.categories ?? [])
-            self._selectedRecurrence = State(initialValue: task.recurrenceInterval ?? .daily)
-            self._customDays = State(initialValue: task.customRecurrenceDays)
-            self._dueDate = State(initialValue: task.due)
-        } else {
-            self._toDoTask = State(initialValue: ToDoTask(name: ""))
-            self._selectedCategories = State(initialValue: [])
-            self._selectedRecurrence = State(initialValue: .daily)
-            self._customDays = State(initialValue: 1)
-            self._dueDate = State(initialValue: Date())
-        }
+        let tempTask = task ?? ToDoTask(name: "")
+        _toDoTask = .init(initialValue: tempTask)
+        self.isEditing = task != nil
     }
     
     private func saveTask() {
@@ -57,9 +42,7 @@ struct TaskFormView: View {
             }
             
             if !isEditing {
-                Task {
-                    await SharedDataActor.shared.addTodoTask(toDoTask: toDoTask)
-                }
+                SharedDataActor.shared.addTodoTask(toDoTask: toDoTask)
             }
         }
         dismiss()
@@ -327,7 +310,7 @@ extension TaskFormView {
 
 #if DEBUG
 #Preview("New Task") {
-    TaskFormView()
+    TaskFormView(task: nil)
 }
 
 #Preview("Edit Task") {

@@ -55,7 +55,10 @@ struct TaskIndexView: View {
                     }
                     
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: { showingTaskForm = true }) {
+                        Button(action: {
+                            taskToEdit = nil
+                            showingTaskForm = true
+                        }) {
                             Image(systemName: "plus")
                                 .foregroundStyle(.blue)
                         }
@@ -77,24 +80,18 @@ struct TaskIndexView: View {
     // MARK: - Actions (moved to background)
     
     private func editTask(_ task: ToDoTask) {
-        print("Editing \(task.name)")
+        print("Editing \(task.name ?? "Nothing!!")")
         taskToEdit = task
         showingTaskForm = true
     }
     
     private func deleteTask(_ task: ToDoTask) {
-        Task {
-            print("Deleting: (\(task.name ?? ""))")
-            await SharedDataActor.shared.deleteToDoTask(toDoTask: task)
-
-        }
+        SharedDataActor.shared.deleteToDoTask(toDoTask: task)
     }
     
     private func completeTask(_ task: ToDoTask) {
         print("Attempting to complete task \(task.name ?? "")")
-        Task {
-            await SharedDataActor.shared.completeToDoTask(toDoTask: task)
-        }
+        SharedDataActor.shared.completeToDoTask(toDoTask: task)
     }
     
     private func startTimer(for task: ToDoTask) {

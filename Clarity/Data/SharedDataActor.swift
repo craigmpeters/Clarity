@@ -322,7 +322,7 @@ public final class SharedDataActor: Sendable {
     }
     
     func addTodoTask(toDoTask: ToDoTask) {
-        guard ((toDoTask.name?.isEmpty) == nil) else { return }
+        //guard ((toDoTask.name?.isEmpty) == nil) else { return }
         modelContext.insert(toDoTask)
         saveContext()
 //        loadToDoTasks()
