@@ -9,6 +9,7 @@ import Foundation
 import AppIntents
 
 struct CreateTaskIntent: AppIntent {
+    @Dependency var store: DataStore
     static var title: LocalizedStringResource = "Create Task"
     static var description = IntentDescription("Create a new task in Clarity")
     static var openAppWhenRun: Bool = false
@@ -28,7 +29,7 @@ struct CreateTaskIntent: AppIntent {
     func perform() async throws -> some IntentResult {
         print("Received categoryIds: \(String(describing: categories))")
         
-        await SharedDataActor.shared.addTask(
+        await store.addTask(
             name: taskName,
             duration: TimeInterval(duration * 60),
             repeating: isRepeating,

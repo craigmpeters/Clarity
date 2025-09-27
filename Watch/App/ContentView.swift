@@ -13,7 +13,7 @@ struct ContentView: View {
     @Query(filter: #Predicate<ToDoTask> { !$0.completed }, sort: \ToDoTask.due, order: .forward) private var allTasks: [ToDoTask]
 
     var body: some View {
-        VStack {
+        NavigationStack {
             List(allTasks, id: \.id) { task in
                 Text(task.name ?? "")
                     .foregroundStyle(accentTextColor(task.due))
@@ -35,9 +35,26 @@ struct ContentView: View {
                         .tint(.green)
                     }
             }
-            .listStyle(.carousel)
+            .navigationTitle("Tasks")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        // Filter Action
+                    } label: {
+                        Image(systemName: "line.3.horizontal.decrease")
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        // Add Task
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
         }
-        .padding()
+        
+
     }
 
     private func accentTextColor(_ due: Date) -> Color {
@@ -59,15 +76,14 @@ struct ContentView: View {
         return Color.accentColor.opacity(0.12)
     }
 
-    private func completeTask(_ task: ToDoTask) -> Void {
+    private func completeTask(_ task: ToDoTask) {
         print("Attempting to complete task \(task.name ?? "")")
 //        Task {
 //            SharedDataActor.shared.completeToDoTask(toDoTask: task)
 //        }
-        
     }
 
-    private func startTimer(for task: ToDoTask) -> Void {
+    private func startTimer(for task: ToDoTask) {
         print("Attempting to start timer \(task.name ?? "")")
 //    selectedTask = task
 //    withAnimation(.easeInOut(duration: 0.3)) {

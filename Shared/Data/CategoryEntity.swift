@@ -31,8 +31,9 @@ struct CategoryEntity: AppEntity {
 
 // Query provider for categories
 struct CategoryQuery: EntityQuery {
+    @Dependency var store: DataStore
     func entities(for identifiers: [String]) async throws -> [CategoryEntity] {
-        let categories = await SharedDataActor.shared.getCategories()
+        let categories = await store.getCategories()
         return categories.compactMap { category in
             if identifiers.contains(String(describing: category.id)) {
                 return CategoryEntity(from: category)
@@ -42,7 +43,7 @@ struct CategoryQuery: EntityQuery {
     }
     
     func suggestedEntities() async throws -> [CategoryEntity] {
-        let categories = await SharedDataActor.shared.getCategories()
+        let categories = await store.getCategories()
         return categories.map { CategoryEntity(from: $0) }
     }
 }
