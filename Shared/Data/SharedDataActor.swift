@@ -1,6 +1,7 @@
 import SwiftData
 import WidgetKit
 import Foundation
+import Observation
 
 
 /// This is a shared model used by the actors to interact with the data
@@ -23,13 +24,13 @@ public class ClarityModel {
 
 /// This is the data actor used on the main thread for UI Specific Actions
 @MainActor @Observable
-//public final class SharedDataActor: Sendable {
-public final class MainDataActor: Sendable {
-    static let shared: MainDataActor = MainDataActor()
+final class MainDataActor: Sendable {
     let modelContainer: ModelContainer
     let modelContext: ModelContext
+    private let repository : ClarityRepositoryProtocol
+    static let shared = MainDataActor()
     
-    private init() {
+    private init(repository: ClarityRepositoryProtocol = ClarityTaskRepository()) {
         do {
             let schema = ClarityModel.schema
             let modelConfiguration = ClarityModel.modelConfiguration
@@ -39,9 +40,54 @@ public final class MainDataActor: Sendable {
                 configurations: [modelConfiguration]
             )
             self.modelContext = modelContainer.mainContext
+            self.repository = repository
+            
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
         }
+    }
+    
+    // MARK: Category Functions
+    func getCategories() throws -> [Category] {
+        try repository.getCategories(in: modelContext)
+    }
+
+    // MARK: Task Functions
+    func fetchTasks(_ filter: ToDoTask.TaskFilter) async throws -> [ToDoTask] {
+        try await repository.fetchTasks(in: modelContext, filter)
+    }
+
+    func addTask(name: String, duration: TimeInterval, repeating: Bool, categoryIds: [String]) {
+        repository.addTask(in: modelContext, name: name, duration: duration, repeating: repeating, categoryIds: categoryIds)
+        updateTaskWidgets()
+    }
+
+    func deleteTask(_ task: ToDoTask) {
+        repository.deleteTask(in: modelContext, task)
+        updateTaskWidgets()
+    }
+
+    func completeTask(_ task: ToDoTask) {
+        repository.completeTask(in: modelContext, task)
+        updateTaskWidgets()
+    }
+
+    func fetchTaskById(_ taskId: String) throws -> ToDoTask? {
+        try repository.fetchTaskById(in: modelContext, taskId)
+    }
+
+    func createNextOccurrence(_ task: ToDoTask) -> ToDoTask {
+        repository.createNextOccurrence(in: modelContext, task)
+    }
+
+    // MARK: Statistical Functions
+    func fetchWeeklyTarget() throws -> Int {
+        try repository.fetchWeeklyTarget(in: modelContext)
+    }
+
+    // MARK: Actions for Widgets / Intents
+    private func updateTaskWidgets() {
+        WidgetCenter.shared.reloadAllTimelines()
     }
 }
 
@@ -58,7 +104,48 @@ actor StaticDataStore {
             fatalError("Failed to create ModelContainer: \(error)")
         }
     }())
-    
+
+    private let repo: ClarityRepositoryProtocol = ClarityTaskRepository()
+
+    // MARK: Category Functions
+    func getCategories(in context: ModelContext) throws -> [Category] {
+        try repo.getCategories(in: context)
+    }
+
+    // MARK: Task Functions
+    func fetchTasks(in context: ModelContext, _ filter: ToDoTask.TaskFilter) async throws -> [ToDoTask] {
+        try await repo.fetchTasks(in: context, filter)
+    }
+
+    func addTask(in context: ModelContext, name: String, duration: TimeInterval, repeating: Bool, categoryIds: [String]) {
+        repo.addTask(in: context, name: name, duration: duration, repeating: repeating, categoryIds: categoryIds)
+        updateTaskWidgets()
+    }
+
+    func deleteTask(in context: ModelContext, _ task: ToDoTask) {
+        repo.deleteTask(in: context, task)
+        updateTaskWidgets()
+    }
+
+    func completeTask(in context: ModelContext, _ task: ToDoTask) {
+        repo.completeTask(in: context, task)
+        updateTaskWidgets()
+    }
+
+    func fetchTaskById(in context: ModelContext, _ taskId: String) throws -> ToDoTask? {
+        try repo.fetchTaskById(in: context, taskId)
+    }
+
+    func createNextOccurrence(in context: ModelContext, _ task: ToDoTask) -> ToDoTask {
+        repo.createNextOccurrence(in: context, task)
+    }
+
+    // MARK: Statistical Functions
+    func fetchWeeklyTarget(in context: ModelContext) throws -> Int {
+        try repo.fetchWeeklyTarget(in: context)
+    }
+
+    // MARK: Actions for Widgets / Intents
     private func updateTaskWidgets() {
         DispatchQueue.main.async {
             WidgetCenter.shared.reloadAllTimelines()
