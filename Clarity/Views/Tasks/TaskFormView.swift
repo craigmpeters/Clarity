@@ -27,6 +27,7 @@ struct TaskFormView: View {
         let tempTask = task ?? ToDoTask(name: "")
         _toDoTask = .init(initialValue: tempTask)
         self.isEditing = task != nil
+        _selectedCategories = .init(initialValue: tempTask.categories ?? [])
     }
     
     private func saveTask() {
