@@ -35,14 +35,14 @@ class PomodoroCoordinator: ObservableObject {
     }
     
     func endPomodoro() {
-        print("Pomodoro Ending for task: \(task.name)")
+        print("Pomodoro Ending for task: \(task.name ?? "Unknown Task")")
         guard !hasEnded else { return }
         hasEnded = true
         pomodoro.stopPomodoro()
         endLiveActivity()
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         Task {
-            await SharedDataActor.shared.completeToDoTask(toDoTask: task)
+            await MainDataActor.shared.completeTask(task)
         }
         
     }

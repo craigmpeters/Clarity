@@ -34,12 +34,15 @@ struct CompleteTaskIntent: AppIntent {
         self.taskId = ""
     }
     
-    func perform() async throws -> some IntentResult {
+    func perform() async throws -> some IntentResult & ProvidesDialog {
         print("Widget: Attempting to complete task with ID: \(taskId)")
         
         // Use the WidgetDataActor to complete the task
-        await SharedDataActor.shared.completeTask(taskId: taskId)
+        guard let task = try await StaticDataStore.shared.fetchTaskById(taskId) else {
+            return .result(dialog: "Task not found")
+        }
+        await StaticDataStore.shared.completeTask(task)
         
-        return .result()
+        return .result(dialog: "Task completed")
     }
 }

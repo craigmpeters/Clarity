@@ -111,14 +111,27 @@ actor StaticDataStore {
     func getCategories(in context: ModelContext) throws -> [Category] {
         try repo.getCategories(in: context)
     }
+    
+    func getCategories() throws -> [Category] {
+        try getCategories(in: modelContext)
+    }
 
     // MARK: Task Functions
     func fetchTasks(in context: ModelContext, _ filter: ToDoTask.TaskFilter) async throws -> [ToDoTask] {
         try await repo.fetchTasks(in: context, filter)
     }
+    
+    func fetchTasks(_ filter: ToDoTask.TaskFilter) async throws -> [ToDoTask] {
+        return try await fetchTasks(in: modelContext, filter)
+    }
 
     func addTask(in context: ModelContext, name: String, duration: TimeInterval, repeating: Bool, categoryIds: [String]) {
         repo.addTask(in: context, name: name, duration: duration, repeating: repeating, categoryIds: categoryIds)
+        updateTaskWidgets()
+    }
+    
+    func addTask(name: String, duration: TimeInterval, repeating: Bool, categoryIds: [String]) {
+        repo.addTask(in: modelContext, name: name, duration: duration, repeating: repeating, categoryIds: categoryIds)
         updateTaskWidgets()
     }
 
@@ -131,18 +144,31 @@ actor StaticDataStore {
         repo.completeTask(in: context, task)
         updateTaskWidgets()
     }
-
-    func fetchTaskById(in context: ModelContext, _ taskId: String) throws -> ToDoTask? {
-        try repo.fetchTaskById(in: context, taskId)
+    
+    func completeTask(_ task: ToDoTask) {
+        completeTask(in: modelContext, task)
     }
 
+    func fetchTaskById(in context: ModelContext, taskId: String) throws -> ToDoTask? {
+        return try repo.fetchTaskById(in: context, taskId)
+    }
+    
+    func fetchTaskById(_ taskId: String) throws -> ToDoTask? {
+        return try fetchTaskById(in: modelContext, taskId: taskId)
+    }
+
+
     func createNextOccurrence(in context: ModelContext, _ task: ToDoTask) -> ToDoTask {
-        repo.createNextOccurrence(in: context, task)
+        return repo.createNextOccurrence(in: context, task)
     }
 
     // MARK: Statistical Functions
     func fetchWeeklyTarget(in context: ModelContext) throws -> Int {
         try repo.fetchWeeklyTarget(in: context)
+    }
+    
+    func fetchWeeklyTarget() async throws -> Int {
+        return try fetchWeeklyTarget(in: modelContext)
     }
 
     // MARK: Actions for Widgets / Intents

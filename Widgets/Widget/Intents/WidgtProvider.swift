@@ -54,8 +54,10 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
     
     private func fetchEntry(for filter: ToDoTask.TaskFilter) async -> TaskWidgetEntry {
         do {
+
             print("Fetching Tasks for Widget")
-            let (tasks, weeklyProgress) = await SharedDataActor.shared.fetchTasksForWidget(filter: filter)
+            let tasks = try await StaticDataStore.shared.fetchTasks(filter)
+            let weeklyProgress.complete = try await StaticDataStore.shared.fetchWeeklyTarget()
             
             let taskInfos = tasks.prefix(10).map { task in
                 let formatter = DateFormatter()
@@ -107,7 +109,7 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
             )
         ]
         
-        let sampleProgress = TaskWidgetEntry.WeeklyProgress(
+        let sampleProgress = 7 TaskWidgetEntry.WeeklyProgress(
             completed: 3,
             target: 7,
             categories: [
