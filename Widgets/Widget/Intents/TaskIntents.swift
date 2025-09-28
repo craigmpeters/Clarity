@@ -7,6 +7,7 @@
 
 import Foundation
 import AppIntents
+import OSLog
 
 // MARK: - AppIntents Entity for Category
 
@@ -46,6 +47,7 @@ struct CategoryQuery: EntityQuery, Sendable {
 }
 
 struct CreateTaskIntent: AppIntent {
+    private let log = Logger(subsystem: "me.craigpeters.clarity", category: "Widget")
     static var title: LocalizedStringResource = "Create Task"
     static var description = IntentDescription("Create a new task in Clarity")
     static var openAppWhenRun: Bool = false
@@ -63,7 +65,7 @@ struct CreateTaskIntent: AppIntent {
     var categories: [CategoryEntity]
     
     func perform() async throws -> some IntentResult {
-        print("Received categoryIds: \(String(describing: categories))")
+        log.debug("Received categoryIds: \(String(describing: categories))")
         
         await StaticDataStore.shared.addTask(
             name: taskName,

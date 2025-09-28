@@ -24,10 +24,4 @@ struct TaskWidgetEntry: TimelineEntry {
         let categoryColors: [String]
         let pomodoroMinutes: Int
     }
-    
-    struct WeeklyProgress {
-        let completed: Int
-        let target: Int
-        let categories: [(name: String, completed: Int, target: Int, color: String)]
-    }
 }

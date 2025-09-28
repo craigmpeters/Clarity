@@ -106,21 +106,21 @@ final class PreviewData {
         
         let sampleTasks = [
             // Overdue tasks
-            ("Review quarterly reports", 25, Date().addingTimeInterval(-86400), [workCategory].compactMap { $0 }),
+            ("Review quarterly reports", 5, Date().addingTimeInterval(-86400), [workCategory].compactMap { $0 }),
             
             // Today's tasks
-            ("Team standup meeting prep", 15, Date(), [workCategory].compactMap { $0 }),
+            ("Team standup meeting prep", 5, Date(), [workCategory].compactMap { $0 }),
             ("Grocery shopping", 5, Date(), [personalCategory].compactMap { $0 }),
-            ("SwiftUI documentation reading", 25, Date(), [learningCategory].compactMap { $0 }),
+            ("SwiftUI documentation reading", 5, Date(), [learningCategory].compactMap { $0 }),
             
             // Tomorrow's tasks
-            ("Client presentation slides", 10, Date().addingTimeInterval(86400), [workCategory].compactMap { $0 }),
+            ("Client presentation slides", 5, Date().addingTimeInterval(86400), [workCategory].compactMap { $0 }),
             ("Doctor appointment", 5, Date().addingTimeInterval(86400), [personalCategory].compactMap { $0 }),
             
             // This week
-            ("Code review session", 25, Date().addingTimeInterval(86400 * 2), [workCategory].compactMap { $0 }),
-            ("Weekend hiking preparation", 20, Date().addingTimeInterval(86400 * 3), [personalCategory].compactMap { $0 }),
-            ("iOS 18 features research", 25, Date().addingTimeInterval(86400 * 4), [learningCategory].compactMap { $0 }),
+            ("Code review session", 5, Date().addingTimeInterval(86400 * 2), [workCategory].compactMap { $0 }),
+            ("Weekend hiking preparation", 5, Date().addingTimeInterval(86400 * 3), [personalCategory].compactMap { $0 }),
+            ("iOS 18 features research", 5, Date().addingTimeInterval(86400 * 4), [learningCategory].compactMap { $0 }),
         ]
         
         for (name, minutes, dueDate, taskCategories) in sampleTasks {

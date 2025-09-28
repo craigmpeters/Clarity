@@ -15,8 +15,10 @@
 import Foundation
 import AppIntents
 import SwiftData
+import OSLog
 
 struct CompleteTaskIntent: AppIntent {
+    private let log = Logger(subsystem: "me.craigpeters.clarity", category: "Widget")
     static var title: LocalizedStringResource = "Complete Task"
     static var description = IntentDescription("Mark a task as completed")
     static var openAppWhenRun: Bool = false
@@ -35,7 +37,7 @@ struct CompleteTaskIntent: AppIntent {
     }
     
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        print("Widget: Attempting to complete task with ID: \(taskId)")
+        log.debug("Widget: Attempting to complete task with ID: \(taskId)")
         
         // Use the WidgetDataActor to complete the task
         guard let task = try await StaticDataStore.shared.fetchTaskById(taskId) else {

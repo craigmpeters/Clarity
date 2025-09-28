@@ -22,7 +22,7 @@ struct ClarityApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .modelContainer(SharedDataActor.shared.modelContainer)
+                .modelContainer(MainDataActor.shared.modelContainer)
         }
     }
     

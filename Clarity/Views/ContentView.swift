@@ -78,7 +78,7 @@ struct ContentView: View {
     func findTask(withId id: String) async -> ToDoTask? {
         // Search through your tasks for matching ID
         do {
-            let tasks = try await SharedDataActor.shared.fetchTasks(ToDoTask.TaskFilter.all)
+            let tasks = try await MainDataActor.shared.fetchTasks(ToDoTask.TaskFilter.all)
             return tasks.first { task in
                 String(describing: task.id) == id
             }

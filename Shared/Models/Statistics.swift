@@ -18,3 +18,9 @@ public final class GlobalTargetSettings {
         self.created = Date()
     }
 }
+
+struct WeeklyProgress {
+    let completed: Int
+    let target: Int
+    let categories: [(name: String, completed: Int, target: Int, color: String)]
+}

@@ -1,8 +1,8 @@
-import SwiftData
-import WidgetKit
 import Foundation
 import Observation
-
+import OSLog
+import SwiftData
+import WidgetKit
 
 /// This is a shared model used by the actors to interact with the data
 public class ClarityModel {
@@ -19,7 +19,6 @@ public class ClarityModel {
         groupContainer: .identifier("group.me.craigpeters.clarity"),
         cloudKitDatabase: .private("iCloud.me.craigpeters.clarity")
     )
-    
 }
 
 /// This is the data actor used on the main thread for UI Specific Actions
@@ -27,7 +26,7 @@ public class ClarityModel {
 final class MainDataActor: Sendable {
     let modelContainer: ModelContainer
     let modelContext: ModelContext
-    private let repository : ClarityRepositoryProtocol
+    private let repository: ClarityRepositoryProtocol
     static let shared = MainDataActor()
     
     private init(repository: ClarityRepositoryProtocol = ClarityTaskRepository()) {
@@ -39,7 +38,7 @@ final class MainDataActor: Sendable {
                 for: schema,
                 configurations: [modelConfiguration]
             )
-            self.modelContext = modelContainer.mainContext
+            modelContext = modelContainer.mainContext
             self.repository = repository
             
         } catch {
@@ -48,11 +47,13 @@ final class MainDataActor: Sendable {
     }
     
     // MARK: Category Functions
+
     func getCategories() throws -> [Category] {
         try repository.getCategories(in: modelContext)
     }
 
     // MARK: Task Functions
+
     func fetchTasks(_ filter: ToDoTask.TaskFilter) async throws -> [ToDoTask] {
         try await repository.fetchTasks(in: modelContext, filter)
     }
@@ -61,10 +62,18 @@ final class MainDataActor: Sendable {
         repository.addTask(in: modelContext, name: name, duration: duration, repeating: repeating, categoryIds: categoryIds)
         updateTaskWidgets()
     }
+    
+    func addTask(_ task: ToDoTask) {
+        repository.addTask(in: modelContext, toDoTask: task)
+    }
 
     func deleteTask(_ task: ToDoTask) {
         repository.deleteTask(in: modelContext, task)
         updateTaskWidgets()
+    }
+    
+    func completeTask(in context: ModelContext, _ task: ToDoTask) {
+        repository.completeTask(in: context, task)
     }
 
     func completeTask(_ task: ToDoTask) {
@@ -81,11 +90,13 @@ final class MainDataActor: Sendable {
     }
 
     // MARK: Statistical Functions
-    func fetchWeeklyTarget() throws -> Int {
-        try repository.fetchWeeklyTarget(in: modelContext)
+
+    func fetchWeeklyProgress() throws -> WeeklyProgress {
+        try repository.fetchWeeklyProgress(in: modelContext)
     }
 
     // MARK: Actions for Widgets / Intents
+
     private func updateTaskWidgets() {
         WidgetCenter.shared.reloadAllTimelines()
     }
@@ -106,8 +117,10 @@ actor StaticDataStore {
     }())
 
     private let repo: ClarityRepositoryProtocol = ClarityTaskRepository()
-
+    private let log = Logger(subsystem: "me.craigpeters.clarity", category: "StaticDataStore")
+    
     // MARK: Category Functions
+
     func getCategories(in context: ModelContext) throws -> [Category] {
         try repo.getCategories(in: context)
     }
@@ -117,6 +130,7 @@ actor StaticDataStore {
     }
 
     // MARK: Task Functions
+
     func fetchTasks(in context: ModelContext, _ filter: ToDoTask.TaskFilter) async throws -> [ToDoTask] {
         try await repo.fetchTasks(in: context, filter)
     }
@@ -132,6 +146,11 @@ actor StaticDataStore {
     
     func addTask(name: String, duration: TimeInterval, repeating: Bool, categoryIds: [String]) {
         repo.addTask(in: modelContext, name: name, duration: duration, repeating: repeating, categoryIds: categoryIds)
+        updateTaskWidgets()
+    }
+    
+    func addTask(in context: ModelContext, toDoTask: ToDoTask) {
+        repo.addTask(in: modelContext, toDoTask: toDoTask)
         updateTaskWidgets()
     }
 
@@ -157,21 +176,64 @@ actor StaticDataStore {
         return try fetchTaskById(in: modelContext, taskId: taskId)
     }
 
-
     func createNextOccurrence(in context: ModelContext, _ task: ToDoTask) -> ToDoTask {
         return repo.createNextOccurrence(in: context, task)
     }
 
     // MARK: Statistical Functions
-    func fetchWeeklyTarget(in context: ModelContext) throws -> Int {
-        try repo.fetchWeeklyTarget(in: context)
+
+    func fetchWeeklyProgress(in context: ModelContext) throws -> WeeklyProgress {
+        let globalDescriptor = FetchDescriptor<GlobalTargetSettings>(
+            sortBy: [SortDescriptor(\.created, order: .reverse)]
+        )
+        let settings = try context.fetch(globalDescriptor)
+        let latestSettings = settings.first
+        var globalTarget = latestSettings?.weeklyGlobalTarget ?? 0
+        
+        if globalTarget == 0 {
+            let catDescriptor = FetchDescriptor<Category>()
+            let categories = try context.fetch(catDescriptor)
+            let sumTargets = categories.reduce(0) { $0 + $1.weeklyTarget }
+            if sumTargets > 0 {
+                log.debug("Using fallback global target from categories sum: \(sumTargets, privacy: .public)")
+            } else {
+                log.debug("No global target set and categories sum is 0")
+            }
+            globalTarget = sumTargets
+        }
+        
+        // Get current week start (Monday)
+        let calendar = Calendar.current
+        let now = Date()
+        var components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
+        
+        // TODO: Have the start day configurable
+        components.weekday = 2 // Monday
+        let weekStart = calendar.date(from: components) ?? now
+        
+        let completedDescriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate { task in
+                task.completed && task.completedAt != nil
+            }
+        )
+        let allCompleted = try modelContext.fetch(completedDescriptor)
+        let weekCompleted = allCompleted.filter { task in
+            guard let completedAt = task.completedAt else { return false }
+            return completedAt >= weekStart
+        }
+        return WeeklyProgress(
+            completed: weekCompleted.count,
+            target: globalTarget,
+            categories: []
+        )
     }
     
-    func fetchWeeklyTarget() async throws -> Int {
-        return try fetchWeeklyTarget(in: modelContext)
+    func fetchWeeklyProgress() async throws -> WeeklyProgress {
+        return try fetchWeeklyProgress(in: modelContext)
     }
 
     // MARK: Actions for Widgets / Intents
+
     private func updateTaskWidgets() {
         DispatchQueue.main.async {
             WidgetCenter.shared.reloadAllTimelines()
@@ -180,24 +242,28 @@ actor StaticDataStore {
 }
 
 protocol ClarityRepositoryProtocol {
-    
     // MARK: Category Functions
+
     func getCategories(in context: ModelContext) throws -> [Category]
     
     // MARK: Task Functions
+
     func fetchTasks(in context: ModelContext, _ filter: ToDoTask.TaskFilter) async throws -> [ToDoTask]
     func addTask(in context: ModelContext, name: String, duration: TimeInterval, repeating: Bool, categoryIds: [String])
+    func addTask(in context: ModelContext, toDoTask: ToDoTask)
     func deleteTask(in context: ModelContext, _ task: ToDoTask)
     func completeTask(in context: ModelContext, _ task: ToDoTask)
     func fetchTaskById(in context: ModelContext, _ taskId: String) throws -> ToDoTask?
     func createNextOccurrence(in context: ModelContext, _ task: ToDoTask) -> ToDoTask
     
     // MARK: Statistical Functions
-    func fetchWeeklyTarget(in context: ModelContext) throws -> Int
+
+    func fetchWeeklyProgress(in context: ModelContext) throws -> WeeklyProgress
 }
 
 struct ClarityTaskRepository: ClarityRepositoryProtocol {
-    
+    private let log = Logger(subsystem: "me.craigpeters.clarity", category: "Repository")
+
     func fetchTaskById(in context: ModelContext, _ taskId: String) throws -> ToDoTask? {
         let descriptor = FetchDescriptor<ToDoTask>(
             predicate: #Predicate { task in
@@ -208,7 +274,7 @@ struct ClarityTaskRepository: ClarityRepositoryProtocol {
         
         // Find the task by ID in Swift code (not in predicate)
         guard let task = tasks.first(where: { String(describing: $0.id) == taskId }) else {
-            print("Widget: Task not found with ID: \(taskId)")
+            log.warning("Task not found with ID: \(taskId, privacy: .public)")
             return nil
         }
         
@@ -251,7 +317,7 @@ struct ClarityTaskRepository: ClarityRepositoryProtocol {
             let descriptor = FetchDescriptor<Category>()
             return try context.fetch(descriptor)
         } catch {
-            print("Failed to fetch categories: \(error)")
+            log.error("Failed to fetch categories: \(String(describing: error), privacy: .public)")
             return []
         }
     }
@@ -285,7 +351,7 @@ struct ClarityTaskRepository: ClarityRepositoryProtocol {
             
             return tasks
         } catch {
-            print("Failed to fetch tasks: \(error)")
+            log.error("Failed to fetch tasks: \(String(describing: error), privacy: .public)")
             return []
         }
     }
@@ -309,6 +375,11 @@ struct ClarityTaskRepository: ClarityRepositoryProtocol {
         saveContext(in: context)
     }
     
+    func addTask(in context: ModelContext, toDoTask: ToDoTask) {
+        context.insert(toDoTask)
+        saveContext(in: context)
+    }
+    
     func deleteTask(in context: ModelContext, _ task: ToDoTask) {
         context.delete(task)
         saveContext(in: context)
@@ -324,11 +395,36 @@ struct ClarityTaskRepository: ClarityRepositoryProtocol {
         saveContext(in: context)
     }
     
-    func fetchWeeklyTarget(in context: ModelContext) throws -> Int {
+    func fetchWeeklyProgress(in context: ModelContext) throws -> WeeklyProgress {
         let globalDescriptor = FetchDescriptor<GlobalTargetSettings>()
         let globalSettings = try context.fetch(globalDescriptor).first
         let globalTarget = globalSettings?.weeklyGlobalTarget ?? 0
-        return globalTarget
+        
+        // Get current week start (Monday)
+        let calendar = Calendar.current
+        let now = Date()
+        var components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
+        
+        // TODO: Have the start day configurable
+        components.weekday = 2 // Monday
+        let weekStart = calendar.date(from: components) ?? now
+        
+        let taskDescriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate {
+                $0.completedAt != nil &&
+                    $0.completedAt! > weekStart
+            }
+        )
+        let tasks = try context.fetch(taskDescriptor)
+        
+        let completedCount = tasks.count
+        log.debug("Weekly progress computed: \(completedCount, privacy: .public) / \(globalTarget, privacy: .public)")
+        
+        return WeeklyProgress(
+            completed: completedCount,
+            target: globalTarget,
+            categories: []
+        )
     }
     
     private func saveContext(in context: ModelContext) {
@@ -336,8 +432,7 @@ struct ClarityTaskRepository: ClarityRepositoryProtocol {
             try context.save()
             
         } catch {
-            print("Could not save context \(error.localizedDescription)")
+            log.error("Could not save context: \(error.localizedDescription, privacy: .public)")
         }
     }
-
 }

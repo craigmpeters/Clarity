@@ -271,6 +271,11 @@
 			path = Utilities;
 			sourceTree = "<group>";
 		};
+		44D6F1E02E89871C00B5EF9E /* Views */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Views;
+			sourceTree = "<group>";
+		};
 		44FB49602E51F1EB0059CC5B /* Clarity */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -361,6 +366,7 @@
 		44D6F0132E85DA5F00B5EF9E /* Watch */ = {
 			isa = PBXGroup;
 			children = (
+				44D6F1E02E89871C00B5EF9E /* Views */,
 				44D6EAD62E83177400B5EF9E /* UI Tests */,
 				44D6EACC2E83177400B5EF9E /* Tests */,
 				44D6EABE2E83176B00B5EF9E /* App */,
@@ -450,6 +456,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				44D6EABE2E83176B00B5EF9E /* App */,
+				44D6F1E02E89871C00B5EF9E /* Views */,
 			);
 			name = ClarityWatch;
 			packageProductDependencies = (

@@ -8,8 +8,10 @@
 import AppIntents
 import WidgetKit
 import SwiftUI
+import OSLog
 
 struct TaskWidgetProvider: AppIntentTimelineProvider {
+    private let log = Logger(subsystem: "me.craigpeters.clarity", category: "Widget")
     typealias Entry = TaskWidgetEntry
     typealias Intent = TaskWidgetIntent
     
@@ -34,7 +36,7 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
     
     func timeline(for configuration: TaskWidgetIntent, in context: Context) async -> Timeline<TaskWidgetEntry> {
         let entry = await fetchEntry(for: configuration.filter.toTaskFilter())
-        print("Timeline loading...")
+        log.debug("Timeline loading...")
         
         // Calculate next significant update times
         let calendar = Calendar.current
@@ -53,34 +55,14 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
     }
     
     private func fetchEntry(for filter: ToDoTask.TaskFilter) async -> TaskWidgetEntry {
+        // Fetch tasks first; if this fails, we’ll return an empty entry
+        let tasks: [ToDoTask]
         do {
-
-            print("Fetching Tasks for Widget")
-            let tasks = try await StaticDataStore.shared.fetchTasks(filter)
-            let weeklyProgress.complete = try await StaticDataStore.shared.fetchWeeklyTarget()
-            
-            let taskInfos = tasks.prefix(10).map { task in
-                let formatter = DateFormatter()
-                formatter.timeStyle = .short
-                
-                return TaskWidgetEntry.TaskInfo(
-                    id: String(describing: task.id),
-                    name: task.name!,
-                    dueTime: formatter.string(from: task.due),
-                    categoryColors: task.categories!.map { $0.color!.rawValue },
-                    pomodoroMinutes: Int(task.pomodoroTime / 60)
-                )
-            }
-            
-            return TaskWidgetEntry(
-                date: Date(),
-                filter: filter,
-                taskCount: tasks.count,
-                tasks: Array(taskInfos),
-                weeklyProgress: weeklyProgress
-            )
+            log.info("Fetching tasks for widget, filter: \(String(describing: filter), privacy: .public)")
+            tasks = try await StaticDataStore.shared.fetchTasks(filter)
+            log.info("Fetched tasks: \(tasks.count, privacy: .public)")
         } catch {
-            print("Widget: Error fetching data: \(error)")
+            log.error("Widget: Error fetching tasks: \(error.localizedDescription, privacy: .public)")
             return TaskWidgetEntry(
                 date: Date(),
                 filter: filter,
@@ -89,6 +71,44 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
                 weeklyProgress: nil
             )
         }
+
+        // Fetch weekly progress separately; if it fails, we’ll still show tasks
+        var weeklyProgress: WeeklyProgress? = nil
+        do {
+            weeklyProgress = try await StaticDataStore.shared.fetchWeeklyProgress()
+            log.info("Weekly progress loaded")
+        } catch {
+            log.error("Widget: Error fetching weekly progress: \(error.localizedDescription, privacy: .public)")
+            weeklyProgress = WeeklyProgress(completed: 0, target: 0, categories: [])
+        }
+
+        // Map tasks defensively to avoid crashes on unexpected nils
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+
+        let taskInfos: [TaskWidgetEntry.TaskInfo] = tasks.prefix(10).compactMap { task in
+            guard let name = task.name else {
+                log.error("Task name nil for id \(String(describing: task.id), privacy: .public)")
+                return nil
+            }
+            let dueTime = formatter.string(from: task.due)
+            let categoryColors = (task.categories ?? []).compactMap { $0.color?.rawValue }
+            return TaskWidgetEntry.TaskInfo(
+                id: String(describing: task.id),
+                name: name,
+                dueTime: dueTime,
+                categoryColors: categoryColors,
+                pomodoroMinutes: Int(task.pomodoroTime / 60)
+            )
+        }
+
+        return TaskWidgetEntry(
+            date: Date(),
+            filter: filter,
+            taskCount: tasks.count,
+            tasks: taskInfos,
+            weeklyProgress: weeklyProgress
+        )
     }
     
     private func createSampleEntry(for filter: ToDoTask.TaskFilter) -> TaskWidgetEntry {
@@ -109,7 +129,7 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
             )
         ]
         
-        let sampleProgress = 7 TaskWidgetEntry.WeeklyProgress(
+        let sampleProgress = WeeklyProgress(
             completed: 3,
             target: 7,
             categories: [
@@ -127,3 +147,4 @@ struct TaskWidgetProvider: AppIntentTimelineProvider {
         )
     }
 }
+

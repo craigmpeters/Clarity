@@ -13,6 +13,7 @@ import FoundationModels
 
 struct TaskFormView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
     
     let editingTask: ToDoTask?
     @State private var toDoTask: ToDoTask
@@ -57,9 +58,7 @@ struct TaskFormView: View {
             }
             
             if !isEditing {
-                Task {
-                    await SharedDataActor.shared.addTodoTask(toDoTask: toDoTask)
-                }
+                MainDataActor.shared.addTask(toDoTask)
             }
         }
         dismiss()

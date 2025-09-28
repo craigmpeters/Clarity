@@ -78,9 +78,9 @@ struct ContentView: View {
 
     private func completeTask(_ task: ToDoTask) {
         print("Attempting to complete task \(task.name ?? "")")
-//        Task {
-//            SharedDataActor.shared.completeToDoTask(toDoTask: task)
-//        }
+        Task {
+            MainDataActor.shared.completeTask(in: context, task)
+        }
     }
 
     private func startTimer(for task: ToDoTask) {

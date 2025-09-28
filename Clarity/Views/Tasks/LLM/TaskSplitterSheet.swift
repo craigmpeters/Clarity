@@ -163,10 +163,7 @@ struct TaskSplitterSheet: View {
                 due: dueDate,
                 categories: applyCategoriesToAll ? globalCategories : suggestion.selectedCategories
             )
-            Task {
-                await SharedDataActor.shared.addTodoTask(toDoTask: task)
-            }
-            
+            MainDataActor.shared.addTask(task)
         }
             
         dismiss()

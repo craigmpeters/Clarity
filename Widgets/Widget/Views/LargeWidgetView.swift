@@ -70,7 +70,7 @@ struct LargeTaskWidgetView: View {
         .padding()
     }
     
-    private func progressColor(for progress: TaskWidgetEntry.WeeklyProgress) -> Color {
+    private func progressColor(for progress: WeeklyProgress) -> Color {
         let percentage = progressPercentage(for: progress)
         if percentage >= 1.0 { return .green }
         if percentage >= 0.7 { return .blue }
@@ -78,10 +78,8 @@ struct LargeTaskWidgetView: View {
         return .red
     }
     
-    private func progressPercentage(for progress: TaskWidgetEntry.WeeklyProgress) -> Double {
+    private func progressPercentage(for progress: WeeklyProgress) -> Double {
         guard progress.target > 0 else { return 0 }
         return min(Double(progress.completed) / Double(progress.target), 1.0)
     }
 }
-
-

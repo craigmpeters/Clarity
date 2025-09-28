@@ -85,16 +85,14 @@ struct TaskIndexView: View {
     private func deleteTask(_ task: ToDoTask) {
         Task {
             print("Deleting: (\(task.name ?? ""))")
-            await SharedDataActor.shared.deleteToDoTask(toDoTask: task)
+            await MainDataActor.shared.deleteTask(task)
 
         }
     }
     
     private func completeTask(_ task: ToDoTask) {
         print("Attempting to complete task \(task.name ?? "")")
-        Task {
-            await SharedDataActor.shared.completeToDoTask(toDoTask: task)
-        }
+        MainDataActor.shared.completeTask(task)
     }
     
     private func startTimer(for task: ToDoTask) {
