@@ -92,7 +92,9 @@ struct TaskIndexView: View {
     
     private func completeTask(_ task: ToDoTask) {
         print("Attempting to complete task \(task.name ?? "")")
-        MainDataActor.shared.completeTask(task)
+        Task {
+            await StaticDataStore.shared.completeTask(task)
+        }
     }
     
     private func startTimer(for task: ToDoTask) {
@@ -121,3 +123,4 @@ struct TaskIndexView: View {
         .modelContainer(PreviewData.shared.previewContainer)
 }
 #endif
+

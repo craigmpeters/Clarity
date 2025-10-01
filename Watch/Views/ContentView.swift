@@ -5,17 +5,15 @@
 //  Created by Craig Peters on 23/09/2025.
 //
 
-import SwiftData
 import SwiftUI
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var context
-    @Query(filter: #Predicate<ToDoTask> { !$0.completed }, sort: \ToDoTask.due, order: .forward) private var allTasks: [ToDoTask]
+    @ObservedObject private var connectivity = ClarityWatchConnectivity.shared
 
     var body: some View {
         NavigationStack {
-            List(allTasks, id: \.id) { task in
-                Text(task.name ?? "")
+            List(connectivity.lastReceivedTasks, id: \.id) { task in
+                Text(task.name)
                     .foregroundStyle(accentTextColor(task.due))
                     .listItemTint(accentBackgroundColor(task.due))
                     .swipeActions(edge: .leading) {
@@ -53,8 +51,6 @@ struct ContentView: View {
                 }
             }
         }
-        
-
     }
 
     private func accentTextColor(_ due: Date) -> Color {
@@ -76,15 +72,13 @@ struct ContentView: View {
         return Color.accentColor.opacity(0.12)
     }
 
-    private func completeTask(_ task: ToDoTask) {
-        print("Attempting to complete task \(task.name ?? "")")
-        Task {
-            MainDataActor.shared.completeTask(in: context, task)
-        }
+    private func completeTask(_ task: ClarityWatchConnectivity.TaskTransfer) {
+        print("Attempting to complete task \(task.name)")
+        ClarityWatchConnectivity.shared.sendTaskCompleted(task)
     }
 
-    private func startTimer(for task: ToDoTask) {
-        print("Attempting to start timer \(task.name ?? "")")
+    private func startTimer(for task: ClarityWatchConnectivity.TaskTransfer) {
+        print("Attempting to start timer \(task.name)")
 //    selectedTask = task
 //    withAnimation(.easeInOut(duration: 0.3)) {
 //        showingPomodoro = true
@@ -94,7 +88,12 @@ struct ContentView: View {
 
 #if DEBUG
 #Preview {
-    ContentView()
-        .modelContainer(PreviewData.shared.previewContainer)
+    let c = ClarityWatchConnectivity.shared
+    c.lastReceivedTasks = [
+        .init(id: "1", name: "Buy milk", pomodoroTime: 1500, due: .now, categories: ["Home"]),
+        .init(id: "2", name: "Read book", pomodoroTime: 1500, due: Date().addingTimeInterval(86400), categories: [])
+    ]
+    return ContentView()
 }
 #endif
+

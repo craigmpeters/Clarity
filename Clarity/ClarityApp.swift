@@ -10,12 +10,16 @@ import SwiftData
 import UserNotifications
 import BackgroundTasks
 import AppIntents
+#if canImport(WatchConnectivity)
+import WatchConnectivity
+#endif
 
 @main
 struct ClarityApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
         
     init() {
+        _ = ClarityWatchConnectivity.shared
     }
         
 
@@ -46,3 +50,4 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         completionHandler()
     }
 }
+

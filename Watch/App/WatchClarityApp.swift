@@ -6,14 +6,12 @@
 //
 
 import SwiftUI
-import SwiftData
 
 @main
 struct WatchClarity_Watch_AppApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .modelContainer(MainDataActor.shared.modelContainer)
         }
     }
 }

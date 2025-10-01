@@ -42,7 +42,7 @@ class PomodoroCoordinator: ObservableObject {
         endLiveActivity()
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         Task {
-            await MainDataActor.shared.completeTask(task)
+            await StaticDataStore.shared.completeTask(task)
         }
         
     }
@@ -86,3 +86,4 @@ class PomodoroCoordinator: ObservableObject {
         self.activity = nil
     }
 }
+
