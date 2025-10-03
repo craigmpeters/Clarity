@@ -9,17 +9,54 @@
     {
       "layers" : [
         {
-          "fill" : "none",
-          "glass" : false,
-          "image-name" : "clarity.png",
-          "name" : "clarity",
-          "position" : {
-            "scale" : 1,
-            "translation-in-points" : [
-              -29,
-              -5.4375
-            ]
-          }
+          "image-name" : "Clarity Yellow.svg",
+          "name" : "Clarity Yellow",
+          "position-specializations" : [
+            {
+              "value" : {
+                "scale" : 1,
+                "translation-in-points" : [
+                  4.204224320948548,
+                  17.66679847212182
+                ]
+              }
+            },
+            {
+              "idiom" : "square",
+              "value" : {
+                "scale" : 1.7,
+                "translation-in-points" : [
+                  27.91968360421258,
+                  5.728257406307847
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "image-name" : "Clarity Blue 2.svg",
+          "name" : "Clarity Blue 2",
+          "position-specializations" : [
+            {
+              "value" : {
+                "scale" : 1,
+                "translation-in-points" : [
+                  -19.559860842591757,
+                  -29.73514344496394
+                ]
+              }
+            },
+            {
+              "idiom" : "square",
+              "value" : {
+                "scale" : 1.7,
+                "translation-in-points" : [
+                  -14.016197143709725,
+                  -63.348947080470296
+                ]
+              }
+            }
+          ]
         }
       ],
       "shadow" : {

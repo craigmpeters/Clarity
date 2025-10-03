@@ -106,8 +106,48 @@ class ToDoTask {
             }
         }
     }
-    
-    // MARK: Actions
-    
 }
 
+struct ToDoTaskDTO: Sendable, Codable, Hashable {
+    var id: PersistentIdentifier?
+    var name: String
+    var created: Date
+    var due: Date
+    var pomodoro: Bool
+    var pomodoroTime: TimeInterval
+    var repeating: Bool
+    var completed: Bool
+    var completedAt: Date?
+    var recurrenceInterval: ToDoTask.RecurrenceInterval?
+    var customRecurrenceDays: Int
+    var categories: [String]
+    
+    init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date.distantFuture, categories: [String] = []) {
+        self.name = name ?? ""
+        self.created = Date.now
+        self.due = due
+        self.pomodoro = true // No longer an option
+        self.pomodoroTime = pomodoroTime
+        self.repeating = repeating
+        self.categories = categories
+        self.completed = false
+        self.recurrenceInterval = recurrenceInterval
+        self.customRecurrenceDays = customRecurrenceDays
+    }
+}
+
+extension ToDoTaskDTO {
+    init(from model: ToDoTask) {
+        self.init(
+            id: model.persistentModelID,
+            name: model.name,
+            pomodoro: model.pomodoro,
+            pomodoroTime: model.pomodoroTime,
+            repeating: model.repeating ?? false,
+            recurrenceInterval: model.recurrenceInterval,
+            customRecurrenceDays: model.customRecurrenceDays,
+            due: model.due,
+            categories: (model.categories ?? []).compactMap { $0.name }
+        )
+    }
+}

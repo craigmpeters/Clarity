@@ -144,6 +144,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				CategoryEntity.swift,
+				ClarityModelActor.swift,
 				CONTRIBUTING.md,
 				SharedDataActor.swift,
 			);
@@ -152,6 +153,7 @@
 		44D6F01E2E85DA9500B5EF9E /* Exceptions for "Data" folder in "ClarityWatch" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				ClarityModelActor.swift,
 				CONTRIBUTING.md,
 				SharedDataActor.swift,
 				WatchConnectivity.swift,

@@ -10,7 +10,6 @@ import SwiftData
 import SwiftUI
 
 @Model
-
 class Category {
     //TODO: Guard against existing categories on create
     var name: String?
@@ -63,3 +62,23 @@ class Category {
     }
 }
 
+struct CategoryDTO: Sendable, Codable, Hashable {
+    var id: PersistentIdentifier?
+    var name: String
+    var color: Category.CategoryColor
+    var weeklyTarget: Int
+    
+    init(id: PersistentIdentifier?, name: String, color: Category.CategoryColor, weeklyTarget: Int) {
+        self.id = id
+        self.name = name
+        self.color = color
+        self.weeklyTarget = weeklyTarget
+        
+    }
+}
+
+extension CategoryDTO {
+    init(from model: Category) {
+        self.init(id: model.persistentModelID, name: model.name!, color: model.color ?? Category.CategoryColor.Red , weeklyTarget: model.weeklyTarget)
+    }
+}

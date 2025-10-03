@@ -241,25 +241,7 @@ actor StaticDataStore {
     }
 }
 
-protocol ClarityRepositoryProtocol {
-    // MARK: Category Functions
 
-    func getCategories(in context: ModelContext) throws -> [Category]
-    
-    // MARK: Task Functions
-
-    func fetchTasks(in context: ModelContext, _ filter: ToDoTask.TaskFilter) async throws -> [ToDoTask]
-    func addTask(in context: ModelContext, name: String, duration: TimeInterval, repeating: Bool, categoryIds: [String])
-    func addTask(in context: ModelContext, toDoTask: ToDoTask)
-    func deleteTask(in context: ModelContext, _ task: ToDoTask)
-    func completeTask(in context: ModelContext, _ task: ToDoTask)
-    func fetchTaskById(in context: ModelContext, _ taskId: String) throws -> ToDoTask?
-    func createNextOccurrence(in context: ModelContext, _ task: ToDoTask) -> ToDoTask
-    
-    // MARK: Statistical Functions
-
-    func fetchWeeklyProgress(in context: ModelContext) throws -> WeeklyProgress
-}
 
 struct ClarityTaskRepository: ClarityRepositoryProtocol {
     private let log = Logger(subsystem: "me.craigpeters.clarity", category: "Repository")
