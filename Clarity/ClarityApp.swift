@@ -17,6 +17,8 @@ import WatchConnectivity
 @main
 struct ClarityApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    
+    private let container = try! Containers.live()
         
     init() {
         _ = ClarityWatchConnectivity.shared
@@ -26,7 +28,7 @@ struct ClarityApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .modelContainer(MainDataActor.shared.modelContainer)
+                .modelContainer(container)
         }
     }
     

@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct WidgetTaskRow: View {
-    let task: TaskWidgetEntry.TaskInfo
+    let task: ToDoTaskDTO
     var compact: Bool = false
     
     var body: some View {
@@ -23,37 +23,15 @@ struct WidgetTaskRow: View {
             
             Spacer()
             
-            if !task.categoryColors.isEmpty {
+            if !task.categories.isEmpty {
                 Circle()
-                    .fill(WidgetColorUtility.colorFromString(task.categoryColors.first!))
+                    .fill(task.categories.first?.color.SwiftUIColor ?? Color.primary)
                     .frame(width: 6, height: 6)
             }
             
-            Text("\(task.pomodoroMinutes)m")
+            Text("\(task.pomodoroTime / 60)m")
                 .font(.caption2)
                 .foregroundStyle(.orange)
-        }
-    }
-}
-
-extension ToDoTask.TaskFilter {
-    var systemImage: String {
-        switch self {
-        case .all: return "tray.full"
-        case .today: return "calendar.circle"
-        case .tomorrow: return "calendar.badge.plus"
-        case .thisWeek: return "calendar"
-        case .overdue: return "exclamationmark.triangle"
-        }
-    }
-    
-    var color: Color {
-        switch self {
-        case .all: return .gray
-        case .today: return .blue
-        case .tomorrow: return .green
-        case .thisWeek: return .purple
-        case .overdue: return .red
         }
     }
 }

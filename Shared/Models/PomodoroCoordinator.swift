@@ -13,13 +13,14 @@ import BackgroundTasks
 
 class PomodoroCoordinator: ObservableObject {
     @Published var pomodoro: Pomodoro
-    let task: ToDoTask
+    let task: ToDoTaskDTO
     
     private var activity: Activity<PomodoroAttributes>?
     private var hasEnded = false
     private var cancellables = Set<AnyCancellable>()
+    private var store: ClarityModelActor?
     
-    init(pomodoro: Pomodoro, task: ToDoTask) {
+    init(pomodoro: Pomodoro, task: ToDoTaskDTO) {
         print("Pomodoro Co-ordinator created for Task: \(task.name) for \(task.pomodoroTime) seconds")
         self.pomodoro = pomodoro
         self.task = task
@@ -42,7 +43,7 @@ class PomodoroCoordinator: ObservableObject {
         endLiveActivity()
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         Task {
-            await StaticDataStore.shared.completeTask(task)
+            try? await store?.completeTask(task.id!)
         }
         
     }

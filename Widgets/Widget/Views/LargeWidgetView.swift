@@ -17,9 +17,9 @@ struct LargeTaskWidgetView: View {
             Divider()
             
             // Task list (show up to 4 with buttons)
-            if !entry.tasks.isEmpty {
+            if !entry.todos.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    ForEach(entry.tasks.prefix(8)) { task in
+                    ForEach(entry.todos.prefix(8), id: \.id) { task in
                         TaskRowInteractive(task: task)
                     }
                 }
@@ -33,7 +33,7 @@ struct LargeTaskWidgetView: View {
             Spacer()
             
             // Weekly Progress
-            if let progress = entry.weeklyProgress {
+           // if let progress = entry.progress {
                 Divider()
                 
                 VStack(alignment: .leading, spacing: 8) {
@@ -44,7 +44,7 @@ struct LargeTaskWidgetView: View {
                         
                         Spacer()
                         
-                        Text("\(progress.completed) / \(progress.target)")
+                        Text("\(entry.progress.completed) / \(entry.progress.target)")
                             .font(.caption)
                     }
                     
@@ -56,16 +56,16 @@ struct LargeTaskWidgetView: View {
                                 .frame(height: 6)
                             
                             RoundedRectangle(cornerRadius: 4)
-                                .fill(progressColor(for: progress))
+                                .fill(progressColor(for: entry.progress))
                                 .frame(
-                                    width: geometry.size.width * progressPercentage(for: progress),
+                                    width: geometry.size.width * progressPercentage(for: entry.progress),
                                     height: 6
                                 )
                         }
                     }
                     .frame(height: 6)
                 }
-            }
+           // }
         }
         .padding()
     }

@@ -12,34 +12,14 @@ final class PreviewData {
     
     static let shared = PreviewData()
     
-    let previewContainer: ModelContainer
+    let previewContainer = try! Containers.inMemory()
     
     var previewContext: ModelContext {
         previewContainer.mainContext
     }
     
+    // Private Init as Singleton
     private init() {
-        let schema = Schema([
-            ToDoTask.self,
-            Category.self,
-            GlobalTargetSettings.self
-        ])
-        
-        let modelConfiguration = ModelConfiguration(
-            schema: schema,
-            isStoredInMemoryOnly: true,
-            allowsSave: true,
-        )
-        
-        do {
-            previewContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
-            insertPreviewCategories()
-            insertPreviewTasks()
-            insertPreviewGlobalTarget()
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-        
     }
     
     // MARK: Public Functions

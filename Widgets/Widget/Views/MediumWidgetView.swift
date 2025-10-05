@@ -17,7 +17,7 @@ struct MediumTaskWidgetView: View {
             
             Divider()
             
-            if entry.tasks.isEmpty {
+            if entry.todos.isEmpty {
                 Spacer()
                 Text("No tasks")
                     .font(.subheadline)
@@ -26,11 +26,11 @@ struct MediumTaskWidgetView: View {
                 Spacer()
             } else {
                 VStack(alignment: .leading, spacing: 8) {
-                    ForEach(entry.tasks.prefix(3)) { task in
-                        TaskRowInteractive(task: task)
+                    ForEach(entry.todos.prefix(4), id: \.id ) { todo in
+                        TaskRowInteractive(task: todo)
                     }
                 }
-                Spacer(minLength: 0)
+                Spacer()
             }
         }
         .padding()

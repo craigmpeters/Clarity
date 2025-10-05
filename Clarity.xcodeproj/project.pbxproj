@@ -115,7 +115,7 @@
 				Widget/Intents/ClarityAppIntentsProvider.swift,
 				Widget/Intents/StartPomodoroIntent.swift,
 				Widget/Intents/TaskIntents.swift,
-				Widget/Moels/TimelineEntry.swift,
+				Widget/Models/TimelineEntry.swift,
 			);
 			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
 		};
@@ -136,7 +136,7 @@
 		44D6EAEE2E83181C00B5EF9E /* Exceptions for "Widgets" folder in "ClarityWatch" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Widget/Moels/TimelineEntry.swift,
+				Widget/Models/TimelineEntry.swift,
 			);
 			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
 		};
@@ -145,7 +145,7 @@
 			membershipExceptions = (
 				CategoryEntity.swift,
 				ClarityModelActor.swift,
-				CONTRIBUTING.md,
+				ClarityServices.swift,
 				SharedDataActor.swift,
 			);
 			target = 4448AD602E579266005CDDDF /* Widgets */;
@@ -154,7 +154,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				ClarityModelActor.swift,
-				CONTRIBUTING.md,
+				ClarityServices.swift,
 				SharedDataActor.swift,
 				WatchConnectivity.swift,
 			);

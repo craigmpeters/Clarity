@@ -8,34 +8,12 @@
 import SwiftData
 import Foundation
 
-protocol ClarityRepositoryProtocol {
-    // MARK: Category Functions
-
-    func getCategories() async throws -> [CategoryDTO]
-    func addCategory(_ dto: CategoryDTO) async throws -> CategoryDTO
-    func updateCategory(_ dto: CategoryDTO) async throws -> CategoryDTO
-    func deleteCategory(_ id: PersistentIdentifier) async throws
-    
-    // MARK: Task Functions
-
-    func fetchTasks(filter: ToDoTask.TaskFilter) async throws -> [ToDoTaskDTO]
-    func addTask(_ dto: ToDoTaskDTO) async throws -> ToDoTaskDTO
-    func deleteTask(_ id: PersistentIdentifier) async throws
-    func completeTask(_ id: PersistentIdentifier) async throws
-    func fetchTaskById( _ id: PersistentIdentifier) async throws -> ToDoTaskDTO?
-    func createNextOccurrence(_ id: PersistentIdentifier) async -> ToDoTaskDTO
-    
-    // MARK: Statistical Functions
-
-    func fetchWeeklyProgress(in context: ModelContext) async throws -> WeeklyProgress
-}
-
 @ModelActor
-actor ClarityModelActor : ClarityRepositoryProtocol {
+actor ClarityModelActor {
     
     // MARK: Category Functions
     
-    func addCategory(_ dto: CategoryDTO) async throws  -> CategoryDTO {
+    func addCategory(_ dto: CategoryDTO) throws  -> CategoryDTO {
         let category = Category(
             name: dto.name,
             color: dto.color,
@@ -45,11 +23,11 @@ actor ClarityModelActor : ClarityRepositoryProtocol {
         return CategoryDTO(from: category)
     }
     
-    func updateCategory(_ dto: CategoryDTO) async throws -> CategoryDTO {
+    func updateCategory(_ dto: CategoryDTO) throws -> CategoryDTO {
         guard let id = dto.id else {
             throw NSError(domain: "ClarityActor", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing PersistentIdentifier"])
         }
-        guard let model = try modelContext.model(for: id) as? Category else {
+        guard let model = modelContext.model(for: id) as? Category else {
             throw NSError(domain: "ClarityActor", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to cast to Category"])
         }
         model.name = dto.name
@@ -59,49 +37,34 @@ actor ClarityModelActor : ClarityRepositoryProtocol {
         return CategoryDTO(from: model)
     }
     
-    func deleteCategory(_ id: PersistentIdentifier) async throws {
-        if let model = try modelContext.model(for: id) as? Category {
+    func deleteCategory(_ id: PersistentIdentifier) throws {
+        if let model = modelContext.model(for: id) as? Category {
             modelContext.delete(model)
             try modelContext.save()
         }
     }
     
-    func getCategories() async throws -> [CategoryDTO] {
+    func getCategories() throws -> [CategoryDTO] {
         let descriptor = FetchDescriptor<Category>()
         let categories = try modelContext.fetch(descriptor)
         return categories.map(CategoryDTO.init(from:))
     }
     
     // MARK: Task Functions
-    func fetchTasks(filter: ToDoTask.TaskFilter) async throws -> [ToDoTaskDTO] {
+    func fetchTasks(filter: ToDoTask.TaskFilter) throws -> [ToDoTaskDTO] {
         let descriptor = FetchDescriptor<ToDoTask>(
-            predicate: #Predicate { task in
-                !task.completed
-            }
+            predicate: #Predicate { !$0.completed },
+            sortBy: [SortDescriptor(\.due, order: .forward)]
         )
-        var tasks = try modelContext.fetch(descriptor)
-        // Apply filter
-        let calendar = Calendar.current
+        let tasks = try modelContext.fetch(descriptor)
+
         let now = Date()
-        
-        switch filter {
-        case .today:
-            tasks = tasks.filter { calendar.isDateInToday($0.due) }
-        case .tomorrow:
-            tasks = tasks.filter { calendar.isDateInTomorrow($0.due) }
-        case .thisWeek:
-            let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
-            let endOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.end ?? now
-            tasks = tasks.filter { $0.due >= startOfWeek && $0.due <= endOfWeek }
-        case .overdue:
-            tasks = tasks.filter { $0.due < calendar.startOfDay(for: now) }
-        case .all:
-            break // No additional filtering
-        }
-        return tasks.map(ToDoTaskDTO.init(from:))
+        let filtered = tasks.filter { filter.matches(task: $0, at: now) }
+
+        return filtered.map(ToDoTaskDTO.init(from:))
     }
     
-    func addTask(_ dto: ToDoTaskDTO) async throws -> ToDoTaskDTO {
+    func addTask(_ dto: ToDoTaskDTO) throws -> ToDoTaskDTO {
         // Safely fetch categories using the provided context
         let descriptor = FetchDescriptor<Category>()
         let allCategories = try modelContext.fetch(descriptor)
@@ -127,38 +90,38 @@ actor ClarityModelActor : ClarityRepositoryProtocol {
         return ToDoTaskDTO(from: toDoTask)
     }
     
-    func deleteTask(_ id: PersistentIdentifier) async throws {
-        if let model = try modelContext.model(for: id) as? ToDoTask {
+    func deleteTask(_ id: PersistentIdentifier) throws {
+        if let model = modelContext.model(for: id) as? ToDoTask {
             modelContext.delete(model)
             try modelContext.save()
         }
     }
     
-    func completeTask(_ id: PersistentIdentifier) async throws {
-        guard let model = try modelContext.model(for: id) as? ToDoTask else {
+    func completeTask(_ id: PersistentIdentifier) throws {
+        guard let model =  modelContext.model(for: id) as? ToDoTask else {
             throw NSError(domain: "ClarityActor", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing PersistentIdentifier"])
         }
         model.completed = true
         model.completedAt = Date.now
         if model.repeating == true {
-            let nextTask = await createNextOccurrence(id)
-            _ = try await addTask(nextTask)
+            let nextTask = createNextOccurrence(id)
+            _ = try addTask(nextTask)
         }
         try modelContext.save()
     }
     
-    func fetchTaskById(_ id: PersistentIdentifier) async throws -> ToDoTaskDTO? {
-        if let model = try modelContext.model(for: id) as? ToDoTask {
+    func fetchTaskById(_ id: PersistentIdentifier) throws -> ToDoTaskDTO? {
+        if let model = modelContext.model(for: id) as? ToDoTask {
             return ToDoTaskDTO(from: model)
         }
         return nil
     }
     
-    func createNextOccurrence(_ id: PersistentIdentifier) async -> ToDoTaskDTO {
+    func createNextOccurrence(_ id: PersistentIdentifier) -> ToDoTaskDTO {
         let nextDueDate: Date
         
         // Safely attempt to fetch the task; if unavailable, return a sensible default DTO
-        guard let task = (try? modelContext.model(for: id)) as? ToDoTask else {
+        guard let task = modelContext.model(for: id) as? ToDoTask else {
             return ToDoTaskDTO(
                 name: "",
                 pomodoroTime: 0,
@@ -197,9 +160,9 @@ actor ClarityModelActor : ClarityRepositoryProtocol {
         return newTask
     }
     
-    func fetchWeeklyProgress(in context: ModelContext) async throws -> WeeklyProgress {
+    func fetchWeeklyProgress() throws -> WeeklyProgress {
         let globalDescriptor = FetchDescriptor<GlobalTargetSettings>()
-        let globalSettings = try context.fetch(globalDescriptor).first
+        let globalSettings = try modelContext.fetch(globalDescriptor).first
         let globalTarget = globalSettings?.weeklyGlobalTarget ?? 0
         
         // Get current week start (Monday)
@@ -217,7 +180,7 @@ actor ClarityModelActor : ClarityRepositoryProtocol {
                     $0.completedAt! > weekStart
             }
         )
-        let tasks = try context.fetch(taskDescriptor)
+        let tasks = try modelContext.fetch(taskDescriptor)
         
         let completedCount = tasks.count
 
@@ -273,5 +236,6 @@ enum Containers {
         
         return try ModelContainer(for: schema, configurations: [modelConfiguration])
     }
+    
 }
 

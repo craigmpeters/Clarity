@@ -9,12 +9,12 @@
 import SwiftUI
 
 struct TaskRowInteractive: View {
-    let task: TaskWidgetEntry.TaskInfo
+    let task: ToDoTaskDTO
     
     var body: some View {
         HStack(spacing: 8) {
             // Complete button
-            Button(intent: CompleteTaskIntent(taskId: task.id)) {
+            Button(intent: CompleteTaskIntent(id: task.id!)) {
                 Image(systemName: "circle")
                     .font(.system(size: 14))
                     .foregroundStyle(.secondary)
@@ -40,7 +40,7 @@ struct TaskRowInteractive: View {
             }
             
             // Timer button - Now uses StartPomodoroIntent
-            // ToDo: Fix Pomodoro Widget
+            // TODO: Fix Pomodoro Widget
 //            Button(intent: StartPomodoroIntent(taskId: task.id)) {
 //                Image(systemName: "play.circle.fill")
 //                    .font(.system(size: 18))

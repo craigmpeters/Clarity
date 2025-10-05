@@ -48,49 +48,51 @@ struct ClarityTaskWidgetView: View {
 }
 
 // MARK: - Preview
-#Preview("Small Widget", as: .systemSmall) {
-    ClarityTaskWidget()
-} timeline: {
-    TaskWidgetEntry(
-        date: Date(),
-        filter: .today,
-        taskCount: 3,
-        tasks: [
-            TaskWidgetEntry.TaskInfo(
-                id: "1",
-                name: "Complete project",
-                dueTime: "2:00 PM",
-                categoryColors: ["Blue"],
-                pomodoroMinutes: 25
-            )
-        ],
-        weeklyProgress: nil
-    )
-}
 
-#Preview("Medium Widget", as: .systemMedium) {
-    ClarityTaskWidget()
-} timeline: {
-    TaskWidgetEntry(
-        date: Date(),
-        filter: .today,
-        taskCount: 3,
-        tasks: [
-            TaskWidgetEntry.TaskInfo(
-                id: "1",
-                name: "Complete project",
-                dueTime: "2:00 PM",
-                categoryColors: ["Blue"],
-                pomodoroMinutes: 25
-            ),
-            TaskWidgetEntry.TaskInfo(
-                id: "2",
-                name: "Review code",
-                dueTime: "4:00 PM",
-                categoryColors: ["Green"],
-                pomodoroMinutes: 15
-            )
-        ],
-        weeklyProgress: nil
-    )
-}
+// TODO: Fix Preview
+//#Preview("Small Widget", as: .systemSmall) {
+//    ClarityTaskWidget()
+//} timeline: {
+//    TaskWidgetEntry(
+//        date: Date(),
+//        filter: .today,
+//        taskCount: 3,
+//        tasks: [
+//            TaskWidgetEntry.TaskInfo(
+//                id: "1",
+//                name: "Complete project",
+//                dueTime: "2:00 PM",
+//                categoryColors: ["Blue"],
+//                pomodoroMinutes: 25
+//            )
+//        ],
+//        weeklyProgress: nil
+//    )
+//}
+//
+//#Preview("Medium Widget", as: .systemMedium) {
+//    ClarityTaskWidget()
+//} timeline: {
+//    TaskWidgetEntry(
+//        date: Date(),
+//        filter: .today,
+//        taskCount: 3,
+//        tasks: [
+//            TaskWidgetEntry.TaskInfo(
+//                id: "1",
+//                name: "Complete project",
+//                dueTime: "2:00 PM",
+//                categoryColors: ["Blue"],
+//                pomodoroMinutes: 25
+//            ),
+//            TaskWidgetEntry.TaskInfo(
+//                id: "2",
+//                name: "Review code",
+//                dueTime: "4:00 PM",
+//                categoryColors: ["Green"],
+//                pomodoroMinutes: 15
+//            )
+//        ],
+//        weeklyProgress: nil
+//    )
+//}

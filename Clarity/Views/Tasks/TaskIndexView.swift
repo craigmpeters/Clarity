@@ -13,9 +13,10 @@ struct TaskIndexView: View {
     @State private var taskToEdit: ToDoTask?
     @State private var selectedFilter: ToDoTask.TaskFilter = .all
     @State private var selectedCategory: Category?
+    @State private var store: ClarityModelActor?
     
     @Query private var allCategories: [Category]
-    @Query(filter: #Predicate<ToDoTask> {!$0.completed }, sort: \ToDoTask.due, order: .forward) private var allTasks: [ToDoTask]
+    @Query(filter: #Predicate<ToDoTask> { !$0.completed }, sort: \ToDoTask.due, order: .forward) private var allTasks: [ToDoTask]
     
     private var filteredTasks: [ToDoTask] {
         let filtered = allTasks.filter { task in
@@ -37,34 +38,34 @@ struct TaskIndexView: View {
             TaskRowView(
                 task: task,
                 onEdit: { editTask(task) },
-                onDelete: { deleteTask(task) },
-                onComplete: { completeTask(task) },
+                onDelete: { deleteTask(ToDoTaskDTO(from: task)) },
+                onComplete: { completeTask(ToDoTaskDTO(from: task)) },
                 onStartTimer: { startTimer(for: task) }
             )
         }
         .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        FilterMenuView(
-                            selectedFilter: $selectedFilter,
-                            selectedCategory: $selectedCategory,
-                            allCategories: allCategories,
+            ToolbarItem(placement: .navigationBarLeading) {
+                FilterMenuView(
+                    selectedFilter: $selectedFilter,
+                    selectedCategory: $selectedCategory,
+                    allCategories: allCategories,
 //                            onFilterChange: { filter in
 //                                    toDoStore.loadFilteredTasks(filter)
 //                            }
-                        )
-                    }
+                )
+            }
                     
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: { showingTaskForm = true }) {
-                            Image(systemName: "plus")
-                                .foregroundStyle(.blue)
-                        }
-                    }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: { showingTaskForm = true }) {
+                    Image(systemName: "plus")
+                        .foregroundStyle(.blue)
                 }
+            }
+        }
         .task {
             await requestNotificationPermission()
         }
-        //.refreshable(action: toDoStore.loadToDoTasks())
+        // .refreshable(action: toDoStore.loadToDoTasks())
         .sheet(isPresented: $showingTaskForm, onDismiss: {
             taskToEdit = nil
         }) {
@@ -82,18 +83,17 @@ struct TaskIndexView: View {
         showingTaskForm = true
     }
     
-    private func deleteTask(_ task: ToDoTask) {
+    private func deleteTask(_ task: ToDoTaskDTO) {
+        print("Deleting: (\(task.name))")
         Task {
-            print("Deleting: (\(task.name ?? ""))")
-            await MainDataActor.shared.deleteTask(task)
-
+            try? await store?.deleteTask(task.id!)
         }
     }
     
-    private func completeTask(_ task: ToDoTask) {
-        print("Attempting to complete task \(task.name ?? "")")
+    private func completeTask(_ task: ToDoTaskDTO) {
+        print("Attempting to complete task \(task.name)")
         Task {
-            await StaticDataStore.shared.completeTask(task)
+            try? await store?.completeTask(task.id!)
         }
     }
     
@@ -112,6 +112,7 @@ struct TaskIndexView: View {
         }
     }
 }
+
 #if DEBUG
 #Preview {
     @Previewable @State var showingPomodoro = false
@@ -119,8 +120,7 @@ struct TaskIndexView: View {
     TaskIndexView(
         selectedTask: .constant(selectedTask),
         showingPomodoro: .constant(showingPomodoro)
-        )
-        .modelContainer(PreviewData.shared.previewContainer)
+    )
+    .modelContainer(PreviewData.shared.previewContainer)
 }
 #endif
-

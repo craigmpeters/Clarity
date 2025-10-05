@@ -18,33 +18,33 @@ import SwiftData
 import OSLog
 
 struct CompleteTaskIntent: AppIntent {
-    private let log = Logger(subsystem: "me.craigpeters.clarity", category: "Widget")
     static var title: LocalizedStringResource = "Complete Task"
     static var description = IntentDescription("Mark a task as completed")
     static var openAppWhenRun: Bool = false
+    private enum CompleteTaskIntentError: Error {
+        case invalidID
+    }
     
-    @Parameter(title: "Task ID")
-    var taskId: String
+    @Parameter(title: "Task ID") var idToken: String
     
     // Initialize with taskId for widget usage
-    init(taskId: String) {
-        self.taskId = taskId
+    init(id: PersistentIdentifier) {
+        let data = try! JSONEncoder().encode(id)
+        self.idToken = data.base64EncodedString()
     }
     
     // Default initializer required by AppIntent
-    init() {
-        self.taskId = ""
-    }
+    init() {}
     
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        log.debug("Widget: Attempting to complete task with ID: \(taskId)")
-        
-        // Use the WidgetDataActor to complete the task
-        guard let task = try await StaticDataStore.shared.fetchTaskById(taskId) else {
-            return .result(dialog: "Task not found")
+        guard let data = Data(base64Encoded: idToken) else {
+            throw CompleteTaskIntentError.invalidID
         }
-        await StaticDataStore.shared.completeTask(task)
+        let id = try JSONDecoder().decode(PersistentIdentifier.self, from: data)
+        let store = try await ClarityServices.store()
+        try await store.completeTask(id)
         
         return .result(dialog: "Task completed")
     }
 }
+

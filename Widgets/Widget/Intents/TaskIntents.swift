@@ -7,7 +7,7 @@
 
 import Foundation
 import AppIntents
-import OSLog
+
 
 // MARK: - AppIntents Entity for Category
 
@@ -16,43 +16,49 @@ struct CategoryEntity: AppEntity, Identifiable, Sendable {
     static var defaultQuery = CategoryQuery()
 
     // Use String identifiers to align with repository expectations
-    var id: String
+    var id: String { name }
     var name: String
 
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: LocalizedStringResource(stringLiteral: name))
+        DisplayRepresentation(title: "\(name)")
     }
+    
+    static var query = CategoryQuery()
 }
 
 struct CategoryQuery: EntityQuery, Sendable {
-    func entities(for identifiers: [CategoryEntity.ID]) async throws -> [CategoryEntity] {
-        let categories = try await StaticDataStore.shared.getCategories()
-        let mapped = categories.compactMap { cat -> CategoryEntity? in
-            let identifier = String(describing: cat.id)
-            guard let name = cat.name else { return nil }
-            return CategoryEntity(id: identifier, name: name)
-        }
-        let idSet = Set(identifiers)
-        return mapped.filter { idSet.contains($0.id) }
+    func entities(for identifiers: [String]) async throws -> [CategoryEntity] {
+        try await allEntities().filter( { identifiers.contains($0.id)})
+    }
+    
+    func suggestedEntities() async throws -> [CategoryEntity] {
+        try await allEntities()
     }
 
-    func suggestedEntities() async throws -> [CategoryEntity] {
-        let categories = try await StaticDataStore.shared.getCategories()
-        return categories.compactMap { cat in
-            let identifier = String(describing: cat.id)
-            guard let name = cat.name else { return nil }
-            return CategoryEntity(id: identifier, name: name)
-        }
+    func allEntities() async throws -> [CategoryEntity] {
+        // Read from the shared store (App Group) without @Query
+        let categories = ClarityServices.snapshotCategories()
+        return categories
+            .map { $0.name }
+            .compactMap { $0 }
+            .unique()
+            .map(CategoryEntity.init(name:))
+    }
+}
+
+private extension Sequence where Element: Hashable {
+    func unique() -> [Element] {
+        var set = Set<Element>()
+        return self.filter { set.insert($0).inserted }
     }
 }
 
 struct CreateTaskIntent: AppIntent {
-    private let log = Logger(subsystem: "me.craigpeters.clarity", category: "Widget")
     static var title: LocalizedStringResource = "Create Task"
     static var description = IntentDescription("Create a new task in Clarity")
     static var openAppWhenRun: Bool = false
     
-    @Parameter(title: "Task Name")
+    @Parameter(title: "Task Name", requestValueDialog: "What’s the task name?")
     var taskName: String
     
     @Parameter(title: "Duration (Minutes)", default: 5)
@@ -65,14 +71,16 @@ struct CreateTaskIntent: AppIntent {
     var categories: [CategoryEntity]
     
     func perform() async throws -> some IntentResult {
-        log.debug("Received categoryIds: \(String(describing: categories))")
-        
-        await StaticDataStore.shared.addTask(
+        let dto = ToDoTaskDTO(
             name: taskName,
-            duration: TimeInterval(duration * 60),
+            pomodoroTime: TimeInterval(duration * 60),
             repeating: isRepeating,
-            categoryIds: categories.map { $0.id }
+            categories: categories.map(\.name)
         )
+        let store = try await ClarityServices.store()
+        _ = try await store.addTask(dto)
+        
+        ClarityServices.reloadWidgets(kind: "ClarityWidget")
         
         return .result()
     }

@@ -7,6 +7,7 @@
 
 import WidgetKit
 import AppIntents
+import SwiftUI
 
 struct TaskWidgetIntent: WidgetConfigurationIntent {
     static var title: LocalizedStringResource = "Task Filter"
@@ -39,6 +40,14 @@ enum TaskFilterOption: String, AppEnum, CaseIterable {
         .thisWeek: DisplayRepresentation(title: "This Week"),
         .overdue: DisplayRepresentation(title: "Overdue"),
         .all: DisplayRepresentation(title: "All Tasks")
+    ]
+    
+    static var filterColor: [TaskFilterOption: Color] = [
+        .today: .green,
+        .tomorrow: .blue,
+        .thisWeek: .blue,
+        .overdue: .red,
+        .all: .gray
     ]
     
     // FIXME: Is this needed?

@@ -16,9 +16,9 @@ struct SmallTaskWidgetView: View {
         Link(destination: widgetURL) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Image(systemName: entry.filter.systemImage)
+                    Image(systemName: "checkmark")
                         .font(.title3)
-                        .foregroundStyle(entry.filter.color)
+                        .foregroundStyle(TaskFilterOption.filterColor[entry.filter] ?? .primary)
                     
                     Spacer()
                     
@@ -37,7 +37,7 @@ struct SmallTaskWidgetView: View {
                 Spacer()
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("\(entry.taskCount)")
+                    Text("\(entry.todos.count)")
                         .font(.system(size: 42, weight: .bold, design: .rounded))
                         .foregroundStyle(.primary)
                     

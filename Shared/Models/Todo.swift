@@ -8,6 +8,7 @@
 import Foundation
 import SwiftData
 import Observation
+import SwiftUI
 
 @Model
 class ToDoTask {
@@ -120,9 +121,9 @@ struct ToDoTaskDTO: Sendable, Codable, Hashable {
     var completedAt: Date?
     var recurrenceInterval: ToDoTask.RecurrenceInterval?
     var customRecurrenceDays: Int
-    var categories: [String]
+    var categories: [CategoryDTO]
     
-    init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date.distantFuture, categories: [String] = []) {
+    init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date.distantFuture, categories: [CategoryDTO] = []) {
         self.name = name ?? ""
         self.created = Date.now
         self.due = due
@@ -133,6 +134,19 @@ struct ToDoTaskDTO: Sendable, Codable, Hashable {
         self.completed = false
         self.recurrenceInterval = recurrenceInterval
         self.customRecurrenceDays = customRecurrenceDays
+    }
+    
+    var encodedId: String? {
+        guard let id else { return nil }
+        guard let data = try? JSONEncoder().encode(id) else { return nil }
+        return data.base64EncodedString()
+    }
+    
+    func decodeId(_ encodedId: String) throws -> PersistentIdentifier? {
+        guard let data = Data(base64Encoded: encodedId) else {
+            throw NSError(domain: "ToDo", code: 0, userInfo: nil)
+        }
+        return try JSONDecoder().decode(PersistentIdentifier.self, from: data)
     }
 }
 
@@ -147,7 +161,49 @@ extension ToDoTaskDTO {
             recurrenceInterval: model.recurrenceInterval,
             customRecurrenceDays: model.customRecurrenceDays,
             due: model.due,
-            categories: (model.categories ?? []).compactMap { $0.name }
+            categories: (model.categories ?? []).map(CategoryDTO.init(from:))
         )
     }
 }
+
+extension ToDoTask.TaskFilter {
+    func matches(task: ToDoTask, at now: Date, calendar: Calendar = .current) -> Bool {
+        switch self {
+        case .all:
+            return true
+        case .overdue:
+            return task.due < calendar.startOfDay(for: now)
+        case .today:
+            return calendar.isDate(task.due, inSameDayAs: now)
+        case .tomorrow:
+            guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) else { return false }
+            return calendar.isDate(task.due, inSameDayAs: tomorrow)
+        case .thisWeek:
+            guard let di = calendar.dateInterval(of: .weekOfYear, for: now) else { return false }
+            return (di.start ... di.end).contains(task.due)
+        }
+    }
+}
+
+extension ToDoTask.TaskFilter {
+    var systemImage: String {
+        switch self {
+        case .all: return "tray.full"
+        case .today: return "calendar.circle"
+        case .tomorrow: return "calendar.badge.plus"
+        case .thisWeek: return "calendar"
+        case .overdue: return "exclamationmark.triangle"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .all: return .gray
+        case .today: return .blue
+        case .tomorrow: return .green
+        case .thisWeek: return .purple
+        case .overdue: return .red
+        }
+    }
+}
+

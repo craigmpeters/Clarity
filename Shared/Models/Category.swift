@@ -75,6 +75,19 @@ struct CategoryDTO: Sendable, Codable, Hashable {
         self.weeklyTarget = weeklyTarget
         
     }
+    
+    var encodedId: String? {
+        guard let id else { return nil }
+        guard let data = try? JSONEncoder().encode(id) else { return nil }
+        return data.base64EncodedString()
+    }
+    
+    func decodeId(_ encodedId: String) throws -> PersistentIdentifier? {
+        guard let data = Data(base64Encoded: encodedId) else {
+            throw NSError(domain: "ToDo", code: 0, userInfo: nil)
+        }
+        return try JSONDecoder().decode(PersistentIdentifier.self, from: data)
+    }
 }
 
 extension CategoryDTO {
