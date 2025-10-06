@@ -71,16 +71,21 @@ struct CreateTaskIntent: AppIntent {
     var categories: [CategoryEntity]
     
     func perform() async throws -> some IntentResult {
+        let availableCategories = ClarityServices.snapshotCategories()
+        let selectedCategoryDTOs: [CategoryDTO] = categories.compactMap { entity in
+            availableCategories.first(where: { $0.name == entity.name })
+        }
+
         let dto = ToDoTaskDTO(
             name: taskName,
             pomodoroTime: TimeInterval(duration * 60),
             repeating: isRepeating,
-            categories: categories.map(\.name)
+            categories: selectedCategoryDTOs
         )
         let store = try await ClarityServices.store()
         _ = try await store.addTask(dto)
         
-        ClarityServices.reloadWidgets(kind: "ClarityWidget")
+        ClarityServices.reloadWidgets(kind: "ClarityTaskWidget")
         
         return .result()
     }

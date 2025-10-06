@@ -7,6 +7,18 @@
   },
   "groups" : [
     {
+      "blur-material-specializations" : [
+        {
+          "appearance" : "dark",
+          "value" : null
+        }
+      ],
+      "hidden-specializations" : [
+        {
+          "idiom" : "square",
+          "value" : false
+        }
+      ],
       "layers" : [
         {
           "image-name" : "Clarity Yellow.svg",
@@ -59,14 +71,37 @@
           ]
         }
       ],
+      "lighting-specializations" : [
+        {
+          "appearance" : "dark",
+          "value" : "combined"
+        }
+      ],
       "shadow" : {
         "kind" : "neutral",
         "opacity" : 0.5
       },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
-      }
+      "specular-specializations" : [
+        {
+          "appearance" : "dark",
+          "value" : false
+        }
+      ],
+      "translucency-specializations" : [
+        {
+          "value" : {
+            "enabled" : true,
+            "value" : 0.5
+          }
+        },
+        {
+          "appearance" : "dark",
+          "value" : {
+            "enabled" : false,
+            "value" : 0.5
+          }
+        }
+      ]
     }
   ],
   "supported-platforms" : {

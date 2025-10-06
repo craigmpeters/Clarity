@@ -10,7 +10,7 @@ struct PomodoroView: View {
         coordinator.pomodoro
     }
     
-    init(task: ToDoTask, showingPomodoro: Binding<Bool>) {
+    init(task: ToDoTaskDTO, showingPomodoro: Binding<Bool>) {
         let pomodoro = Pomodoro()
         self._coordinator = StateObject(wrappedValue: PomodoroCoordinator(pomodoro: pomodoro, task: task))
         self._showingPomodoro = showingPomodoro
@@ -178,8 +178,8 @@ struct PomodoroView: View {
 
 #if DEBUG
 #Preview {
-    return PomodoroView(
-        task: PreviewData.shared.getToDoTask(),
+    PomodoroView(
+        task: PreviewData.shared.getToDoTaskDTO(),
         showingPomodoro: .constant(true)
     )
     .modelContainer(PreviewData.shared.previewContainer)

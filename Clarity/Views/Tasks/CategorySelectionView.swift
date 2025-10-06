@@ -2,7 +2,7 @@ import SwiftData
 import SwiftUI
 
 struct CategorySelectionView: View {
-    @Binding var selectedCategories: [Category]
+    @Binding var selectedCategories: [CategoryDTO]
     @Query private var allCategories: [Category]
     @State private var showingAddCategory = false
     
@@ -22,7 +22,7 @@ struct CategorySelectionView: View {
         }
         .sheet(isPresented: $showingAddCategory) {
             AddCategoryView(onCategoryCreated: { newCategory in
-                    selectedCategories.append(newCategory)
+                    selectedCategories.append(CategoryDTO(from: newCategory))
                 })
         }
         if !allCategories.isEmpty {
@@ -33,7 +33,7 @@ struct CategorySelectionView: View {
                             category: category,
                             isSelected: selectedCategories.contains { $0.id == category.id }
                         ) {
-                            toggleCategory(category)
+                            toggleCategory(CategoryDTO(from: category))
                         }
                     }
                 }
@@ -42,7 +42,7 @@ struct CategorySelectionView: View {
         }
     }
 
-    private func toggleCategory(_ category: Category) {
+    private func toggleCategory(_ category: CategoryDTO) {
         if let index = selectedCategories.firstIndex(where: { $0.id == category.id }) {
             selectedCategories.remove(at: index)
         } else {
@@ -202,7 +202,7 @@ struct AddCategoryView: View {
 #if DEBUG
 
 private struct CategorySelectionView_PreviewWrapper: View {
-    @State private var selectedCategories: [Category] = []
+    @State private var selectedCategories: [CategoryDTO] = []
     var body: some View {
         CategorySelectionView(selectedCategories: $selectedCategories)
             .padding()

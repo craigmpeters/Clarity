@@ -6,11 +6,11 @@ import UserNotifications
 struct TaskIndexView: View {
     @Environment(\.modelContext) private var context
     
-    @Binding var selectedTask: ToDoTask?
+    @Binding var selectedTask: ToDoTaskDTO?
     @Binding var showingPomodoro: Bool
     
     @State private var showingTaskForm = false
-    @State private var taskToEdit: ToDoTask?
+    @State private var taskToEdit: ToDoTaskDTO?
     @State private var selectedFilter: ToDoTask.TaskFilter = .all
     @State private var selectedCategory: Category?
     @State private var store: ClarityModelActor?
@@ -40,7 +40,7 @@ struct TaskIndexView: View {
                 onEdit: { editTask(task) },
                 onDelete: { deleteTask(ToDoTaskDTO(from: task)) },
                 onComplete: { completeTask(ToDoTaskDTO(from: task)) },
-                onStartTimer: { startTimer(for: task) }
+                onStartTimer: { startTimer(for: ToDoTaskDTO(from: task)) }
             )
         }
         .toolbar {
@@ -79,7 +79,7 @@ struct TaskIndexView: View {
     
     private func editTask(_ task: ToDoTask) {
         print("Editing \(task.name)")
-        taskToEdit = task
+        taskToEdit = ToDoTaskDTO(from: task)
         showingTaskForm = true
     }
     
@@ -97,7 +97,7 @@ struct TaskIndexView: View {
         }
     }
     
-    private func startTimer(for task: ToDoTask) {
+    private func startTimer(for task: ToDoTaskDTO) {
         selectedTask = task
         withAnimation(.easeInOut(duration: 0.3)) {
             showingPomodoro = true
@@ -116,7 +116,7 @@ struct TaskIndexView: View {
 #if DEBUG
 #Preview {
     @Previewable @State var showingPomodoro = false
-    @Previewable @State var selectedTask: ToDoTask? = nil
+    @Previewable @State var selectedTask: ToDoTaskDTO? = nil
     TaskIndexView(
         selectedTask: .constant(selectedTask),
         showingPomodoro: .constant(showingPomodoro)

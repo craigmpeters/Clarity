@@ -53,6 +53,10 @@ final class PreviewData {
         return getToDoTasks().first!
     }
     
+    func getToDoTaskDTO() -> ToDoTaskDTO {
+        return ToDoTaskDTO(from: getToDoTasks().first!)
+    }
+    
     // MARK: Functions to insert Preview Data
     
     private func insertPreviewCategories(){

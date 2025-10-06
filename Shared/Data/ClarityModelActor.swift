@@ -70,7 +70,7 @@ actor ClarityModelActor {
         let allCategories = try modelContext.fetch(descriptor)
         // Filter to only the selected categories
         let categories = allCategories.filter { category in
-            dto.categories.contains(category.name!)
+            dto.categories.contains(where: { $0.name == category.name })
         }
         
         let toDoTask = ToDoTask(
@@ -155,7 +155,7 @@ actor ClarityModelActor {
             recurrenceInterval: task.recurrenceInterval,
             customRecurrenceDays: task.customRecurrenceDays,
             due: nextDueDate,
-            categories: (task.categories ?? []).compactMap { $0.name }
+            categories: (task.categories ?? []).map(CategoryDTO.init(from:))
         )
         return newTask
     }
@@ -238,4 +238,23 @@ enum Containers {
     }
     
 }
+actor StoreRegistry {
+    static let shared = StoreRegistry()
+    private var stores: [ObjectIdentifier: ClarityModelActor] = [:]
 
+    func store(for container: ModelContainer) async -> ClarityModelActor {
+        let key = ObjectIdentifier(container)
+        if let existing = stores[key] { return existing }
+        let store = await ClarityModelActorFactory.makeBackground(container: container)
+        stores[key] = store
+        return store
+    }
+}
+
+enum AppServices {
+    static let container: ModelContainer = try! Containers.live()
+
+    static func store() async -> ClarityModelActor {
+        await StoreRegistry.shared.store(for: container)
+    }
+}

@@ -28,13 +28,13 @@ struct TaskRowInteractive: View {
             Spacer()
             
             HStack(spacing: 4) {
-                if !task.categoryColors.isEmpty {
+                if !task.categories.isEmpty {
                     Circle()
-                        .fill(WidgetColorUtility.colorFromString(task.categoryColors.first!))
+                        .fill(task.categories.first?.color.SwiftUIColor ?? Color.primary)
                         .frame(width: 6, height: 6)
                 }
                 
-                Text("\(task.pomodoroMinutes)m")
+                Text("\(task.pomodoroTime/60)m")
                     .font(.caption2)
                     .foregroundStyle(.orange)
             }

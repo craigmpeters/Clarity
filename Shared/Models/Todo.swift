@@ -109,7 +109,7 @@ class ToDoTask {
     }
 }
 
-struct ToDoTaskDTO: Sendable, Codable, Hashable {
+public struct ToDoTaskDTO: Sendable, Codable, Hashable {
     var id: PersistentIdentifier?
     var name: String
     var created: Date
@@ -142,7 +142,7 @@ struct ToDoTaskDTO: Sendable, Codable, Hashable {
         return data.base64EncodedString()
     }
     
-    func decodeId(_ encodedId: String) throws -> PersistentIdentifier? {
+    public static func decodeId(_ encodedId: String) throws -> PersistentIdentifier? {
         guard let data = Data(base64Encoded: encodedId) else {
             throw NSError(domain: "ToDo", code: 0, userInfo: nil)
         }
@@ -206,4 +206,3 @@ extension ToDoTask.TaskFilter {
         }
     }
 }
-

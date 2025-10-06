@@ -16,7 +16,8 @@ struct TaskSplitterSheet: View {
     @Environment(\.dismiss) private var dismiss
     
     @State private var applyCategoriesToAll = false
-    @State private var globalCategories: [Category] = []
+    @State private var globalCategories: [CategoryDTO] = []
+    @State private var store: ClarityModelActor?
     
     var body: some View {
         NavigationView {
@@ -142,6 +143,9 @@ struct TaskSplitterSheet: View {
             }
         }
         .task {
+            if store == nil {
+                store = await AppServices.store()
+            }
             await splitter.splitTask(taskName)
             suggestions = splitter.suggestions
         }
@@ -157,12 +161,13 @@ struct TaskSplitterSheet: View {
                 to: Date()
             ) ?? Date()
                 
-            let task = ToDoTask(
+            let task = ToDoTaskDTO(
                 name: suggestion.name,
                 pomodoroTime: TimeInterval(suggestion.estimatedMinutes * 60),
                 due: dueDate,
                 categories: applyCategoriesToAll ? globalCategories : suggestion.selectedCategories
             )
+            store.addTask(task)
             MainDataActor.shared.addTask(task)
         }
             

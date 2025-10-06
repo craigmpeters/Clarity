@@ -18,7 +18,7 @@ struct ClarityTaskWidget: Widget {
         AppIntentConfiguration(
             kind: kind,
             intent: TaskWidgetIntent.self,
-            provider: TaskWidgetProvider()
+            provider: ClarityWidgetProvider()
         ) { entry in
             ClarityTaskWidgetView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)

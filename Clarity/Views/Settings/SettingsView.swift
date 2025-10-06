@@ -55,21 +55,21 @@ struct SettingsView: View {
             #endif
             
             #if DEBUG
-            Section("Connectivity Debug") {
-                Button("Request Tasks From Phone") {
-                    #if os(iOS)
-                    // No-op on iOS; tasks are stored locally
-                    print("iOS: Tasks are local; nothing to request.")
-                    #else
-                    ClarityWatchConnectivity.shared.requestTasksFromPhone()
-                    #endif
-                }
-                Button("Print Last Received Tasks") {
-                    let tasks = ClarityWatchConnectivity.shared.lastReceivedTasks
-                    print("Connectivity Debug: Received \(tasks.count) tasks")
-                    for t in tasks { print("- id: \(t.id), name: \(t.name), due: \(t.due))") }
-                }
-            }
+//            Section("Connectivity Debug") {
+//                Button("Request Tasks From Phone") {
+//                    #if os(iOS)
+//                    // No-op on iOS; tasks are stored locally
+//                    print("iOS: Tasks are local; nothing to request.")
+//                    #else
+//                    ClarityWatchConnectivity.shared.requestTasksFromPhone()
+//                    #endif
+//                }
+//                Button("Print Last Received Tasks") {
+//                    let tasks = ClarityWatchConnectivity.shared.lastReceivedTasks
+//                    print("Connectivity Debug: Received \(tasks.count) tasks")
+//                    for t in tasks { print("- id: \(t.id), name: \(t.name), due: \(t.due))") }
+//                }
+//            }
             #endif
         }
         .sheet(isPresented: $showingCategoryManagement) {

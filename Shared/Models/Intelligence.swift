@@ -13,7 +13,7 @@ struct SplitTaskSuggestion: Identifiable {
     var name: String
     var estimatedMinutes: Int
     var isSelected: Bool = true
-    var selectedCategories: [Category] = []
+    var selectedCategories: [CategoryDTO] = []
 }
 
 // MARK: - AI Task Splitter Service

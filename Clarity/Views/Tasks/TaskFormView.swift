@@ -15,29 +15,31 @@ struct TaskFormView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     
-    let editingTask: ToDoTask?
-    @State private var toDoTask: ToDoTask
-    @State private var selectedCategories: [Category] = []
+    let editingTask: ToDoTaskDTO?
+    @State private var toDoTask: ToDoTaskDTO
+    @State private var selectedCategories: [CategoryDTO] = []
     @State private var selectedRecurrence: ToDoTask.RecurrenceInterval = .daily
     @State private var customDays: Int = 1
     @State private var dueDate: Date = Date()
     @State private var showingDatePicker = false
     
+    @State private var store: ClarityModelActor?
+    
     private var isEditing: Bool {
         editingTask != nil
     }
     
-    init(task: ToDoTask? = nil) {
+    init(task: ToDoTaskDTO? = nil) {
         self.editingTask = task
         
         if let task = task {
             self._toDoTask = State(initialValue: task)
-            self._selectedCategories = State(initialValue: task.categories ?? [])
+            self._selectedCategories = State(initialValue: task.categories)
             self._selectedRecurrence = State(initialValue: task.recurrenceInterval ?? .daily)
             self._customDays = State(initialValue: task.customRecurrenceDays)
             self._dueDate = State(initialValue: task.due)
         } else {
-            self._toDoTask = State(initialValue: ToDoTask(name: ""))
+            self._toDoTask = State(initialValue: ToDoTaskDTO(name: ""))
             self._selectedCategories = State(initialValue: [])
             self._selectedRecurrence = State(initialValue: .daily)
             self._customDays = State(initialValue: 1)
@@ -50,7 +52,7 @@ struct TaskFormView: View {
             toDoTask.categories = selectedCategories
             toDoTask.due = dueDate
             // Set recurrence properties
-            if toDoTask.repeating ?? false {
+            if toDoTask.repeating {
                 toDoTask.recurrenceInterval = selectedRecurrence
                 toDoTask.customRecurrenceDays = customDays
             } else {
@@ -58,7 +60,10 @@ struct TaskFormView: View {
             }
             
             if !isEditing {
-                MainDataActor.shared.addTask(toDoTask)
+                Task {
+                    try? await store?.addTask(toDoTask)
+                }
+                
             }
         }
         dismiss()
@@ -68,10 +73,7 @@ struct TaskFormView: View {
         NavigationView {
             Form {
                 Section("Task Details") {
-                    TextField("Task name", text: Binding<String>(
-                        get: { toDoTask.name ?? ""},
-                        set: { toDoTask.name = $0.isEmpty ? nil : $0}
-                    ))
+                    TextField("Task name", text: $toDoTask.name)
                         .textFieldStyle(.roundedBorder)
                 }
                 if #available(iOS 26.0, *) {
@@ -213,15 +215,20 @@ struct TaskFormView: View {
                     Button(isEditing ? "Save" : "Add") {
                         saveTask()
                     }
-                    .disabled(toDoTask.name?.isEmpty ?? true)
+                    .disabled(toDoTask.name.isEmpty)
                     .fontWeight(.semibold)
+                }
+            }
+            .task {
+                if store == nil {
+                    store = await AppServices.store()
                 }
             }
         }
     }
     
     private func getNextOccurrenceDate() -> Date? {
-        guard toDoTask.repeating ?? false else { return nil }
+        guard toDoTask.repeating else { return nil }
         
         if selectedRecurrence == .custom {
             return Calendar.current.date(byAdding: .day, value: customDays, to: dueDate)
@@ -301,12 +308,9 @@ extension TaskFormView {
                         Spacer()
                         
                         TaskSplitterView(
-                            taskName: Binding<String> (
-                                get: { toDoTask.name ?? ""},
-                                set: { toDoTask.name = $0.isEmpty ? nil : $0}
-                            )
+                            taskName: $toDoTask.name
                         )
-                        .disabled(toDoTask.name?.isEmpty ?? true)
+                        .disabled(toDoTask.name.isEmpty)
                     }
                 } footer: {
                     Text("Requires iOS 26 or later • Powered by Apple Intelligence")
@@ -326,10 +330,10 @@ extension TaskFormView {
 
 #if DEBUG
 #Preview("New Task") {
-    TaskFormView()
+ //   TaskFormView()
 }
 
 #Preview("Edit Task") {
-    TaskFormView(task: PreviewData.shared.getToDoTask())
+ //   TaskFormView(task: PreviewData.shared.getToDoTask())
 }
 #endif
