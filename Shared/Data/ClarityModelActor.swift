@@ -64,6 +64,37 @@ actor ClarityModelActor {
         return filtered.map(ToDoTaskDTO.init(from:))
     }
     
+    func updateTask(_ task: ToDoTaskDTO) throws -> ToDoTaskDTO {
+        guard let id = task.id else {
+            throw NSError(domain: "ClarityActor", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing PersistentIdentifier"])
+        }
+        guard let model = modelContext.model(for: id) as? ToDoTask else {
+            throw NSError(domain: "ClarityActor", code: 2, userInfo: [NSLocalizedDescriptionKey: "Task not found"])
+        }
+        model.due = task.due
+        model.name = task.name
+
+        // Map CategoryDTOs to persisted Category models
+        // Prefer matching by persistent identifier when available; fall back to name match
+        let allCategories = try modelContext.fetch(FetchDescriptor<Category>())
+        let mappedCategories: [Category] = task.categories.compactMap { dto in
+            if let catId = dto.id, let existing = modelContext.model(for: catId) as? Category {
+                return existing
+            }
+            // Fallback: match by name
+            return allCategories.first(where: { $0.name == dto.name })
+        }
+        model.categories = mappedCategories
+        model.pomodoroTime = task.pomodoroTime
+        model.customRecurrenceDays = task.customRecurrenceDays
+        model.recurrenceInterval = task.recurrenceInterval
+        model.repeating = task.repeating
+        model.pomodoro = task.pomodoro
+
+        try modelContext.save()
+        return ToDoTaskDTO(from: model)
+    }
+    
     func addTask(_ dto: ToDoTaskDTO) throws -> ToDoTaskDTO {
         // Safely fetch categories using the provided context
         let descriptor = FetchDescriptor<Category>()
@@ -258,3 +289,4 @@ enum AppServices {
         await StoreRegistry.shared.store(for: container)
     }
 }
+

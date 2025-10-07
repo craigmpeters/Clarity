@@ -34,7 +34,7 @@ struct TaskIndexView: View {
     }
 
     var body: some View {
-        List(filteredTasks, id: \.id) { task in
+        List(filteredTasks) { task in
             TaskRowView(
                 task: task,
                 onEdit: { editTask(task) },
@@ -64,6 +64,7 @@ struct TaskIndexView: View {
         }
         .task {
             await requestNotificationPermission()
+            store = await StoreRegistry.shared.store(for: context.container)
         }
         // .refreshable(action: toDoStore.loadToDoTasks())
         .sheet(isPresented: $showingTaskForm, onDismiss: {
@@ -91,10 +92,14 @@ struct TaskIndexView: View {
     }
     
     private func completeTask(_ task: ToDoTaskDTO) {
+        print("Attempting to complete task for ID: \(task.id.debugDescription)")
+        guard let store = store else { return }
+        guard let id = task.id else { return }
         print("Attempting to complete task \(task.name)")
         Task {
-            try? await store?.completeTask(task.id!)
+            try? await store.completeTask(id)
         }
+        
     }
     
     private func startTimer(for task: ToDoTaskDTO) {

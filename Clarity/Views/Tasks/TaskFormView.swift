@@ -64,6 +64,10 @@ struct TaskFormView: View {
                     try? await store?.addTask(toDoTask)
                 }
                 
+            } else {
+                Task {
+                    try? await store?.updateTask(toDoTask)
+                }
             }
         }
         dismiss()
@@ -220,9 +224,7 @@ struct TaskFormView: View {
                 }
             }
             .task {
-                if store == nil {
-                    store = await AppServices.store()
-                }
+                store = await StoreRegistry.shared.store(for: context.container)
             }
         }
     }

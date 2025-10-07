@@ -44,12 +44,12 @@ struct TaskSplitterSheet: View {
                         if applyCategoriesToAll {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
-                                    ForEach(allCategories) { category in
+                                    ForEach(allCategories) {  category in
                                         CategoryChip(
                                             category: category,
                                             isSelected: globalCategories.contains { $0.id == category.id }
                                         ) {
-                                            toggleGlobalCategory(category)
+                                            toggleGlobalCategory(CategoryDTO(from: category))
                                         }
                                     }
                                 }
@@ -120,7 +120,10 @@ struct TaskSplitterSheet: View {
                     }
                     
                     Button("Create Tasks") {
-                        createSelectedTasks()
+                        Task {
+                            await createSelectedTasks()
+                        }
+                        
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(suggestions.filter(\.isSelected).isEmpty)
@@ -151,7 +154,7 @@ struct TaskSplitterSheet: View {
         }
     }
     
-    private func createSelectedTasks() {
+    private func createSelectedTasks() async {
         let selected = suggestions.filter(\.isSelected)
             
         for (index, suggestion) in selected.enumerated() {
@@ -167,14 +170,13 @@ struct TaskSplitterSheet: View {
                 due: dueDate,
                 categories: applyCategoriesToAll ? globalCategories : suggestion.selectedCategories
             )
-            store.addTask(task)
-            MainDataActor.shared.addTask(task)
+            _ = try? await store?.addTask(task)
         }
-            
-        dismiss()
+        
+        await MainActor.run { dismiss() }
     }
 
-    private func toggleGlobalCategory(_ category: Category) {
+    private func toggleGlobalCategory(_ category: CategoryDTO) {
         if let index = globalCategories.firstIndex(where: { $0.id == category.id }) {
             globalCategories.remove(at: index)
         } else {
@@ -187,3 +189,4 @@ struct TaskSplitterSheet: View {
         }
     }
 }
+

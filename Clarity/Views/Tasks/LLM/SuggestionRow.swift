@@ -6,7 +6,7 @@ struct SuggestionRow: View {
     @Binding var suggestion: SplitTaskSuggestion
     let allCategories: [Category]
     let applyGlobalCategories: Bool
-    let globalCategories: [Category]
+    let globalCategories: [CategoryDTO]
     @State private var showingCategoryPicker = false
     
     var body: some View {
@@ -74,17 +74,17 @@ struct SuggestionRow: View {
                     if !suggestion.selectedCategories.isEmpty || applyGlobalCategories {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 6) {
-                                ForEach(applyGlobalCategories ? globalCategories : suggestion.selectedCategories) { category in
+                                ForEach(applyGlobalCategories ? globalCategories : suggestion.selectedCategories, id: \.id) { category in
                                     HStack(spacing: 4) {
                                         Circle()
-                                            .fill(category.color!.SwiftUIColor)
+                                            .fill(category.color.SwiftUIColor)
                                             .frame(width: 8, height: 8)
-                                        Text(category.name!)
+                                        Text(category.name)
                                             .font(.caption2)
                                     }
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 2)
-                                    .background(category.color!.SwiftUIColor.opacity(0.15))
+                                    .background(category.color.SwiftUIColor.opacity(0.15))
                                     .cornerRadius(8)
                                 }
                             }

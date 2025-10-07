@@ -124,6 +124,7 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
     var categories: [CategoryDTO]
     
     init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date.distantFuture, categories: [CategoryDTO] = []) {
+        self.id = id
         self.name = name ?? ""
         self.created = Date.now
         self.due = due
