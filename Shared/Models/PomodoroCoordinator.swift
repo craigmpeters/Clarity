@@ -10,6 +10,7 @@ import Combine
 import Foundation
 import UserNotifications
 import BackgroundTasks
+import SwiftData
 
 class PomodoroCoordinator: ObservableObject {
     @Published var pomodoro: Pomodoro
@@ -18,12 +19,17 @@ class PomodoroCoordinator: ObservableObject {
     private var activity: Activity<PomodoroAttributes>?
     private var hasEnded = false
     private var cancellables = Set<AnyCancellable>()
-    private var store: ClarityModelActor?
+    private let container: ModelContainer
+    private lazy var storeTask = Task.detached { [container] in
+            await ClarityModelActorFactory.makeBackground(container: container)
+        }
     
-    init(pomodoro: Pomodoro, task: ToDoTaskDTO) {
+    init(pomodoro: Pomodoro, task: ToDoTaskDTO, container: ModelContainer) {
         print("Pomodoro Co-ordinator created for Task: \(task.name) for \(task.pomodoroTime) seconds")
+
         self.pomodoro = pomodoro
         self.task = task
+        self.container = container
         
         pomodoro.objectWillChange
             .sink { [weak self] in
@@ -35,16 +41,16 @@ class PomodoroCoordinator: ObservableObject {
         startLiveActivity(pomodoro: pomodoro)
     }
     
-    func endPomodoro() {
-        print("Pomodoro Ending for task: \(task.name ?? "Unknown Task")")
+    func endPomodoro() async throws {
+        print("Pomodoro Ending for task: \(task.name)")
+        guard let id = task.id else { throw NSError(domain: "Pomodoro", code:1) }
         guard !hasEnded else { return }
         hasEnded = true
         pomodoro.stopPomodoro()
         endLiveActivity()
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
-        Task {
-            try? await store?.completeTask(task.id!)
-        }
+        let store = await storeTask.value
+        try await store.completeTask(id)
         
     }
     

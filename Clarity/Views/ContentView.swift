@@ -47,7 +47,8 @@ struct ContentView: View {
             if showingPomodoro, let selectedTask = selectedTask {
                 PomodoroView(
                     task: selectedTask,
-                    showingPomodoro: $showingPomodoro
+                    showingPomodoro: $showingPomodoro,
+                    container: modelContext.container
                 )
                 .transition(.asymmetric(
                     insertion: .move(edge: .trailing).combined(with: .opacity),

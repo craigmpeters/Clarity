@@ -3,6 +3,7 @@ import SwiftData
 import SwiftUI
 
 struct PomodoroView: View {
+    @Environment(\.modelContext) private var context
     @StateObject private var coordinator: PomodoroCoordinator
     @Binding var showingPomodoro: Bool
     
@@ -10,10 +11,10 @@ struct PomodoroView: View {
         coordinator.pomodoro
     }
     
-    init(task: ToDoTaskDTO, showingPomodoro: Binding<Bool>) {
+    init(task: ToDoTaskDTO, showingPomodoro: Binding<Bool>, container: ModelContainer) {
         let pomodoro = Pomodoro()
-        self._coordinator = StateObject(wrappedValue: PomodoroCoordinator(pomodoro: pomodoro, task: task))
-        self._showingPomodoro = showingPomodoro
+        _coordinator = StateObject(wrappedValue: PomodoroCoordinator(pomodoro: pomodoro, task: task, container: container))
+        _showingPomodoro = showingPomodoro
     }
     
     var body: some View {
@@ -108,7 +109,10 @@ struct PomodoroView: View {
                     
                     // Dynamic button based on timer state
                     Button(action: {
-                            coordinator.endPomodoro()
+                        Task {
+                            try await coordinator.endPomodoro()
+                        }
+                            
                         withAnimation(.easeInOut(duration: 0.3)) {
                             showingPomodoro = false
                         }
@@ -162,14 +166,19 @@ struct PomodoroView: View {
         .ignoresSafeArea(.container, edges: .top)
         .onAppear {
             if coordinator.pomodoro.remainingTime <= 0 && coordinator.pomodoro.endTime != nil {
-                coordinator.endPomodoro()
+                Task {
+                    try await coordinator.endPomodoro()
+                }
                 withAnimation(.easeInOut(duration: 0.3)) {
                     showingPomodoro = false
                 }
             }
         }
         .onDisappear {
-            coordinator.endPomodoro()
+            Task {
+                try await coordinator.endPomodoro()
+            }
+            
         }
     }
 }
@@ -180,7 +189,8 @@ struct PomodoroView: View {
 #Preview {
     PomodoroView(
         task: PreviewData.shared.getToDoTaskDTO(),
-        showingPomodoro: .constant(true)
+        showingPomodoro: .constant(true),
+        container: PreviewData.shared.previewContainer
     )
     .modelContainer(PreviewData.shared.previewContainer)
 }
