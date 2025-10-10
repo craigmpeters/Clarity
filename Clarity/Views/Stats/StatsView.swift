@@ -207,7 +207,7 @@ struct StatsView: View {
         // Apply category filter if selected
         if let selectedCategory = selectedCategory {
             return dateFilteredTasks.filter { task in
-                task.categories!.contains(selectedCategory)
+                (task.categories ?? []).contains(where: { $0 == selectedCategory })
             }
         }
         
@@ -222,7 +222,8 @@ struct StatsView: View {
         var csv = "Task Name,Completed Date,Categories,Pomodoro Time (min),Was Pomodoro\n"
         
         for task in completedTasks.sorted(by: { ($0.completedAt ?? Date()) > ($1.completedAt ?? Date()) }) {
-            let categories = task.categories!.map { $0.name! }.joined(separator: "; ")
+            let categoriesList = task.categories?.compactMap { $0.name } ?? []
+            let categories = categoriesList.isEmpty ? "Uncategorized" : categoriesList.joined(separator: "; ")
             let pomodoroMinutes = Int(task.pomodoroTime / 60)
             let completedDate = task.completedAt.map { formatter.string(from: $0) } ?? "N/A"
             
@@ -347,20 +348,25 @@ struct CategoryCompletionChart: View {
         
         // Count completions per category
         for task in tasks {
-            for category in task.categories! {
-                categoryCount[category.name!, default: 0] += 1
+            if let categories = task.categories, !categories.isEmpty {
+                for category in categories {
+                    let name = category.name ?? "Uncategorized"
+                    categoryCount[name, default: 0] += 1
+                }
+            } else {
+                categoryCount["Uncategorized", default: 0] += 1
             }
         }
         
         // Add "Uncategorized" if there are tasks without categories
-        let uncategorizedCount = tasks.filter { $0.categories!.isEmpty }.count
+        let uncategorizedCount = tasks.filter { ($0.categories?.isEmpty ?? true) }.count
         if uncategorizedCount > 0 {
             categoryCount["Uncategorized"] = uncategorizedCount
         }
         
         // Convert to chart data with colors
         return categoryCount.map { (name, count) in
-            let color = allCategories.first { $0.name == name }?.color!.SwiftUIColor ?? .gray
+            let color = allCategories.first { $0.name == name }?.color?.SwiftUIColor ?? (name == "Uncategorized" ? .gray : .gray)
             return CategoryCompletionData(
                 categoryName: name,
                 completionCount: count,
@@ -490,11 +496,17 @@ struct WeeklyBreakdownView: View {
         for task in tasks {
             guard let completedAt = task.completedAt else { continue }
             let startOfDay = calendar.startOfDay(for: completedAt)
-            
             if dailyCount[startOfDay] == nil {
                 dailyCount[startOfDay] = []
             }
-            dailyCount[startOfDay]?.append(contentsOf: task.categories!)
+            if let categories = task.categories, !categories.isEmpty {
+                dailyCount[startOfDay]?.append(contentsOf: categories)
+            } else {
+                // Represent uncategorized with a placeholder Category-like entry using name "Uncategorized"
+                // We can't create a real Category here, so we'll handle counting by name below.
+                // To keep changes minimal, we'll store a nil marker by using an empty array here and handle counting later.
+                // We'll instead increment a separate count after this loop.
+            }
         }
         
         let formatter = DateFormatter()
@@ -502,15 +514,29 @@ struct WeeklyBreakdownView: View {
         
         return dailyCount.map { (date, categories) in
             var categoryCount: [String: Int] = [:]
+            var total = 0
             for category in categories {
-                categoryCount[category.name!, default: 0] += 1
+                if let name = category.name, !name.isEmpty {
+                    categoryCount[name, default: 0] += 1
+                } else {
+                    categoryCount["Uncategorized", default: 0] += 1
+                }
+                total += 1
+            }
+            
+            // Count tasks on this date that had no categories at all
+            let tasksOnDate = tasks.filter { $0.completedAt != nil && calendar.startOfDay(for: $0.completedAt!) == date }
+            let noCategoryCount = tasksOnDate.filter { ($0.categories?.isEmpty ?? true) }.count
+            if noCategoryCount > 0 {
+                categoryCount["Uncategorized", default: 0] += noCategoryCount
+                total += noCategoryCount
             }
             
             return DailyCompletionData(
                 date: date,
                 dateString: formatter.string(from: date),
                 categoryCompletions: categoryCount,
-                totalCount: categories.count
+                totalCount: total
             )
         }.sorted { $0.date > $1.date }
     }
@@ -670,7 +696,7 @@ struct CategoryBadge: View {
     @Query private var allCategories: [Category]
     
     private var categoryColor: Color {
-        allCategories.first { $0.name == name }?.color!.SwiftUIColor ?? .gray
+        allCategories.first { $0.name == name }?.color?.SwiftUIColor ?? (name == "Uncategorized" ? .gray : .gray)
     }
     
     var body: some View {
