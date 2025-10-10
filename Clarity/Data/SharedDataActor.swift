@@ -94,18 +94,15 @@ public final class SharedDataActor: Sendable {
             task.recurrenceInterval = .daily
         }
 
-        let allCategories: [Category] = getCategories()
         let categories = getCategories().filter {
             categoryIds.contains(String(describing: $0.id))
         }
+        print (categories)
         task.categories = categories
         
+        modelContext.insert(task)
+        
         saveContext()
-        do {
-            try modelContext.save()
-        } catch {
-            print("Failed to save task: \(error)")
-        }
     }
 
     func fetchTasksForWidget(filter: ToDoTask.TaskFilter) async -> (tasks: [ToDoTask], weeklyProgress: TaskWidgetEntry.WeeklyProgress?) {
