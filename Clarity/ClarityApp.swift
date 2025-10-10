@@ -16,19 +16,20 @@ import WatchConnectivity
 
 @main
 struct ClarityApp: App {
+    init() {
+
+    }
+    
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
-    private let container = try! Containers.live()
-        
-    init() {
-        _ = ClarityWatchConnectivity.shared
-    }
+    private let container = try! Containers.liveApp()
         
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .modelContainer(container)
+            
         }
     }
     
@@ -40,6 +41,7 @@ struct ClarityApp: App {
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
+        ClarityWatchConnectivity.shared.start()
         return true
     }
     

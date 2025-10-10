@@ -1,52 +1,43 @@
-//
 //  TaskRowInteractive.swift
 //  Clarity
 //
 //  Created by Craig Peters on 14/09/2025.
 //
 
-
 import SwiftUI
 
 struct TaskRowInteractive: View {
     let task: ToDoTaskDTO
-    
+
     var body: some View {
         HStack(spacing: 8) {
-            // Complete button
-            Button(intent: CompleteTaskIntent(id: task.id!)) {
+            // Complete button (sends encoded ID via App Intent). Falls back to “Task not found” if id is nil.
+            Button(intent: task.id.map(CompleteTaskIntent.init) ?? CompleteTaskIntent()) {
                 Image(systemName: "circle")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
-            
+
             Text(task.name)
                 .font(.caption)
                 .lineLimit(1)
-            
+
             Spacer()
-            
+
             HStack(spacing: 4) {
-                if !task.categories.isEmpty {
+                if let first = task.categories.first {
                     Circle()
-                        .fill(task.categories.first?.color.SwiftUIColor ?? Color.primary)
+                        .fill(first.color.SwiftUIColor ?? .primary)
                         .frame(width: 6, height: 6)
                 }
-                
-                Text("\(task.pomodoroTime/60)m")
+
+                Text("\(Int(task.pomodoroTime / 60))m")
                     .font(.caption2)
                     .foregroundStyle(.orange)
             }
-            
-            // Timer button - Now uses StartPomodoroIntent
-            // TODO: Fix Pomodoro Widget
-//            Button(intent: StartPomodoroIntent(taskId: task.id)) {
-//                Image(systemName: "play.circle.fill")
-//                    .font(.system(size: 18))
-//                    .foregroundStyle(.blue)
-//            }
-            .buttonStyle(.plain)
+        }
+        .task {
+            let idDesc = task.id.map { String(describing: $0) } ?? "Unknown ID"
+            print("Row for \(task.name) — ID: \(idDesc)")
         }
     }
 }

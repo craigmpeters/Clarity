@@ -7,6 +7,7 @@ struct TaskSplitterSheet: View {
     // Swiftdata Queries
     @Query private var allCategories: [Category]
     @Query private var allTasks: [ToDoTask]
+    @Environment(\.modelContext) private var context
     
     let taskName: String
     @Binding var isPresented: Bool
@@ -147,7 +148,7 @@ struct TaskSplitterSheet: View {
         }
         .task {
             if store == nil {
-                store = await AppServices.store()
+                store = await StoreRegistry.shared.store(for: context.container)
             }
             await splitter.splitTask(taskName)
             suggestions = splitter.suggestions

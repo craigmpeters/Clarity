@@ -1,50 +1,49 @@
-//
-//  CompleteTaskIntents.swift
-//  Clarity
-//
-//  Created by Craig Peters on 03/09/2025.
-//
-
-//
-//  CompleteTaskIntent.swift
-//  Clarity
-//
-//  Created by Craig Peters on 03/09/2025.
-//
-
-import Foundation
 import AppIntents
 import SwiftData
 import OSLog
+#if canImport(WidgetKit)
+import WidgetKit
+#endif
 
 struct CompleteTaskIntent: AppIntent {
     static var title: LocalizedStringResource = "Complete Task"
     static var description = IntentDescription("Mark a task as completed")
-    static var openAppWhenRun: Bool = false
-    private enum CompleteTaskIntentError: Error {
-        case invalidID
-    }
-    
-    @Parameter(title: "Task ID") var idToken: String
-    
-    // Initialize with taskId for widget usage
+    static var openAppWhenRun = false
+
+    // 👇 MUST be a @Parameter so AppIntents serializes it across processes.
+    @Parameter(title: "Encoded Task ID")
+    var encodedId: String
+
+    init() {} // required
+
+    // Convenience init for widget code
     init(id: PersistentIdentifier) {
         let data = try! JSONEncoder().encode(id)
-        self.idToken = data.base64EncodedString()
+        self.encodedId = data.base64EncodedString()
     }
-    
-    // Default initializer required by AppIntent
-    init() {}
-    
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Complete task")
+    }
+
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        guard let data = Data(base64Encoded: idToken) else {
-            throw CompleteTaskIntentError.invalidID
+        // Decode ID
+        guard
+            let data = Data(base64Encoded: encodedId),
+            let id = try? JSONDecoder().decode(PersistentIdentifier.self, from: data)
+        else {
+            return .result(dialog: "Task not found")
         }
-        let id = try JSONDecoder().decode(PersistentIdentifier.self, from: data)
-        let store = try await ClarityServices.store()
-        try await store.completeTask(id)
-        
-        return .result(dialog: "Task completed")
+
+        do {
+            let store = try await ClarityServices.store() // non-CloudKit container in extensions
+            try await store.completeTask(id)
+            ClarityServices.reloadWidgets(kind: "ClarityWidget")
+            return .result(dialog: "Task completed")
+        } catch {
+            os_log("CompleteTaskIntent error: %{public}@", String(describing: error))
+            return .result(dialog: "Couldn’t complete the task.")
+        }
     }
 }
 

@@ -2,7 +2,7 @@ import SwiftData
 import SwiftUI
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.modelContext) private var context
     @State private var selectedTask: ToDoTaskDTO? = nil
     @State private var showingPomodoro = false
     @State private var showingFirstRun = !UserDefaults.hasCompletedOnboarding
@@ -48,7 +48,7 @@ struct ContentView: View {
                 PomodoroView(
                     task: selectedTask,
                     showingPomodoro: $showingPomodoro,
-                    container: modelContext.container
+                    container: context.container
                 )
                 .transition(.asymmetric(
                     insertion: .move(edge: .trailing).combined(with: .opacity),
@@ -68,6 +68,7 @@ struct ContentView: View {
                    let taskId = url.pathComponents.last
                 {
                     Task {
+                        
                         if let store = store, let id = try ToDoTaskDTO.decodeId(taskId) {
                             selectedTask = try await store.fetchTaskById(id)
                         }
@@ -77,7 +78,7 @@ struct ContentView: View {
         }
         .task {
             if store == nil {
-                let bg = await ClarityModelActorFactory.makeBackground(container: modelContext.container)
+                let bg = await ClarityModelActorFactory.makeBackground(container: context.container)
                 store = bg
             }
         }

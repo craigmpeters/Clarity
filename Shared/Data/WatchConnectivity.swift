@@ -21,12 +21,14 @@ final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObj
     func start() {
         guard WCSession.isSupported() else { return }
         session.delegate = self
+        print("⌚️ Creating Watch Session")
         session.activate()
     }
 
     // MARK: - Requests (phone<->watch both implement these)
 
     func requestListAll(reply: @escaping (Result<[ToDoTaskDTO], Error>) -> Void) {
+        print("⌚️ Requesting Watch Data")
         let msg: [String: Any] = [WCKeys.request: WCKeys.Requests.listAll]
         if session.isReachable {
             session.sendMessage(msg, replyHandler: { dict in
@@ -40,6 +42,7 @@ final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObj
                 reply(.failure(error))
             })
         } else {
+            print("⌚️ Session not reachable")
             // Fallback to cached snapshot
             reply(.success(self.lastSnapshot))
         }
@@ -49,15 +52,15 @@ final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObj
         sendReliable(.init(kind: WCKeys.Requests.create, todo: dto))
     }
 
-    func sendComplete(id: PersistentIdentifier) {
+    func sendComplete(id: String) {
         sendReliable(.init(kind: WCKeys.Requests.complete, todotaskid: id))
     }
     
-    func sendPomodoroStart(id: PersistentIdentifier) {
+    func sendPomodoroStart(id: String) {
         sendReliable(.init(kind: WCKeys.Requests.pomodoro, todotaskid: id))
     }
 
-    func sendDelete(id: PersistentIdentifier) {
+    func sendDelete(id: String) {
         sendReliable(.init(kind: WCKeys.Requests.delete, todotaskid: id))
     }
 
@@ -70,15 +73,23 @@ final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObj
     }
 
     private func sendReliable(_ env: Envelope) {
-        guard session.activationState == .activated else { return }
-        if let data = try? jsonEncoder.encode(env) {
-            session.transferUserInfo([WCKeys.payload: data])
+        guard session.activationState == .activated else {
+            print("⌚️ sendReliable aborted: session not activated"); return
         }
+        guard let data = try? jsonEncoder.encode(env) else {
+            print("⌚️ sendReliable aborted: encode failed for \(env.kind)"); return
+        }
+        print("⌚️ transferUserInfo(kind:\(env.kind)) queued; reachable=\(session.isReachable)")
+        session.transferUserInfo([WCKeys.payload: data])
+        print("⌚️ outstanding transfers:", session.outstandingUserInfoTransfers.count)
     }
+
 
     // MARK: - WCSessionDelegate
 
-    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {}
+    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        print("⌚️ activationDidCompleteWith state=\(activationState.rawValue) error=\(String(describing: error))")
+    }
 
     #if os(iOS)
     func sessionDidBecomeInactive(_ session: WCSession) {}
@@ -87,6 +98,7 @@ final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObj
 
     // Incoming immediate request
     func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
+        
         Task { @MainActor in
             let kind = message[WCKeys.request] as? String
             let result = await Self.handleImmediate(kind: kind) // implemented per-platform
@@ -128,13 +140,22 @@ extension ClarityWatchConnectivity {
     static func applyEvent(_ env: Envelope) async {
         switch env.kind {
         case WCKeys.Requests.create:
-            if let t = env.todo { _ = try? await ClarityServices.store().addTask(t) }
+            if let t = env.todo {
+                _ = try? await ClarityServices.store().addTask(t)
+            }
         case WCKeys.Requests.complete:
-            if let id = env.todo?.id ?? env.todotaskid {
-                _ = try? await ClarityServices.store().completeTask(id)
+            if let encodedId = env.todotaskid {
+                // Use DTO helper to decode Base64-encoded PersistentIdentifier
+                if let pid = try? ToDoTaskDTO.decodeId(encodedId) {
+                    _ = try? await ClarityServices.store().completeTask(pid)
+                }
             }
         case WCKeys.Requests.delete:
-            if let id = env.todotaskid { try? await ClarityServices.store().deleteTask(id) }
+            if let encodedId = env.todotaskid {
+                if let pid = try? ToDoTaskDTO.decodeId(encodedId) {
+                    try? await ClarityServices.store().deleteTask(pid)
+                }
+            }
         default: break
         }
         // After any mutation, push a fresh snapshot so watch updates quickly
@@ -161,12 +182,36 @@ public struct Envelope: Codable, Sendable {
     public let kind: String
     public let todos: [ToDoTaskDTO]?       // for list/snapshot
     public let todo: ToDoTaskDTO?          // for single op
-    public let todotaskid: PersistentIdentifier?
+    public let todotaskid: String?
 
-    public init(kind: String, todos: [ToDoTaskDTO]? = nil, todo: ToDoTaskDTO? = nil, todotaskid: PersistentIdentifier? = nil) {
+    public init(kind: String, todos: [ToDoTaskDTO]? = nil, todo: ToDoTaskDTO? = nil, todotaskid : String? = nil) {
         self.kind = kind
         self.todos = todos
         self.todo = todo
         self.todotaskid = todotaskid
     }
 }
+
+extension ClarityWatchConnectivity {
+    
+    
+
+    func sessionReachabilityDidChange(_ session: WCSession) {
+        print("⌚️ Reachability changed → \(session.isReachable)")
+
+        // Only pull new data when the phone becomes reachable
+        guard session.isReachable else { return }
+
+        requestListAll { result in
+            if case let .success(todos) = result {
+                DispatchQueue.main.async {
+                    print("⌚️ Watch pulled \(todos.count) tasks from phone")
+                    self.lastSnapshot = todos
+                }
+            } else {
+                print("⌚️ Watch failed to pull list from phone: \(result)")
+            }
+        }
+    }
+}
+

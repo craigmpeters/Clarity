@@ -1,44 +1,63 @@
-//
-//  ClarityServices.swift
-//  Clarity
-//
-//  Created by Craig Peters on 03/10/2025.
-//
-
 import SwiftData
 #if canImport(WidgetKit)
 import WidgetKit
 #endif
 
 enum ClarityServices {
-    static func sharedContainer() throws -> ModelContainer {
-        try Containers.live()
+    // Cache only for the EXTENSION process
+    private static var cachedExtensionContainer: ModelContainer?
+    private static var cachedStoreTask: Task<ClarityModelActor, Never>?
+
+    // More reliable than checking bundle path
+    private static var isExtension: Bool {
+        Bundle.main.object(forInfoDictionaryKey: "NSExtension") != nil
     }
+
+    static func sharedContainer() throws -> ModelContainer {
+        let isExtension = Bundle.main.object(forInfoDictionaryKey: "NSExtension") != nil
+        print("🚦 Process type:", isExtension ? "EXTENSION" : "APP")
+
+        if isExtension {
+            if let c = cachedExtensionContainer { return c }
+            print("🏗️ Creating NON-CloudKit container (EXT)")
+            let c = try Containers.liveExtension()          // cloudKitDatabase: nil
+            cachedExtensionContainer = c
+            return c
+        } else {
+            return AppContainer.shared                     // single CloudKit container in app
+        }
+    }
+
 
     static func inMemoryContainer() -> ModelContainer {
         try! Containers.inMemory()
     }
 
     static func store() async throws -> ClarityModelActor {
+        if let task = cachedStoreTask { return await task.value }
         let container = try sharedContainer()
-        return await ClarityModelActorFactory.makeBackground(container: container)
+        let task = Task.detached {
+            await ClarityModelActorFactory.makeBackground(container: container)
+        }
+        cachedStoreTask = task
+        return await task.value
     }
+
+    // -------- Snapshots for widgets / quick reads --------
 
     static func snapshotTasks(filter: ToDoTask.TaskFilter = .all) -> [ToDoTaskDTO] {
         do {
-            let container = try Containers.live()
+            let container = try sharedContainer()         // <- was Containers.live()
             let ctx = ModelContext(container)
-
-            // Basic fetch (only unfinished), sorted for nice display.
             let descriptor = FetchDescriptor<ToDoTask>(
                 predicate: #Predicate { !$0.completed },
                 sortBy: [SortDescriptor(\.due, order: .forward)]
             )
             let all = try ctx.fetch(descriptor)
-
             let now = Date()
-            let filtered = all.filter { filter.matches(task: $0, at: now) }
-            return filtered.map(ToDoTaskDTO.init(from:))
+            return all
+                .filter { filter.matches(task: $0, at: now) }
+                .map(ToDoTaskDTO.init(from:))
         } catch {
             return []
         }
@@ -46,68 +65,68 @@ enum ClarityServices {
 
     static func snapshotTasksAsync(filter: ToDoTask.TaskFilter = .all) async -> [ToDoTaskDTO] {
         await withCheckedContinuation { cont in
-            Task.detached {
-                cont.resume(returning: snapshotTasks(filter: filter))
-            }
+            Task.detached { cont.resume(returning: snapshotTasks(filter: filter)) }
         }
     }
-    
+
     static func snapshotCategories() -> [CategoryDTO] {
         do {
             let container = try sharedContainer()
-            let context = ModelContext(container)
-            let descriptor = FetchDescriptor<Category>()
-            return try context.fetch(descriptor).map(CategoryDTO.init(from:))
-        } catch {
-            return []
-        }
+            let ctx = ModelContext(container)
+            let descriptor = FetchDescriptor<Category>(sortBy: [SortDescriptor(\.name)])
+            return try ctx.fetch(descriptor).map(CategoryDTO.init(from:))
+        } catch { return [] }
     }
-    
+
     static func reloadWidgets(kind: String? = nil) {
-            #if canImport(WidgetKit)
-            if let kind { WidgetCenter.shared.reloadTimelines(ofKind: kind) }
-            else { WidgetCenter.shared.reloadAllTimelines() }
-            #endif
-        }
-    
+        #if canImport(WidgetKit)
+        if let kind { WidgetCenter.shared.reloadTimelines(ofKind: kind) }
+        else { WidgetCenter.shared.reloadAllTimelines() }
+        #endif
+    }
+
     static func fetchWeeklyProgress() -> WeeklyProgress {
         do {
             let container = try sharedContainer()
-            let context = ModelContext(container)
-            
-            let globalDescriptor = FetchDescriptor<GlobalTargetSettings>()
-            let globalSettings = try context.fetch(globalDescriptor).first
-            let globalTarget = globalSettings?.weeklyGlobalTarget ?? 0
+            let ctx = ModelContext(container)
 
-            // Get current week start (Monday)
-            let calendar = Calendar.current
+            let global = try ctx.fetch(FetchDescriptor<GlobalTargetSettings>()).first
+            let target = global?.weeklyGlobalTarget ?? 0
+
+            let cal = Calendar.current
             let now = Date()
-            var components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
-
-            // TODO: Have the start day configurable
-            components.weekday = 2 // Monday
-            let weekStart = calendar.date(from: components) ?? now
+            var comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
+            comps.weekday = 2 // Monday
+            let weekStart = cal.date(from: comps) ?? now
 
             let taskDescriptor = FetchDescriptor<ToDoTask>(
-                predicate: #Predicate {
-                    $0.completedAt != nil &&
-                        $0.completedAt! > weekStart
-                }
+                predicate: #Predicate { $0.completedAt != nil && $0.completedAt! > weekStart }
             )
-            let tasks = try context.fetch(taskDescriptor)
+            let count = try ctx.fetch(taskDescriptor).count
 
-            let completedCount = tasks.count
-            
-            return WeeklyProgress(
-                completed: completedCount,
-                target: globalTarget,
-                categories: []
-            )
+            return WeeklyProgress(completed: count, target: target, categories: [])
         } catch {
-            return WeeklyProgress(completed: 0,
-                                  target: 0,
-                                  categories: [])
+            return WeeklyProgress(completed: 0, target: 0, categories: [])
         }
+    }
+}
 
+actor StoreRegistry {
+    static let shared = StoreRegistry()
+    private var stores: [ObjectIdentifier: ClarityModelActor] = [:]
+
+    func store(for container: ModelContainer) async -> ClarityModelActor {
+        let key = ObjectIdentifier(container)
+        if let existing = stores[key] { return existing }
+
+        // Build OFF the main thread
+        let store = await ClarityModelActorFactory.makeBackground(container: container)
+        stores[key] = store
+        return store
+    }
+
+    // Handy for tests/previews if you need to reset between runs
+    func reset() {
+        stores.removeAll()
     }
 }

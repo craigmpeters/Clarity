@@ -13,7 +13,7 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
-            List(todos, id: \.id) { task in
+            List(connectivity.lastSnapshot, id: \.id) { task in
                 WatchTaskRow(task: task,
                              onComplete: { completeTask(task)},
                              onStartTimer: { startTimer(task)})
@@ -36,7 +36,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .onAppear {
+            .task {
                 connectivity.start()
                 connectivity.requestListAll { result in
                     if case .success(let list) = result { DispatchQueue.main.async { todos = list } }
@@ -49,12 +49,14 @@ struct ContentView: View {
 
     private func completeTask(_ task: ToDoTaskDTO) {
         print("Attempting to complete task \(task.name)")
-        connectivity.sendComplete(id: task.id!)
+        guard let encodedId = task.encodedId else { return }
+        connectivity.sendComplete(id: encodedId)
     }
 
     private func startTimer(_ task: ToDoTaskDTO) {
         print("Attempting to start timer \(task.name)")
-        connectivity.sendPomodoroStart(id: task.id!)
+        guard let encodedId = task.encodedId else { return }
+        connectivity.sendPomodoroStart(id: encodedId)
     }
 }
 

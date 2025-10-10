@@ -7,6 +7,7 @@
 
 import SwiftData
 import Foundation
+import WidgetKit
 
 @ModelActor
 actor ClarityModelActor {
@@ -20,6 +21,7 @@ actor ClarityModelActor {
             weeklyTarget: dto.weeklyTarget)
         modelContext.insert(category)
         try modelContext.save()
+        WidgetCenter.shared.reloadTimelines(ofKind: "TodoWidget")
         return CategoryDTO(from: category)
     }
     
@@ -34,6 +36,7 @@ actor ClarityModelActor {
         model.color = dto.color
         model.weeklyTarget = dto.weeklyTarget
         try modelContext.save()
+        WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
         return CategoryDTO(from: model)
     }
     
@@ -42,6 +45,7 @@ actor ClarityModelActor {
             modelContext.delete(model)
             try modelContext.save()
         }
+        WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
     }
     
     func getCategories() throws -> [CategoryDTO] {
@@ -90,8 +94,11 @@ actor ClarityModelActor {
         model.recurrenceInterval = task.recurrenceInterval
         model.repeating = task.repeating
         model.pomodoro = task.pomodoro
+        
+        
 
         try modelContext.save()
+        WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
         return ToDoTaskDTO(from: model)
     }
     
@@ -116,7 +123,9 @@ actor ClarityModelActor {
         )
         
         modelContext.insert(toDoTask)
+        
         try? modelContext.save()
+        WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
         
         return ToDoTaskDTO(from: toDoTask)
     }
@@ -126,6 +135,7 @@ actor ClarityModelActor {
             modelContext.delete(model)
             try modelContext.save()
         }
+        WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
     }
     
     func completeTask(_ id: PersistentIdentifier) throws {
@@ -139,6 +149,7 @@ actor ClarityModelActor {
             _ = try addTask(nextTask)
         }
         try modelContext.save()
+        WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
     }
     
     func fetchTaskById(_ id: PersistentIdentifier) throws -> ToDoTaskDTO? {
@@ -233,60 +244,43 @@ enum ClarityModelActorFactory {
         }
     }
 }
-
+// Containers.swift
 enum Containers {
-    static func live() throws -> ModelContainer {
-        let schema = Schema([
-            ToDoTask.self,
-            Category.self,
-            GlobalTargetSettings.self
-        ])
-        
-        let modelConfiguration = ModelConfiguration(
+    static func liveApp() throws -> ModelContainer {
+        let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self])
+        let cfg = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,
             allowsSave: true,
             groupContainer: .identifier("group.me.craigpeters.clarity"),
-            cloudKitDatabase: .private("iCloud.me.craigpeters.clarity")
+            cloudKitDatabase: .private("iCloud.me.craigpeters.clarity")   // CK ON
         )
-        
-        return try ModelContainer(for: schema, configurations: [modelConfiguration])
+        return try ModelContainer(for: schema, configurations: [cfg])
     }
-    
-    static func inMemory() throws -> ModelContainer {
-        let schema = Schema([
-            ToDoTask.self,
-            Category.self,
-            GlobalTargetSettings.self
-        ])
-        let modelConfiguration = ModelConfiguration(
+
+    static func liveExtension() throws -> ModelContainer {
+        let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self])
+        let cfg = ModelConfiguration(
             schema: schema,
-            isStoredInMemoryOnly: true,
+            isStoredInMemoryOnly: false,
             allowsSave: true,
+            groupContainer: .identifier("group.me.craigpeters.clarity"),
+     // CK OFF
         )
-        
-        return try ModelContainer(for: schema, configurations: [modelConfiguration])
+        return try ModelContainer(for: schema, configurations: [cfg])
     }
-    
-}
-actor StoreRegistry {
-    static let shared = StoreRegistry()
-    private var stores: [ObjectIdentifier: ClarityModelActor] = [:]
 
-    func store(for container: ModelContainer) async -> ClarityModelActor {
-        let key = ObjectIdentifier(container)
-        if let existing = stores[key] { return existing }
-        let store = await ClarityModelActorFactory.makeBackground(container: container)
-        stores[key] = store
-        return store
+    static func inMemory() throws -> ModelContainer {
+        let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self])
+        let cfg = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, allowsSave: true)
+        return try ModelContainer(for: schema, configurations: [cfg])
     }
 }
 
-enum AppServices {
-    static let container: ModelContainer = try! Containers.live()
-
-    static func store() async -> ClarityModelActor {
-        await StoreRegistry.shared.store(for: container)
-    }
+// AppContainer.swift (APP TARGET)
+enum AppContainer {
+    static let shared: ModelContainer = {
+        print("🏗️ Creating CloudKit container (APP)")
+        return try! Containers.liveApp()
+    }()
 }
-

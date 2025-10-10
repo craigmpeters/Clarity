@@ -146,7 +146,6 @@
 				CategoryEntity.swift,
 				ClarityModelActor.swift,
 				ClarityServices.swift,
-				SharedDataActor.swift,
 			);
 			target = 4448AD602E579266005CDDDF /* Widgets */;
 		};
@@ -155,7 +154,6 @@
 			membershipExceptions = (
 				ClarityModelActor.swift,
 				ClarityServices.swift,
-				SharedDataActor.swift,
 				WatchConnectivity.swift,
 			);
 			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
