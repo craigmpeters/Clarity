@@ -37,7 +37,7 @@ class ToDoTask {
         return interval.displayName
     }
     
-    init(name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date.distantFuture, categories: [Category] = []) {
+    init(name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), categories: [Category] = []) {
         self.name = name ?? ""
         self.created = Date.now
         self.due = due

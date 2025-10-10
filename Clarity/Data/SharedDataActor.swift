@@ -89,11 +89,12 @@ public final class SharedDataActor: Sendable {
         let task = ToDoTask(name: name)
         task.pomodoroTime = duration
         task.repeating = repeating
-        
+        task.due = Date()
+        if task.repeating ?? false {
+            task.recurrenceInterval = .daily
+        }
+
         let allCategories: [Category] = getCategories()
-        for category in allCategories {
-                print("  - Name: \(category.name), ID: \(category.id.storeIdentifier ?? "nil")")
-            }
         let categories = getCategories().filter {
             categoryIds.contains(String(describing: $0.id))
         }

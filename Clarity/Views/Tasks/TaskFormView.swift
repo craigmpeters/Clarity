@@ -28,6 +28,28 @@ struct TaskFormView: View {
         _toDoTask = .init(initialValue: tempTask)
         self.isEditing = task != nil
         _selectedCategories = .init(initialValue: tempTask.categories ?? [])
+        
+        // Initialize due date: for new tasks default to today, for edits use existing due if available
+        if self.isEditing {
+            _dueDate = .init(initialValue: tempTask.due ?? Date())
+        } else {
+            _dueDate = .init(initialValue: Date())
+        }
+        
+        // Safety: ensure dueDate doesn't accidentally initialize beyond allowed range
+        if _dueDate.wrappedValue < Date() {
+            _dueDate.wrappedValue = Date()
+        }
+        
+        // Initialize recurrence state when editing a repeating task
+        if tempTask.repeating ?? false {
+            _selectedRecurrence = .init(initialValue: tempTask.recurrenceInterval ?? .daily)
+            _customDays = .init(initialValue: tempTask.customRecurrenceDays ?? 1)
+        } else {
+            // Ensure non-repeating defaults
+            _selectedRecurrence = .init(initialValue: .daily)
+            _customDays = .init(initialValue: 1)
+        }
     }
     
     private func saveTask() {
@@ -202,6 +224,10 @@ struct TaskFormView: View {
                     .fontWeight(.semibold)
                 }
             }
+            .task {
+                let recurrence = toDoTask.recurrenceInterval?.rawValue ?? "None"
+                print("Task Information: \(recurrence)")
+            }
         }
     }
     
@@ -318,3 +344,4 @@ extension TaskFormView {
     TaskFormView(task: PreviewData.shared.getToDoTask())
 }
 #endif
+
