@@ -109,16 +109,6 @@
 			);
 			target = 4448AD602E579266005CDDDF /* Widgets */;
 		};
-		44B3D8ED2E68A212000FD549 /* Exceptions for "Widgets" folder in "Clarity" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Widget/Intents/ClarityAppIntentsProvider.swift,
-				Widget/Intents/StartPomodoroIntent.swift,
-				Widget/Intents/TaskIntents.swift,
-				Widget/Models/TimelineEntry.swift,
-			);
-			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
-		};
 		44B3DA2B2E6D9C8A000FD549 /* Exceptions for "ClarityUITests" folder in "Clarity" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -132,13 +122,6 @@
 				Info.plist,
 			);
 			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
-		};
-		44D6EAEE2E83181C00B5EF9E /* Exceptions for "Widgets" folder in "ClarityWatch" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Widget/Models/TimelineEntry.swift,
-			);
-			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
 		};
 		44D6F01D2E85DA9500B5EF9E /* Exceptions for "Data" folder in "Widgets" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -207,14 +190,22 @@
 			);
 			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
 		};
+		44F7D0F82E998D4300F520BF /* Exceptions for "Widgets" folder in "Clarity" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Widget/Intents/ClarityAppIntentsProvider.swift,
+				Widget/Intents/CompleteTaskIntent.swift,
+				Widget/Intents/TaskIntents.swift,
+			);
+			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		4448AD672E579266005CDDDF /* Widgets */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				44B3D8ED2E68A212000FD549 /* Exceptions for "Widgets" folder in "Clarity" target */,
-				44D6EAEE2E83181C00B5EF9E /* Exceptions for "Widgets" folder in "ClarityWatch" target */,
+				44F7D0F82E998D4300F520BF /* Exceptions for "Widgets" folder in "Clarity" target */,
 				4448AD792E579268005CDDDF /* Exceptions for "Widgets" folder in "Widgets" target */,
 			);
 			path = Widgets;

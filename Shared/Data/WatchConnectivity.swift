@@ -10,6 +10,7 @@ import WatchConnectivity
 import Combine
 import SwiftData
 
+@MainActor
 final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObject {
     static let shared = ClarityWatchConnectivity()
     private let session = WCSession.default
@@ -21,55 +22,180 @@ final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObj
     func start() {
         guard WCSession.isSupported() else { return }
         session.delegate = self
+        #if os(iOS)
+        print("[iOS] ⌚️ Creating Watch Session")
+        #elseif os(watchOS)
+        print("[watchOS] ⌚️ Creating Watch Session")
+        #else
         print("⌚️ Creating Watch Session")
+        #endif
         session.activate()
+        #if os(iOS)
+        // Initial state diagnostics for iOS
+        print("[iOS] ⌚️ isPaired=\(session.isPaired) isWatchAppInstalled=\(session.isWatchAppInstalled) isReachable=\(session.isReachable)")
+        #endif
     }
 
     // MARK: - Requests (phone<->watch both implement these)
 
-    func requestListAll(reply: @escaping (Result<[ToDoTaskDTO], Error>) -> Void) {
-        print("⌚️ Requesting Watch Data")
+    func requestListAll(preferReliable: Bool = false, reply: @escaping (Result<[ToDoTaskDTO], Error>) -> Void) {
+        print("⌚️ Requesting Watch Data (preferReliable=\(preferReliable))")
         let msg: [String: Any] = [WCKeys.request: WCKeys.Requests.listAll]
+
+        // If session isn't activated, just queue reliable and return snapshot
+        guard session.activationState == .activated else {
+            print("⌚️ Session not activated; queue reliable listAll and return snapshot")
+            enqueueRequest(.init(kind: WCKeys.Requests.listAll))
+            reply(.success(self.lastSnapshot))
+            return
+        }
+
+        // Caller prefers reliable, but we'll still attempt immediate when reachable and fall back to reliable
+        if preferReliable {
+            print("⌚️ preferReliable=true but reachable path will be attempted; will fall back to reliable on timeout/failure")
+        }
+
+        // Reachable path with extended timeout and reliable fallback
         if session.isReachable {
+            // Setup a timeout work item to fall back to reliable
+            let timeoutSeconds: TimeInterval = 6.0
+            var completed = false
+            let timeout = DispatchWorkItem { [weak self] in
+                guard let self, !completed else { return }
+                completed = true
+                print("⌚️ Immediate listAll timed out after \(timeoutSeconds)s → queue reliable and return snapshot")
+                self.enqueueRequest(.init(kind: WCKeys.Requests.listAll))
+                reply(.success(self.lastSnapshot))
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + timeoutSeconds, execute: timeout)
+
             session.sendMessage(msg, replyHandler: { dict in
+                guard !completed else { return }
                 do {
                     if let data = dict[WCKeys.payload] as? Data {
                         let env = try self.jsonDecoder.decode(Envelope.self, from: data)
+                        completed = true
+                        timeout.cancel()
+                        // Also push snapshot so counterpart stays in sync
+                        if let todos = env.todos {
+                            self.pushSnapshot(todos)
+                        }
                         reply(.success(env.todos ?? []))
-                    } else { reply(.success([])) }
-                } catch { reply(.failure(error)) }
+                    } else {
+                        completed = true
+                        timeout.cancel()
+                        print("⚠️ Immediate listAll missing payload; queue reliable and return snapshot")
+                        self.enqueueRequest(.init(kind: WCKeys.Requests.listAll))
+                        reply(.success(self.lastSnapshot))
+                    }
+                } catch {
+                    // If decode fails, queue reliable request and fall back to snapshot
+                    completed = true
+                    timeout.cancel()
+                    self.enqueueRequest(.init(kind: WCKeys.Requests.listAll))
+                    print("⚠️ Immediate listAll decode failed, queued reliable fallback: \(error)")
+                    reply(.success(self.lastSnapshot))
+                }
             }, errorHandler: { error in
-                reply(.failure(error))
+                guard !completed else { return }
+                completed = true
+                timeout.cancel()
+                // If immediate message fails, queue a reliable request and fall back to snapshot
+                self.enqueueRequest(.init(kind: WCKeys.Requests.listAll))
+                print("⌚️ sendMessage failed, queued listAll via transferUserInfo: \(error)")
+                reply(.success(self.lastSnapshot))
             })
         } else {
-            print("⌚️ Session not reachable")
+            print("⌚️ Session not reachable; queue reliable listAll and return snapshot")
+            // Queue a reliable request so counterpart can respond later
+            enqueueRequest(.init(kind: WCKeys.Requests.listAll))
             // Fallback to cached snapshot
             reply(.success(self.lastSnapshot))
         }
     }
 
+    /// Try to send immediately if reachable; fall back to reliable transfer if not or on failure.
+    private func sendImmediateOrReliable(_ env: Envelope) {
+        guard session.activationState == .activated else {
+            print("⌚️ sendImmediateOrReliable aborted: session not activated; falling back to queue")
+            enqueueRequest(env)
+            return
+        }
+        guard let data = try? jsonEncoder.encode(env) else {
+            print("⌚️ sendImmediateOrReliable aborted: encode failed for \(env.kind)")
+            return
+        }
+
+        let message: [String: Any] = [WCKeys.request: env.kind, WCKeys.payload: data]
+
+        if session.isReachable {
+            print("⌚️ Attempting immediate send(kind:\(env.kind)) …")
+            session.sendMessage(message, replyHandler: { reply in
+                #if DEBUG
+                if JSONSerialization.isValidJSONObject(reply),
+                   let rdata = try? JSONSerialization.data(withJSONObject: reply, options: [.prettyPrinted]),
+                   let json = String(data: rdata, encoding: .utf8) {
+                    print("📬 Immediate reply for \(env.kind):\n\(json)")
+                } else {
+                    print("📬 Immediate reply for \(env.kind): \(reply)")
+                }
+                #endif
+            }, errorHandler: { error in
+                print("⚠️ Immediate send(kind:\(env.kind)) failed → falling back to reliable: \(error)")
+                self.session.transferUserInfo([WCKeys.payload: data])
+            })
+        } else {
+            print("⌚️ Not reachable; queueing reliable transfer(kind:\(env.kind))")
+            session.transferUserInfo([WCKeys.payload: data])
+        }
+    }
+
     func sendCreate(_ dto: ToDoTaskDTO) {
-        sendReliable(.init(kind: WCKeys.Requests.create, todo: dto))
+        sendImmediateOrReliable(.init(kind: WCKeys.Requests.create, todo: dto))
     }
 
     func sendComplete(id: String) {
-        sendReliable(.init(kind: WCKeys.Requests.complete, todotaskid: id))
+        let env = Envelope(kind: WCKeys.Requests.complete, todotaskid: id)
+        // Debug: Log reliable complete envelope as JSON
+        if let data = try? jsonEncoder.encode(env),
+           let json = String(data: data, encoding: .utf8) {
+            print("📦 Watch reliable complete envelope JSON: \n\(json)")
+        }
+        sendImmediateOrReliable(env)
     }
     
     func sendPomodoroStart(id: String) {
-        sendReliable(.init(kind: WCKeys.Requests.pomodoro, todotaskid: id))
+        sendImmediateOrReliable(.init(kind: WCKeys.Requests.pomodoro, todotaskid: id))
     }
 
     func sendDelete(id: String) {
-        sendReliable(.init(kind: WCKeys.Requests.delete, todotaskid: id))
+        sendImmediateOrReliable(.init(kind: WCKeys.Requests.delete, todotaskid: id))
+    }
+
+    /// Sends a reliable ping over transferUserInfo to test the background/reliable channel.
+    /// Use this when `isReachable` is false or to validate delivery while the counterpart is suspended.
+    func sendReliablePing() {
+        let env = Envelope(kind: "ping")
+        enqueueRequest(env)
     }
 
     func pushSnapshot(_ todos: [ToDoTaskDTO]) {
         guard session.activationState == .activated else { return }
-        lastSnapshot = todos
+        DispatchQueue.main.async { self.lastSnapshot = todos }
         if let data = try? jsonEncoder.encode(Envelope(kind: "snapshot", todos: todos)) {
             try? session.updateApplicationContext([WCKeys.payload: data])
         }
+    }
+
+    private func enqueueRequest(_ env: Envelope) {
+        guard session.activationState == .activated else {
+            print("⌚️ enqueueRequest aborted: session not activated"); return
+        }
+        guard let data = try? jsonEncoder.encode(env) else {
+            print("⌚️ enqueueRequest aborted: encode failed for \(env.kind)"); return
+        }
+        print("⌚️ enqueue transferUserInfo(kind:\(env.kind)) queued; reachable=\(session.isReachable)")
+        session.transferUserInfo([WCKeys.payload: data])
     }
 
     private func sendReliable(_ env: Envelope) {
@@ -79,9 +205,22 @@ final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObj
         guard let data = try? jsonEncoder.encode(env) else {
             print("⌚️ sendReliable aborted: encode failed for \(env.kind)"); return
         }
+        print("⌚️ outstanding transfers (pre-queue):", session.outstandingUserInfoTransfers.count)
+        #if DEBUG
+        if let jsonString = String(data: data, encoding: .utf8) {
+            print("📮 sendReliable payload JSON:\n\(jsonString)")
+        }
+        #endif
         print("⌚️ transferUserInfo(kind:\(env.kind)) queued; reachable=\(session.isReachable)")
         session.transferUserInfo([WCKeys.payload: data])
+        print("⌚️ outstanding transfers (post-queue):", session.outstandingUserInfoTransfers.count)
         print("⌚️ outstanding transfers:", session.outstandingUserInfoTransfers.count)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            print("⌚️ outstanding transfers (5s later):", self.session.outstandingUserInfoTransfers.count)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
+            print("⌚️ outstanding transfers (15s later):", self.session.outstandingUserInfoTransfers.count)
+        }
     }
 
 
@@ -94,14 +233,36 @@ final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObj
     #if os(iOS)
     func sessionDidBecomeInactive(_ session: WCSession) {}
     func sessionDidDeactivate(_ session: WCSession) { session.activate() }
+    func sessionWatchStateDidChange(_ session: WCSession) {
+        // This fires when pairing status, installed state, or complication enabled changes
+        print("[iOS] ⌚️ sessionWatchStateDidChange → isPaired=\(session.isPaired) isWatchAppInstalled=\(session.isWatchAppInstalled) isComplicationEnabled=\(session.isComplicationEnabled)")
+        print("[iOS] ⌚️ reachable=\(session.isReachable) activationState=\(session.activationState.rawValue)")
+    }
     #endif
 
     // Incoming immediate request
     func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
         
         Task { @MainActor in
+            #if DEBUG
+            if JSONSerialization.isValidJSONObject(message),
+               let data = try? JSONSerialization.data(withJSONObject: message, options: [.prettyPrinted]),
+               let jsonString = String(data: data, encoding: .utf8) {
+                print("📥 didReceiveMessage full JSON:\n\(jsonString)")
+            } else {
+                print("📥 didReceiveMessage raw message: \(message)")
+            }
+            #endif
+            
             let kind = message[WCKeys.request] as? String
-            let result = await Self.handleImmediate(kind: kind) // implemented per-platform
+            
+            // Diagnostic ping: echo back immediately
+            if kind == "ping" {
+                replyHandler([WCKeys.payload: try? self.jsonEncoder.encode(Envelope(kind: "pong")) as Any])
+                return
+            }
+            
+            let result = await Self.process(kind: kind, message: message)
             let data = try? self.jsonEncoder.encode(result)
             replyHandler([WCKeys.payload: data as Any])
         }
@@ -109,9 +270,28 @@ final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObj
 
     // Incoming reliable events
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any] = [:]) {
-        guard let data = userInfo[WCKeys.payload] as? Data,
-              let env = try? jsonDecoder.decode(Envelope.self, from: data) else { return }
-        Task { await Self.applyEvent(env) } // implemented per-platform
+        print("📨 iOS received userInfo raw keys: \(Array(userInfo.keys))")
+        if let payloadData = userInfo[WCKeys.payload] as? Data {
+            print("📦 userInfo payload bytes: \(payloadData.count)")
+            if let env = try? jsonDecoder.decode(Envelope.self, from: payloadData),
+               let pretty = try? JSONEncoder().encode(env),
+               let json = String(data: pretty, encoding: .utf8) {
+                print("📦 userInfo decoded Envelope JSON:\n\(json)")
+            }
+        }
+        guard let data = userInfo[WCKeys.payload] as? Data else {
+            print("❌ iOS userInfo missing payload under key \(WCKeys.payload)")
+            return
+        }
+        guard let env = try? jsonDecoder.decode(Envelope.self, from: data) else {
+            print("❌ iOS failed to decode Envelope from userInfo (\(data.count) bytes)")
+            return
+        }
+        print("📨 …. kind=\(env.kind)")
+        Task {
+            await Self.applyEvent(env)
+            print("✅ iOS applied event kind=\(env.kind)")
+        } // implemented per-platform
     }
 
     // Snapshot push from counterpart
@@ -124,44 +304,97 @@ final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObj
 }
 
 extension ClarityWatchConnectivity {
-    static func handleImmediate(kind: String?) async -> Envelope {
+    static func process(kind: String?, message: [String: Any]?) async -> Envelope {
         guard let kind else { return .init(kind: "error") }
+        #if DEBUG
+        print("🧭 process received kind=\(kind)")
+        #endif
         switch kind {
         case WCKeys.Requests.listAll:
-            // Query SwiftData via your ModelActor (background)
             if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
-                return Envelope(kind: "listAll", todos: todos)
+                #if os(iOS)
+                print("📦 iOS listAll returning \(todos.count) tasks")
+                #endif
+                // Push snapshot so counterpart updates when this is triggered via reliable path
+                ClarityWatchConnectivity.shared.pushSnapshot(todos)
+                return Envelope(kind: WCKeys.Requests.listAll, todos: todos)
             }
-        default: break
+        case WCKeys.Requests.create:
+            // Immediate create expects a DTO under key "payload" or Envelope in reliable path
+            if let msg = message,
+               let data = msg[WCKeys.payload] as? Data,
+               let env = try? JSONDecoder().decode(Envelope.self, from: data),
+               let t = env.todo {
+                _ = try? await ClarityServices.store().addTask(t)
+            }
+            // Push snapshot and return ack
+            if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
+                ClarityWatchConnectivity.shared.pushSnapshot(todos)
+            }
+            return Envelope(kind: WCKeys.Requests.create)
+        case WCKeys.Requests.complete:
+            // Support both immediate (id under "id") and reliable (Envelope.todotaskid)
+            var encodedId: String?
+            if let msg = message, let id = msg["id"] as? String { encodedId = id }
+            if encodedId == nil, let msg = message, let data = msg[WCKeys.payload] as? Data,
+               let env = try? JSONDecoder().decode(Envelope.self, from: data) {
+                encodedId = env.todotaskid
+            }
+            if let encodedId, let pid = try? ToDoTaskDTO.decodeId(encodedId) {
+                _ = try? await ClarityServices.store().completeTask(pid)
+            }
+            if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
+                ClarityWatchConnectivity.shared.pushSnapshot(todos)
+            }
+            return Envelope(kind: WCKeys.Requests.complete)
+        case WCKeys.Requests.delete:
+            var encodedId: String?
+            if let msg = message, let id = msg["id"] as? String { encodedId = id }
+            if encodedId == nil, let msg = message, let data = msg[WCKeys.payload] as? Data,
+               let env = try? JSONDecoder().decode(Envelope.self, from: data) {
+                encodedId = env.todotaskid
+            }
+            if let encodedId, let pid = try? ToDoTaskDTO.decodeId(encodedId) {
+                try? await ClarityServices.store().deleteTask(pid)
+            }
+            if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
+                ClarityWatchConnectivity.shared.pushSnapshot(todos)
+            }
+            return Envelope(kind: WCKeys.Requests.delete)
+        case WCKeys.Requests.pomodoro:
+            // Start pomodoro timer – treated as a mutation with id
+            var encodedId: String?
+            if let msg = message, let id = msg["id"] as? String { encodedId = id }
+            if encodedId == nil, let msg = message, let data = msg[WCKeys.payload] as? Data,
+               let env = try? JSONDecoder().decode(Envelope.self, from: data) {
+                encodedId = env.todotaskid
+            }
+            if let encodedId, let pid = try? ToDoTaskDTO.decodeId(encodedId) {
+                // If you later wire a pomodoro service, invoke it here
+                _ = pid // placeholder to avoid unused variable
+            }
+            if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
+                ClarityWatchConnectivity.shared.pushSnapshot(todos)
+            }
+            return Envelope(kind: WCKeys.Requests.pomodoro)
+        case "ping":
+            return Envelope(kind: "pong")
+        default:
+            #if DEBUG
+            print("⚠️ process unknown kind=\(kind)")
+            #endif
+            break
         }
         return .init(kind: "error")
     }
 
     static func applyEvent(_ env: Envelope) async {
-        switch env.kind {
-        case WCKeys.Requests.create:
-            if let t = env.todo {
-                _ = try? await ClarityServices.store().addTask(t)
-            }
-        case WCKeys.Requests.complete:
-            if let encodedId = env.todotaskid {
-                // Use DTO helper to decode Base64-encoded PersistentIdentifier
-                if let pid = try? ToDoTaskDTO.decodeId(encodedId) {
-                    _ = try? await ClarityServices.store().completeTask(pid)
-                }
-            }
-        case WCKeys.Requests.delete:
-            if let encodedId = env.todotaskid {
-                if let pid = try? ToDoTaskDTO.decodeId(encodedId) {
-                    try? await ClarityServices.store().deleteTask(pid)
-                }
-            }
-        default: break
+        // Wrap the Envelope into a message-like dictionary so we can reuse process(kind:message:)
+        var message: [String: Any] = [WCKeys.request: env.kind]
+        if let data = try? JSONEncoder().encode(env) {
+            message[WCKeys.payload] = data
         }
-        // After any mutation, push a fresh snapshot so watch updates quickly
-        if let todos = try? await ClarityServices.store().fetchTasks(filter: .all){
-            ClarityWatchConnectivity.shared.pushSnapshot(todos)
-        }
+        _ = await process(kind: env.kind, message: message)
     }
 }
 
@@ -198,11 +431,12 @@ extension ClarityWatchConnectivity {
 
     func sessionReachabilityDidChange(_ session: WCSession) {
         print("⌚️ Reachability changed → \(session.isReachable)")
+        print("⌚️ activationState=\(session.activationState.rawValue)")
 
         // Only pull new data when the phone becomes reachable
         guard session.isReachable else { return }
 
-        requestListAll { result in
+        requestListAll(preferReliable: false) { result in
             if case let .success(todos) = result {
                 DispatchQueue.main.async {
                     print("⌚️ Watch pulled \(todos.count) tasks from phone")
