@@ -105,7 +105,8 @@ struct TaskIndexView: View {
     private func startTimer(for task: ToDoTaskDTO) {
         selectedTask = task
         withAnimation(.easeInOut(duration: 0.3)) {
-            showingPomodoro = true
+            // showingPomodoro = true
+            PomodoroService.shared.startPomodoro(for: task)
         }
     }
     

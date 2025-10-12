@@ -165,7 +165,7 @@ final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObj
     }
     
     func sendPomodoroStart(id: String) {
-        sendImmediateOrReliable(.init(kind: WCKeys.Requests.pomodoro, todotaskid: id))
+        sendImmediateOrReliable(.init(kind: WCKeys.Requests.startPomodoro, todotaskid: id))
     }
 
     func sendDelete(id: String) {
@@ -361,7 +361,7 @@ extension ClarityWatchConnectivity {
                 ClarityWatchConnectivity.shared.pushSnapshot(todos)
             }
             return Envelope(kind: WCKeys.Requests.delete)
-        case WCKeys.Requests.pomodoro:
+        case WCKeys.Requests.startPomodoro:
             // Start pomodoro timer – treated as a mutation with id
             var encodedId: String?
             if let msg = message, let id = msg["id"] as? String { encodedId = id }
@@ -370,13 +370,34 @@ extension ClarityWatchConnectivity {
                 encodedId = env.todotaskid
             }
             if let encodedId, let pid = try? ToDoTaskDTO.decodeId(encodedId) {
-                // If you later wire a pomodoro service, invoke it here
-                _ = pid // placeholder to avoid unused variable
+                #if os(iOS)
+                do {
+                    //let pomodoro = Pomodoro()
+                    // Acquire model container (non-optional) – handle thrown error
+                    let container = try await ClarityServices.store().modelContainer
+                    guard let task = try await ClarityServices.store().fetchTaskById(pid) else {
+                        return Envelope(kind: WCKeys.Requests.startPomodoro)
+                    }
+                    //let coordinator = PomodoroCoordinator(pomodoro: pomodoro, task: task, container: container)
+
+                    // TODO: Retrieve the related task for the coordinator if needed.
+                    // If you have an API to fetch a single task by persistent ID, use it here.
+                    // For now, we skip creating the coordinator to resolve build errors until the API is available.
+                    _ = container // silence unused warning for now
+                    //_ = pomodoro  // silence unused warning for now
+                    // Example (uncomment and adapt when a fetch API exists):
+                    // let task = try await ClarityServices.store().task(for: pid)
+                    // let coordinator = PomodoroCoordinator(pomodoro: pomodoro, task: task, container: container)
+                    // _ = coordinator
+                } catch {
+                    #if DEBUG
+                    print("⚠️ Failed to initialize Pomodoro dependencies: \(error)")
+                    #endif
+                }
+                #endif
             }
-            if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
-                ClarityWatchConnectivity.shared.pushSnapshot(todos)
-            }
-            return Envelope(kind: WCKeys.Requests.pomodoro)
+            // Ack so watch can present PomodoroView
+            return Envelope(kind: WCKeys.Requests.pomodoroStarted)
         case "ping":
             return Envelope(kind: "pong")
         default:
@@ -407,8 +428,17 @@ public enum WCKeys {
         public static let complete  = "complete"
         public static let create  = "create"
         public static let delete  = "delete"
-        public static let pomodoro = "pomodoro"
+        public static let startPomodoro = "startPomodoro"
+        public static let stopPomodoro = "stopPomodoro"
+        public static let pomodoroStarted = "pomodoroStarted"
+        public static let pomodoroStopped = "pomodoroStopped"
     }
+}
+
+public struct PomodoroDTO: Codable, Sendable {
+    var startTime: Date?
+    var endTime: Date?
+    var toDoTask: ToDoTaskDTO
 }
 
 public struct Envelope: Codable, Sendable {
@@ -416,12 +446,14 @@ public struct Envelope: Codable, Sendable {
     public let todos: [ToDoTaskDTO]?       // for list/snapshot
     public let todo: ToDoTaskDTO?          // for single op
     public let todotaskid: String?
+    public let pomodoro: PomodoroDTO?
 
-    public init(kind: String, todos: [ToDoTaskDTO]? = nil, todo: ToDoTaskDTO? = nil, todotaskid : String? = nil) {
+    public init(kind: String, todos: [ToDoTaskDTO]? = nil, todo: ToDoTaskDTO? = nil, todotaskid : String? = nil, pomodoro: PomodoroDTO? = nil) {
         self.kind = kind
         self.todos = todos
         self.todo = todo
         self.todotaskid = todotaskid
+        self.pomodoro = pomodoro
     }
 }
 

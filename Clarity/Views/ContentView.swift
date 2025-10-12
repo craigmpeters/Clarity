@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(\.modelContext) private var context
+    @EnvironmentObject var appState: AppState
     @State private var selectedTask: ToDoTaskDTO? = nil
     @State private var showingPomodoro = false
     @State private var showingFirstRun = !UserDefaults.hasCompletedOnboarding
@@ -44,12 +45,8 @@ struct ContentView: View {
             .scaleEffect(showingPomodoro ? 0.95 : 1.0)
             
             // Pomodoro View Overlay
-            if showingPomodoro, let selectedTask = selectedTask {
-                PomodoroView(
-                    task: selectedTask,
-                    showingPomodoro: $showingPomodoro,
-                    container: context.container
-                )
+            if appState.showingPomodoro {
+                PomodoroView()
                 .transition(.asymmetric(
                     insertion: .move(edge: .trailing).combined(with: .opacity),
                     removal: .move(edge: .trailing).combined(with: .opacity)

@@ -13,7 +13,7 @@ import WatchKit
 #endif
 
 struct PomodoroView: View {
-    var task: ToDoTask
+    var task: ToDoTaskDTO
     
     // Stubbed timer: keep static values for now
     private let interval: TimeInterval
@@ -49,16 +49,16 @@ struct PomodoroView: View {
         #endif
     }
     
-    init(toDoTask: ToDoTask) {
-        self.task = toDoTask
-        self.interval = toDoTask.pomodoroTime
+    init(task: ToDoTaskDTO) {
+        self.task = task
+        self.interval = task.pomodoroTime
         self.endTime = Date.now.addingTimeInterval(self.interval)
         // Timer stubbed out for now; no scheduled updates
     }
     
     var body: some View {
         VStack(spacing: 8) {
-            Text("\(task.name ?? "Unknown Task")")
+            Text(task.name)
                 .font(.caption2.bold())
                 .lineLimit(1)
                 .minimumScaleFactor(0.9)
@@ -115,6 +115,7 @@ struct PomodoroView: View {
 }
 
 #Preview {
-    let previewTask = PreviewData.shared.getToDoTask()
-    PomodoroView(toDoTask: previewTask)
+    // Provide a lightweight DTO preview
+   // let sample = ToDoTaskDTO(id: "preview-id", name: "Sample Task", pomodoroTime: 1500, due: .now, categories: [])
+   // PomodoroView(task: sample)
 }

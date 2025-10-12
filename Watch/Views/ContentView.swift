@@ -13,6 +13,7 @@ struct ContentView: View {
     @ObservedObject private var connectivity = ClarityWatchConnectivity.shared
     @State private var todos: [ToDoTaskDTO] = []
     @State private var isRefreshing = false
+    @State private var selectedPomodoroTask: ToDoTaskDTO? = nil
 
     var body: some View {
         NavigationStack {
@@ -53,6 +54,9 @@ struct ContentView: View {
                     ContentUnavailableView("No Tasks", systemImage: "tray", description: Text("Tap Refresh"))
                 }
             }
+            .navigationDestination(item: $selectedPomodoroTask) { task in
+                PomodoroView(task: task)
+            }
             .task {
                 connectivity.start()
                 connectivity.requestListAll { result in
@@ -86,7 +90,26 @@ struct ContentView: View {
     private func startTimer(_ task: ToDoTaskDTO) {
         print("Attempting to start timer \(task.name)")
         guard let encodedId = task.encodedId else { return }
-        connectivity.sendPomodoroStart(id: encodedId)
+        let env = Envelope(kind: WCKeys.Requests.startPomodoro, todotaskid: encodedId)
+
+        // Prefer immediate path with ack; fall back to reliable
+        if WCSession.default.activationState == .activated,
+           WCSession.default.isReachable,
+           let data = try? JSONEncoder().encode(env) {
+            let message: [String: Any] = [WCKeys.request: WCKeys.Requests.startPomodoro, WCKeys.payload: data]
+            WCSession.default.sendMessage(message, replyHandler: { _ in
+                DispatchQueue.main.async { self.selectedPomodoroTask = task }
+            }, errorHandler: { error in
+                // Fall back to reliable and still present
+                self.connectivity.sendPomodoroStart(id: encodedId)
+                print("Immediate pomodoro send failed; queued reliable. Error: \(error)")
+                DispatchQueue.main.async { self.selectedPomodoroTask = task }
+            })
+        } else {
+            // Not reachable; queue reliable and present
+            connectivity.sendPomodoroStart(id: encodedId)
+            DispatchQueue.main.async { self.selectedPomodoroTask = task }
+        }
     }
 
     private func refresh() {
