@@ -23,40 +23,12 @@
 			remoteGlobalIDString = 4448AD602E579266005CDDDF;
 			remoteInfo = PomodoroExtensionExtension;
 		};
-		44D6EACA2E83177400B5EF9E /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 44FB49562E51F1EB0059CC5B /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 44D6EABC2E83176B00B5EF9E;
-			remoteInfo = "WatchClarity Watch App";
-		};
-		44D6EAD42E83177400B5EF9E /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 44FB49562E51F1EB0059CC5B /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 44D6EABC2E83176B00B5EF9E;
-			remoteInfo = "WatchClarity Watch App";
-		};
 		44D6EADB2E83177400B5EF9E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 44FB49562E51F1EB0059CC5B /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 44D6EABC2E83176B00B5EF9E;
 			remoteInfo = "WatchClarity Watch App";
-		};
-		44FB496F2E51F1ED0059CC5B /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 44FB49562E51F1EB0059CC5B /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 44FB495D2E51F1EB0059CC5B;
-			remoteInfo = Clarity;
-		};
-		44FB49792E51F1ED0059CC5B /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 44FB49562E51F1EB0059CC5B /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 44FB495D2E51F1EB0059CC5B;
-			remoteInfo = Clarity;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -90,15 +62,11 @@
 		4448AD632E579266005CDDDF /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		4448AD652E579266005CDDDF /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		44D6EABD2E83176B00B5EF9E /* ClarityWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClarityWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		44D6EAC92E83177400B5EF9E /* WatchClarity Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "WatchClarity Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		44D6EAD32E83177400B5EF9E /* WatchClarity Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "WatchClarity Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		44D6EF7E2E85DA4000B5EF9E /* AppCatalog.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = AppCatalog.xcassets; sourceTree = "<group>"; };
 		44D6F0492E85DDDF00B5EF9E /* ClarityWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ClarityWatch.entitlements; sourceTree = "<group>"; };
 		44D6F04A2E85DE1500B5EF9E /* ClarityWatch-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "ClarityWatch-Info.plist"; sourceTree = "<group>"; };
 		44F7CE5F2E8B2FA300F520BF /* DataRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataRepository.swift; sourceTree = "<group>"; };
 		44FB495E2E51F1EB0059CC5B /* Clarity.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Clarity.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		44FB496E2E51F1ED0059CC5B /* ClarityTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClarityTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		44FB49782E51F1ED0059CC5B /* ClarityUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClarityUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -302,35 +270,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		44D6EAC62E83177400B5EF9E /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		44D6EAD02E83177400B5EF9E /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		44FB495B2E51F1EB0059CC5B /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		44FB496B2E51F1ED0059CC5B /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		44FB49752E51F1ED0059CC5B /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -394,12 +334,8 @@
 			isa = PBXGroup;
 			children = (
 				44FB495E2E51F1EB0059CC5B /* Clarity.app */,
-				44FB496E2E51F1ED0059CC5B /* ClarityTests.xctest */,
-				44FB49782E51F1ED0059CC5B /* ClarityUITests.xctest */,
 				4448AD612E579266005CDDDF /* Widgets.appex */,
 				44D6EABD2E83176B00B5EF9E /* ClarityWatch.app */,
-				44D6EAC92E83177400B5EF9E /* WatchClarity Watch AppTests.xctest */,
-				44D6EAD32E83177400B5EF9E /* WatchClarity Watch AppUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -452,52 +388,6 @@
 			productReference = 44D6EABD2E83176B00B5EF9E /* ClarityWatch.app */;
 			productType = "com.apple.product-type.application";
 		};
-		44D6EAC82E83177400B5EF9E /* WatchClarity Watch AppTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 44D6EAE22E83177400B5EF9E /* Build configuration list for PBXNativeTarget "WatchClarity Watch AppTests" */;
-			buildPhases = (
-				44D6EAC52E83177400B5EF9E /* Sources */,
-				44D6EAC62E83177400B5EF9E /* Frameworks */,
-				44D6EAC72E83177400B5EF9E /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				44D6EACB2E83177400B5EF9E /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				44D6EACC2E83177400B5EF9E /* Tests */,
-			);
-			name = "WatchClarity Watch AppTests";
-			packageProductDependencies = (
-			);
-			productName = "WatchClarity Watch AppTests";
-			productReference = 44D6EAC92E83177400B5EF9E /* WatchClarity Watch AppTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		44D6EAD22E83177400B5EF9E /* WatchClarity Watch AppUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 44D6EAE52E83177400B5EF9E /* Build configuration list for PBXNativeTarget "WatchClarity Watch AppUITests" */;
-			buildPhases = (
-				44D6EACF2E83177400B5EF9E /* Sources */,
-				44D6EAD02E83177400B5EF9E /* Frameworks */,
-				44D6EAD12E83177400B5EF9E /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				44D6EAD52E83177400B5EF9E /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				44D6EAD62E83177400B5EF9E /* UI Tests */,
-			);
-			name = "WatchClarity Watch AppUITests";
-			packageProductDependencies = (
-			);
-			productName = "WatchClarity Watch AppUITests";
-			productReference = 44D6EAD32E83177400B5EF9E /* WatchClarity Watch AppUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
 		44FB495D2E51F1EB0059CC5B /* Clarity */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 44FB49822E51F1ED0059CC5B /* Build configuration list for PBXNativeTarget "Clarity" */;
@@ -529,52 +419,6 @@
 			productReference = 44FB495E2E51F1EB0059CC5B /* Clarity.app */;
 			productType = "com.apple.product-type.application";
 		};
-		44FB496D2E51F1ED0059CC5B /* ClarityTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 44FB49852E51F1ED0059CC5B /* Build configuration list for PBXNativeTarget "ClarityTests" */;
-			buildPhases = (
-				44FB496A2E51F1ED0059CC5B /* Sources */,
-				44FB496B2E51F1ED0059CC5B /* Frameworks */,
-				44FB496C2E51F1ED0059CC5B /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				44FB49702E51F1ED0059CC5B /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				44FB49712E51F1ED0059CC5B /* ClarityTests */,
-			);
-			name = ClarityTests;
-			packageProductDependencies = (
-			);
-			productName = ClarityTests;
-			productReference = 44FB496E2E51F1ED0059CC5B /* ClarityTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		44FB49772E51F1ED0059CC5B /* ClarityUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 44FB49882E51F1ED0059CC5B /* Build configuration list for PBXNativeTarget "ClarityUITests" */;
-			buildPhases = (
-				44FB49742E51F1ED0059CC5B /* Sources */,
-				44FB49752E51F1ED0059CC5B /* Frameworks */,
-				44FB49762E51F1ED0059CC5B /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				44FB497A2E51F1ED0059CC5B /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				44FB497B2E51F1ED0059CC5B /* ClarityUITests */,
-			);
-			name = ClarityUITests;
-			packageProductDependencies = (
-			);
-			productName = ClarityUITests;
-			productReference = 44FB49782E51F1ED0059CC5B /* ClarityUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -591,24 +435,8 @@
 					44D6EABC2E83176B00B5EF9E = {
 						CreatedOnToolsVersion = 26.0.1;
 					};
-					44D6EAC82E83177400B5EF9E = {
-						CreatedOnToolsVersion = 26.0.1;
-						TestTargetID = 44D6EABC2E83176B00B5EF9E;
-					};
-					44D6EAD22E83177400B5EF9E = {
-						CreatedOnToolsVersion = 26.0.1;
-						TestTargetID = 44D6EABC2E83176B00B5EF9E;
-					};
 					44FB495D2E51F1EB0059CC5B = {
 						CreatedOnToolsVersion = 16.2;
-					};
-					44FB496D2E51F1ED0059CC5B = {
-						CreatedOnToolsVersion = 16.2;
-						TestTargetID = 44FB495D2E51F1EB0059CC5B;
-					};
-					44FB49772E51F1ED0059CC5B = {
-						CreatedOnToolsVersion = 16.2;
-						TestTargetID = 44FB495D2E51F1EB0059CC5B;
 					};
 				};
 			};
@@ -629,10 +457,6 @@
 				44FB495D2E51F1EB0059CC5B /* Clarity */,
 				44D6EABC2E83176B00B5EF9E /* ClarityWatch */,
 				4448AD602E579266005CDDDF /* Widgets */,
-				44FB496D2E51F1ED0059CC5B /* ClarityTests */,
-				44FB49772E51F1ED0059CC5B /* ClarityUITests */,
-				44D6EAC82E83177400B5EF9E /* WatchClarity Watch AppTests */,
-				44D6EAD22E83177400B5EF9E /* WatchClarity Watch AppUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -652,39 +476,11 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		44D6EAC72E83177400B5EF9E /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		44D6EAD12E83177400B5EF9E /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		44FB495C2E51F1EB0059CC5B /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				44D6EFAA2E85DA4000B5EF9E /* AppCatalog.xcassets in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		44FB496C2E51F1ED0059CC5B /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		44FB49762E51F1ED0059CC5B /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -705,39 +501,11 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		44D6EAC52E83177400B5EF9E /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		44D6EACF2E83177400B5EF9E /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		44FB495A2E51F1EB0059CC5B /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				44F7CE602E8B2FA300F520BF /* DataRepository.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		44FB496A2E51F1ED0059CC5B /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		44FB49742E51F1ED0059CC5B /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -749,30 +517,10 @@
 			target = 4448AD602E579266005CDDDF /* Widgets */;
 			targetProxy = 4448AD732E579268005CDDDF /* PBXContainerItemProxy */;
 		};
-		44D6EACB2E83177400B5EF9E /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
-			targetProxy = 44D6EACA2E83177400B5EF9E /* PBXContainerItemProxy */;
-		};
-		44D6EAD52E83177400B5EF9E /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
-			targetProxy = 44D6EAD42E83177400B5EF9E /* PBXContainerItemProxy */;
-		};
 		44D6EADC2E83177400B5EF9E /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
 			targetProxy = 44D6EADB2E83177400B5EF9E /* PBXContainerItemProxy */;
-		};
-		44FB49702E51F1ED0059CC5B /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
-			targetProxy = 44FB496F2E51F1ED0059CC5B /* PBXContainerItemProxy */;
-		};
-		44FB497A2E51F1ED0059CC5B /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
-			targetProxy = 44FB49792E51F1ED0059CC5B /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -905,96 +653,6 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 26.0;
-			};
-			name = Release;
-		};
-		44D6EAE32E83177400B5EF9E /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 4VL692ZU4A;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "me.craigpeters.clarity.WatchClarity-Watch-AppTests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = watchos;
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 4;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/WatchClarity Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/WatchClarity Watch App";
-				WATCHOS_DEPLOYMENT_TARGET = 26.0;
-			};
-			name = Debug;
-		};
-		44D6EAE42E83177400B5EF9E /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 4VL692ZU4A;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "me.craigpeters.clarity.WatchClarity-Watch-AppTests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = watchos;
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 4;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/WatchClarity Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/WatchClarity Watch App";
-				WATCHOS_DEPLOYMENT_TARGET = 26.0;
-			};
-			name = Release;
-		};
-		44D6EAE62E83177400B5EF9E /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 4VL692ZU4A;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "me.craigpeters.clarity.WatchClarity-Watch-AppUITests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = watchos;
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 4;
-				TEST_TARGET_NAME = "WatchClarity Watch App";
-				WATCHOS_DEPLOYMENT_TARGET = 26.0;
-			};
-			name = Debug;
-		};
-		44D6EAE72E83177400B5EF9E /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 4VL692ZU4A;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "me.craigpeters.clarity.WatchClarity-Watch-AppUITests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = watchos;
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 4;
-				TEST_TARGET_NAME = "WatchClarity Watch App";
 				WATCHOS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Release;
@@ -1192,74 +850,6 @@
 			};
 			name = Release;
 		};
-		44FB49862E51F1ED0059CC5B /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.ClarityTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Clarity.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Clarity";
-			};
-			name = Debug;
-		};
-		44FB49872E51F1ED0059CC5B /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.ClarityTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Clarity.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Clarity";
-			};
-			name = Release;
-		};
-		44FB49892E51F1ED0059CC5B /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.ClarityUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = Clarity;
-			};
-			name = Debug;
-		};
-		44FB498A2E51F1ED0059CC5B /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.ClarityUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = Clarity;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1281,24 +871,6 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		44D6EAE22E83177400B5EF9E /* Build configuration list for PBXNativeTarget "WatchClarity Watch AppTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				44D6EAE32E83177400B5EF9E /* Debug */,
-				44D6EAE42E83177400B5EF9E /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		44D6EAE52E83177400B5EF9E /* Build configuration list for PBXNativeTarget "WatchClarity Watch AppUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				44D6EAE62E83177400B5EF9E /* Debug */,
-				44D6EAE72E83177400B5EF9E /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		44FB49592E51F1EB0059CC5B /* Build configuration list for PBXProject "Clarity" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -1313,24 +885,6 @@
 			buildConfigurations = (
 				44FB49832E51F1ED0059CC5B /* Debug */,
 				44FB49842E51F1ED0059CC5B /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		44FB49852E51F1ED0059CC5B /* Build configuration list for PBXNativeTarget "ClarityTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				44FB49862E51F1ED0059CC5B /* Debug */,
-				44FB49872E51F1ED0059CC5B /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		44FB49882E51F1ED0059CC5B /* Build configuration list for PBXNativeTarget "ClarityUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				44FB49892E51F1ED0059CC5B /* Debug */,
-				44FB498A2E51F1ED0059CC5B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
