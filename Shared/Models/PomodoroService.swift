@@ -11,13 +11,14 @@ import ActivityKit
 import UserNotifications
 import SwiftData
 
-final class PomodoroService: ObservableObject {
+@MainActor final class PomodoroService: ObservableObject {
     static let shared = PomodoroService()
     
     var isActive: Bool = false
+    var toDoTask: ToDoTaskDTO?
+    var startedDevice: DeviceType = .iPhone
     @Published var endTime: Date?
     @Published var startTime: Date?
-    @Published var toDoTask: ToDoTaskDTO?
     @Published var remainingTime: TimeInterval = 0
     @Published var progress: Double = 0
     
@@ -44,13 +45,17 @@ final class PomodoroService: ObservableObject {
         guard let totalTime = toDoTask?.pomodoroTime else { return 0 }
         return 1.0 - (remainingTime / totalTime)
     }
-    private lazy var storeTask = Task.detached { [container] in
-            await ClarityModelActorFactory.makeBackground(container: container!)
-        }
+    
+    enum DeviceType {
+        case iPhone
+        case watchOS
+    }
     
     // MARK: Public Functions
     
-    public func startPomodoro(for toDoTask: ToDoTaskDTO) {
+    public func startPomodoro(for toDoTask: ToDoTaskDTO, container: ModelContainer, device: DeviceType ) {
+        self.startedDevice = device
+        self.container = container
         self.toDoTask = toDoTask
         let now = Date()
         self.startTime = now
@@ -66,25 +71,41 @@ final class PomodoroService: ObservableObject {
             scheduleNotification(date: end, notification: notif)
         }
         NotificationCenter.default.post(name: .pomodoroStarted, object: nil)
+        let dto = PomodoroDTO(
+            startTime: startTime, endTime: endTime, toDoTask: toDoTask
+        )
+        ClarityWatchConnectivity.shared.sendPomodoroStarted(dto)
     }
     
-    public func endPomodoro(container: ModelContainer) async {
-        self.container = container
-        let store = await storeTask.value
-        guard let taskID = toDoTask?.id else { return }
-        do {
-            try await store.completeTask(taskID)
-        } catch {
-            // Handle or log the error so the app can continue cleanup gracefully
-            print("ERROR: Failed to complete task with id \(taskID): \(error)")
+    public func endPomodoro() async {
+        // Make idempotent: if already inactive, do nothing
+        guard isActive else {
+            print("Pomodoro is not active")
+            return
         }
-        NotificationCenter.default.post(name: .pomodoroCompleted, object: nil)
+
+        // Mark inactive and clean up timer/activity/notification
+        isActive = false
+
+        if let t = timer {
+            t.invalidate()
+        }
+        timer = nil
+
         stopLiveActivity()
         cancelNotification()
+        
 
-        // Clear local state
-        self.isActive = false
-
+        // Post a single completion notification
+        NotificationCenter.default.post(name: .pomodoroCompleted, object: nil)
+        if startedDevice == .watchOS {
+            if let task = self.toDoTask {
+                ClarityWatchConnectivity.shared.sendPomodoroStopped(self.toDoTask)
+            } else {
+                ClarityWatchConnectivity.shared.sendPomodoroStopped()
+            }
+        }
+        
     }
     
     // MARK: Live Activities
@@ -159,26 +180,22 @@ final class PomodoroService: ObservableObject {
     
     // MARK: Pomodoro Timer Function
     private func startTimer() {
+        timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            
-            guard let remaining = self.calculatedRemainingTime else { return }
-            self.remainingTime = remaining 
-            self.progress = calculatedProgress
-            
-            if self.remainingTime <= 0 {
-                self.isActive = false
-                self.timer?.invalidate()
-                NotificationCenter.default.post(name: .pomodoroCompleted, object: nil)
+            Task { @MainActor in
+                guard let self = self else { return }
+                // Ensure main-actor access to state
+                let remaining = self.calculatedRemainingTime ?? 0
+                self.remainingTime = remaining
+                self.progress = self.calculatedProgress
+                if self.remainingTime <= 0 {
+                    self.timer?.invalidate()
+                    self.timer = nil
+                    await self.endPomodoro()
+                }
             }
-            
-            self.objectWillChange.send()
         }
+        RunLoop.main.add(timer!, forMode: .common)
     }
-}
-
-extension Notification.Name {
-    static let pomodoroCompleted = Notification.Name("pomodoroCompleted")
-    static let pomodoroStarted = Notification.Name("pomodoroStarted")
 }
 

@@ -66,6 +66,16 @@ struct TaskIndexView: View {
             await requestNotificationPermission()
             store = await StoreRegistry.shared.store(for: context.container)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .pomodoroCompleted)) { notification in
+            if PomodoroService.shared.startedDevice == .watchOS { return }
+            print("📱 Finishing task on Phone")
+            guard let store = store else { return }
+            if let id = notification.userInfo?["taskID"] as? PersistentIdentifier {
+                Task { try? await store.completeTask(id) }
+            } else if let id = PomodoroService.shared.toDoTask?.id {
+                Task { try? await store.completeTask(id) }
+            }
+        }
         // .refreshable(action: toDoStore.loadToDoTasks())
         .sheet(isPresented: $showingTaskForm, onDismiss: {
             taskToEdit = nil
@@ -106,7 +116,7 @@ struct TaskIndexView: View {
         selectedTask = task
         withAnimation(.easeInOut(duration: 0.3)) {
             // showingPomodoro = true
-            PomodoroService.shared.startPomodoro(for: task)
+            PomodoroService.shared.startPomodoro(for: task, container: context.container, device: .iPhone)
         }
     }
     

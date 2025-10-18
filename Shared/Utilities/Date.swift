@@ -13,3 +13,8 @@ extension Date {
         return cal.startOfDay(for: self)
     }
 }
+
+extension Notification.Name {
+    static let pomodoroCompleted = Notification.Name("pomodoroCompleted")
+    static let pomodoroStarted = Notification.Name("pomodoroStarted")
+}

@@ -11,55 +11,6 @@ struct PomodoroView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Custom navigation bar
-//            HStack {
-//                Button(action: {
-//                    Task(priority: .userInitiated) { @MainActor in
-//                        await service.endPomodoro(container: context.container)
-//                    }
-//                        
-//                    withAnimation(.easeInOut(duration: 0.3)) {
-//                        appState.showingPomodoro = false
-//                        dismiss()
-//                    }
-//                }) {
-//                    HStack(spacing: 8) {
-//                        Image(systemName: "chevron.left")
-//                            .font(.system(size: 16, weight: .semibold))
-//                        Text("Back")
-//                            .font(.system(size: 17, weight: .regular))
-//                    }
-//                    .foregroundColor(.blue)
-//                }
-//                
-//                Spacer()
-//                
-//                Text("Focus Timer")
-//                    .font(.system(size: 17, weight: .semibold))
-//                    .foregroundColor(.primary)
-//                
-//                Spacer()
-//                
-//                // Placeholder for balance
-//                Button(action: {}) {
-//                    Image(systemName: "ellipsis")
-//                        .font(.system(size: 16, weight: .semibold))
-//                        .foregroundColor(.blue)
-//                }
-//                .opacity(0) // Hidden but maintains layout
-//            }
-//            .padding(.horizontal, 20)
-//            .padding(.vertical, 12)
-//            .background(.regularMaterial)
-//            .overlay(
-//                Rectangle()
-//                    .fill(Color.gray)
-//                    .opacity(0.2)
-//                    .frame(height: 1),
-//                alignment: .bottom
-//            )
-            
-            // Main content
             VStack(spacing: 30) {
                 VStack(spacing: 8) {
                     Text(service.toDoTask?.name ?? "No task selected")
@@ -105,14 +56,14 @@ struct PomodoroView: View {
                 VStack(spacing: 16) {
                     // Dynamic button based on timer state
                     Button(action: {
-                        Task(priority: .userInitiated) { @MainActor in
-                            await service.endPomodoro(container: context.container)
+                        Task {
+                            await service.endPomodoro()
                         }
-                            
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            appState.showingPomodoro = false
-                            dismiss()
-                        }
+                        
+//                        withAnimation(.easeInOut(duration: 0.3)) {
+//                            appState.showingPomodoro = false
+//                            dismiss()
+//                        }
                     }) {
                         HStack(spacing: 12) {
                             Image(systemName: !service.isActive ? "checkmark.circle.fill" : "stop.circle")
@@ -158,6 +109,7 @@ struct PomodoroView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(.systemBackground))
+            .padding(.vertical, 20)
         }
         .background(Color(.systemBackground))
         .ignoresSafeArea(.container, edges: .top)
@@ -168,6 +120,12 @@ struct PomodoroView: View {
             Task {
             }
             
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .pomodoroCompleted)) { _ in
+            withAnimation(.easeInOut(duration: 0.3)) {
+                appState.showingPomodoro = false
+                dismiss()
+            }
         }
     }
 }

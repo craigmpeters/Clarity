@@ -7,20 +7,22 @@
 
 import SwiftUI
 import Foundation
+import WatchConnectivity
 
 #if os(watchOS)
 import WatchKit
 #endif
 
 struct PomodoroView: View {
-    var task: ToDoTaskDTO
+    @Environment(\.dismiss) private var dismiss
     
-    // Stubbed timer: keep static values for now
+    var pomodoro: PomodoroDTO
+    var onDismiss: (() -> Void)?
     private let interval: TimeInterval
-    private let endTime: Date
+
     
     private var remainingTime: TimeInterval {
-        let remaining = endTime.timeIntervalSinceNow
+        let remaining = pomodoro.endTime!.timeIntervalSinceNow
         return max(0, remaining)
     }
     
@@ -43,28 +45,20 @@ struct PomodoroView: View {
         #if os(watchOS)
         let bounds = WKInterfaceDevice.current().screenBounds
         let dimension = min(bounds.width, bounds.height)
-        return dimension * 0.85
+        return dimension * 0.75
         #else
         return 200
         #endif
     }
     
-    init(task: ToDoTaskDTO) {
-        self.task = task
-        self.interval = task.pomodoroTime
-        self.endTime = Date.now.addingTimeInterval(self.interval)
+    init(_ pomodoro: PomodoroDTO) {
+        self.interval = pomodoro.toDoTask.pomodoroTime
+        self.pomodoro = pomodoro
         // Timer stubbed out for now; no scheduled updates
     }
     
     var body: some View {
         VStack(spacing: 8) {
-            Text(task.name)
-                .font(.caption2.bold())
-                .lineLimit(1)
-                .minimumScaleFactor(0.9)
-                .allowsTightening(true)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(10)
             TimelineView(.periodic(from: .now, by: 1)) { _ in
                 ZStack {
                     // Background circle
@@ -90,10 +84,32 @@ struct PomodoroView: View {
                     // Timer text
                     VStack {
                         Text(formattedTime)
-                            .font(.system(size: 42, weight: .bold, design: .monospaced))
+                            .font(.system(size: 38, weight: .bold, design: .monospaced))
                             .foregroundColor(.primary)
                         Button(action: {
-                            //
+                            // Send stopPomodoro to the phone
+                            print("Attempting to Stop Pomodoro for \(pomodoro.toDoTask.name)")
+                            let env = Envelope(kind: WCKeys.Requests.stopPomodoro, pomodoro: pomodoro)
+                            let encoder = JSONEncoder()
+                            
+                            guard let data = try? encoder.encode(env) else { return }
+                            let message: [String: Any] = [WCKeys.request: WCKeys.Requests.stopPomodoro, WCKeys.payload: data]
+                            
+                            let session = WCSession.default
+                            if session.activationState == .activated, session.isReachable {
+                                session.sendMessage(message, replyHandler: { _ in
+                                    print("Sent stopPomodoro...")
+                                    // ack received
+                                }, errorHandler: { error in
+                                    // Fall back to reliable transfer
+                                    session.transferUserInfo([WCKeys.payload: data])
+                                    print("⚠️ stopPomodoro immediate send failed; queued reliable. Error: \(error)")
+                                })
+                            } else {
+                                // Not reachable; queue reliable
+                                session.transferUserInfo([WCKeys.payload: data])
+                            }
+                            dismiss()
                         }) {
                             Image(systemName: "stop.fill")
                                 .font(.system(size: 18, weight: .bold))
@@ -110,12 +126,25 @@ struct PomodoroView: View {
                     }
                 }
             }
+            Text(pomodoro.toDoTask.name)
+                .font(.caption2.bold())
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
+                .allowsTightening(true)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(10)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .pomodoroCompleted)) { _ in
+            print("⌚️ Pomodoro View Dismissing... ")
+            dismiss()
         }
     }
 }
 
 #Preview {
-    // Provide a lightweight DTO preview
-   // let sample = ToDoTaskDTO(id: "preview-id", name: "Sample Task", pomodoroTime: 1500, due: .now, categories: [])
-   // PomodoroView(task: sample)
+    // Provide a lightweight DTO preview if available in your project
+    // let sample = ToDoTaskDTO(id: "preview-id", name: "Sample Task", pomodoroTime: 1500, due: .now, categories: [])
+    // PomodoroView(task: sample)
+    Text("")
 }
+

@@ -13,15 +13,13 @@ struct ContentView: View {
     @ObservedObject private var connectivity = ClarityWatchConnectivity.shared
     @State private var todos: [ToDoTaskDTO] = []
     @State private var isRefreshing = false
-    @State private var selectedPomodoroTask: ToDoTaskDTO? = nil
 
     var body: some View {
         NavigationStack {
-            List(todos, id: \.id) { task in
-                WatchTaskRow(task: task,
-                             onComplete: { completeTask(task)},
-                             onStartTimer: { startTimer(task)})
-
+            List {
+                ForEach(todos, id: \.id) { task in
+                    taskRow(for: task)
+                }
             }
             .navigationTitle("Tasks")
             .toolbar {
@@ -54,8 +52,11 @@ struct ContentView: View {
                     ContentUnavailableView("No Tasks", systemImage: "tray", description: Text("Tap Refresh"))
                 }
             }
-            .navigationDestination(item: $selectedPomodoroTask) { task in
-                PomodoroView(task: task)
+            .sheet(item: Binding(
+                get: { connectivity.activePomodoro.map(IdentifiedPomodoro.init) },
+                set: { _ in connectivity.dismissPomodoro() }
+            )) { identified in
+                PomodoroView(identified.dto)
             }
             .task {
                 connectivity.start()
@@ -66,6 +67,15 @@ struct ContentView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func taskRow(for task: ToDoTaskDTO) -> some View {
+        let onComplete: () -> Void = { completeTask(task) }
+        let onStart: () -> Void = { startTimer(task) }
+        WatchTaskRow(task: task,
+                     onComplete: onComplete,
+                     onStartTimer: onStart)
     }
 
     private func completeTask(_ task: ToDoTaskDTO) {
@@ -98,17 +108,17 @@ struct ContentView: View {
            let data = try? JSONEncoder().encode(env) {
             let message: [String: Any] = [WCKeys.request: WCKeys.Requests.startPomodoro, WCKeys.payload: data]
             WCSession.default.sendMessage(message, replyHandler: { _ in
-                DispatchQueue.main.async { self.selectedPomodoroTask = task }
+                // Removed setting selectedPomodoroTask
             }, errorHandler: { error in
                 // Fall back to reliable and still present
                 self.connectivity.sendPomodoroStart(id: encodedId)
                 print("Immediate pomodoro send failed; queued reliable. Error: \(error)")
-                DispatchQueue.main.async { self.selectedPomodoroTask = task }
+                // Removed setting selectedPomodoroTask
             })
         } else {
             // Not reachable; queue reliable and present
             connectivity.sendPomodoroStart(id: encodedId)
-            DispatchQueue.main.async { self.selectedPomodoroTask = task }
+            // Removed setting selectedPomodoroTask
         }
     }
 
@@ -166,6 +176,13 @@ struct WatchTaskRow: View {
         return Color.accentColor.opacity(0.12)
     }
 }
+
+private struct IdentifiedPomodoro: Identifiable {
+    let id = UUID()
+    let dto: PomodoroDTO
+    init(dto: PomodoroDTO) { self.dto = dto }
+}
+
 
 #if DEBUG
 //#Preview {
