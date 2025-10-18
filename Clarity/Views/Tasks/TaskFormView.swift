@@ -13,42 +13,37 @@ import FoundationModels
 
 struct TaskFormView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
     
-    @State private var toDoTask: ToDoTask
-    @State private var selectedCategories: [Category] = []
+    let editingTask: ToDoTaskDTO?
+    @State private var toDoTask: ToDoTaskDTO
+    @State private var selectedCategories: [CategoryDTO] = []
     @State private var selectedRecurrence: ToDoTask.RecurrenceInterval = .daily
     @State private var customDays: Int = 1
     @State private var dueDate: Date = Date()
     @State private var showingDatePicker = false
     
-    private let isEditing: Bool
+    @State private var store: ClarityModelActor?
     
-    init(task: ToDoTask? = nil) {
-        let tempTask = task ?? ToDoTask(name: "")
-        _toDoTask = .init(initialValue: tempTask)
-        self.isEditing = task != nil
-        _selectedCategories = .init(initialValue: tempTask.categories ?? [])
+    private var isEditing: Bool {
+        editingTask != nil
+    }
+    
+    init(task: ToDoTaskDTO? = nil) {
+        self.editingTask = task
         
-        // Initialize due date: for new tasks default to today, for edits use existing due if available
-        if self.isEditing {
-            _dueDate = .init(initialValue: tempTask.due ?? Date())
+        if let task = task {
+            self._toDoTask = State(initialValue: task)
+            self._selectedCategories = State(initialValue: task.categories)
+            self._selectedRecurrence = State(initialValue: task.recurrenceInterval ?? .daily)
+            self._customDays = State(initialValue: task.customRecurrenceDays)
+            self._dueDate = State(initialValue: task.due)
         } else {
-            _dueDate = .init(initialValue: Date())
-        }
-        
-        // Safety: ensure dueDate doesn't accidentally initialize beyond allowed range
-        if _dueDate.wrappedValue < Date() {
-            _dueDate.wrappedValue = Date()
-        }
-        
-        // Initialize recurrence state when editing a repeating task
-        if tempTask.repeating ?? false {
-            _selectedRecurrence = .init(initialValue: tempTask.recurrenceInterval ?? .daily)
-            _customDays = .init(initialValue: tempTask.customRecurrenceDays ?? 1)
-        } else {
-            // Ensure non-repeating defaults
-            _selectedRecurrence = .init(initialValue: .daily)
-            _customDays = .init(initialValue: 1)
+            self._toDoTask = State(initialValue: ToDoTaskDTO(name: ""))
+            self._selectedCategories = State(initialValue: [])
+            self._selectedRecurrence = State(initialValue: .daily)
+            self._customDays = State(initialValue: 1)
+            self._dueDate = State(initialValue: Date())
         }
     }
     
@@ -57,7 +52,7 @@ struct TaskFormView: View {
             toDoTask.categories = selectedCategories
             toDoTask.due = dueDate
             // Set recurrence properties
-            if toDoTask.repeating ?? false {
+            if toDoTask.repeating {
                 toDoTask.recurrenceInterval = selectedRecurrence
                 toDoTask.customRecurrenceDays = customDays
             } else {
@@ -65,7 +60,14 @@ struct TaskFormView: View {
             }
             
             if !isEditing {
-                SharedDataActor.shared.addTodoTask(toDoTask: toDoTask)
+                Task {
+                    try? await store?.addTask(toDoTask)
+                }
+                
+            } else {
+                Task {
+                    try? await store?.updateTask(toDoTask)
+                }
             }
         }
         dismiss()
@@ -75,10 +77,7 @@ struct TaskFormView: View {
         NavigationView {
             Form {
                 Section("Task Details") {
-                    TextField("Task name", text: Binding<String>(
-                        get: { toDoTask.name ?? ""},
-                        set: { toDoTask.name = $0.isEmpty ? nil : $0}
-                    ))
+                    TextField("Task name", text: $toDoTask.name)
                         .textFieldStyle(.roundedBorder)
                 }
                 if #available(iOS 26.0, *) {
@@ -220,19 +219,18 @@ struct TaskFormView: View {
                     Button(isEditing ? "Save" : "Add") {
                         saveTask()
                     }
-                    .disabled(toDoTask.name?.isEmpty ?? true)
+                    .disabled(toDoTask.name.isEmpty)
                     .fontWeight(.semibold)
                 }
             }
             .task {
-                let recurrence = toDoTask.recurrenceInterval?.rawValue ?? "None"
-                print("Task Information: \(recurrence)")
+                store = await StoreRegistry.shared.store(for: context.container)
             }
         }
     }
     
     private func getNextOccurrenceDate() -> Date? {
-        guard toDoTask.repeating ?? false else { return nil }
+        guard toDoTask.repeating else { return nil }
         
         if selectedRecurrence == .custom {
             return Calendar.current.date(byAdding: .day, value: customDays, to: dueDate)
@@ -312,12 +310,9 @@ extension TaskFormView {
                         Spacer()
                         
                         TaskSplitterView(
-                            taskName: Binding<String> (
-                                get: { toDoTask.name ?? ""},
-                                set: { toDoTask.name = $0.isEmpty ? nil : $0}
-                            )
+                            taskName: $toDoTask.name
                         )
-                        .disabled(toDoTask.name?.isEmpty ?? true)
+                        .disabled(toDoTask.name.isEmpty)
                     }
                 } footer: {
                     Text("Requires iOS 26 or later • Powered by Apple Intelligence")
@@ -337,11 +332,11 @@ extension TaskFormView {
 
 #if DEBUG
 #Preview("New Task") {
-    TaskFormView(task: nil)
+ //   TaskFormView()
 }
 
 #Preview("Edit Task") {
-    TaskFormView(task: PreviewData.shared.getToDoTask())
+ //   TaskFormView(task: PreviewData.shared.getToDoTask())
 }
 #endif
 

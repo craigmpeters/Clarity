@@ -6,16 +6,17 @@ import UserNotifications
 struct TaskIndexView: View {
     @Environment(\.modelContext) private var context
     
-    @Binding var selectedTask: ToDoTask?
+    @Binding var selectedTask: ToDoTaskDTO?
     @Binding var showingPomodoro: Bool
     
     @State private var showingTaskForm = false
-    @State private var taskToEdit: ToDoTask?
+    @State private var taskToEdit: ToDoTaskDTO?
     @State private var selectedFilter: ToDoTask.TaskFilter = .all
     @State private var selectedCategory: Category?
+    @State private var store: ClarityModelActor?
     
     @Query private var allCategories: [Category]
-    @Query(filter: #Predicate<ToDoTask> {!$0.completed }, sort: \ToDoTask.due, order: .forward) private var allTasks: [ToDoTask]
+    @Query(filter: #Predicate<ToDoTask> { !$0.completed }, sort: \ToDoTask.due, order: .forward) private var allTasks: [ToDoTask]
     
     private var filteredTasks: [ToDoTask] {
         let filtered = allTasks.filter { task in
@@ -33,41 +34,49 @@ struct TaskIndexView: View {
     }
 
     var body: some View {
-        List(filteredTasks, id: \.id) { task in
+        List(filteredTasks) { task in
             TaskRowView(
                 task: task,
                 onEdit: { editTask(task) },
-                onDelete: { deleteTask(task) },
-                onComplete: { completeTask(task) },
-                onStartTimer: { startTimer(for: task) }
+                onDelete: { deleteTask(ToDoTaskDTO(from: task)) },
+                onComplete: { completeTask(ToDoTaskDTO(from: task)) },
+                onStartTimer: { startTimer(for: ToDoTaskDTO(from: task)) }
             )
         }
         .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        FilterMenuView(
-                            selectedFilter: $selectedFilter,
-                            selectedCategory: $selectedCategory,
-                            allCategories: allCategories,
+            ToolbarItem(placement: .navigationBarLeading) {
+                FilterMenuView(
+                    selectedFilter: $selectedFilter,
+                    selectedCategory: $selectedCategory,
+                    allCategories: allCategories,
 //                            onFilterChange: { filter in
 //                                    toDoStore.loadFilteredTasks(filter)
 //                            }
-                        )
-                    }
+                )
+            }
                     
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: {
-                            taskToEdit = nil
-                            showingTaskForm = true
-                        }) {
-                            Image(systemName: "plus")
-                                .foregroundStyle(.blue)
-                        }
-                    }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: { showingTaskForm = true }) {
+                    Image(systemName: "plus")
+                        .foregroundStyle(.blue)
                 }
+            }
+        }
         .task {
             await requestNotificationPermission()
+            store = await StoreRegistry.shared.store(for: context.container)
         }
-        //.refreshable(action: toDoStore.loadToDoTasks())
+        .onReceive(NotificationCenter.default.publisher(for: .pomodoroCompleted)) { notification in
+            if PomodoroService.shared.startedDevice == .watchOS { return }
+            print("📱 Finishing task on Phone")
+            guard let store = store else { return }
+            if let id = notification.userInfo?["taskID"] as? PersistentIdentifier {
+                Task { try? await store.completeTask(id) }
+            } else if let id = PomodoroService.shared.toDoTask?.id {
+                Task { try? await store.completeTask(id) }
+            }
+        }
+        // .refreshable(action: toDoStore.loadToDoTasks())
         .sheet(isPresented: $showingTaskForm, onDismiss: {
             taskToEdit = nil
         }) {
@@ -80,24 +89,34 @@ struct TaskIndexView: View {
     // MARK: - Actions (moved to background)
     
     private func editTask(_ task: ToDoTask) {
-        print("Editing \(task.name ?? "Nothing!!")")
-        taskToEdit = task
+        print("Editing \(task.name)")
+        taskToEdit = ToDoTaskDTO(from: task)
         showingTaskForm = true
     }
     
-    private func deleteTask(_ task: ToDoTask) {
-        SharedDataActor.shared.deleteToDoTask(toDoTask: task)
+    private func deleteTask(_ task: ToDoTaskDTO) {
+        print("Deleting: (\(task.name))")
+        Task {
+            try? await store?.deleteTask(task.id!)
+        }
     }
     
-    private func completeTask(_ task: ToDoTask) {
-        print("Attempting to complete task \(task.name ?? "")")
-        SharedDataActor.shared.completeToDoTask(toDoTask: task)
+    private func completeTask(_ task: ToDoTaskDTO) {
+        print("Attempting to complete task for ID: \(task.id.debugDescription)")
+        guard let store = store else { return }
+        guard let id = task.id else { return }
+        print("Attempting to complete task \(task.name)")
+        Task {
+            try? await store.completeTask(id)
+        }
+        
     }
     
-    private func startTimer(for task: ToDoTask) {
+    private func startTimer(for task: ToDoTaskDTO) {
         selectedTask = task
         withAnimation(.easeInOut(duration: 0.3)) {
-            showingPomodoro = true
+            // showingPomodoro = true
+            PomodoroService.shared.startPomodoro(for: task, container: context.container, device: .iPhone)
         }
     }
     
@@ -109,14 +128,15 @@ struct TaskIndexView: View {
         }
     }
 }
+
 #if DEBUG
 #Preview {
     @Previewable @State var showingPomodoro = false
-    @Previewable @State var selectedTask: ToDoTask? = nil
+    @Previewable @State var selectedTask: ToDoTaskDTO? = nil
     TaskIndexView(
         selectedTask: .constant(selectedTask),
         showingPomodoro: .constant(showingPomodoro)
-        )
-        .modelContainer(PreviewData.shared.previewContainer)
+    )
+    .modelContainer(PreviewData.shared.previewContainer)
 }
 #endif

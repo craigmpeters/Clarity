@@ -2,10 +2,13 @@ import SwiftData
 import SwiftUI
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @State private var selectedTask: ToDoTask? = nil
+    @Environment(\.modelContext) private var context
+    @EnvironmentObject var appState: AppState
+    @State private var selectedTask: ToDoTaskDTO? = nil
     @State private var showingPomodoro = false
     @State private var showingFirstRun = !UserDefaults.hasCompletedOnboarding
+    
+    @State private var store: ClarityModelActor? = nil
     
     var body: some View {
         ZStack {
@@ -42,11 +45,8 @@ struct ContentView: View {
             .scaleEffect(showingPomodoro ? 0.95 : 1.0)
             
             // Pomodoro View Overlay
-            if showingPomodoro, let selectedTask = selectedTask {
-                PomodoroView(
-                    task: selectedTask,
-                    showingPomodoro: $showingPomodoro
-                )
+            if appState.showingPomodoro {
+                PomodoroView()
                 .transition(.asymmetric(
                     insertion: .move(edge: .trailing).combined(with: .opacity),
                     removal: .move(edge: .trailing).combined(with: .opacity)
@@ -65,64 +65,27 @@ struct ContentView: View {
                    let taskId = url.pathComponents.last
                 {
                     Task {
-                        if let task = await findTask(withId: taskId) {
-                            selectedTask = task
-                            showingPomodoro = true
+                        
+                        if let store = store, let id = try ToDoTaskDTO.decodeId(taskId) {
+                            selectedTask = try await store.fetchTaskById(id)
                         }
                     }
                 }
             }
         }
-    }
-
-    func findTask(withId id: String) async -> ToDoTask? {
-        // Search through your tasks for matching ID
-        do {
-            let tasks = try await SharedDataActor.shared.fetchTasks(ToDoTask.TaskFilter.all)
-            return tasks.first { task in
-                String(describing: task.id) == id
-            }
-        } catch {
-            return nil
-        }
-
-    }
-
-    func handleWidgetDeepLink(_ url: URL) {
-        guard url.scheme == "clarity" else { return }
-        
-        if url.host == "task" {
-            // Parse task ID and action
-            let pathComponents = url.pathComponents
-            if pathComponents.count > 1 {
-                let taskId = pathComponents[1]
-                
-                if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-                   let action = components.queryItems?.first(where: { $0.name == "action" })?.value
-                {
-                    if action == "timer" {
-                        // Start timer for task
-                        // Find task by ID and start pomodoro
-                    } else if action == "view" {
-                        // Navigate to task detail
-                    }
-                }
-            }
-        } else if url.host == "tasks" {
-            // Parse filter and category
-            if let components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
-                let filter = components.queryItems?.first(where: { $0.name == "filter" })?.value
-                let categoryId = components.queryItems?.first(where: { $0.name == "categoryId" })?.value
-                
-                // Navigate to filtered task list
+        .task {
+            if store == nil {
+                let bg = await ClarityModelActorFactory.makeBackground(container: context.container)
+                store = bg
             }
         }
     }
 }
 
 #if DEBUG
-#Preview {
-    return ContentView()
-        .modelContainer(PreviewData.shared.previewContainer)
-}
+//#Preview {
+//    ContentView(store: ClarityModelActor)
+//        .modelContainer(PreviewData.shared.previewContainer)
+//}
 #endif
+

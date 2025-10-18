@@ -7,6 +7,7 @@ struct TaskSplitterSheet: View {
     // Swiftdata Queries
     @Query private var allCategories: [Category]
     @Query private var allTasks: [ToDoTask]
+    @Environment(\.modelContext) private var context
     
     let taskName: String
     @Binding var isPresented: Bool
@@ -16,7 +17,8 @@ struct TaskSplitterSheet: View {
     @Environment(\.dismiss) private var dismiss
     
     @State private var applyCategoriesToAll = false
-    @State private var globalCategories: [Category] = []
+    @State private var globalCategories: [CategoryDTO] = []
+    @State private var store: ClarityModelActor?
     
     var body: some View {
         NavigationView {
@@ -43,12 +45,12 @@ struct TaskSplitterSheet: View {
                         if applyCategoriesToAll {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
-                                    ForEach(allCategories) { category in
+                                    ForEach(allCategories) {  category in
                                         CategoryChip(
                                             category: category,
                                             isSelected: globalCategories.contains { $0.id == category.id }
                                         ) {
-                                            toggleGlobalCategory(category)
+                                            toggleGlobalCategory(CategoryDTO(from: category))
                                         }
                                     }
                                 }
@@ -119,7 +121,10 @@ struct TaskSplitterSheet: View {
                     }
                     
                     Button("Create Tasks") {
-                        createSelectedTasks()
+                        Task {
+                            await createSelectedTasks()
+                        }
+                        
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(suggestions.filter(\.isSelected).isEmpty)
@@ -142,12 +147,15 @@ struct TaskSplitterSheet: View {
             }
         }
         .task {
+            if store == nil {
+                store = await StoreRegistry.shared.store(for: context.container)
+            }
             await splitter.splitTask(taskName)
             suggestions = splitter.suggestions
         }
     }
     
-    private func createSelectedTasks() {
+    private func createSelectedTasks() async {
         let selected = suggestions.filter(\.isSelected)
             
         for (index, suggestion) in selected.enumerated() {
@@ -157,22 +165,19 @@ struct TaskSplitterSheet: View {
                 to: Date()
             ) ?? Date()
                 
-            let task = ToDoTask(
+            let task = ToDoTaskDTO(
                 name: suggestion.name,
                 pomodoroTime: TimeInterval(suggestion.estimatedMinutes * 60),
                 due: dueDate,
                 categories: applyCategoriesToAll ? globalCategories : suggestion.selectedCategories
             )
-            Task {
-                await SharedDataActor.shared.addTodoTask(toDoTask: task)
-            }
-            
+            _ = try? await store?.addTask(task)
         }
-            
-        dismiss()
+        
+        await MainActor.run { dismiss() }
     }
 
-    private func toggleGlobalCategory(_ category: Category) {
+    private func toggleGlobalCategory(_ category: CategoryDTO) {
         if let index = globalCategories.firstIndex(where: { $0.id == category.id }) {
             globalCategories.remove(at: index)
         } else {
@@ -185,3 +190,4 @@ struct TaskSplitterSheet: View {
         }
     }
 }
+

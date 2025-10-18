@@ -3,67 +3,17 @@ import SwiftData
 import SwiftUI
 
 struct PomodoroView: View {
-    @StateObject private var coordinator: PomodoroCoordinator
-    @Binding var showingPomodoro: Bool
+    @Environment(\.modelContext) private var context
+    @StateObject private var service: PomodoroService = .shared
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var appState: AppState
     
-    private var pomodoro: Pomodoro {
-        coordinator.pomodoro
-    }
-    
-    init(task: ToDoTask, showingPomodoro: Binding<Bool>) {
-        let pomodoro = Pomodoro()
-        self._coordinator = StateObject(wrappedValue: PomodoroCoordinator(pomodoro: pomodoro, task: task))
-        self._showingPomodoro = showingPomodoro
-    }
     
     var body: some View {
         VStack(spacing: 0) {
-            // Custom navigation bar
-            HStack {
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        showingPomodoro = false
-                    }
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .semibold))
-                        Text("Back")
-                            .font(.system(size: 17, weight: .regular))
-                    }
-                    .foregroundColor(.blue)
-                }
-                
-                Spacer()
-                
-                Text("Focus Timer")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.primary)
-                
-                Spacer()
-                
-                // Placeholder for balance
-                Button(action: {}) {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.blue)
-                }
-                .opacity(0) // Hidden but maintains layout
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-            .background(.regularMaterial)
-            .overlay(
-                Rectangle()
-                    .fill(Color.gray.opacity(0.2))
-                    .frame(height: 1),
-                alignment: .bottom
-            )
-            
-            // Main content
             VStack(spacing: 30) {
                 VStack(spacing: 8) {
-                    Text(pomodoro.taskTitle)
+                    Text(service.toDoTask?.name ?? "No task selected")
                         .font(.title2)
                         .fontWeight(.semibold)
                         .multilineTextAlignment(.center)
@@ -80,7 +30,7 @@ struct PomodoroView: View {
                         
                         // Progress circle
                         Circle()
-                            .trim(from: 0, to: pomodoro.progress)
+                            .trim(from: 0, to: service.progress)
                             .stroke(
                                 LinearGradient(
                                     colors: [.blue, .purple],
@@ -91,11 +41,11 @@ struct PomodoroView: View {
                             )
                             .frame(width: 250, height: 250)
                             .rotationEffect(.degrees(-90))
-                            .animation(.linear(duration: 1), value: pomodoro.progress)
+                            .animation(.linear(duration: 1), value: service.progress)
                         
                         // Timer text
                         VStack {
-                            Text(pomodoro.formattedTime)
+                            Text(service.formattedTime)
                                 .font(.system(size: 42, weight: .bold, design: .monospaced))
                                 .foregroundColor(.primary)
                         }
@@ -104,27 +54,29 @@ struct PomodoroView: View {
                 
                 // Control buttons
                 VStack(spacing: 16) {
-                    let isCompleted = coordinator.pomodoro.currentRemainingTime <= 0 && !coordinator.pomodoro.isRunning
-                    
                     // Dynamic button based on timer state
                     Button(action: {
-                            coordinator.endPomodoro()
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            showingPomodoro = false
+                        Task {
+                            await service.endPomodoro()
                         }
+                        
+//                        withAnimation(.easeInOut(duration: 0.3)) {
+//                            appState.showingPomodoro = false
+//                            dismiss()
+//                        }
                     }) {
                         HStack(spacing: 12) {
-                            Image(systemName: isCompleted ? "checkmark.circle.fill" : "stop.circle")
+                            Image(systemName: !service.isActive ? "checkmark.circle.fill" : "stop.circle")
                                 .font(.system(size: 20, weight: .medium))
-                            Text(isCompleted ? "Finish Task" : "Stop Timer")
-                                .font(.system(size: 17, weight: isCompleted ? .semibold : .medium))
+                            Text(!service.isActive ? "Finish Task" : "Stop Timer")
+                                .font(.system(size: 17, weight: !service.isActive ? .semibold : .medium))
                         }
-                        .foregroundColor(isCompleted ? .white : .red)
+                        .foregroundColor(!service.isActive ? .white : .red)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
                         .background(
                             Group {
-                                if isCompleted {
+                                if !service.isActive {
                                     LinearGradient(
                                         colors: [.green, .mint],
                                         startPoint: .topLeading,
@@ -138,18 +90,18 @@ struct PomodoroView: View {
                         )
                         .cornerRadius(25)
                         .overlay(
-                            isCompleted ? nil :
+                            !service.isActive ? nil :
                             RoundedRectangle(cornerRadius: 25)
                                 .stroke(.red.opacity(0.3), lineWidth: 1)
                         )
                         .shadow(
-                            color: isCompleted ? .green.opacity(0.3) : .clear,
+                            color: !service.isActive ? .green.opacity(0.3) : .clear,
                             radius: 8,
                             x: 0,
                             y: 4
                         )
                     }
-                    .animation(.easeInOut(duration: 0.3), value: isCompleted)
+                    .animation(.easeInOut(duration: 0.3), value: !service.isActive)
                 }
                 .padding(.horizontal, 40)
                 
@@ -157,19 +109,23 @@ struct PomodoroView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(.systemBackground))
+            .padding(.vertical, 20)
         }
         .background(Color(.systemBackground))
         .ignoresSafeArea(.container, edges: .top)
         .onAppear {
-            if coordinator.pomodoro.remainingTime <= 0 && coordinator.pomodoro.endTime != nil {
-                coordinator.endPomodoro()
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    showingPomodoro = false
-                }
-            }
+
         }
         .onDisappear {
-            coordinator.endPomodoro()
+            Task {
+            }
+            
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .pomodoroCompleted)) { _ in
+            withAnimation(.easeInOut(duration: 0.3)) {
+                appState.showingPomodoro = false
+                dismiss()
+            }
         }
     }
 }
@@ -178,10 +134,12 @@ struct PomodoroView: View {
 
 #if DEBUG
 #Preview {
-    return PomodoroView(
-        task: PreviewData.shared.getToDoTask(),
-        showingPomodoro: .constant(true)
-    )
-    .modelContainer(PreviewData.shared.previewContainer)
+//    PomodoroView(
+//        task: PreviewData.shared.getToDoTaskDTO(),
+//        showingPomodoro: .constant(true),
+//        container: PreviewData.shared.previewContainer
+//    )
+//    .modelContainer(PreviewData.shared.previewContainer)
 }
 #endif
+
