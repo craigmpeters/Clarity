@@ -10,8 +10,7 @@
 		4448AD642E579266005CDDDF /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4448AD632E579266005CDDDF /* WidgetKit.framework */; };
 		4448AD662E579266005CDDDF /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4448AD652E579266005CDDDF /* SwiftUI.framework */; };
 		4448AD752E579268005CDDDF /* Widgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4448AD612E579266005CDDDF /* Widgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		44588D0E2EA4F52400A657C3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 44588D0C2EA4F52400A657C3 /* Assets.xcassets */; };
-		44588D132EA4F6C200A657C3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 44588D0C2EA4F52400A657C3 /* Assets.xcassets */; };
+		44588D1A2EA5056600A657C3 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 44588D192EA5056600A657C3 /* AppIcon.icon */; };
 		44D6EADD2E83177400B5EF9E /* ClarityWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 44D6EABD2E83176B00B5EF9E /* ClarityWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		44F7CE602E8B2FA300F520BF /* DataRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F7CE5F2E8B2FA300F520BF /* DataRepository.swift */; };
 /* End PBXBuildFile section */
@@ -62,7 +61,7 @@
 		4448AD612E579266005CDDDF /* Widgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = Widgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		4448AD632E579266005CDDDF /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		4448AD652E579266005CDDDF /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
-		44588D0C2EA4F52400A657C3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		44588D192EA5056600A657C3 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		44D6EABD2E83176B00B5EF9E /* ClarityWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClarityWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		44D6F0492E85DDDF00B5EF9E /* ClarityWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ClarityWatch.entitlements; sourceTree = "<group>"; };
 		44D6F04A2E85DE1500B5EF9E /* ClarityWatch-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "ClarityWatch-Info.plist"; sourceTree = "<group>"; };
@@ -325,11 +324,11 @@
 		44D6F0142E85DA8E00B5EF9E /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				44588D192EA5056600A657C3 /* AppIcon.icon */,
 				44D6F0172E85DA9500B5EF9E /* Data */,
 				44D6F0262E85DA9800B5EF9E /* Models */,
 				44D6F03B2E85DA9B00B5EF9E /* Preview Content */,
 				44D6F0432E85DAA100B5EF9E /* Utilities */,
-				44588D0C2EA4F52400A657C3 /* Assets.xcassets */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -495,7 +494,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				44588D0E2EA4F52400A657C3 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -503,7 +501,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				44588D132EA4F6C200A657C3 /* Assets.xcassets in Resources */,
+				44588D1A2EA5056600A657C3 /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
