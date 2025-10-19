@@ -1,12 +1,10 @@
 {
   "fill" : {
-    "linear-gradient" : [
-      "extended-gray:1.00000,1.00000",
-      "extended-gray:0.25000,1.00000"
-    ]
+    "solid" : "extended-gray:0.00000,1.00000"
   },
   "groups" : [
     {
+      "blend-mode" : "normal",
       "blur-material-specializations" : [
         {
           "appearance" : "dark",
@@ -73,15 +71,22 @@
       ],
       "lighting-specializations" : [
         {
+          "value" : "combined"
+        },
+        {
           "appearance" : "dark",
           "value" : "combined"
         }
       ],
+      "name" : "Group",
       "shadow" : {
         "kind" : "neutral",
         "opacity" : 0.5
       },
       "specular-specializations" : [
+        {
+          "value" : true
+        },
         {
           "appearance" : "dark",
           "value" : false
@@ -90,7 +95,7 @@
       "translucency-specializations" : [
         {
           "value" : {
-            "enabled" : true,
+            "enabled" : false,
             "value" : 0.5
           }
         },
