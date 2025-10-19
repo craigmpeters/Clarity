@@ -11,6 +11,7 @@
 		4448AD662E579266005CDDDF /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4448AD652E579266005CDDDF /* SwiftUI.framework */; };
 		4448AD752E579268005CDDDF /* Widgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4448AD612E579266005CDDDF /* Widgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		44588D1A2EA5056600A657C3 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 44588D192EA5056600A657C3 /* AppIcon.icon */; };
+		44588D1B2EA5062F00A657C3 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 44588D192EA5056600A657C3 /* AppIcon.icon */; };
 		44D6EADD2E83177400B5EF9E /* ClarityWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 44D6EABD2E83176B00B5EF9E /* ClarityWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		44F7CE602E8B2FA300F520BF /* DataRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F7CE5F2E8B2FA300F520BF /* DataRepository.swift */; };
 /* End PBXBuildFile section */
@@ -494,6 +495,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				44588D1B2EA5062F00A657C3 /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
