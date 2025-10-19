@@ -10,8 +10,9 @@
 		4448AD642E579266005CDDDF /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4448AD632E579266005CDDDF /* WidgetKit.framework */; };
 		4448AD662E579266005CDDDF /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4448AD652E579266005CDDDF /* SwiftUI.framework */; };
 		4448AD752E579268005CDDDF /* Widgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4448AD612E579266005CDDDF /* Widgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		44588D0E2EA4F52400A657C3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 44588D0C2EA4F52400A657C3 /* Assets.xcassets */; };
+		44588D132EA4F6C200A657C3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 44588D0C2EA4F52400A657C3 /* Assets.xcassets */; };
 		44D6EADD2E83177400B5EF9E /* ClarityWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 44D6EABD2E83176B00B5EF9E /* ClarityWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		44D6EFAA2E85DA4000B5EF9E /* AppCatalog.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 44D6EF7E2E85DA4000B5EF9E /* AppCatalog.xcassets */; };
 		44F7CE602E8B2FA300F520BF /* DataRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F7CE5F2E8B2FA300F520BF /* DataRepository.swift */; };
 /* End PBXBuildFile section */
 
@@ -61,8 +62,8 @@
 		4448AD612E579266005CDDDF /* Widgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = Widgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		4448AD632E579266005CDDDF /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		4448AD652E579266005CDDDF /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		44588D0C2EA4F52400A657C3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		44D6EABD2E83176B00B5EF9E /* ClarityWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClarityWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		44D6EF7E2E85DA4000B5EF9E /* AppCatalog.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = AppCatalog.xcassets; sourceTree = "<group>"; };
 		44D6F0492E85DDDF00B5EF9E /* ClarityWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ClarityWatch.entitlements; sourceTree = "<group>"; };
 		44D6F04A2E85DE1500B5EF9E /* ClarityWatch-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "ClarityWatch-Info.plist"; sourceTree = "<group>"; };
 		44F7CE5F2E8B2FA300F520BF /* DataRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataRepository.swift; sourceTree = "<group>"; };
@@ -76,6 +77,141 @@
 				Info.plist,
 			);
 			target = 4448AD602E579266005CDDDF /* Widgets */;
+		};
+		44588D112EA4F6B500A657C3 /* Exceptions for "Icon Composer" folder in "Clarity" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"Clarity Blue.svg",
+				"Clarity Yellow.svg",
+				Clarity.icon,
+				clarity.svg,
+				"Output/Clarity Exports 2/Clarity-iOS-Default-1024x1024@1x.png",
+				"Output/Clarity Exports 2/Clarity-watchOS-Default-1088x1088@1x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearDark-20x20@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearDark-20x20@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearDark-29x29@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearDark-29x29@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearDark-38x38@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearDark-38x38@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearDark-40x40@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearDark-40x40@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearDark-60x60@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearDark-60x60@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearDark-64x64@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearDark-64x64@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearDark-68x68@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearDark-76x76@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearDark-83.5x83.5@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearDark-1024x1024@1x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearLight-20x20@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearLight-20x20@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearLight-29x29@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearLight-29x29@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearLight-38x38@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearLight-38x38@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearLight-40x40@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearLight-40x40@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearLight-60x60@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearLight-60x60@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearLight-64x64@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearLight-64x64@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearLight-68x68@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearLight-76x76@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearLight-83.5x83.5@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-ClearLight-1024x1024@1x.png",
+				"Output/Clarity Exports/Clarity-iOS-Dark-20x20@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-Dark-20x20@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-Dark-29x29@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-Dark-29x29@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-Dark-38x38@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-Dark-38x38@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-Dark-40x40@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-Dark-40x40@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-Dark-60x60@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-Dark-60x60@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-Dark-64x64@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-Dark-64x64@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-Dark-68x68@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-Dark-76x76@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-Dark-83.5x83.5@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-Dark-1024x1024@1x.png",
+				"Output/Clarity Exports/Clarity-iOS-Default-20x20@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-Default-20x20@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-Default-29x29@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-Default-29x29@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-Default-38x38@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-Default-38x38@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-Default-40x40@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-Default-40x40@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-Default-60x60@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-Default-60x60@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-Default-64x64@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-Default-64x64@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-Default-68x68@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-Default-76x76@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-Default-83.5x83.5@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-Default-1024x1024@1x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedDark-20x20@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedDark-20x20@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedDark-29x29@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedDark-29x29@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedDark-38x38@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedDark-38x38@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedDark-40x40@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedDark-40x40@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedDark-60x60@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedDark-60x60@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedDark-64x64@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedDark-64x64@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedDark-68x68@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedDark-76x76@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedDark-83.5x83.5@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedDark-1024x1024@1x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedLight-20x20@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedLight-20x20@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedLight-29x29@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedLight-29x29@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedLight-38x38@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedLight-38x38@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedLight-40x40@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedLight-40x40@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedLight-60x60@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedLight-60x60@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedLight-64x64@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedLight-64x64@3x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedLight-68x68@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedLight-76x76@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedLight-83.5x83.5@2x.png",
+				"Output/Clarity Exports/Clarity-iOS-TintedLight-1024x1024@1x.png",
+				"Output/Clarity Exports/Clarity-watchOS-Default-22x22@2x.png",
+				"Output/Clarity Exports/Clarity-watchOS-Default-24x24@2x.png",
+				"Output/Clarity Exports/Clarity-watchOS-Default-27.5x27.5@2x.png",
+				"Output/Clarity Exports/Clarity-watchOS-Default-29x29@2x.png",
+				"Output/Clarity Exports/Clarity-watchOS-Default-30x30@2x.png",
+				"Output/Clarity Exports/Clarity-watchOS-Default-32x32@2x.png",
+				"Output/Clarity Exports/Clarity-watchOS-Default-33x33@2x.png",
+				"Output/Clarity Exports/Clarity-watchOS-Default-40x40@2x.png",
+				"Output/Clarity Exports/Clarity-watchOS-Default-43.5x43.5@2x.png",
+				"Output/Clarity Exports/Clarity-watchOS-Default-44x44@2x.png",
+				"Output/Clarity Exports/Clarity-watchOS-Default-46x46@2x.png",
+				"Output/Clarity Exports/Clarity-watchOS-Default-50x50@2x.png",
+				"Output/Clarity Exports/Clarity-watchOS-Default-51x51@2x.png",
+				"Output/Clarity Exports/Clarity-watchOS-Default-54x54@2x.png",
+				"Output/Clarity Exports/Clarity-watchOS-Default-86x86@2x.png",
+				"Output/Clarity Exports/Clarity-watchOS-Default-98x98@2x.png",
+				"Output/Clarity Exports/Clarity-watchOS-Default-108x108@2x.png",
+				"Output/Clarity Exports/Clarity-watchOS-Default-117x117@2x.png",
+				"Output/Clarity Exports/Clarity-watchOS-Default-129x129@2x.png",
+				"Output/Clarity Exports/Clarity-watchOS-Default-1088x1088@1x.png",
+			);
+			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
+		};
+		44588D122EA4F6B800A657C3 /* Exceptions for "Preview Content" folder in "Clarity" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"Preview Assets.xcassets",
+			);
+			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
 		};
 		44BCDE032E5D2E5F00B61B9C /* Exceptions for "Clarity" folder in "Clarity" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -174,6 +310,9 @@
 		};
 		44BCDDFA2E5D2A7E00B61B9C /* Icon Composer */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				44588D112EA4F6B500A657C3 /* Exceptions for "Icon Composer" folder in "Clarity" target */,
+			);
 			path = "Icon Composer";
 			sourceTree = "<group>";
 		};
@@ -213,6 +352,7 @@
 		44D6F03B2E85DA9B00B5EF9E /* Preview Content */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				44588D122EA4F6B800A657C3 /* Exceptions for "Preview Content" folder in "Clarity" target */,
 				44D6F0412E85DA9B00B5EF9E /* Exceptions for "Preview Content" folder in "ClarityWatch" target */,
 				44D6F0402E85DA9B00B5EF9E /* Exceptions for "Preview Content" folder in "Widgets" target */,
 			);
@@ -307,7 +447,7 @@
 				44D6F0262E85DA9800B5EF9E /* Models */,
 				44D6F03B2E85DA9B00B5EF9E /* Preview Content */,
 				44D6F0432E85DAA100B5EF9E /* Utilities */,
-				44D6EF7E2E85DA4000B5EF9E /* AppCatalog.xcassets */,
+				44588D0C2EA4F52400A657C3 /* Assets.xcassets */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -473,6 +613,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				44588D0E2EA4F52400A657C3 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -480,7 +621,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				44D6EFAA2E85DA4000B5EF9E /* AppCatalog.xcassets in Resources */,
+				44588D132EA4F6C200A657C3 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
