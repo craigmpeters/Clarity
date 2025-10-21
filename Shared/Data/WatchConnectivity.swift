@@ -158,18 +158,13 @@ final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObj
         sendImmediateOrReliable(.init(kind: WCKeys.Requests.create, todo: dto))
     }
 
-    func sendComplete(id: String) {
-        let env = Envelope(kind: WCKeys.Requests.complete, todotaskid: id)
-        // Debug: Log reliable complete envelope as JSON
-        if let data = try? jsonEncoder.encode(env),
-           let json = String(data: data, encoding: .utf8) {
-            print("📦 Watch reliable complete envelope JSON: \n\(json)")
-        }
-        sendImmediateOrReliable(env)
+    func sendComplete(todotaskid: String) {
+        print("Complete Toggled with ID")
+        sendImmediateOrReliable(.init(kind: WCKeys.Requests.complete, todotaskid: todotaskid))
     }
     
-    func sendPomodoroStart(id: String) {
-        sendImmediateOrReliable(.init(kind: WCKeys.Requests.startPomodoro, todotaskid: id))
+    func sendPomodoroStart(todotaskid: String) {
+        sendImmediateOrReliable(.init(kind: WCKeys.Requests.startPomodoro, todotaskid: todotaskid))
     }
     
     func sendPomodoroStopped(_ dto: ToDoTaskDTO? = nil) {
@@ -272,13 +267,6 @@ final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObj
             #endif
             
             let kind = message[WCKeys.request] as? String
-            
-            // Diagnostic ping: echo back immediately
-            if kind == "ping" {
-                replyHandler([WCKeys.payload: try? self.jsonEncoder.encode(Envelope(kind: "pong")) as Any])
-                return
-            }
-            
             let result = await Self.process(kind: kind, message: message)
             let data = try? self.jsonEncoder.encode(result)
             replyHandler([WCKeys.payload: data as Any])
@@ -328,14 +316,17 @@ extension ClarityWatchConnectivity {
         #endif
         switch kind {
         case WCKeys.Requests.listAll:
+            #if os(iOS)
             if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
-                #if os(iOS)
+                
                 print("📦 iOS listAll returning \(todos.count) tasks")
-                #endif
+                
                 // Push snapshot so counterpart updates when this is triggered via reliable path
                 ClarityWatchConnectivity.shared.pushSnapshot(todos)
                 return Envelope(kind: WCKeys.Requests.listAll, todos: todos)
+                
             }
+            #endif
         case WCKeys.Requests.create:
             // Immediate create expects a DTO under key "payload" or Envelope in reliable path
             if let msg = message,
@@ -350,7 +341,6 @@ extension ClarityWatchConnectivity {
             }
             return Envelope(kind: WCKeys.Requests.create)
         case WCKeys.Requests.complete:
-            // Support both immediate (id under "id") and reliable (Envelope.todotaskid)
             var encodedId: String?
             if let msg = message, let id = msg["id"] as? String { encodedId = id }
             if encodedId == nil, let msg = message, let data = msg[WCKeys.payload] as? Data,
@@ -358,12 +348,21 @@ extension ClarityWatchConnectivity {
                 encodedId = env.todotaskid
             }
             if let encodedId, let pid = try? ToDoTaskDTO.decodeId(encodedId) {
-                _ = try? await ClarityServices.store().completeTask(pid)
-            }
-            if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
-                ClarityWatchConnectivity.shared.pushSnapshot(todos)
+                #if os(iOS)
+                do {
+                    try await ClarityServices.store().completeTask(pid)
+                    if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
+                        ClarityWatchConnectivity.shared.pushSnapshot(todos)
+                    }
+                } catch {
+                    #if DEBUG
+                    print("⚠️ Failed to complete task: \(error)")
+                    #endif
+                }
+                #endif
             }
             return Envelope(kind: WCKeys.Requests.complete)
+            
         case WCKeys.Requests.stopPomodoro:
             // Stop Pomodoro on Phone
             #if os(iOS)
@@ -375,11 +374,14 @@ extension ClarityWatchConnectivity {
             }
             print("Recieved End Pomodoro from Watch for Task \(encodedDto?.toDoTask.name ?? "<no name>") ")
             await PomodoroService.shared.endPomodoro()
-            #endif
+            
             if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
                 ClarityWatchConnectivity.shared.pushSnapshot(todos)
             }
+            #endif
+            return Envelope(kind: WCKeys.Requests.stopPomodoro)
         case WCKeys.Requests.delete:
+            #if os(iOS)
             var encodedId: String?
             if let msg = message, let id = msg["id"] as? String { encodedId = id }
             if encodedId == nil, let msg = message, let data = msg[WCKeys.payload] as? Data,
@@ -392,6 +394,7 @@ extension ClarityWatchConnectivity {
             if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
                 ClarityWatchConnectivity.shared.pushSnapshot(todos)
             }
+            #endif
             return Envelope(kind: WCKeys.Requests.delete)
         case WCKeys.Requests.startPomodoro:
             // Start pomodoro timer – treated as a mutation with id
@@ -404,25 +407,12 @@ extension ClarityWatchConnectivity {
             if let encodedId, let pid = try? ToDoTaskDTO.decodeId(encodedId) {
                 #if os(iOS)
                 do {
-                    //let pomodoro = Pomodoro()
-                    // Acquire model container (non-optional) – handle thrown error
                     let container = try await ClarityServices.store().modelContainer
                     guard let task = try await ClarityServices.store().fetchTaskById(pid) else {
                         return Envelope(kind: WCKeys.Requests.startPomodoro)
                     }
                     print("Recieved Start Pomodoro for \(task.name)")
                     PomodoroService.shared.startPomodoro(for: task, container: container, device: .watchOS)
-                    //let coordinator = PomodoroCoordinator(pomodoro: pomodoro, task: task, container: container)
-
-                    // TODO: Retrieve the related task for the coordinator if needed.
-                    // If you have an API to fetch a single task by persistent ID, use it here.
-                    // For now, we skip creating the coordinator to resolve build errors until the API is available.
-                    _ = container // silence unused warning for now
-                    //_ = pomodoro  // silence unused warning for now
-                    // Example (uncomment and adapt when a fetch API exists):
-                    // let task = try await ClarityServices.store().task(for: pid)
-                    // let coordinator = PomodoroCoordinator(pomodoro: pomodoro, task: task, container: container)
-                    // _ = coordinator
                 } catch {
                     #if DEBUG
                     print("⚠️ Failed to initialize Pomodoro dependencies: \(error)")
@@ -432,8 +422,6 @@ extension ClarityWatchConnectivity {
             }
             // Ack so watch can present PomodoroView
             return Envelope(kind: WCKeys.Requests.startPomodoro)
-        case "ping":
-            return Envelope(kind: "pong")
         case "pomodoroStarted":
             var dto: PomodoroDTO?
             if let msg = message,
@@ -477,12 +465,13 @@ extension ClarityWatchConnectivity {
                     print("❌ Failed to complete task from pomodoroStopped: \(error)")
                 }
             }
-            #endif
+            
 
             // Push updated snapshot if possible
             if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
                 ClarityWatchConnectivity.shared.pushSnapshot(todos)
             }
+            #endif
 
             #if os(watchOS)
             print("⌚️ Dismissing Pomodoro")

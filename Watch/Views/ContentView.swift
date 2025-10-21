@@ -86,14 +86,21 @@ struct ContentView: View {
             todos.remove(at: idx)
         }
         // Use reliable transfer only for completion
-        print("📮 Queueing reliable complete for id=\(encodedId)")
-        connectivity.sendComplete(id: encodedId)
-
-        // Also schedule a follow-up refresh to reconcile state
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
-            connectivity.requestListAll { result in
-                if case .success(let list) = result { DispatchQueue.main.async { todos = list } }
-            }
+        print("Sending complete for id=\(encodedId)")
+        let env = Envelope(kind: WCKeys.Requests.complete, todotaskid: encodedId)
+        
+        if WCSession.default.activationState == .activated,
+           WCSession.default.isReachable,
+           let data = try? JSONEncoder().encode(env) {
+            let message: [String: Any] = [WCKeys.request: WCKeys.Requests.complete, WCKeys.payload: data]
+            WCSession.default.sendMessage(message, replyHandler: { _ in
+                // Do something with reply?
+            }, errorHandler: { error in
+                self.connectivity.sendComplete(todotaskid: encodedId)
+                print("Immediate complete send failed; queued reliable. Error: \(error)")
+            })
+        } else {
+            self.connectivity.sendComplete(todotaskid: encodedId)
         }
     }
 
@@ -111,13 +118,13 @@ struct ContentView: View {
                 // Removed setting selectedPomodoroTask
             }, errorHandler: { error in
                 // Fall back to reliable and still present
-                self.connectivity.sendPomodoroStart(id: encodedId)
+                self.connectivity.sendPomodoroStart(todotaskid: encodedId)
                 print("Immediate pomodoro send failed; queued reliable. Error: \(error)")
                 // Removed setting selectedPomodoroTask
             })
         } else {
             // Not reachable; queue reliable and present
-            connectivity.sendPomodoroStart(id: encodedId)
+            connectivity.sendPomodoroStart(todotaskid: encodedId)
             // Removed setting selectedPomodoroTask
         }
     }

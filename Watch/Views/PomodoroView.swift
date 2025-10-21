@@ -15,6 +15,7 @@ import WatchKit
 
 struct PomodoroView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     
     var pomodoro: PomodoroDTO
     var onDismiss: (() -> Void)?
@@ -61,29 +62,33 @@ struct PomodoroView: View {
         VStack(spacing: 8) {
             TimelineView(.periodic(from: .now, by: 1)) { _ in
                 ZStack {
-                    // Background circle
+                    if scenePhase == .active {
+                        // Background circle
                     Circle()
                         .stroke(Color.gray.opacity(0.3), lineWidth: 12)
                         .frame(width: deviceDiameter, height: deviceDiameter)
                     
                     // Progress circle
-                    Circle()
-                        .trim(from: 0, to: progress)
-                        .stroke(
-                            LinearGradient(
-                                colors: [.blue, .purple],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            style: StrokeStyle(lineWidth: 12, lineCap: .round)
-                        )
-                        .frame(width: deviceDiameter, height: deviceDiameter)
-                        .rotationEffect(.degrees(-90))
-                        .animation(.linear(duration: 1), value: progress)
+                    
+                        Circle()
+                            .trim(from: 0, to: progress)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [.blue, .purple],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                style: StrokeStyle(lineWidth: 12, lineCap: .round)
+                            )
+                            .frame(width: deviceDiameter, height: deviceDiameter)
+                            .rotationEffect(.degrees(-90))
+                            .animation(.linear(duration: 1), value: progress)
+                    }
+
                     
                     // Timer text
                     VStack {
-                        Text(formattedTime)
+                        Text(pomodoro.endTime ?? .now, style: .timer)
                             .font(.system(size: 38, weight: .bold, design: .monospaced))
                             .foregroundColor(.primary)
                         Button(action: {
@@ -147,4 +152,3 @@ struct PomodoroView: View {
     // PomodoroView(task: sample)
     Text("")
 }
-
