@@ -26,7 +26,7 @@ struct MediumTaskWidgetView: View {
                 Spacer()
             } else {
                 VStack(alignment: .leading, spacing: 8) {
-                    ForEach(entry.todos.prefix(4), id: \.id ) { todo in
+                    ForEach(entry.todos.prefix(3), id: \.id ) { todo in
                         TaskRowInteractive(task: todo)
                     }
                 }

@@ -19,7 +19,7 @@ struct TaskWidgetEntry: TimelineEntry {
 struct ClarityWidgetProvider: AppIntentTimelineProvider {
     
     func placeholder(in context: Context) -> TaskWidgetEntry {
-        TaskWidgetEntry(date: .now, todos: [], progress: WeeklyProgress(completed: 0, target: 0, categories: []),filter: .all)
+        TaskWidgetEntry(date: .now, todos: [], progress: WeeklyProgress(completed: 0, target: 0, error: "", categories: []),filter: .all)
     }
     
     func snapshot(for configuration: TaskWidgetIntent, in context: Context) async -> TaskWidgetEntry {

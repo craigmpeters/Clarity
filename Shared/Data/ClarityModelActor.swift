@@ -229,6 +229,7 @@ actor ClarityModelActor {
         return WeeklyProgress(
             completed: completedCount,
             target: globalTarget,
+            error: "",
             categories: []
         )
     }

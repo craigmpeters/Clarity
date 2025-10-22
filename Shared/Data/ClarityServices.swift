@@ -100,13 +100,20 @@ enum ClarityServices {
             let weekStart = cal.date(from: comps) ?? now
 
             let taskDescriptor = FetchDescriptor<ToDoTask>(
-                predicate: #Predicate { $0.completedAt != nil && $0.completedAt! > weekStart }
+                predicate: #Predicate { task in
+                    if let completed = task.completedAt {
+                        return completed > weekStart
+                    } else {
+                        return false
+                    }
+                }
             )
             let count = try ctx.fetch(taskDescriptor).count
 
-            return WeeklyProgress(completed: count, target: target, categories: [])
+            return WeeklyProgress(completed: count, target: target, error: "", categories: [])
         } catch {
-            return WeeklyProgress(completed: 0, target: 0, categories: [])
+            print(error.localizedDescription)
+            return WeeklyProgress(completed: 0, target: 0, error: error.localizedDescription, categories: [])
         }
     }
 }
@@ -130,3 +137,4 @@ actor StoreRegistry {
         stores.removeAll()
     }
 }
+

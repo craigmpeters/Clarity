@@ -22,5 +22,6 @@ public final class GlobalTargetSettings {
 struct WeeklyProgress {
     let completed: Int
     let target: Int
+    let error: String?
     let categories: [(name: String, completed: Int, target: Int, color: String)]
 }
