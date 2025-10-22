@@ -21,13 +21,7 @@
         {
           "blend-mode" : "soft-light",
           "image-name" : "ChatGPT Image Oct 22, 2025 at 05_50_42 PM.png",
-          "name" : "ChatGPT Image Oct 22, 2025 at 05_50_42 PM",
-          "opacity-specializations" : [
-            {
-              "appearance" : "dark",
-              "value" : 0.4
-            }
-          ]
+          "name" : "ChatGPT Image Oct 22, 2025 at 05_50_42 PM"
         },
         {
           "blend-mode" : "normal",

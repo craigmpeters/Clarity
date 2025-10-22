@@ -76,9 +76,6 @@ struct StatsView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Overview Cards
-                    OverviewCardsView(tasks: filteredTasks)
-                        .padding(.horizontal)
                     
                     // Timeframe selector with horizontal scroll
                     VStack(alignment: .leading, spacing: 12) {
@@ -108,11 +105,8 @@ struct StatsView: View {
                             .padding(.horizontal)
                     }
                     
-                    // Weekly Targets Progress
-                    WeeklyTargetsProgressView(tasks: completedTasks)
-                        .padding(.horizontal)
-                    
-                    Divider()
+                    // Overview Cards
+                    OverviewCardsView(tasks: filteredTasks)
                         .padding(.horizontal)
                     
                     // Category completion chart
@@ -126,6 +120,13 @@ struct StatsView: View {
                     // Productivity Heatmap
                     ProductivityHeatmap(tasks: filteredTasks)
                         .padding()
+                    
+                    // Weekly Targets Progress
+                    WeeklyTargetsProgressView(tasks: completedTasks)
+                        .padding(.horizontal)
+                    
+                    Divider()
+                        .padding(.horizontal)
                     
                     // Daily breakdown
                     WeeklyBreakdownView(
@@ -413,10 +414,38 @@ struct CategoryCompletionChart: View {
                             .font(.caption)
                     }
                 }
-                .onTapGesture { location in
-                    // Simple tap detection - in production you'd calculate which bar was tapped
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        selectedBar = selectedBar == nil ? chartData.first?.categoryName : nil
+                .chartOverlay { proxy in
+                    GeometryReader { geo in
+                        Rectangle()
+                            .fill(.clear)
+                            .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onEnded { value in
+                                        let location = value.location
+                                        // Convert the x-position to a category name using the chart's proxy
+                                        let origin = geo[proxy.plotAreaFrame].origin
+                                        let xInPlot = location.x - origin.x
+                                        // Find the nearest bar by comparing positions of category names
+                                        var nearest: (name: String, distance: CGFloat)? = nil
+                                        for datum in chartData {
+                                            if let xPos = proxy.position(forX: datum.categoryName) {
+                                                let distance = abs(xPos - xInPlot)
+                                                if nearest == nil || distance < nearest!.distance {
+                                                    nearest = (datum.categoryName, distance)
+                                                }
+                                            }
+                                        }
+                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                            if let found = nearest?.name {
+                                                // Toggle selection if the same bar is tapped again
+                                                selectedBar = (selectedBar == found) ? nil : found
+                                            } else {
+                                                selectedBar = nil
+                                            }
+                                        }
+                                    }
+                            )
                     }
                 }
             }

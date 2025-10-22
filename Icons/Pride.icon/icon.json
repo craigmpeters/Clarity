@@ -24,15 +24,7 @@
           "hidden" : false,
           "image-name" : "LGBT_flag_square.svg",
           "name" : "LGBT_flag_square",
-          "opacity-specializations" : [
-            {
-              "value" : 1
-            },
-            {
-              "appearance" : "dark",
-              "value" : 0.4
-            }
-          ],
+          "opacity" : 1,
           "position" : {
             "scale" : 2.4,
             "translation-in-points" : [
@@ -53,6 +45,23 @@
             "translation-in-points" : [
               -33.70375131215353,
               -8.215828125165302
+            ]
+          }
+        },
+        {
+          "blend-mode" : "normal",
+          "fill" : {
+            "solid" : "extended-gray:1.00000,1.00000"
+          },
+          "glass" : false,
+          "image-name" : "clarity 2.png",
+          "name" : "clarity 2",
+          "opacity" : 1,
+          "position" : {
+            "scale" : 1.26,
+            "translation-in-points" : [
+              -37.85625,
+              -10.3015625
             ]
           }
         }
