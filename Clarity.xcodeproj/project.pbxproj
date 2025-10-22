@@ -10,8 +10,6 @@
 		4448AD642E579266005CDDDF /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4448AD632E579266005CDDDF /* WidgetKit.framework */; };
 		4448AD662E579266005CDDDF /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4448AD652E579266005CDDDF /* SwiftUI.framework */; };
 		4448AD752E579268005CDDDF /* Widgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4448AD612E579266005CDDDF /* Widgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		44588D1A2EA5056600A657C3 /* Appicon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 44588D192EA5056600A657C3 /* Appicon.icon */; };
-		44588D1B2EA5062F00A657C3 /* Appicon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 44588D192EA5056600A657C3 /* Appicon.icon */; };
 		44D6EADD2E83177400B5EF9E /* ClarityWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 44D6EABD2E83176B00B5EF9E /* ClarityWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		44F7CE602E8B2FA300F520BF /* DataRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F7CE5F2E8B2FA300F520BF /* DataRepository.swift */; };
 /* End PBXBuildFile section */
@@ -62,7 +60,6 @@
 		4448AD612E579266005CDDDF /* Widgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = Widgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		4448AD632E579266005CDDDF /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		4448AD652E579266005CDDDF /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
-		44588D192EA5056600A657C3 /* Appicon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = Appicon.icon; sourceTree = "<group>"; };
 		44D6EABD2E83176B00B5EF9E /* ClarityWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClarityWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		44D6F0492E85DDDF00B5EF9E /* ClarityWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ClarityWatch.entitlements; sourceTree = "<group>"; };
 		44D6F04A2E85DE1500B5EF9E /* ClarityWatch-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "ClarityWatch-Info.plist"; sourceTree = "<group>"; };
@@ -96,6 +93,14 @@
 				"Preview Assets.xcassets",
 			);
 			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
+		};
+		44588D352EA9290A00A657C3 /* Exceptions for "Icons" folder in "ClarityWatch" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Appicon.icon,
+				Default.icon,
+			);
+			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
 		};
 		44BCDE032E5D2E5F00B61B9C /* Exceptions for "Clarity" folder in "Clarity" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -190,6 +195,14 @@
 				4448AD792E579268005CDDDF /* Exceptions for "Widgets" folder in "Widgets" target */,
 			);
 			path = Widgets;
+			sourceTree = "<group>";
+		};
+		44588D1E2EA924AC00A657C3 /* Icons */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				44588D352EA9290A00A657C3 /* Exceptions for "Icons" folder in "ClarityWatch" target */,
+			);
+			path = Icons;
 			sourceTree = "<group>";
 		};
 		44BCDDFA2E5D2A7E00B61B9C /* Icon Composer */ = {
@@ -327,7 +340,6 @@
 		44D6F0142E85DA8E00B5EF9E /* Shared */ = {
 			isa = PBXGroup;
 			children = (
-				44588D192EA5056600A657C3 /* Appicon.icon */,
 				44D6F0172E85DA9500B5EF9E /* Data */,
 				44D6F0262E85DA9800B5EF9E /* Models */,
 				44D6F03B2E85DA9B00B5EF9E /* Preview Content */,
@@ -339,6 +351,7 @@
 		44FB49552E51F1EB0059CC5B = {
 			isa = PBXGroup;
 			children = (
+				44588D1E2EA924AC00A657C3 /* Icons */,
 				44D6F04A2E85DE1500B5EF9E /* ClarityWatch-Info.plist */,
 				44D6F0492E85DDDF00B5EF9E /* ClarityWatch.entitlements */,
 				44D6F0142E85DA8E00B5EF9E /* Shared */,
@@ -429,6 +442,7 @@
 				44D6EADC2E83177400B5EF9E /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
+				44588D1E2EA924AC00A657C3 /* Icons */,
 				44BCDDFA2E5D2A7E00B61B9C /* Icon Composer */,
 				44D6F0172E85DA9500B5EF9E /* Data */,
 				44D6F0262E85DA9800B5EF9E /* Models */,
@@ -497,7 +511,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				44588D1B2EA5062F00A657C3 /* Appicon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -505,7 +518,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				44588D1A2EA5056600A657C3 /* Appicon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -686,6 +698,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "Pride Appicon Christmas Autumn Default";
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -749,6 +762,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "Pride Appicon Christmas Autumn Default";
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;

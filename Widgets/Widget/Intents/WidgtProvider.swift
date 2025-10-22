@@ -30,7 +30,7 @@ struct ClarityWidgetProvider: AppIntentTimelineProvider {
     }
     
     func timeline(for configuration: TaskWidgetIntent, in context: Context) async -> Timeline<TaskWidgetEntry> {
-        let todos = await ClarityServices.snapshotTasksAsync()
+        let todos = await ClarityServices.snapshotTasksAsync(filter: configuration.filter.toTaskFilter())
         let progress = ClarityServices.fetchWeeklyProgress()
         let entry = TaskWidgetEntry(date: .now, todos: todos, progress: progress, filter: configuration.filter)
         

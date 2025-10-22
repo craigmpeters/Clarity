@@ -19,10 +19,27 @@
       ],
       "layers" : [
         {
+          "blend-mode" : "soft-light",
+          "fill" : "none",
+          "hidden" : false,
+          "image-name" : "LGBT_flag_square.svg",
+          "name" : "LGBT_flag_square",
+          "opacity" : 0.4,
+          "position" : {
+            "scale" : 2.4,
+            "translation-in-points" : [
+              46.811364314466424,
+              26.651607695208355
+            ]
+          }
+        },
+        {
+          "blend-mode" : "normal",
           "fill" : "none",
           "glass" : false,
           "image-name" : "clarity 2.png",
           "name" : "clarity 2",
+          "opacity" : 1,
           "position" : {
             "scale" : 1.22,
             "translation-in-points" : [
