@@ -19,6 +19,17 @@
       ],
       "layers" : [
         {
+          "image-name" : "Clarity Transparent.png",
+          "name" : "Clarity Transparent",
+          "position" : {
+            "scale" : 1.2400000000000002,
+            "translation-in-points" : [
+              -35.46875,
+              -5.7421875
+            ]
+          }
+        },
+        {
           "blend-mode" : "soft-light",
           "fill" : "none",
           "hidden" : false,
@@ -30,38 +41,6 @@
             "translation-in-points" : [
               15.381676814466424,
               24.995357695208355
-            ]
-          }
-        },
-        {
-          "blend-mode" : "normal",
-          "fill" : "none",
-          "glass" : false,
-          "image-name" : "clarity 2.png",
-          "name" : "clarity 2",
-          "opacity" : 1,
-          "position" : {
-            "scale" : 1.22,
-            "translation-in-points" : [
-              -33.70375131215353,
-              -8.215828125165302
-            ]
-          }
-        },
-        {
-          "blend-mode" : "normal",
-          "fill" : {
-            "solid" : "extended-gray:1.00000,1.00000"
-          },
-          "glass" : false,
-          "image-name" : "clarity 2.png",
-          "name" : "clarity 2",
-          "opacity" : 1,
-          "position" : {
-            "scale" : 1.26,
-            "translation-in-points" : [
-              -37.85625,
-              -10.3015625
             ]
           }
         }
