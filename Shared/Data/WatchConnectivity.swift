@@ -374,7 +374,18 @@ extension ClarityWatchConnectivity {
             }
             print("Recieved End Pomodoro from Watch for Task \(encodedDto?.toDoTask.name ?? "<no name>") ")
             await PomodoroService.shared.endPomodoro()
-            
+            if let dto = encodedDto {
+                if let pid = dto.toDoTask.id {
+                    do {
+                        try await ClarityServices.store().completeTask(pid)
+                    } catch {
+                        #if DEBUG
+                        print("❌ Failed to complete task on stopPomodoro: \(error)")
+                        #endif
+                    }
+                }
+            }
+
             if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
                 ClarityWatchConnectivity.shared.pushSnapshot(todos)
             }
@@ -465,17 +476,24 @@ extension ClarityWatchConnectivity {
                     print("❌ Failed to complete task from pomodoroStopped: \(error)")
                 }
             }
-            
-
-            // Push updated snapshot if possible
-            if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
-                ClarityWatchConnectivity.shared.pushSnapshot(todos)
-            }
             #endif
 
             #if os(watchOS)
             print("⌚️ Dismissing Pomodoro")
             ClarityWatchConnectivity.shared.activePomodoro = nil
+            
+            // After stopping, request a fresh snapshot from the phone
+            ClarityWatchConnectivity.shared.requestListAll(preferReliable: false) { result in
+                switch result {
+                case .success(let todos):
+                    DispatchQueue.main.async {
+                        print("⌚️ Watch requested snapshot after pomodoroStopped: \(todos.count) tasks")
+                        ClarityWatchConnectivity.shared.lastSnapshot = todos
+                    }
+                case .failure(let error):
+                    print("⚠️ Watch failed to request snapshot after pomodoroStopped: \(error)")
+                }
+            }
             #endif
 
             return Envelope(kind: WCKeys.Requests.pomodoroStopped)

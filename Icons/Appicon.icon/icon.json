@@ -19,15 +19,13 @@
       ],
       "layers" : [
         {
-          "fill" : "none",
-          "glass" : false,
-          "image-name" : "clarity 2.png",
-          "name" : "clarity 2",
+          "image-name" : "Clarity Transparent.png",
+          "name" : "Clarity Transparent",
           "position" : {
-            "scale" : 1.22,
+            "scale" : 1.25,
             "translation-in-points" : [
-              -33.70375131215353,
-              -8.215828125165302
+              0,
+              0
             ]
           }
         }

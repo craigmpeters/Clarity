@@ -19,6 +19,17 @@
       ],
       "layers" : [
         {
+          "image-name" : "Clarity Transparent.png",
+          "name" : "Clarity Transparent",
+          "position" : {
+            "scale" : 1.25,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
+        },
+        {
           "blend-mode" : "soft-light",
           "image-name" : "ChatGPT Image Oct 22, 2025 at 05_53_19 PM.png",
           "name" : "ChatGPT Image Oct 22, 2025 at 05_53_19 PM",
@@ -28,29 +39,6 @@
               "value" : 0.4
             }
           ]
-        },
-        {
-          "blend-mode" : "normal",
-          "fill" : "none",
-          "glass" : false,
-          "image-name" : "clarity 2.png",
-          "name" : "clarity 2",
-          "opacity-specializations" : [
-            {
-              "value" : 1
-            },
-            {
-              "appearance" : "dark",
-              "value" : 0.4
-            }
-          ],
-          "position" : {
-            "scale" : 1.22,
-            "translation-in-points" : [
-              -33.70375131215353,
-              -8.215828125165302
-            ]
-          }
         }
       ],
       "lighting-specializations" : [

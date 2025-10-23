@@ -5,11 +5,11 @@
 //  Created by Craig Peters on 11/10/2025.
 //
 
-import Foundation
-import Combine
 import ActivityKit
-import UserNotifications
+import Combine
+import Foundation
 import SwiftData
+import UserNotifications
 
 @MainActor final class PomodoroService: ObservableObject {
     static let shared = PomodoroService()
@@ -22,7 +22,7 @@ import SwiftData
     @Published var remainingTime: TimeInterval = 0
     @Published var progress: Double = 0
     
-    public var formattedTime: String {
+    var formattedTime: String {
         let time = remainingTime
         let minutes = Int(time) / 60
         let seconds = Int(time) % 60
@@ -40,6 +40,7 @@ import SwiftData
         let remaining = endTime.timeIntervalSinceNow
         return max(0, remaining)
     }
+
     private var calculatedProgress: Double {
         guard remainingTime > 0 else { return 0 }
         guard let totalTime = toDoTask?.pomodoroTime else { return 0 }
@@ -53,17 +54,17 @@ import SwiftData
     
     // MARK: Public Functions
     
-    public func startPomodoro(for toDoTask: ToDoTaskDTO, container: ModelContainer, device: DeviceType ) {
-        self.startedDevice = device
+    func startPomodoro(for toDoTask: ToDoTaskDTO, container: ModelContainer, device: DeviceType) {
+        startedDevice = device
         self.container = container
         self.toDoTask = toDoTask
         let now = Date()
-        self.startTime = now
-        self.endTime = Date(timeInterval: toDoTask.pomodoroTime, since: now)
-        self.isActive = true
+        startTime = now
+        endTime = Date(timeInterval: toDoTask.pomodoroTime, since: now)
+        isActive = true
         startTimer()
         startLiveActivity()
-        if let end = self.endTime {
+        if let end = endTime {
             let notif = NotificationContent(
                 title: "Pomodoro Finished",
                 body: "Task '\(toDoTask.name)' is done!"
@@ -77,7 +78,7 @@ import SwiftData
         ClarityWatchConnectivity.shared.sendPomodoroStarted(dto)
     }
     
-    public func endPomodoro() async {
+    func endPomodoro() async {
         // Make idempotent: if already inactive, do nothing
         guard isActive else {
             print("Pomodoro is not active")
@@ -95,17 +96,17 @@ import SwiftData
         stopLiveActivity()
         cancelNotification()
         
-
         // Post a single completion notification
         NotificationCenter.default.post(name: .pomodoroCompleted, object: nil)
         if startedDevice == .watchOS {
-            if let task = self.toDoTask {
-                ClarityWatchConnectivity.shared.sendPomodoroStopped(self.toDoTask)
-            } else {
-                ClarityWatchConnectivity.shared.sendPomodoroStopped()
+            if let task = toDoTask {
+                print("Sending Pomodoro Stopped with Task")
+                ClarityWatchConnectivity.shared.sendPomodoroStopped(task)
             }
+        } else {
+            print("Sending Pomodoro Stopped without Task")
+            ClarityWatchConnectivity.shared.sendPomodoroStopped()
         }
-        
     }
     
     // MARK: Live Activities
@@ -113,7 +114,7 @@ import SwiftData
     private func startLiveActivity() {
         let attributes = PomodoroAttributes(sessionId: UUID().uuidString)
         guard let task = toDoTask else { return }
-        guard let start = self.startTime, let end = self.endTime else { return }
+        guard let start = startTime, let end = endTime else { return }
         let contentState = PomodoroAttributes.ContentState(
             taskName: task.name,
             startTime: start,
@@ -145,22 +146,22 @@ import SwiftData
     private struct NotificationContent {
         var title: String
         var body: String
-        var sound: UNNotificationSound = UNNotificationSound.default
+        var sound: UNNotificationSound = .default
     }
     
     private func scheduleNotification(date: Date, notification: NotificationContent) {
         let content = UNMutableNotificationContent()
-        self.notificationid = UUID().uuidString
+        notificationid = UUID().uuidString
         content.title = notification.title
         content.body = notification.body
         content.sound = notification.sound
-        content.userInfo = ["pomodoro" : self.notificationid]
+        content.userInfo = ["pomodoro": notificationid]
         
         let trigger = UNCalendarNotificationTrigger(
             dateMatching: Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date), repeats: false
         )
         
-        let request = UNNotificationRequest(identifier: self.notificationid, content: content, trigger: trigger)
+        let request = UNNotificationRequest(identifier: notificationid, content: content, trigger: trigger)
         
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
@@ -176,9 +177,8 @@ import SwiftData
         notificationid = ""
     }
     
-    
-    
     // MARK: Pomodoro Timer Function
+
     private func startTimer() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
@@ -198,4 +198,3 @@ import SwiftData
         RunLoop.main.add(timer!, forMode: .common)
     }
 }
-
