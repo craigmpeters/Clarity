@@ -1,9 +1,11 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct SettingsView: View {
     @State private var showingCategoryManagement = false
-    
+    @AppStorage("logViewerRuntimeEnabled") private var logViewerRuntimeEnabled = false
+    @Environment(\.isLogViewerEnabled) private var isLogViewerEnabled
+
     var body: some View {
         Form {
             Section("Categories") {
@@ -16,8 +18,8 @@ struct SettingsView: View {
                 }
                 .foregroundColor(.primary)
             }
-            
-            // ToDo: Version 1.1 Stuff
+
+            // TODO: Version 1.1 Stuff
             Section("General") {
                 HStack {
                     NavigationLink(destination: NotificationSettingsView()) {
@@ -35,16 +37,31 @@ struct SettingsView: View {
                         Spacer()
                     }
                 }
-//                
-//                HStack {
-//                    Image(systemName: "paintbrush")
-//                        .foregroundColor(.purple)
-//                    Text("Appearance")
-//                    Spacer()
-//                    // Add appearance settings here
-//                }
             }
-            
+            if isLogViewerEnabled {
+                Section("Logging") {
+                    Toggle(isOn: $logViewerRuntimeEnabled) {
+                        HStack {
+                            Image(systemName: "switch.2")
+                                .foregroundColor(.purple)
+                            Text("Enable Log Viewer")
+                        }
+                    }
+                    
+                    
+                    if isLogViewerEnabled && logViewerRuntimeEnabled {
+                        HStack {
+                            NavigationLink(destination: LogView()) {
+                                Image(systemName: "doc.text.magnifyingglass")
+                                    .foregroundColor(.purple)
+                                Text("View Logs")
+                                Spacer()
+                            }
+                        }
+                    }
+                }
+            }
+
             Section("About") {
                 HStack {
                     Image(systemName: "info.circle")
@@ -59,15 +76,7 @@ struct SettingsView: View {
             #if DEBUG
             DevelopmentSection()
             #endif
-            HStack {
-                NavigationLink(destination: LogView()) {
-                    Image(systemName: "doc.text.magnifyingglass")
-                        .foregroundColor(.purple)
-                    Text("View Logs")
-                    Spacer()
-                }
-            }
-            
+
             #if DEBUG
 //            Section("Connectivity Debug") {
 //                Button("Request Tasks From Phone") {
@@ -90,13 +99,12 @@ struct SettingsView: View {
             CategoryManagementView()
         }
     }
-    
+
     private func buildInformation() -> Text {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown Version"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown Build"
-        
+
         return Text("\(version) (\(build))")
-        
     }
 }
 
@@ -108,15 +116,15 @@ struct CategoryManagementView: View {
     @State private var categoryToEdit: Category?
     @State private var categoryToDelete: Category?
     @State private var showingDeleteAlert = false
-    
+
     var body: some View {
         NavigationView {
             List {
                 ForEach(allCategories, id: \.id) { category in
                     CategorySettingsRow(
                         category: category,
-                        onDelete: { deleteCategory(category)},
-                        onEdit: { editCategory(category)}
+                        onDelete: { deleteCategory(category) },
+                        onEdit: { editCategory(category) }
                     )
                 }
             }
@@ -155,22 +163,22 @@ struct CategoryManagementView: View {
             }
         }
     }
-    
+
     private func editCategory(_ category: Category) {
         print("Editing \(category.name ?? "")")
         categoryToEdit = category
     }
-    
+
     private func deleteCategory(_ category: Category) {
         // Remove this category from all tasks that use it
         guard let tasks = category.tasks else { return }
         for task in tasks {
             task.categories!.removeAll { $0.name == category.name }
         }
-        
+
         // Delete the category
         modelContext.delete(category)
-        
+
         do {
             try modelContext.save()
         } catch {
@@ -179,32 +187,32 @@ struct CategoryManagementView: View {
     }
 }
 
-//struct EditCategoryView: View {
+// struct EditCategoryView: View {
 //    @Environment(\.modelContext) private var modelContext
 //    @Environment(\.dismiss) private var dismiss
 //    @Query private var allCategories: [Category]
-//    
+//
 //    let category: Category
 //    @State private var name: String
 //    @State private var selectedColor: Category.CategoryColor
-//    
+//
 //    init(category: Category) {
 //        self.category = category
 //        self._name = State(initialValue: category.name)
 //        self._selectedColor = State(initialValue: category.color)
 //    }
-//    
+//
 //    private var isNameValid: Bool {
 //        !name.isEmpty && (name == category.name || !allCategories.contains { $0.name.lowercased() == name.lowercased() })
 //    }
-//    
+//
 //    var body: some View {
 //        NavigationView {
 //            Form {
 //                Section("Category Details") {
 //                    TextField("Category Name", text: $name)
 //                }
-//                
+//
 //                Section("Color") {
 //                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 16) {
 //                        ForEach(Category.CategoryColor.allCases, id: \.self) { color in
@@ -225,7 +233,7 @@ struct CategoryManagementView: View {
 //                                                .stroke(Color.primary, lineWidth: 1)
 //                                                .opacity(selectedColor == color ? 1 : 0)
 //                                        )
-//                                    
+//
 //                                    Text(color.rawValue)
 //                                        .font(.caption2)
 //                                        .foregroundColor(selectedColor == color ? color.SwiftUIColor : .secondary)
@@ -236,7 +244,7 @@ struct CategoryManagementView: View {
 //                    }
 //                    .padding(.vertical, 8)
 //                }
-//                
+//
 //                if category.tasks.count > 0 {
 //                    Section {
 //                        Text("This category is used by \(category.tasks.count) task\(category.tasks.count == 1 ? "" : "s")")
@@ -253,7 +261,7 @@ struct CategoryManagementView: View {
 //                        dismiss()
 //                    }
 //                }
-//                
+//
 //                ToolbarItem(placement: .navigationBarTrailing) {
 //                    Button("Save") {
 //                        saveChanges()
@@ -263,11 +271,11 @@ struct CategoryManagementView: View {
 //            }
 //        }
 //    }
-//    
+//
 //    private func saveChanges() {
 //        category.name = name
 //        category.color = selectedColor
-//        
+//
 //        do {
 //            try modelContext.save()
 //            dismiss()
@@ -275,7 +283,7 @@ struct CategoryManagementView: View {
 //            print("Failed to update category: \(error)")
 //        }
 //    }
-//}
+// }
 
 struct AppIconSettingsView: View {
     struct AppIcon: Identifiable, Hashable {
@@ -391,5 +399,12 @@ struct AppIconSettingsView: View {
 }
 
 #Preview {
-    SettingsView()
+    let center = LogCenter()
+    center.append(message: "App started", level: .info)
+    center.append(message: "Fetched 12 tasks", level: .debug)
+    center.append(message: "Failed to sync", level: .warning)
+    return SettingsView()
+        .environment(\.logCenter, center)
+        .environment(\.isLogViewerEnabled, true)
+        .environment(\.locale, .init(identifier: "en"))
 }

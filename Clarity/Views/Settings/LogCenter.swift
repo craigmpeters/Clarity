@@ -8,6 +8,37 @@
 import SwiftUI
 import Combine
 
+// MARK: - Feature Flags
+struct FeatureFlags {
+    // Reads default enablement from Info.plist key `LOG_VIEWER_ENABLED` (Boolean) or falls back to false.
+    static var logViewerDefaultEnabled: Bool = {
+        if let info = Bundle.main.infoDictionary {
+            if let value = info["LOG_VIEWER_ENABLED"] as? Bool {
+                return value
+            }
+            if let stringValue = info["LOG_VIEWER_ENABLED"] as? String {
+                return (stringValue as NSString).boolValue
+            }
+        }
+        // As a convenience, allow enabling via process env (useful for previews/tests)
+        if let env = ProcessInfo.processInfo.environment["LOG_VIEWER_ENABLED"], (env as NSString).boolValue == true {
+            return true
+        }
+        return false
+    }()
+}
+
+private struct LogViewerEnabledKey: EnvironmentKey {
+    static let defaultValue: Bool = FeatureFlags.logViewerDefaultEnabled
+}
+
+extension EnvironmentValues {
+    var isLogViewerEnabled: Bool {
+        get { self[LogViewerEnabledKey.self] }
+        set { self[LogViewerEnabledKey.self] = newValue }
+    }
+}
+
 final class LogCenter: ObservableObject {
     @Published var entries: [LogEntry] = []
     
@@ -136,4 +167,5 @@ struct LogView: View {
     center.append(message: "Debugging info: variable x = 42", level: .debug)
     return LogView()
         .environment(\.logCenter, center)
+        .environment(\.isLogViewerEnabled, true)
 }
