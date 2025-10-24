@@ -59,6 +59,14 @@ struct SettingsView: View {
             #if DEBUG
             DevelopmentSection()
             #endif
+            HStack {
+                NavigationLink(destination: LogView()) {
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .foregroundColor(.purple)
+                    Text("View Logs")
+                    Spacer()
+                }
+            }
             
             #if DEBUG
 //            Section("Connectivity Debug") {
