@@ -433,7 +433,7 @@ extension ClarityWatchConnectivity {
             }
             // Ack so watch can present PomodoroView
             return Envelope(kind: WCKeys.Requests.startPomodoro)
-        case "pomodoroStarted":
+        case WCKeys.Requests.pomodoroStarted:
             var dto: PomodoroDTO?
             if let msg = message,
                let data = msg[WCKeys.payload] as? Data,
@@ -451,7 +451,7 @@ extension ClarityWatchConnectivity {
             }
             #endif
             return Envelope(kind: WCKeys.Requests.pomodoroStarted)
-        case "pomodoroStopped":
+        case WCKeys.Requests.pomodoroStopped:
             // If a ToDoTaskDTO is provided, attempt to complete the task on iOS
             var providedDTO: ToDoTaskDTO?
             if let msg = message,
