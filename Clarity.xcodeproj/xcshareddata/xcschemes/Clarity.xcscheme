@@ -39,8 +39,13 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "4448AD602E579266005CDDDF"
+<<<<<<< HEAD
                BuildableName = "Widgets.appex"
                BlueprintName = "Widgets"
+=======
+               BuildableName = "PomodoroExtensionExtension.appex"
+               BlueprintName = "PomodoroExtensionExtension"
+>>>>>>> main
                ReferencedContainer = "container:Clarity.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
