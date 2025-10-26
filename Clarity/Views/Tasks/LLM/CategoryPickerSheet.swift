@@ -11,7 +11,7 @@ import Foundation
 
 // MARK: - Category Picker Sheet
 struct CategoryPickerSheet: View {
-    @Binding var selectedCategories: [Category]
+    @Binding var selectedCategories: [CategoryDTO]
     @Query private var allCategories: [Category]
     @Environment(\.dismiss) private var dismiss
     
@@ -56,7 +56,7 @@ struct CategoryPickerSheet: View {
         if let index = selectedCategories.firstIndex(where: { $0.id == category.id }) {
             selectedCategories.remove(at: index)
         } else {
-            selectedCategories.append(category)
+            selectedCategories.append(CategoryDTO(from: category))
         }
     }
 }

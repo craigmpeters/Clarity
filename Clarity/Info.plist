@@ -8,6 +8,8 @@
 	<array>
 		<string>IntentIntent</string>
 	</array>
+	<key>LOG_VIEWER_ENABLED</key>
+	<string>$(LOG_VIEWER_ENABLED)</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

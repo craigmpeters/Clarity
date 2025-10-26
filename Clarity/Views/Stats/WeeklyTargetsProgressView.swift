@@ -31,6 +31,14 @@ struct WeeklyTargetsProgressView: View {
         tasksThisWeek.count
     }
     
+    private var uncategorizedCompletedThisWeek: Int {
+        tasksThisWeek.filter { task in
+            // Count tasks with no categories or an empty category list
+            guard let cats = task.categories else { return true }
+            return cats.isEmpty
+        }.count
+    }
+    
     private var categoryProgress: [(category: Category, completed: Int, target: Int, progress: Double)] {
         categories.compactMap { category in
             let completed = tasksThisWeek.filter { task in
@@ -123,6 +131,9 @@ struct WeeklyTargetsProgressView: View {
                             progress: item.progress
                         )
                     }
+                    if uncategorizedCompletedThisWeek > 0 {
+                        UncategorizedProgressRow(completed: uncategorizedCompletedThisWeek)
+                    }
                 }
             } else if globalTarget == 0 {
                 // No targets set
@@ -166,6 +177,57 @@ struct WeeklyTargetsProgressView: View {
         if progress >= 0.7 { return .blue }
         if progress >= 0.4 { return .orange }
         return .red
+    }
+}
+
+// MARK: - Uncategorized Progress Row
+struct UncategorizedProgressRow: View {
+    let completed: Int
+
+    private var progressColor: Color {
+        if completed > 0 { return .blue }
+        return .red
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(Color.gray.opacity(0.6))
+                        .frame(width: 12, height: 12)
+
+                    Text("Uncategorized")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                HStack(spacing: 4) {
+                    Text("\(completed) / –")
+                        .font(.system(.caption, design: .monospaced))
+                }
+            }
+
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.secondary.opacity(0.2))
+                        .frame(height: 8)
+
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(progressColor)
+                        .frame(
+                            width: geometry.size.width * (completed > 0 ? 1.0 : 0.0),
+                            height: 8
+                        )
+                }
+            }
+            .frame(height: 8)
+        }
+        .padding(.vertical, 4)
     }
 }
 
