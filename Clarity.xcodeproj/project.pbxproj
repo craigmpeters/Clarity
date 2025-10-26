@@ -345,7 +345,6 @@
 			children = (
 				44588D1E2EA924AC00A657C3 /* Icons */,
 				44D6F04A2E85DE1500B5EF9E /* ClarityWatch-Info.plist */,
-				44D6F0492E85DDDF00B5EF9E /* ClarityWatch.entitlements */,
 				44D6F0142E85DA8E00B5EF9E /* Shared */,
 				44FB49602E51F1EB0059CC5B /* Clarity */,
 				4448AD672E579266005CDDDF /* Widgets */,
@@ -354,6 +353,7 @@
 				4448AD622E579266005CDDDF /* Frameworks */,
 				44FB495F2E51F1EB0059CC5B /* Products */,
 				44F7CE5F2E8B2FA300F520BF /* DataRepository.swift */,
+				44D6F0492E85DDDF00B5EF9E /* ClarityWatch.entitlements */,
 			);
 			sourceTree = "<group>";
 		};

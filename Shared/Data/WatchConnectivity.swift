@@ -252,11 +252,34 @@ final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObj
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         print("⌚️ activationDidCompleteWith state=\(activationState.rawValue) error=\(String(describing: error))")
+        #if os(watchOS)
+        // When the watch session activates, immediately request the latest tasks
+        if activationState == .activated {
+            requestListAll(preferReliable: false) { result in
+                switch result {
+                case .success(let todos):
+                    DispatchQueue.main.async {
+                        print("⌚️ Watch pulled \(todos.count) tasks after activation")
+                        self.lastSnapshot = todos
+                    }
+                case .failure(let err):
+                    print("⚠️ listAll after activation failed: \(err)")
+                }
+            }
+        }
+        #endif
     }
 
     #if os(iOS)
     func sessionDidBecomeInactive(_ session: WCSession) {}
-    func sessionDidDeactivate(_ session: WCSession) { session.activate() }
+    func sessionDidDeactivate(_ session: WCSession) {
+        session.activate()
+        Task { @MainActor in
+            if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
+                ClarityWatchConnectivity.shared.pushSnapshot(todos)
+            }
+        }
+    }
     func sessionWatchStateDidChange(_ session: WCSession) {
         // This fires when pairing status, installed state, or complication enabled changes
         print("[iOS] ⌚️ sessionWatchStateDidChange → isPaired=\(session.isPaired) isWatchAppInstalled=\(session.isWatchAppInstalled) isComplicationEnabled=\(session.isComplicationEnabled)")
