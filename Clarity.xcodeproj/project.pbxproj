@@ -166,6 +166,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Date.swift,
+				Logger.swift,
 			);
 			target = 4448AD602E579266005CDDDF /* Widgets */;
 		};
@@ -173,6 +174,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Date.swift,
+				Logger.swift,
 			);
 			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
 		};
@@ -278,16 +280,6 @@
 			path = Clarity;
 			sourceTree = "<group>";
 		};
-		44FB49712E51F1ED0059CC5B /* ClarityTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = ClarityTests;
-			sourceTree = "<group>";
-		};
-		44FB497B2E51F1ED0059CC5B /* ClarityUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = ClarityUITests;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -356,8 +348,6 @@
 				44D6F0492E85DDDF00B5EF9E /* ClarityWatch.entitlements */,
 				44D6F0142E85DA8E00B5EF9E /* Shared */,
 				44FB49602E51F1EB0059CC5B /* Clarity */,
-				44FB49712E51F1ED0059CC5B /* ClarityTests */,
-				44FB497B2E51F1ED0059CC5B /* ClarityUITests */,
 				4448AD672E579266005CDDDF /* Widgets */,
 				44BCDDFA2E5D2A7E00B61B9C /* Icon Composer */,
 				44D6F0132E85DA5F00B5EF9E /* Watch */,
@@ -465,7 +455,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2600;
-				LastUpgradeCheck = 1620;
+				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					4448AD602E579266005CDDDF = {
 						CreatedOnToolsVersion = 16.2;
@@ -570,7 +560,6 @@
 				CODE_SIGN_ENTITLEMENTS = Widgets/WidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 4VL692ZU4A;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Widgets/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = ClarityWidgets;
@@ -599,7 +588,6 @@
 				CODE_SIGN_ENTITLEMENTS = Widgets/WidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 4VL692ZU4A;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Widgets/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = ClarityWidgets;
@@ -630,7 +618,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "Shared/Preview\\ Content";
-				DEVELOPMENT_TEAM = 4VL692ZU4A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "ClarityWatch-Info.plist";
@@ -667,7 +654,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "Shared/Preview\\ Content";
-				DEVELOPMENT_TEAM = 4VL692ZU4A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "ClarityWatch-Info.plist";
@@ -730,6 +716,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 4VL692ZU4A;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -754,6 +741,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -795,6 +783,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 4VL692ZU4A;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -812,6 +801,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -827,7 +817,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Shared/Preview Content\"";
-				DEVELOPMENT_TEAM = 4VL692ZU4A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Clarity/Info.plist;
@@ -864,7 +853,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Shared/Preview Content\"";
-				DEVELOPMENT_TEAM = 4VL692ZU4A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Clarity/Info.plist;
