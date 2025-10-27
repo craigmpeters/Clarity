@@ -35,7 +35,7 @@ struct PomodoroLiveActivityWidget: Widget {
                         }
                     }
                     Spacer()
-                    Image("clarity")
+                    Image("clarityactivity")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 80, height: 80)
@@ -66,7 +66,7 @@ struct PomodoroLiveActivityWidget: Widget {
                                     .monospacedDigit()
                             }
                         }
-                        Image("clarity")
+                        Image("clarityactivity")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 80, height: 80)
@@ -75,7 +75,7 @@ struct PomodoroLiveActivityWidget: Widget {
                 }
 
             } compactLeading: {
-                Image("clarity")
+                Image("clarityactivity")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
 
@@ -90,7 +90,7 @@ struct PomodoroLiveActivityWidget: Widget {
                 }
 
             } minimal: {
-                Image("clarity")
+                Image("clarityactivity")
                     .resizable()
                     .aspectRatio(contentMode: .fill)
             }

@@ -9,6 +9,7 @@ import Foundation
 import WatchConnectivity
 import Combine
 import SwiftData
+import os
 
 @MainActor
 final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObject {
@@ -167,7 +168,18 @@ final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObj
         sendImmediateOrReliable(.init(kind: WCKeys.Requests.startPomodoro, todotaskid: todotaskid))
     }
     
-    func sendPomodoroStopped(_ dto: ToDoTaskDTO? = nil) {
+    func sendPomodoroStopped(_ dto: ToDoTaskDTO? = nil) async {
+        guard let task = dto else {
+            sendImmediateOrReliable(.init(kind: WCKeys.Requests.pomodoroStopped))
+            return
+        }
+        Logger.WatchConnectivity.debug("Stopping Pomodoro for \(task.name)")
+        if let pid = task.id {
+            try? await ClarityServices.store().completeTask(pid)
+        } else {
+            Logger.WatchConnectivity.error("Could not decode Persistent ID for \(task.name)")
+        }
+        
         sendImmediateOrReliable(.init(kind: WCKeys.Requests.pomodoroStopped))
     }
     
@@ -240,11 +252,34 @@ final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObj
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         print("⌚️ activationDidCompleteWith state=\(activationState.rawValue) error=\(String(describing: error))")
+        #if os(watchOS)
+        // When the watch session activates, immediately request the latest tasks
+        if activationState == .activated {
+            requestListAll(preferReliable: false) { result in
+                switch result {
+                case .success(let todos):
+                    DispatchQueue.main.async {
+                        print("⌚️ Watch pulled \(todos.count) tasks after activation")
+                        self.lastSnapshot = todos
+                    }
+                case .failure(let err):
+                    print("⚠️ listAll after activation failed: \(err)")
+                }
+            }
+        }
+        #endif
     }
 
     #if os(iOS)
     func sessionDidBecomeInactive(_ session: WCSession) {}
-    func sessionDidDeactivate(_ session: WCSession) { session.activate() }
+    func sessionDidDeactivate(_ session: WCSession) {
+        session.activate()
+        Task { @MainActor in
+            if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
+                ClarityWatchConnectivity.shared.pushSnapshot(todos)
+            }
+        }
+    }
     func sessionWatchStateDidChange(_ session: WCSession) {
         // This fires when pairing status, installed state, or complication enabled changes
         print("[iOS] ⌚️ sessionWatchStateDidChange → isPaired=\(session.isPaired) isWatchAppInstalled=\(session.isWatchAppInstalled) isComplicationEnabled=\(session.isComplicationEnabled)")
@@ -307,203 +342,49 @@ final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObj
         DispatchQueue.main.async { self.lastSnapshot = todos }
     }
 }
-
+// MARK: Processing Responses
 extension ClarityWatchConnectivity {
     static func process(kind: String?, message: [String: Any]?) async -> Envelope {
         guard let kind else { return .init(kind: "error") }
         #if DEBUG
         print("🧭 process received kind=\(kind)")
         #endif
+        #if os(iOS)
         switch kind {
         case WCKeys.Requests.listAll:
-            #if os(iOS)
-            if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
-                
-                print("📦 iOS listAll returning \(todos.count) tasks")
-                
-                // Push snapshot so counterpart updates when this is triggered via reliable path
-                ClarityWatchConnectivity.shared.pushSnapshot(todos)
-                return Envelope(kind: WCKeys.Requests.listAll, todos: todos)
-                
-            }
-            #endif
-        case WCKeys.Requests.create:
-            // Immediate create expects a DTO under key "payload" or Envelope in reliable path
-            if let msg = message,
-               let data = msg[WCKeys.payload] as? Data,
-               let env = try? JSONDecoder().decode(Envelope.self, from: data),
-               let t = env.todo {
-                _ = try? await ClarityServices.store().addTask(t)
-            }
-            // Push snapshot and return ack
-            if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
-                ClarityWatchConnectivity.shared.pushSnapshot(todos)
-            }
-            return Envelope(kind: WCKeys.Requests.create)
-        case WCKeys.Requests.complete:
-            var encodedId: String?
-            if let msg = message, let id = msg["id"] as? String { encodedId = id }
-            if encodedId == nil, let msg = message, let data = msg[WCKeys.payload] as? Data,
-               let env = try? JSONDecoder().decode(Envelope.self, from: data) {
-                encodedId = env.todotaskid
-            }
-            if let encodedId, let pid = try? ToDoTaskDTO.decodeId(encodedId) {
-                #if os(iOS)
-                do {
-                    try await ClarityServices.store().completeTask(pid)
-                    if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
-                        ClarityWatchConnectivity.shared.pushSnapshot(todos)
-                    }
-                } catch {
-                    #if DEBUG
-                    print("⚠️ Failed to complete task: \(error)")
-                    #endif
-                }
-                #endif
-            }
+            return await processWatchListAllRequest(message)
+        case WCKeys.Requests.create: // Not Implimented
             return Envelope(kind: WCKeys.Requests.complete)
-            
-        case WCKeys.Requests.stopPomodoro:
-            // Stop Pomodoro on Phone
-            #if os(iOS)
-            // get PomodoroDTO
-            var encodedDto: PomodoroDTO?
-            if let msg = message, let data = msg[WCKeys.payload] as? Data,
-               let env = try? JSONDecoder().decode(Envelope.self, from: data) {
-                encodedDto = env.pomodoro
-            }
-            print("Recieved End Pomodoro from Watch for Task \(encodedDto?.toDoTask.name ?? "<no name>") ")
-            await PomodoroService.shared.endPomodoro()
-            if let dto = encodedDto {
-                if let pid = dto.toDoTask.id {
-                    do {
-                        try await ClarityServices.store().completeTask(pid)
-                    } catch {
-                        #if DEBUG
-                        print("❌ Failed to complete task on stopPomodoro: \(error)")
-                        #endif
-                    }
-                }
-            }
-
-            if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
-                ClarityWatchConnectivity.shared.pushSnapshot(todos)
-            }
-            #endif
-            return Envelope(kind: WCKeys.Requests.stopPomodoro)
-        case WCKeys.Requests.delete:
-            #if os(iOS)
-            var encodedId: String?
-            if let msg = message, let id = msg["id"] as? String { encodedId = id }
-            if encodedId == nil, let msg = message, let data = msg[WCKeys.payload] as? Data,
-               let env = try? JSONDecoder().decode(Envelope.self, from: data) {
-                encodedId = env.todotaskid
-            }
-            if let encodedId, let pid = try? ToDoTaskDTO.decodeId(encodedId) {
-                try? await ClarityServices.store().deleteTask(pid)
-            }
-            if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
-                ClarityWatchConnectivity.shared.pushSnapshot(todos)
-            }
-            #endif
-            return Envelope(kind: WCKeys.Requests.delete)
+        case WCKeys.Requests.delete: // Not Implimented
+            return Envelope(kind:WCKeys.Requests.delete)
+        case WCKeys.Requests.complete:
+            return await processWatchCompleteRequest(message)
         case WCKeys.Requests.startPomodoro:
-            // Start pomodoro timer – treated as a mutation with id
-            var encodedId: String?
-            if let msg = message, let id = msg["id"] as? String { encodedId = id }
-            if encodedId == nil, let msg = message, let data = msg[WCKeys.payload] as? Data,
-               let env = try? JSONDecoder().decode(Envelope.self, from: data) {
-                encodedId = env.todotaskid
-            }
-            if let encodedId, let pid = try? ToDoTaskDTO.decodeId(encodedId) {
-                #if os(iOS)
-                do {
-                    let container = try await ClarityServices.store().modelContainer
-                    guard let task = try await ClarityServices.store().fetchTaskById(pid) else {
-                        return Envelope(kind: WCKeys.Requests.startPomodoro)
-                    }
-                    print("Recieved Start Pomodoro for \(task.name)")
-                    PomodoroService.shared.startPomodoro(for: task, container: container, device: .watchOS)
-                } catch {
-                    #if DEBUG
-                    print("⚠️ Failed to initialize Pomodoro dependencies: \(error)")
-                    #endif
-                }
-                #endif
-            }
-            // Ack so watch can present PomodoroView
-            return Envelope(kind: WCKeys.Requests.startPomodoro)
-        case WCKeys.Requests.pomodoroStarted:
-            var dto: PomodoroDTO?
-            if let msg = message,
-               let data = msg[WCKeys.payload] as? Data,
-               let env = try? JSONDecoder().decode(Envelope.self, from: data) {
-                dto = env.pomodoro
-            }
-
-            #if os(watchOS)
-            if let dto {
-                // Update published state so the UI can present a sheet
-                ClarityWatchConnectivity.shared.activePomodoro = dto
-                print("⌚️ Received pomodoroStarted with DTO for task: \(dto.toDoTask.name)")
-            } else {
-                print("⚠️ pomodoroStarted received but failed to decode PomodoroDTO")
-            }
-            #endif
-            return Envelope(kind: WCKeys.Requests.pomodoroStarted)
+            // Pomodoro Started on Watch
+            return await ProcessWatchPomodoroStart(message)
+        case WCKeys.Requests.stopPomodoro:
+            // Pomodoro Stopped on Watch
+            return await ProcessWatchPomodoroStop(message)
         case WCKeys.Requests.pomodoroStopped:
-            // If a ToDoTaskDTO is provided, attempt to complete the task on iOS
-            var providedDTO: ToDoTaskDTO?
-            if let msg = message,
-               let data = msg[WCKeys.payload] as? Data,
-               let env = try? JSONDecoder().decode(Envelope.self, from: data) {
-                providedDTO = env.todo
-            }
-
-            #if os(iOS)
-            if let dto = providedDTO {
-                do {
-                    if let pid = dto.id { // assumes ToDoTaskDTO has an optional `id` property
-                        try await ClarityServices.store().completeTask(pid)
-                        print("✅ Completed task from pomodoroStopped for: \(dto.name)")
-                    } else if let encodedId = dto.encodedId, let pid = try? ToDoTaskDTO.decodeId(encodedId) {
-                        try await ClarityServices.store().completeTask(pid)
-                        print("✅ Completed task from pomodoroStopped (encoded) for: \(dto.name)")
-                    } else {
-                        print("⚠️ pomodoroStopped provided DTO without decodable id")
-                    }
-                } catch {
-                    print("❌ Failed to complete task from pomodoroStopped: \(error)")
-                }
-            }
-            #endif
-
-            #if os(watchOS)
-            print("⌚️ Dismissing Pomodoro")
-            ClarityWatchConnectivity.shared.activePomodoro = nil
-            
-            // After stopping, request a fresh snapshot from the phone
-            ClarityWatchConnectivity.shared.requestListAll(preferReliable: false) { result in
-                switch result {
-                case .success(let todos):
-                    DispatchQueue.main.async {
-                        print("⌚️ Watch requested snapshot after pomodoroStopped: \(todos.count) tasks")
-                        ClarityWatchConnectivity.shared.lastSnapshot = todos
-                    }
-                case .failure(let error):
-                    print("⚠️ Watch failed to request snapshot after pomodoroStopped: \(error)")
-                }
-            }
-            #endif
-
-            return Envelope(kind: WCKeys.Requests.pomodoroStopped)
+            return await ProcessWatchPomodoroStopped(message)
         default:
-            #if DEBUG
-            print("⚠️ process unknown kind=\(kind)")
-            #endif
-            break
+            Logger.WatchConnectivity.error("Invalid Request Type: \(kind)")
+            return Envelope(kind: "error")
         }
-        return .init(kind: "error")
+        
+        #endif
+        #if os(watchOS)
+        switch kind {
+        case WCKeys.Requests.pomodoroStarted:
+            return await ProcessPhonePomodoroStarted(message)
+        case WCKeys.Requests.pomodoroStopped:
+            return await ProcessPhonePomodoroStopped(message)
+        default:
+            print("Not proessing request type on watch: \(kind)")
+            return Envelope(kind: "error")
+        }
+        #endif
+
     }
 
     static func applyEvent(_ env: Envelope) async {
@@ -514,6 +395,168 @@ extension ClarityWatchConnectivity {
         }
         _ = await process(kind: env.kind, message: message)
     }
+    
+    // MARK: iOS Process Functions
+    #if os(iOS)
+    
+    private static func processWatchListAllRequest(_ message: [String: Any]?) async -> Envelope {
+        if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
+            print("📦 iOS listAll returning \(todos.count) tasks")
+            // Push snapshot so counterpart updates when this is triggered via reliable path
+            ClarityWatchConnectivity.shared.pushSnapshot(todos)
+            return Envelope(kind: WCKeys.Requests.listAll, todos: todos)
+        } else {
+            Logger.WatchConnectivity.error("📱 Could not fetch tasks")
+            return Envelope(kind: WCKeys.Requests.listAll, todos: nil)
+        }
+    }
+    
+    private static func processWatchCompleteRequest(_ message: [String:Any]?) async -> Envelope {
+        if let id = decodeMessageToPid(message) {
+            do {
+                try await ClarityServices.store().completeTask(id)
+            } catch {
+                Logger.WatchConnectivity.error("📱 Failed to complete Watch to Phone Task")
+            }
+            
+            if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
+                ClarityWatchConnectivity.shared.pushSnapshot(todos)
+            }
+        }
+        return Envelope(kind: WCKeys.Requests.complete)
+    }
+    
+    private static func ProcessWatchPomodoroStart(_ message: [String:Any]?) async -> Envelope {
+        // Get the Task ID
+        // TODO: Change Watch to send DTO
+        if let id = decodeMessageToPid(message) {
+            do {
+                guard let dto = try? await ClarityServices.store().fetchTaskById(id) else {
+                    Logger.WatchConnectivity.error("Task Not Found")
+                    return Envelope(kind: WCKeys.Requests.startPomodoro)
+                }
+                try await PomodoroService.shared.startPomodoro(for: dto, container: ClarityServices.store().modelContainer, device: .watchOS)
+            } catch {
+                Logger.WatchConnectivity.error("📱 Failed to start Pomodoro: \(error) ")
+            }
+        }
+        return Envelope(kind: WCKeys.Requests.startPomodoro)
+    }
+    
+    private static func ProcessWatchPomodoroStop(_ message: [String:Any]?) async -> Envelope {
+        guard let dto = decodeMessageToPomodoro(message) else {
+            Logger.WatchConnectivity.error("Error in decoding Pomodoro from message")
+            return Envelope(kind: WCKeys.Requests.stopPomodoro)
+        }
+        Logger.WatchConnectivity.debug("Recieved End Pomodoro for Task \(dto.toDoTask.name)")
+        await PomodoroService.shared.endPomodoro()
+        if let pid = dto.toDoTask.id {
+            do {
+                try await ClarityServices.store().completeTask(pid)
+            } catch {
+                Logger.WatchConnectivity.error("Error in completing task \(dto.toDoTask.name) error: \(error)")
+            }
+        } else {
+            Logger.WatchConnectivity.error("Could not decode Persistent Identifier from Pomodoro")
+        }
+
+        if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
+            ClarityWatchConnectivity.shared.pushSnapshot(todos)
+        }
+        return Envelope(kind: WCKeys.Requests.stopPomodoro)
+    }
+    
+    private static func ProcessWatchPomodoroStopped(_ message: [String:Any]?) async -> Envelope {
+        // If a ToDoTaskDTO is provided, attempt to complete the task on iOS
+        guard let dto = decodeMessageToToDoTask(message) else {
+            Logger.WatchConnectivity.error("Error in decoding ToDoTask from message")
+            return Envelope(kind: WCKeys.Requests.pomodoroStopped)
+        }
+        Logger.WatchConnectivity.debug("Recieved A Stopped Pomodoro for Task \(dto.name)")
+        
+        if let id = dto.id {
+            do {
+                try await ClarityServices.store().completeTask(id)
+            } catch {
+                Logger.WatchConnectivity.error("Error Completing Task \(dto.name) error: \(error)")
+            }
+        }
+        return Envelope(kind: WCKeys.Requests.pomodoroStopped)
+    }
+    
+    #endif
+    
+    // MARK: WatchOS Process Functions
+    #if os(watchOS)
+    
+    private static func ProcessPhonePomodoroStarted(_ message: [String:Any]?) async -> Envelope {
+        guard let dto = decodeMessageToPomodoro(message) else {
+            print("Cannot decode DTO")
+            return Envelope(kind: WCKeys.Requests.pomodoroStarted)
+        }
+        ClarityWatchConnectivity.shared.activePomodoro = dto
+        print("⌚️ Received pomodoroStarted with DTO for task: \(dto.toDoTask.name)")
+        return Envelope(kind: WCKeys.Requests.pomodoroStarted)
+    }
+    
+    private static func ProcessPhonePomodoroStopped(_ message: [String:Any]?) async -> Envelope {
+        print("⌚️ Dismissing Pomodoro")
+        ClarityWatchConnectivity.shared.activePomodoro = nil
+        
+        // After stopping, request a fresh snapshot from the phone
+        ClarityWatchConnectivity.shared.requestListAll(preferReliable: false) { result in
+            switch result {
+            case .success(let todos):
+                DispatchQueue.main.async {
+                    print("⌚️ Watch requested snapshot after pomodoroStopped: \(todos.count) tasks")
+                    ClarityWatchConnectivity.shared.lastSnapshot = todos
+                }
+            case .failure(let error):
+                print("⚠️ Watch failed to request snapshot after pomodoroStopped: \(error)")
+            }
+        }
+        return Envelope(kind: WCKeys.Requests.pomodoroStopped)
+    }
+    
+    #endif
+    
+    // MARK: Helper Functions
+    
+    private static func decodeMessageToToDoTask(_ message: [String:Any]?) -> ToDoTaskDTO? {
+        var encodedDto: ToDoTaskDTO?
+        if let msg = message, let data = msg[WCKeys.payload] as? Data,
+           let env = try? JSONDecoder().decode(Envelope.self, from: data) {
+            encodedDto = env.todo
+        }
+        return encodedDto
+    }
+    
+    private static func decodeMessageToPomodoro(_ message: [String:Any]?) -> PomodoroDTO? {
+        
+        // get PomodoroDTO
+        var encodedDto: PomodoroDTO?
+        if let msg = message, let data = msg[WCKeys.payload] as? Data,
+           let env = try? JSONDecoder().decode(Envelope.self, from: data) {
+            encodedDto = env.pomodoro
+        }
+        return encodedDto
+    }
+    
+    private static func decodeMessageToPid(_ message: [String:Any]?) -> PersistentIdentifier? {
+        var encodedId: String?
+        if let msg = message, let id = msg["id"] as? String { encodedId = id }
+        if encodedId == nil, let msg = message, let data = msg[WCKeys.payload] as? Data,
+           let env = try? JSONDecoder().decode(Envelope.self, from: data) {
+            encodedId = env.todotaskid
+        }
+        if let encodedId, let pid = try? ToDoTaskDTO.decodeId(encodedId) {
+            do {
+                return pid
+            }
+        }
+        return nil
+    }
+    
 }
 
 public enum WCKeys {

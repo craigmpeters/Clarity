@@ -101,11 +101,11 @@ import UserNotifications
         if startedDevice == .watchOS {
             if let task = toDoTask {
                 print("Sending Pomodoro Stopped with Task")
-                ClarityWatchConnectivity.shared.sendPomodoroStopped(task)
+                await ClarityWatchConnectivity.shared.sendPomodoroStopped(task)
             }
         } else {
             print("Sending Pomodoro Stopped without Task")
-            ClarityWatchConnectivity.shared.sendPomodoroStopped()
+            await ClarityWatchConnectivity.shared.sendPomodoroStopped()
         }
     }
     
