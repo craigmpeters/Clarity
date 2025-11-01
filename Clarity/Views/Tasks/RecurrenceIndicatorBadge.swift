@@ -46,6 +46,10 @@ struct RecurrenceIndicatorBadge: View {
                 return "Every \(task.customRecurrenceDays) days"
             }
         }
+        
+        if interval == .specific {
+            return Calendar.current.weekdaySymbols[max(0, min(6, (task.everySpecificDayDay ?? 1) - 1))]
+        }
         return interval.displayName
     }
     

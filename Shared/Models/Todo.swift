@@ -9,6 +9,7 @@ import Foundation
 import SwiftData
 import Observation
 import SwiftUI
+import os
 
 @Model
 class ToDoTask {
@@ -22,6 +23,7 @@ class ToDoTask {
     var completedAt: Date?
     var recurrenceInterval: RecurrenceInterval?
     var customRecurrenceDays: Int = 1
+    var everySpecificDayDay: Int?
     
     @Relationship var categories: [Category]? = []
     
@@ -35,10 +37,20 @@ class ToDoTask {
                 return "Every \(customRecurrenceDays) days"
             }
         }
+        
+        if interval == .specific{
+            guard let day = everySpecificDayDay else {
+                Logger.ClarityServices.critical("Specific Day of the week but no day set, setting monday")
+                everySpecificDayDay = 1
+                return "Every Monday"
+            }
+            return "Every \(Calendar.current.weekdaySymbols[day])"
+        }
+        
         return interval.displayName
     }
     
-    init(name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), categories: [Category] = []) {
+    init(name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int? = nil, categories: [Category] = []) {
         self.name = name ?? ""
         self.created = Date.now
         self.due = due
@@ -48,6 +60,7 @@ class ToDoTask {
         self.categories = categories
         self.completed = false
         self.recurrenceInterval = recurrenceInterval
+        self.everySpecificDayDay = everySpecificDayDay
         self.customRecurrenceDays = customRecurrenceDays
     }
     
@@ -57,6 +70,7 @@ class ToDoTask {
         case weekly = "Weekly"
         case biweekly = "Biweekly"
         case monthly = "Monthly"
+        case specific = "Every Specific Day"
         case custom = "Custom"
         
         var displayName: String {
@@ -79,7 +93,11 @@ class ToDoTask {
             case .custom:
                 // For custom, we'll use the customRecurrenceDays property
                 return date
+            case .specific:
+                // Use the specificDay property
+                return date
             }
+        
         }
     }
     
@@ -121,9 +139,10 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
     var completedAt: Date?
     var recurrenceInterval: ToDoTask.RecurrenceInterval?
     var customRecurrenceDays: Int
+    var everySpecificDayDay: Int
     var categories: [CategoryDTO]
     
-    init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), categories: [CategoryDTO] = []) {
+    init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int = 0, categories: [CategoryDTO] = []) {
         self.id = id
         self.name = name ?? ""
         self.created = Date.now
@@ -135,6 +154,7 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
         self.completed = false
         self.recurrenceInterval = recurrenceInterval
         self.customRecurrenceDays = customRecurrenceDays
+        self.everySpecificDayDay = everySpecificDayDay
     }
     
     var encodedId: String? {
@@ -162,6 +182,7 @@ extension ToDoTaskDTO {
             recurrenceInterval: model.recurrenceInterval,
             customRecurrenceDays: model.customRecurrenceDays,
             due: model.due,
+            everySpecificDayDay: model.everySpecificDayDay ?? 1,
             categories: (model.categories ?? []).map(CategoryDTO.init(from:))
         )
     }
