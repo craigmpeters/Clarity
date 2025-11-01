@@ -8,6 +8,7 @@
 import SwiftData
 import Foundation
 import WidgetKit
+import os
 
 @ModelActor
 actor ClarityModelActor {
@@ -281,7 +282,7 @@ enum Containers {
 // AppContainer.swift (APP TARGET)
 enum AppContainer {
     static let shared: ModelContainer = {
-        print("🏗️ Creating CloudKit container (APP)")
+        Logger.ModelActor.debug("🏗️ Creating CloudKit container (APP)")
         return try! Containers.liveApp()
     }()
 }

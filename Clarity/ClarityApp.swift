@@ -37,6 +37,7 @@ struct ClarityApp: App {
                 .onAppear {
                     appDelegate.appState = appState
                 }
+                .environmentObject(LogCenter.shared)
         }
     }
     

@@ -1,4 +1,5 @@
 import SwiftData
+import os
 #if canImport(WidgetKit)
 import WidgetKit
 #endif
