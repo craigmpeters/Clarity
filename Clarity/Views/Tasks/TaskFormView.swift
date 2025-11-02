@@ -22,6 +22,7 @@ struct TaskFormView: View {
     @State private var customDays: Int = 1
     @State private var dueDate: Date = Date()
     @State private var showingDatePicker = false
+    @State private var everySpecificDayDay: Int = 1
     
     @State private var store: ClarityModelActor?
     
@@ -38,6 +39,7 @@ struct TaskFormView: View {
             self._selectedRecurrence = State(initialValue: task.recurrenceInterval ?? .daily)
             self._customDays = State(initialValue: task.customRecurrenceDays)
             self._dueDate = State(initialValue: task.due)
+            self._everySpecificDayDay = State(initialValue: task.everySpecificDayDay)
         } else {
             self._toDoTask = State(initialValue: ToDoTaskDTO(name: ""))
             self._selectedCategories = State(initialValue: [])
@@ -55,6 +57,7 @@ struct TaskFormView: View {
             if toDoTask.repeating {
                 toDoTask.recurrenceInterval = selectedRecurrence
                 toDoTask.customRecurrenceDays = customDays
+                toDoTask.everySpecificDayDay = everySpecificDayDay
             } else {
                 toDoTask.recurrenceInterval = nil
             }
@@ -136,7 +139,7 @@ struct TaskFormView: View {
                     }
                     
                     Toggle(isOn: Binding<Bool>(
-                        get: { self.toDoTask.repeating ?? false },
+                        get: { self.toDoTask.repeating },
                         set: { self.toDoTask.repeating = $0 }
                     )) {
                         HStack {
@@ -147,7 +150,7 @@ struct TaskFormView: View {
                     }
                     
                     // Show recurrence options when repeating is enabled
-                    if toDoTask.repeating ?? false {
+                    if toDoTask.repeating {
                         // Recurrence interval picker
                         Picker(selection: $selectedRecurrence) {
                             ForEach(ToDoTask.RecurrenceInterval.allCases, id: \.self) { interval in
@@ -170,6 +173,7 @@ struct TaskFormView: View {
                                 Image(systemName: "calendar.badge.plus")
                                     .foregroundStyle(.indigo)
                                 Text("Every")
+
                                 
                                 TextField("Days", value: $customDays, format: .number)
                                     .textFieldStyle(.roundedBorder)
@@ -183,6 +187,22 @@ struct TaskFormView: View {
                                     }
                                 
                                 Text(customDays == 1 ? "day" : "days")
+                                Spacer()
+                            }
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+                        if selectedRecurrence == .specific {
+                            HStack {
+                                Image(systemName: "scope")
+                                    .foregroundStyle(.pink)
+                                Text("Every")
+                                Picker("Specific Day", selection: $everySpecificDayDay) {
+                                    ForEach(1...7, id: \.self) { value in
+                                        // Map 1...7 to 0...6 for indexing the symbols
+                                        let index = value - 1
+                                        Text(Calendar.current.weekdaySymbols[index]).tag(value)
+                                    }
+                                }
                                 Spacer()
                             }
                             .transition(.opacity.combined(with: .move(edge: .top)))
@@ -234,9 +254,15 @@ struct TaskFormView: View {
         
         if selectedRecurrence == .custom {
             return Calendar.current.date(byAdding: .day, value: customDays, to: dueDate)
-        } else {
-            return selectedRecurrence.nextDate(from: dueDate)
         }
+        
+        if selectedRecurrence == .specific{
+            var comps = DateComponents()
+            comps.weekday = everySpecificDayDay
+            return Calendar.current.nextDate(after: Date(), matching: comps, matchingPolicy: .nextTimePreservingSmallerComponents)
+        }
+        
+        return selectedRecurrence.nextDate(from: dueDate)
     }
     
     private var isOverdue: Bool {

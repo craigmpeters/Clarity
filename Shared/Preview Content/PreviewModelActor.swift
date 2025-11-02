@@ -112,7 +112,9 @@ final class PreviewData {
                 name: name,
                 pomodoroTime: TimeInterval(minutes * 60),
                 due: dueDate,
+                everySpecificDayDay: nil,
                 categories: taskCategories
+
             )
             previewContext.insert(task)
         }

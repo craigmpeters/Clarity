@@ -95,6 +95,7 @@ actor ClarityModelActor {
         model.recurrenceInterval = task.recurrenceInterval
         model.repeating = task.repeating
         model.pomodoro = task.pomodoro
+        model.everySpecificDayDay = task.everySpecificDayDay
         
         
 
@@ -120,6 +121,7 @@ actor ClarityModelActor {
             recurrenceInterval: dto.recurrenceInterval,
             customRecurrenceDays: dto.customRecurrenceDays,
             due: dto.due,
+            everySpecificDayDay: dto.everySpecificDayDay,
             categories: categories
         )
         
@@ -143,10 +145,10 @@ actor ClarityModelActor {
         guard let model =  modelContext.model(for: id) as? ToDoTask else {
             throw NSError(domain: "ClarityActor", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing PersistentIdentifier"])
         }
+        Logger.ClarityServices.debug("Reoccuring Day: \(model.everySpecificDayDay.map(String.init) ?? "None")")
         model.completed = true
         model.completedAt = Date.now
-        if model.repeating == true {
-            let nextTask = createNextOccurrence(id)
+        if model.repeating == true, let nextTask = createNextOccurrence(id) {
             _ = try addTask(nextTask)
         }
         try modelContext.save()
@@ -160,29 +162,44 @@ actor ClarityModelActor {
         return nil
     }
     
-    func createNextOccurrence(_ id: PersistentIdentifier) -> ToDoTaskDTO {
-        let nextDueDate: Date
+    func createNextOccurrence(_ id: PersistentIdentifier) -> ToDoTaskDTO? {
+        var nextDueDate: Date
         
-        // Safely attempt to fetch the task; if unavailable, return a sensible default DTO
+
         guard let task = modelContext.model(for: id) as? ToDoTask else {
-            return ToDoTaskDTO(
-                name: "",
-                pomodoroTime: 0,
-                repeating: false,
-                recurrenceInterval: nil,
-                customRecurrenceDays: 0,
-                due: Date.now,
-                categories: []
-            )
+            // Avoid interpolating PersistentIdentifier directly in logs
+            Logger.ClarityServices.error("Task not found for provided PersistentIdentifier")
+            return nil
         }
         
         if let interval = task.recurrenceInterval {
+            
             if interval == .custom {
                 nextDueDate = Calendar.current.date(
                     byAdding: .day,
                     value: task.customRecurrenceDays,
                     to: Date.now
                 ) ?? task.due
+            } else
+            if interval == .specific {
+                // Stored value already matches Calendar weekday (1...7). Clamp to be safe; default to Sunday (1) if nil.
+                let weekday1to7 = min(max(task.everySpecificDayDay ?? 1, 1), 7)
+                var com = DateComponents()
+                com.weekday = weekday1to7
+
+                let calendar = Calendar.current
+                let startOfToday = calendar.startOfDay(for: Date())
+                let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? Date().addingTimeInterval(86_400)
+
+                if let computed = calendar.nextDate(after: startOfTomorrow,
+                                                    matching: com,
+                                                    matchingPolicy: .nextTimePreservingSmallerComponents,
+                                                    direction: .forward) {
+                    nextDueDate = computed
+                } else {
+                    Logger.ClarityServices.error("Failed to compute next specific weekday; falling back to interval.nextDate")
+                    nextDueDate = interval.nextDate(from: Date.now)
+                }
             } else {
                 nextDueDate = interval.nextDate(from: Date.now)
             }
@@ -286,3 +303,4 @@ enum AppContainer {
         return try! Containers.liveApp()
     }()
 }
+
