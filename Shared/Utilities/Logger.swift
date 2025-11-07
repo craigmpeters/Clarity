@@ -15,4 +15,5 @@ extension Logger {
     static let LogViewer = Logger(subsystem: subsystem, category: "Stetttings.LogView")
     static let ModelActor = Logger(subsystem: subsystem, category: "ModelActor")
     static let ClarityServices = Logger(subsystem: subsystem, category: "Data Model")
+    static let Intelligence = Logger(subsystem: subsystem, category: "Apple Intelligence")
 }
