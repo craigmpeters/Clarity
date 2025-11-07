@@ -200,7 +200,7 @@ struct TaskFormView: View {
                                     ForEach(1...7, id: \.self) { value in
                                         // Map 1...7 to 0...6 for indexing the symbols
                                         let index = value - 1
-                                        Text(Calendar.current.weekdaySymbols[index]).tag(value)
+                                        Text(Calendar.current.weekdaySymbols[index]).tag(index)
                                     }
                                 }
                                 Spacer()
@@ -256,9 +256,13 @@ struct TaskFormView: View {
             return Calendar.current.date(byAdding: .day, value: customDays, to: dueDate)
         }
         
-        if selectedRecurrence == .specific{
+        if selectedRecurrence == .specific {
             var comps = DateComponents()
-            comps.weekday = everySpecificDayDay
+            // Map app's weekday index (where 3 = Wednesday) to Calendar's weekday (1 = Sunday ... 7 = Saturday)
+            let normalized = ((everySpecificDayDay - 1) % 7 + 7) % 7 + 1
+            // Shift so that app's 3 (Wednesday) becomes Calendar's 4 (Wednesday)
+            let calendarWeekday = ((normalized + 1 - 1) % 7) + 1
+            comps.weekday = calendarWeekday
             return Calendar.current.nextDate(after: Date(), matching: comps, matchingPolicy: .nextTimePreservingSmallerComponents)
         }
         

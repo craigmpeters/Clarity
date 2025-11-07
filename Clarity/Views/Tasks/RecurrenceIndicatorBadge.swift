@@ -1,4 +1,3 @@
-
 import SwiftUI
 
 struct RecurrenceIndicatorBadge: View {
@@ -48,7 +47,9 @@ struct RecurrenceIndicatorBadge: View {
         }
         
         if interval == .specific {
-            return Calendar.current.weekdaySymbols[max(0, min(6, (task.everySpecificDayDay ?? 1) - 1))]
+            if let symbolIndex = task.everySpecificDayDay {
+                return Calendar.current.weekdaySymbols[symbolIndex]
+            }
         }
         return interval.displayName
     }

@@ -96,6 +96,7 @@ actor ClarityModelActor {
         model.repeating = task.repeating
         model.pomodoro = task.pomodoro
         model.everySpecificDayDay = task.everySpecificDayDay
+        Logger.ModelActor.debug("Update Task Day Day \(task.everySpecificDayDay)")
         
         
 
@@ -112,6 +113,7 @@ actor ClarityModelActor {
         let categories = allCategories.filter { category in
             dto.categories.contains(where: { $0.name == category.name })
         }
+        Logger.ModelActor.debug("Add Task Day Day \(dto.everySpecificDayDay)")
         
         let toDoTask = ToDoTask(
             name: dto.name,
@@ -145,7 +147,7 @@ actor ClarityModelActor {
         guard let model =  modelContext.model(for: id) as? ToDoTask else {
             throw NSError(domain: "ClarityActor", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing PersistentIdentifier"])
         }
-        Logger.ClarityServices.debug("Reoccuring Day: \(model.everySpecificDayDay.map(String.init) ?? "None")")
+        Logger.ClarityServices.debug("Complete Task DayDay: \(model.everySpecificDayDay.map(String.init) ?? "None")")
         model.completed = true
         model.completedAt = Date.now
         if model.repeating == true, let nextTask = createNextOccurrence(id) {
@@ -183,9 +185,20 @@ actor ClarityModelActor {
             } else
             if interval == .specific {
                 // Stored value already matches Calendar weekday (1...7). Clamp to be safe; default to Sunday (1) if nil.
-                let weekday1to7 = min(max(task.everySpecificDayDay ?? 1, 1), 7)
+                Logger.ClarityServices.debug("createNextOccurrence Day Day: \(task.everySpecificDayDay.map(String.init) ?? "None")")
                 var com = DateComponents()
-                com.weekday = weekday1to7
+                // Map app's weekday index (where 3 = Wednesday) to Calendar's weekday (1 = Sunday ... 7 = Saturday)
+                if let appWeekday = task.everySpecificDayDay {
+                    // Normalize to 1...7 range first
+                    let normalized = ((appWeekday - 1) % 7 + 7) % 7 + 1
+                    // Shift so that app's 3 (Wednesday) becomes Calendar's 4 (Wednesday)
+                    // Compute offset between app's Wednesday(3) and Calendar's Wednesday(4) => +1
+                    let calendarWeekday = ((normalized + 1 - 1) % 7) + 1
+                    com.weekday = calendarWeekday
+                } else {
+                    // Default to Sunday if missing
+                    com.weekday = 1
+                }
 
                 let calendar = Calendar.current
                 let startOfToday = calendar.startOfDay(for: Date())
@@ -215,7 +228,8 @@ actor ClarityModelActor {
             recurrenceInterval: task.recurrenceInterval,
             customRecurrenceDays: task.customRecurrenceDays,
             due: nextDueDate,
-            categories: (task.categories ?? []).map(CategoryDTO.init(from:))
+            everySpecificDayDay: task.everySpecificDayDay ?? 0,
+            categories: (task.categories ?? []).map(CategoryDTO.init(from:)),
         )
         return newTask
     }

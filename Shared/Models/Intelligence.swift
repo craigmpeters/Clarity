@@ -6,6 +6,7 @@ import SwiftData
 #if canImport(FoundationModels)
 import FoundationModels
 #endif
+import os
 
 // MARK: - Task Splitting Result Model
 struct SplitTaskSuggestion: Identifiable {
@@ -101,5 +102,56 @@ class TaskSplitterService: ObservableObject {
         }
         
         return suggestions
+    }
+}
+
+// MARK: Pomodoro Suggestion Service
+@available(iOS 26, *)
+class PomodoroSuggestionService: ObservableObject {
+    @Published var isProcessing = false
+    @Published var suggestedInterval: TimeInterval = 0
+    @Published var error: String?
+    
+    @available(iOS 26, *)
+    func suggestTime(for task: String) async {
+        await MainActor.run {
+            self.isProcessing = true
+            self.error = nil
+        }
+        
+        do {
+            let prompt = """
+                Suggest an amount of time, in minutes, it would take to complete the following task: \(task)
+                
+                Requirements:
+                - Suggest the amount of time that it would take a typical adult
+                - The amount of time should be no longer than 25 minutes, if you think it would take longer then suggest 25 minutes
+                - The time interval should be in intervals of 5 minutes
+                - The minimum amount of time it should take is 5 minutes
+                
+                Format Your response as a simple single number
+                """
+            
+            let options = GenerationOptions(temperature: 2.0)
+            let session = LanguageModelSession()
+            let response = try await session.respond(
+                to: prompt,
+                options: options
+            )
+            Logger.Intelligence.debug("Apple Intelligence Response: \(response.content)")
+            
+            let minutes = Int(response.content)
+            await MainActor.run {
+                self.suggestedInterval = TimeInterval((minutes ?? 25) * 60)
+                self.isProcessing = false
+            }
+            
+        } catch {
+            Logger.Intelligence.error("Cannot Generate Suggested Pomodoro: \(error)")
+            await MainActor.run {
+                self.error = "Failed to generate suggestions: \(error.localizedDescription)"
+                self.isProcessing = false
+            }
+        }
     }
 }
