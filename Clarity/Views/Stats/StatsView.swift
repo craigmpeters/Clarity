@@ -249,8 +249,10 @@ struct StatsView: View {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         let todayString = dateFormatter.string(from: Date())
-        let timeframeName = selectedTimeframe.rawValue.replacingOccurrences(of: " ", with: "")
-        let fileName = "ToDoStats_\(timeframeName)_\(todayString).csv"
+        //TODO: Fix so that it exports based on the time selected
+        //let timeframeName = selectedTimeframe.rawValue.replacingOccurrences(of: " ", with: "")
+        //let fileName = "ToDoStats_\(timeframeName)_\(todayString).csv"
+        let fileName = "ToDoStats_\(todayString).csv"
 
         // Write CSV to a temporary file URL so share targets can use the filename
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
