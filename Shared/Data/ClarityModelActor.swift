@@ -5,21 +5,21 @@
 //  Created by Craig Peters on 02/10/2025.
 //
 
-import SwiftData
 import Foundation
-import WidgetKit
 import os
+import SwiftData
+import WidgetKit
 
 @ModelActor
 actor ClarityModelActor {
-    
     // MARK: Category Functions
     
-    func addCategory(_ dto: CategoryDTO) throws  -> CategoryDTO {
+    func addCategory(_ dto: CategoryDTO) throws -> CategoryDTO {
         let category = Category(
             name: dto.name,
             color: dto.color,
-            weeklyTarget: dto.weeklyTarget)
+            weeklyTarget: dto.weeklyTarget
+        )
         modelContext.insert(category)
         try modelContext.save()
         WidgetCenter.shared.reloadTimelines(ofKind: "TodoWidget")
@@ -56,6 +56,7 @@ actor ClarityModelActor {
     }
     
     // MARK: Task Functions
+
     func fetchTasks(filter: ToDoTask.TaskFilter) throws -> [ToDoTaskDTO] {
         let descriptor = FetchDescriptor<ToDoTask>(
             predicate: #Predicate { !$0.completed },
@@ -98,8 +99,6 @@ actor ClarityModelActor {
         model.everySpecificDayDay = task.everySpecificDayDay
         Logger.ModelActor.debug("Update Task Day Day \(task.everySpecificDayDay)")
         
-        
-
         try modelContext.save()
         WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
         return ToDoTaskDTO(from: model)
@@ -124,7 +123,8 @@ actor ClarityModelActor {
             customRecurrenceDays: dto.customRecurrenceDays,
             due: dto.due,
             everySpecificDayDay: dto.everySpecificDayDay,
-            categories: categories
+            categories: categories,
+            uuid: dto.uuid
         )
         
         modelContext.insert(toDoTask)
@@ -144,7 +144,7 @@ actor ClarityModelActor {
     }
     
     func completeTask(_ id: PersistentIdentifier) throws {
-        guard let model =  modelContext.model(for: id) as? ToDoTask else {
+        guard let model = modelContext.model(for: id) as? ToDoTask else {
             throw NSError(domain: "ClarityActor", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing PersistentIdentifier"])
         }
         Logger.ClarityServices.debug("Complete Task DayDay: \(model.everySpecificDayDay.map(String.init) ?? "None")")
@@ -167,7 +167,6 @@ actor ClarityModelActor {
     func createNextOccurrence(_ id: PersistentIdentifier) -> ToDoTaskDTO? {
         var nextDueDate: Date
         
-
         guard let task = modelContext.model(for: id) as? ToDoTask else {
             // Avoid interpolating PersistentIdentifier directly in logs
             Logger.ClarityServices.error("Task not found for provided PersistentIdentifier")
@@ -175,7 +174,6 @@ actor ClarityModelActor {
         }
         
         if let interval = task.recurrenceInterval {
-            
             if interval == .custom {
                 nextDueDate = Calendar.current.date(
                     byAdding: .day,
@@ -204,10 +202,11 @@ actor ClarityModelActor {
                 let startOfToday = calendar.startOfDay(for: Date())
                 let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? Date().addingTimeInterval(86_400)
 
-                if let computed = calendar.nextDate(after: startOfTomorrow,
+                if let computed = calendar.nextDate(after: startOfToday,
                                                     matching: com,
                                                     matchingPolicy: .nextTimePreservingSmallerComponents,
-                                                    direction: .forward) {
+                                                    direction: .forward)
+                {
                     nextDueDate = computed
                 } else {
                     Logger.ClarityServices.error("Failed to compute next specific weekday; falling back to interval.nextDate")
@@ -230,6 +229,7 @@ actor ClarityModelActor {
             due: nextDueDate,
             everySpecificDayDay: task.everySpecificDayDay ?? 0,
             categories: (task.categories ?? []).map(CategoryDTO.init(from:)),
+            uuid: task.uuid ?? UUID()
         )
         return newTask
     }
@@ -277,6 +277,7 @@ enum ClarityModelActorFactory {
         }
     }
 }
+
 // Containers.swift
 enum Containers {
     static func liveApp() throws -> ModelContainer {
@@ -286,7 +287,7 @@ enum Containers {
             isStoredInMemoryOnly: false,
             allowsSave: true,
             groupContainer: .identifier("group.me.craigpeters.clarity"),
-            cloudKitDatabase: .private("iCloud.me.craigpeters.clarity")   // CK ON
+            cloudKitDatabase: .private("iCloud.me.craigpeters.clarity") // CK ON
         )
         return try ModelContainer(for: schema, configurations: [cfg])
     }
@@ -298,7 +299,7 @@ enum Containers {
             isStoredInMemoryOnly: false,
             allowsSave: true,
             groupContainer: .identifier("group.me.craigpeters.clarity"),
-     // CK OFF
+            // CK OFF
         )
         return try ModelContainer(for: schema, configurations: [cfg])
     }
@@ -317,4 +318,3 @@ enum AppContainer {
         return try! Containers.liveApp()
     }()
 }
-

@@ -24,6 +24,7 @@ class ToDoTask {
     var recurrenceInterval: RecurrenceInterval?
     var customRecurrenceDays: Int = 1
     var everySpecificDayDay: Int?
+    var uuid: UUID?
     
     @Relationship var categories: [Category]? = []
     
@@ -50,7 +51,7 @@ class ToDoTask {
         return interval.displayName
     }
     
-    init(name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int? = nil, categories: [Category] = []) {
+    init(name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int? = nil, categories: [Category] = [], uuid: UUID? = UUID()) {
         self.name = name ?? ""
         self.created = Date.now
         self.due = due
@@ -62,6 +63,7 @@ class ToDoTask {
         self.recurrenceInterval = recurrenceInterval
         self.everySpecificDayDay = everySpecificDayDay
         self.customRecurrenceDays = customRecurrenceDays
+        self.uuid = uuid
     }
     
     enum RecurrenceInterval: String, CaseIterable, Codable {
@@ -141,8 +143,9 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
     var customRecurrenceDays: Int
     var everySpecificDayDay: Int
     var categories: [CategoryDTO]
+    var uuid: UUID
     
-    init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int = 0, categories: [CategoryDTO] = []) {
+    init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int = 0, categories: [CategoryDTO] = [], uuid: UUID? = UUID()) {
         self.id = id
         self.name = name ?? ""
         self.created = Date.now
@@ -155,6 +158,7 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
         self.recurrenceInterval = recurrenceInterval
         self.customRecurrenceDays = customRecurrenceDays
         self.everySpecificDayDay = everySpecificDayDay
+        self.uuid = uuid ?? UUID()
     }
     
     var encodedId: String? {
@@ -183,7 +187,8 @@ extension ToDoTaskDTO {
             customRecurrenceDays: model.customRecurrenceDays,
             due: model.due,
             everySpecificDayDay: model.everySpecificDayDay ?? 1,
-            categories: (model.categories ?? []).map(CategoryDTO.init(from:))
+            categories: (model.categories ?? []).map(CategoryDTO.init(from:)),
+            uuid: model.uuid ?? UUID()
         )
     }
 }
