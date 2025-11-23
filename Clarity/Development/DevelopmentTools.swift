@@ -27,6 +27,10 @@ struct DevelopmentMenuView: View {
                         populateSampleTasks()
                     }
                     
+                    Button("Populate Specific Day Tasks") {
+                        populateEverySpecificDayTasks()
+                    }
+                    
                     Button("Add Sample Categories") {
                         populateSampleCategories()
                     }
@@ -116,6 +120,45 @@ struct DevelopmentMenuView: View {
         
         saveContext()
         showAlert("Added \(categories.count) sample categories")
+    }
+    
+    private func populateEverySpecificDayTasks() {
+        // Get existing categories or create basic ones
+        let allCategories = getAllCategories()
+        if allCategories.isEmpty {
+            populateSampleCategories()
+        }
+        
+        let categories = getAllCategories()
+        let workCategory = categories.first { $0.name == "Work" }
+        
+        let sampleTasks = [
+            ("Monday Overdue Task", 1, Date().addingTimeInterval(-86400 * 7), [workCategory].compactMap { $0 }),
+            ("Tuesday Overdue Task", 2, Date().addingTimeInterval(-864200 * 7), [workCategory].compactMap { $0 }),
+            ("Wednesday Overdue Task", 3, Date().addingTimeInterval(-864200 * 7), [workCategory].compactMap { $0 }),
+            ("Thursday Overdue Task", 4, Date().addingTimeInterval(-864200 * 7), [workCategory].compactMap { $0 }),
+            ("Friday Overdue Task", 5, Date().addingTimeInterval(-864200 * 7), [workCategory].compactMap { $0 }),
+            ("Saturday Overdue Task", 6, Date().addingTimeInterval(-864200 * 7), [workCategory].compactMap { $0 }),
+            ("Sunday Overdue Task", 0, Date().addingTimeInterval(-864200 * 7), [workCategory].compactMap { $0 }),
+        ]
+        
+        for (name, day, dueDate, taskCategories) in sampleTasks {
+            let task = ToDoTask(
+                name: name,
+                pomodoroTime: TimeInterval(5 * 60),
+                repeating: true,
+                recurrenceInterval: .specific,
+                due: dueDate,
+                everySpecificDayDay: day,
+                categories: taskCategories,
+                uuid: UUID()
+            )
+            modelContext.insert(task)
+        }
+        
+        saveContext()
+        showAlert("Added \(sampleTasks.count) sample tasks")
+        
     }
     
     private func populateSampleTasks() {

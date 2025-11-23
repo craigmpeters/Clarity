@@ -1,4 +1,5 @@
 import SwiftUI
+import os
 
 struct RecurrenceIndicatorBadge: View {
     let task: ToDoTask
@@ -48,6 +49,9 @@ struct RecurrenceIndicatorBadge: View {
         
         if interval == .specific {
             if let symbolIndex = task.everySpecificDayDay {
+                let cal = Calendar.current
+                Logger.UserInterface.debug("Every Specific Day Symbol Index: \(symbolIndex) Task: \(task.name ?? "")")
+                Logger.UserInterface.debug("\(cal.weekdaySymbols.description)")
                 return Calendar.current.weekdaySymbols[symbolIndex]
             }
         }

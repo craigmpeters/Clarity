@@ -20,6 +20,10 @@ extension Notification.Name {
 }
 
 extension Calendar {
+    
+    // What is stored matches the locale
+    // ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    
      
     func weekdaySymbolFromComponent(at date: Date) -> String {
         let formatter = DateFormatter()
