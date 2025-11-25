@@ -1,6 +1,9 @@
 import SwiftUI
 import SwiftData
 import Charts
+import os
+import UniformTypeIdentifiers
+import UIKit
 
 // Timeframe selection pill component
 struct TimeframePill: View {
@@ -37,6 +40,10 @@ struct StatsView: View {
     @State private var selectedTimeframe: StatsTimeframe = .last7Days
     @State private var selectedCategory: Category? = nil
     @Environment(\.modelContext) private var modelContext
+    
+    @State private var isPresentingShareSheet = false
+    @State private var shareItems: [Any]? = nil
+    @State private var shareSubject: String? = nil
     
     enum StatsTimeframe: String, CaseIterable {
         case today = "Today"
@@ -145,7 +152,7 @@ struct StatsView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        Button(action: { exportStats() }) {
+                        Button(action: { [isPresentingShareSheet] in exportStats() }) {
                             Label("Export Stats", systemImage: "square.and.arrow.up")
                         }
                         
@@ -156,6 +163,11 @@ struct StatsView: View {
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
+                }
+            }
+            .sheet(isPresented: $isPresentingShareSheet) {
+                if let items = shareItems {
+                    ActivityViewController(items: items, subject: shareSubject)
                 }
             }
         }
@@ -220,20 +232,40 @@ struct StatsView: View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         
-        var csv = "Task Name,Completed Date,Categories,Pomodoro Time (min),Was Pomodoro\n"
+        var csv = "Task Name,Completed Date,Categories,Task Time (min)\n"
         
         for task in completedTasks.sorted(by: { ($0.completedAt ?? Date()) > ($1.completedAt ?? Date()) }) {
             let categoriesList = task.categories?.compactMap { $0.name } ?? []
-            let categories = categoriesList.isEmpty ? "Uncategorized" : categoriesList.joined(separator: "; ")
+            let categories = categoriesList.isEmpty ? "Uncategorised" : categoriesList.joined(separator: "; ")
             let pomodoroMinutes = Int(task.pomodoroTime / 60)
             let completedDate = task.completedAt.map { formatter.string(from: $0) } ?? "N/A"
             
-            csv += "\"\(task.name)\",\"\(completedDate)\",\"\(categories)\",\(pomodoroMinutes),\(task.pomodoro)\n"
+            csv += "\"\(task.name ?? "")\",\"\(completedDate)\",\"\(categories)\",\(pomodoroMinutes),\n"
         }
         
-        // In a real app, you'd present a share sheet here
-        // For now, just print or save to documents
-        print("CSV Export:\n\(csv)")
+        Logger.UserInterface.debug("CSV \(csv)")
+        
+        // Build a friendly filename using app name, timeframe, and today's date
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let todayString = dateFormatter.string(from: Date())
+        //TODO: Fix so that it exports based on the time selected
+        //let timeframeName = selectedTimeframe.rawValue.replacingOccurrences(of: " ", with: "")
+        //let fileName = "ToDoStats_\(timeframeName)_\(todayString).csv"
+        let fileName = "ToDoStats_\(todayString).csv"
+
+        // Write CSV to a temporary file URL so share targets can use the filename
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+        do {
+            try csv.write(to: tempURL, atomically: true, encoding: .utf8)
+        } catch {
+            Logger.UserInterface.error("Failed to write CSV to temp file: \(error.localizedDescription)")
+        }
+        shareItems = [tempURL]
+        shareSubject = "To-Do Statistics — \(selectedTimeframe.rawValue)"
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            isPresentingShareSheet = true
+        }
     }
 }
 
@@ -775,4 +807,19 @@ extension StatsView.StatsTimeframe {
             return "Everything"
         }
     }
+}
+
+struct ActivityViewController: UIViewControllerRepresentable {
+    let items: [Any]
+    let subject: String?
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        if let subject {
+            controller.setValue(subject, forKey: "subject")
+        }
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

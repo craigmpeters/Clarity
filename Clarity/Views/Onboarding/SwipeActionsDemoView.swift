@@ -141,6 +141,7 @@ struct InteractiveTaskDemo: View {
         pomodoroTime: TimeInterval(10 * 60),
         repeating: true,
         recurrenceInterval: .daily,
+        everySpecificDayDay: nil,
         categories: [Category(name: "Work", color: .Blue, weeklyTarget: 8)].compactMap { $0 }
     )
     

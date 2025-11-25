@@ -399,12 +399,4 @@ struct AppIconSettingsView: View {
 }
 
 #Preview {
-    let center = LogCenter()
-    center.append(message: "App started", level: .info)
-    center.append(message: "Fetched 12 tasks", level: .debug)
-    center.append(message: "Failed to sync", level: .warning)
-    return SettingsView()
-        .environment(\.logCenter, center)
-        .environment(\.isLogViewerEnabled, true)
-        .environment(\.locale, .init(identifier: "en"))
 }

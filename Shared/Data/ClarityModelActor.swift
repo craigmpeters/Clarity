@@ -5,20 +5,21 @@
 //  Created by Craig Peters on 02/10/2025.
 //
 
-import SwiftData
 import Foundation
+import os
+import SwiftData
 import WidgetKit
 
 @ModelActor
 actor ClarityModelActor {
-    
     // MARK: Category Functions
     
-    func addCategory(_ dto: CategoryDTO) throws  -> CategoryDTO {
+    func addCategory(_ dto: CategoryDTO) throws -> CategoryDTO {
         let category = Category(
             name: dto.name,
             color: dto.color,
-            weeklyTarget: dto.weeklyTarget)
+            weeklyTarget: dto.weeklyTarget
+        )
         modelContext.insert(category)
         try modelContext.save()
         WidgetCenter.shared.reloadTimelines(ofKind: "TodoWidget")
@@ -55,6 +56,7 @@ actor ClarityModelActor {
     }
     
     // MARK: Task Functions
+
     func fetchTasks(filter: ToDoTask.TaskFilter) throws -> [ToDoTaskDTO] {
         let descriptor = FetchDescriptor<ToDoTask>(
             predicate: #Predicate { !$0.completed },
@@ -94,9 +96,9 @@ actor ClarityModelActor {
         model.recurrenceInterval = task.recurrenceInterval
         model.repeating = task.repeating
         model.pomodoro = task.pomodoro
+        model.everySpecificDayDay = task.everySpecificDayDay
+        Logger.ModelActor.debug("Update Task Day Day \(task.everySpecificDayDay)")
         
-        
-
         try modelContext.save()
         WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
         return ToDoTaskDTO(from: model)
@@ -110,6 +112,7 @@ actor ClarityModelActor {
         let categories = allCategories.filter { category in
             dto.categories.contains(where: { $0.name == category.name })
         }
+        Logger.ModelActor.debug("Add Task Day Day \(dto.everySpecificDayDay)")
         
         let toDoTask = ToDoTask(
             name: dto.name,
@@ -119,7 +122,9 @@ actor ClarityModelActor {
             recurrenceInterval: dto.recurrenceInterval,
             customRecurrenceDays: dto.customRecurrenceDays,
             due: dto.due,
-            categories: categories
+            everySpecificDayDay: dto.everySpecificDayDay,
+            categories: categories,
+            uuid: dto.uuid
         )
         
         modelContext.insert(toDoTask)
@@ -139,13 +144,13 @@ actor ClarityModelActor {
     }
     
     func completeTask(_ id: PersistentIdentifier) throws {
-        guard let model =  modelContext.model(for: id) as? ToDoTask else {
+        guard let model = modelContext.model(for: id) as? ToDoTask else {
             throw NSError(domain: "ClarityActor", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing PersistentIdentifier"])
         }
+        Logger.ClarityServices.debug("Complete Task DayDay: \(model.everySpecificDayDay.map(String.init) ?? "None")")
         model.completed = true
         model.completedAt = Date.now
-        if model.repeating == true {
-            let nextTask = createNextOccurrence(id)
+        if model.repeating == true, let nextTask = createNextOccurrence(id) {
             _ = try addTask(nextTask)
         }
         try modelContext.save()
@@ -159,20 +164,13 @@ actor ClarityModelActor {
         return nil
     }
     
-    func createNextOccurrence(_ id: PersistentIdentifier) -> ToDoTaskDTO {
-        let nextDueDate: Date
+    func createNextOccurrence(_ id: PersistentIdentifier) -> ToDoTaskDTO? {
+        var nextDueDate: Date
         
-        // Safely attempt to fetch the task; if unavailable, return a sensible default DTO
         guard let task = modelContext.model(for: id) as? ToDoTask else {
-            return ToDoTaskDTO(
-                name: "",
-                pomodoroTime: 0,
-                repeating: false,
-                recurrenceInterval: nil,
-                customRecurrenceDays: 0,
-                due: Date.now,
-                categories: []
-            )
+            // Avoid interpolating PersistentIdentifier directly in logs
+            Logger.ClarityServices.error("Task not found for provided PersistentIdentifier")
+            return nil
         }
         
         if let interval = task.recurrenceInterval {
@@ -182,6 +180,38 @@ actor ClarityModelActor {
                     value: task.customRecurrenceDays,
                     to: Date.now
                 ) ?? task.due
+            } else
+            if interval == .specific {
+                // Stored value already matches Calendar weekday (1...7). Clamp to be safe; default to Sunday (1) if nil.
+                Logger.ClarityServices.debug("createNextOccurrence Day Day: \(task.everySpecificDayDay.map(String.init) ?? "None")")
+                var com = DateComponents()
+                // Map app's weekday index (where 3 = Wednesday) to Calendar's weekday (1 = Sunday ... 7 = Saturday)
+                if let appWeekday = task.everySpecificDayDay {
+                    // Normalize to 1...7 range first
+                    let normalized = ((appWeekday - 1) % 7 + 7) % 7 + 1
+                    // Shift so that app's 3 (Wednesday) becomes Calendar's 4 (Wednesday)
+                    // Compute offset between app's Wednesday(3) and Calendar's Wednesday(4) => +1
+                    let calendarWeekday = ((normalized + 1 - 1) % 7) + 1
+                    com.weekday = calendarWeekday
+                } else {
+                    // Default to Sunday if missing
+                    com.weekday = 1
+                }
+
+                let calendar = Calendar.current
+                let startOfToday = calendar.startOfDay(for: Date())
+                let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? Date().addingTimeInterval(86_400)
+
+                if let computed = calendar.nextDate(after: startOfToday,
+                                                    matching: com,
+                                                    matchingPolicy: .nextTimePreservingSmallerComponents,
+                                                    direction: .forward)
+                {
+                    nextDueDate = computed
+                } else {
+                    Logger.ClarityServices.error("Failed to compute next specific weekday; falling back to interval.nextDate")
+                    nextDueDate = interval.nextDate(from: Date.now)
+                }
             } else {
                 nextDueDate = interval.nextDate(from: Date.now)
             }
@@ -197,7 +227,9 @@ actor ClarityModelActor {
             recurrenceInterval: task.recurrenceInterval,
             customRecurrenceDays: task.customRecurrenceDays,
             due: nextDueDate,
-            categories: (task.categories ?? []).map(CategoryDTO.init(from:))
+            everySpecificDayDay: task.everySpecificDayDay ?? 0,
+            categories: (task.categories ?? []).map(CategoryDTO.init(from:)),
+            uuid: task.uuid ?? UUID()
         )
         return newTask
     }
@@ -245,6 +277,7 @@ enum ClarityModelActorFactory {
         }
     }
 }
+
 // Containers.swift
 enum Containers {
     static func liveApp() throws -> ModelContainer {
@@ -254,7 +287,7 @@ enum Containers {
             isStoredInMemoryOnly: false,
             allowsSave: true,
             groupContainer: .identifier("group.me.craigpeters.clarity"),
-            cloudKitDatabase: .private("iCloud.me.craigpeters.clarity")   // CK ON
+            cloudKitDatabase: .private("iCloud.me.craigpeters.clarity") // CK ON
         )
         return try ModelContainer(for: schema, configurations: [cfg])
     }
@@ -266,7 +299,7 @@ enum Containers {
             isStoredInMemoryOnly: false,
             allowsSave: true,
             groupContainer: .identifier("group.me.craigpeters.clarity"),
-     // CK OFF
+            // CK OFF
         )
         return try ModelContainer(for: schema, configurations: [cfg])
     }
@@ -281,7 +314,7 @@ enum Containers {
 // AppContainer.swift (APP TARGET)
 enum AppContainer {
     static let shared: ModelContainer = {
-        print("🏗️ Creating CloudKit container (APP)")
+        Logger.ModelActor.debug("🏗️ Creating CloudKit container (APP)")
         return try! Containers.liveApp()
     }()
 }
