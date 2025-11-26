@@ -122,4 +122,3 @@ struct CreateTaskIntent: AppIntent {
         return .result()
     }
 }
-

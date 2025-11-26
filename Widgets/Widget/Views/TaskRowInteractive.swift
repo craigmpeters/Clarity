@@ -12,7 +12,7 @@ struct TaskRowInteractive: View {
     var body: some View {
         HStack(spacing: 8) {
             // Complete button (sends encoded ID via App Intent). Falls back to “Task not found” if id is nil.
-            Button(intent: task.id.map(CompleteTaskIntent.init) ?? CompleteTaskIntent()) {
+            Button(intent: CompleteTaskIntent(id: task.uuid)) {
                 Image(systemName: "circle")
             }
             .buttonStyle(.plain)
