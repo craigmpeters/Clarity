@@ -298,7 +298,8 @@ struct AppIconSettingsView: View {
         .init(id: "Default", displayName: "Default", previewImageName: "Appicon-Preview-Default"),
         .init(id: "Pride", displayName: "Pride", previewImageName: "Appicon-Preview-Pride"),
         .init(id: "Autumn", displayName: "Autumn", previewImageName: "Appicon-Preview-Autumn"),
-        .init(id: "Christmas", displayName: "Christmas", previewImageName: "Appicon-Preview-Christmas")
+        .init(id: "Christmas", displayName: "Christmas", previewImageName: "Appicon-Preview-Christmas"),
+        .init(id: "Valentines", displayName: "Valentines", previewImageName: "Appicon-Preview-Valentines")
     ]
 
     @State private var currentIconName: String = "primary"
