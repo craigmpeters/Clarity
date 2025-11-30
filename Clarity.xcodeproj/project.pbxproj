@@ -133,7 +133,6 @@
 				Category.swift,
 				Pomodoro.swift,
 				PomodoroAttributes.swift,
-				PomodoroCoordinator.swift,
 				Statistics.swift,
 				Todo.swift,
 			);

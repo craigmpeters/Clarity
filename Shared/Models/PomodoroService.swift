@@ -10,6 +10,7 @@ import Combine
 import Foundation
 import SwiftData
 import UserNotifications
+import AppIntents
 
 @MainActor final class PomodoroService: ObservableObject {
     static let shared = PomodoroService()
