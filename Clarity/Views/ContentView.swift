@@ -1,3 +1,4 @@
+import os
 import SwiftData
 import SwiftUI
 
@@ -7,9 +8,9 @@ struct ContentView: View {
     @State private var selectedTask: ToDoTaskDTO? = nil
     @State private var showingPomodoro = false
     @State private var showingFirstRun = !UserDefaults.hasCompletedOnboarding
-    
+
     @State private var store: ClarityModelActor? = nil
-    
+
     var body: some View {
         ZStack {
             TabView {
@@ -43,15 +44,15 @@ struct ContentView: View {
             }
             .opacity(showingPomodoro ? 0 : 1)
             .scaleEffect(showingPomodoro ? 0.95 : 1.0)
-            
+
             // Pomodoro View Overlay
             if appState.showingPomodoro {
                 PomodoroView()
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                    removal: .move(edge: .trailing).combined(with: .opacity)
-                ))
-                .zIndex(1)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .trailing).combined(with: .opacity)
+                    ))
+                    .zIndex(1)
             }
         }
         .sheet(isPresented: $showingFirstRun) {
@@ -60,15 +61,24 @@ struct ContentView: View {
         }
         .animation(.easeInOut(duration: 0.3), value: showingPomodoro)
         .onOpenURL { url in
-            if url.scheme == "clarity" {
+            Logger.UserInterface.debug("Got URL: \(url)")
+            if url.scheme == "clarityapp" {
+                Logger.UserInterface.debug("clarityapp")
                 if url.host == "timer",
                    let taskId = url.pathComponents.last
                 {
+                    Logger.UserInterface.debug("timer")
                     Task {
-                        
-                        if let store = store, let id = try ToDoTaskDTO.decodeId(taskId) {
-                            selectedTask = try await store.fetchTaskById(id)
-                        }
+                        Logger.UserInterface.debug("Recieved Start Pomodoro for \(taskId)")
+
+//                        if let store = store {
+//                            guard let uuid = UUID(from: taskId as! Decoder) else {
+//                                return
+//                            }
+//                            let dtutask = store.fetchTaskByUuid(uuid)
+//                            Logger.UserInterface.debug("Starting Pomodoro for \(dtutask?.name)")
+//
+//                        }
                     }
                 }
             }
@@ -83,9 +93,8 @@ struct ContentView: View {
 }
 
 #if DEBUG
-//#Preview {
+// #Preview {
 //    ContentView(store: ClarityModelActor)
 //        .modelContainer(PreviewData.shared.previewContainer)
-//}
+// }
 #endif
-

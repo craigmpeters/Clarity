@@ -157,6 +157,17 @@ actor ClarityModelActor {
         WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
     }
     
+    func fetchTaskByUuid(_ id: UUID) throws -> ToDoTaskDTO? {
+        let descriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate {
+                $0.uuid == id &&
+                !$0.completed
+            }
+        )
+        let tasks = try modelContext.fetch(descriptor)
+        Logger.ClarityServices.debug("fetchTaskByUuid: \(id) returned: \(tasks.count)")
+        return tasks.first.map(ToDoTaskDTO.init(from:))
+    }
     func fetchTaskById(_ id: PersistentIdentifier) throws -> ToDoTaskDTO? {
         if let model = modelContext.model(for: id) as? ToDoTask {
             return ToDoTaskDTO(from: model)

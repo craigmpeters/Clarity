@@ -453,6 +453,7 @@ extension ClarityWatchConnectivity {
             return Envelope(kind: WCKeys.Requests.stopPomodoro)
         }
         Logger.WatchConnectivity.debug("Recieved End Pomodoro for Task \(dto.toDoTask.name)")
+        //TODO: Replace with intent
         await PomodoroService.shared.endPomodoro()
         if let pid = dto.toDoTask.id {
             do {

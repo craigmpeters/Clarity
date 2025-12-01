@@ -10,29 +10,44 @@ struct TaskRowInteractive: View {
     let task: ToDoTaskDTO
 
     var body: some View {
-        HStack(spacing: 8) {
-            // Complete button (sends encoded ID via App Intent). Falls back to “Task not found” if id is nil.
-            Button(intent: task.id.map(CompleteTaskIntent.init) ?? CompleteTaskIntent()) {
-                Image(systemName: "circle")
-            }
-            .buttonStyle(.plain)
-
-            Text(task.name)
-                .font(.caption)
-                .lineLimit(1)
-
-            Spacer()
-
-            HStack(spacing: 4) {
-                if let first = task.categories.first {
-                    Circle()
-                        .fill(first.color.SwiftUIColor ?? .primary)
-                        .frame(width: 6, height: 6)
+        Grid(horizontalSpacing: 8, verticalSpacing: 0) {
+            GridRow {
+                // Column 1: Complete button
+                Button(intent: CompleteTaskIntent(id: task.uuid)) {
+                    Image(systemName: "circle")
                 }
+                .buttonStyle(.plain)
+                .gridColumnAlignment(.leading)
 
-                Text("\(Int(task.pomodoroTime / 60))m")
-                    .font(.caption2)
-                    .foregroundStyle(.orange)
+                // Column 2: Title
+                Text(task.name)
+                    .font(.caption)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .gridColumnAlignment(.leading)
+
+                // Column 3: Category dot + duration
+                HStack(spacing: 4) {
+                    if let first = task.categories.first {
+                        Circle()
+                            .fill(first.color.SwiftUIColor)
+                            .frame(width: 6, height: 6)
+                    }
+
+                    Text("\(Int(task.pomodoroTime / 60))m")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                }
+                .gridColumnAlignment(.trailing)
+
+                // Column 4: Play button
+                Button(intent: StartPomodoroIntent(id: task.uuid)) {
+                    Image(systemName: "play.fill")
+                        .font(.caption)
+                        .foregroundStyle(.green)
+                }
+                .buttonStyle(.plain)
+                .gridColumnAlignment(.trailing)
             }
         }
         .task {
@@ -41,3 +56,4 @@ struct TaskRowInteractive: View {
         }
     }
 }
+
