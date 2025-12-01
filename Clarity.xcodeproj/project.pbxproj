@@ -112,7 +112,6 @@
 		44D6F01D2E85DA9500B5EF9E /* Exceptions for "Data" folder in "Widgets" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				CategoryEntity.swift,
 				ClarityModelActor.swift,
 				ClarityServices.swift,
 			);
@@ -180,11 +179,12 @@
 		44F7D0F82E998D4300F520BF /* Exceptions for "Widgets" folder in "Clarity" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Widget/Intents/CategoryEntity.swift,
 				Widget/Intents/ClarityAppIntentsProvider.swift,
 				Widget/Intents/CompleteTaskIntent.swift,
 				Widget/Intents/CreateTaskIntent.swift,
+				Widget/Intents/ListTasksIntent.swift,
 				Widget/Intents/StartPomodoroIntent.swift,
+				Widget/Models/CategoryEntity.swift,
 				Widget/Models/TaskEntity.swift,
 			);
 			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;

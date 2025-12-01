@@ -12,9 +12,10 @@ struct TaskEntity: AppEntity, Identifiable, Sendable {
     static var typeDisplayRepresentation: TypeDisplayRepresentation = "Task"
     static var defaultQuery = TaskQuery()
 
-    // Use String identifiers to align with repository expectations
     var id: String
     var name: String
+    var date: Date
+    var repeating: Bool
 
     var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(title: "\(name)")
@@ -33,7 +34,7 @@ struct TaskQuery: EntityQuery, Sendable {
 
     func allEntities() async throws -> [TaskEntity] {
         let tasks = ClarityServices.snapshotTasks()
-        return tasks.map { TaskEntity(id: $0.uuid.uuidString, name: $0.name) }
+        return tasks.map { TaskEntity(id: $0.uuid.uuidString, name: $0.name, date: $0.due, repeating: $0.repeating) }
 
     }
 }
