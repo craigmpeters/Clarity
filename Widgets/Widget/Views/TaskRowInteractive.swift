@@ -13,7 +13,7 @@ struct TaskRowInteractive: View {
         Grid(horizontalSpacing: 8, verticalSpacing: 0) {
             GridRow {
                 // Column 1: Complete button
-                Button(intent: CompleteTaskIntent(id: task.uuid)) {
+                Button(intent: CompleteTaskIntent(task: TaskEntity(id: task.uuid.uuidString, name: task.name))) {
                     Image(systemName: "circle")
                 }
                 .buttonStyle(.plain)
@@ -41,7 +41,7 @@ struct TaskRowInteractive: View {
                 .gridColumnAlignment(.trailing)
 
                 // Column 4: Play button
-                Button(intent: StartPomodoroIntent(id: task.uuid)) {
+                Button(intent: StartPomodoroIntent(task: TaskEntity(id: task.uuid.uuidString, name: task.name))) {
                     Image(systemName: "play.fill")
                         .font(.caption)
                         .foregroundStyle(.green)
@@ -51,8 +51,8 @@ struct TaskRowInteractive: View {
             }
         }
         .task {
-            let idDesc = task.id.map { String(describing: $0) } ?? "Unknown ID"
-            print("Row for \(task.name) — ID: \(idDesc)")
+            
+            print("Row for \(task.name) — ID: \(task.uuid.uuidString)")
         }
     }
 }

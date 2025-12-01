@@ -20,8 +20,8 @@ struct StartPomodoroIntent: AppIntent {
 
     init() {} // required
     
-    init(id: UUID) {
-        self.taskUuid = id.uuidString
+    init(task: TaskEntity) {
+        self.task = task
     }
 
     @MainActor

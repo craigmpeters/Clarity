@@ -17,8 +17,8 @@ struct CompleteTaskIntent: AppIntent {
 
     init() {} // required
     
-    init(id: UUID) {
-        self.taskUuid = id.uuidString
+    init(task: TaskEntity) {
+        self.task = task
     }
 
     static var parameterSummary: some ParameterSummary {
