@@ -28,9 +28,15 @@ struct ClarityShortcutsProvider: AppShortcutsProvider {
                     
             ],
             shortTitle: "Complete Task",
-            systemImageName: "checkmark")  
+            systemImageName: "checkmark"
+        )
         
-        
+        AppShortcut(
+            intent: StartPomodoroIntent(),
+            phrases: ["Start timer in \(.applicationName)"],
+            shortTitle: "Start Timer",
+            systemImageName: "timer"
+        )
 //        AppShortcut(
 //            intent: StartPomodoroIntent(),
 //            phrases: [

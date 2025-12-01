@@ -182,6 +182,7 @@
 			membershipExceptions = (
 				Widget/Intents/ClarityAppIntentsProvider.swift,
 				Widget/Intents/CompleteTaskIntent.swift,
+				Widget/Intents/StartPomodoroIntent.swift,
 				Widget/Intents/TaskIntents.swift,
 			);
 			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;

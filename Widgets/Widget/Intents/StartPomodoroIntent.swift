@@ -10,38 +10,45 @@ import AppIntents
 import SwiftData
 
 struct StartPomodoroIntent: AppIntent {
-    static var title: LocalizedStringResource = "Start Pomodoro"
-    static var description = IntentDescription("Start a pomodoro timer for a task")
-    static var openAppWhenRun: Bool = true // We want to open the app to show the timer
-    
-    @Parameter(title: "Task ID")
-    var taskId: String
-    
-    // Initialize with taskId for widget usage
-    init(taskId: String) {
-        self.taskId = taskId
-    }
-    
-    // Default initializer required by AppIntent
-    init() {
-        self.taskId = ""
-    }
-    
-    func perform() async throws -> some IntentResult & OpensIntent {
-        print("Widget: Starting pomodoro for task ID: \(taskId)")
-        
-        // Store the task ID for the app to pick up when it opens
-        UserDefaults.shared.set(taskId, forKey: "pendingPomodoroTaskId")
-        UserDefaults.shared.set(true, forKey: "shouldStartPomodoroFromWidget")
-        
-        // Return an intent that opens the app
-        return .result(opensIntent: OpenAppIntent())
-    }
-}
+    static var title: LocalizedStringResource = "Start Timer"
+    static var description = IntentDescription("Start a timer for a task")
+    static var openAppWhenRun: Bool = true // Foreground the app; navigation handled by intent-driven routing
+    private var taskUuid: String?
 
-// Extension to use App Groups for sharing data
-extension UserDefaults {
-    static let shared = UserDefaults(suiteName: "group.me.craigpeters.clarity")!
+    @Parameter(title: "Task")
+    var task: TaskEntity
+
+    init() {} // required
+    
+    init(id: UUID) {
+        self.taskUuid = id.uuidString
+    }
+
+    @MainActor
+    func perform() async throws -> some IntentResult & OpensIntent {
+        
+        // group.me.craigpeters.clarity
+        print("Debug Start Pomodoro")
+        // Resolve the task ID from either the initializer override or the bound parameter
+        let taskId: UUID? = {
+            if let taskUuid, let u = UUID(uuidString: taskUuid) {
+                return u
+            }
+            return UUID(uuidString: task.id)
+        }()
+        
+        print("\(taskId?.uuidString ?? "No UUID found")")
+        
+
+        guard let taskId else {
+            throw NSError(domain: "StartTimerIntent", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid task id"])
+        }
+        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
+        defaults?.set(taskId.uuidString, forKey: "pendingStartTimerTaskId")
+
+        // The app should read the incoming AppIntent parameters to navigate to the Timer screen
+        return .result()
+    }
 }
 
 // Simple intent to open the app
@@ -52,3 +59,4 @@ struct OpenAppIntent: AppIntent {
         return .result()
     }
 }
+
