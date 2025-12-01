@@ -180,10 +180,12 @@
 		44F7D0F82E998D4300F520BF /* Exceptions for "Widgets" folder in "Clarity" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Widget/Intents/CategoryEntity.swift,
 				Widget/Intents/ClarityAppIntentsProvider.swift,
 				Widget/Intents/CompleteTaskIntent.swift,
+				Widget/Intents/CreateTaskIntent.swift,
 				Widget/Intents/StartPomodoroIntent.swift,
-				Widget/Intents/TaskIntents.swift,
+				Widget/Models/TaskEntity.swift,
 			);
 			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
 		};
