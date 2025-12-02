@@ -107,9 +107,6 @@ struct TaskRowView: View {
         }
     }
 }
-//let isToday = Calendar.current.isDateInToday(due)
-//let isTomorrow = Calendar.current.isDateInTomorrow(due)
-//let isPast = due < Date()
 
 func dateAccentTextColor(_ due: Date) -> Color {
     let isToday = Calendar.current.isDateInToday(due)

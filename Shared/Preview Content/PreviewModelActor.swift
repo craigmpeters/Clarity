@@ -20,6 +20,8 @@ final class PreviewData {
     
     // Private Init as Singleton
     private init() {
+        insertPreviewCategories()
+        insertPreviewTasks()
     }
     
     // MARK: Public Functions
