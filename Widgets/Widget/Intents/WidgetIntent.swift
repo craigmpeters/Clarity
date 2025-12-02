@@ -26,38 +26,4 @@ struct TaskWidgetIntent: WidgetConfigurationIntent {
     }
 }
 
-enum TaskFilterOption: String, AppEnum, CaseIterable {
-    case today = "Today"
-    case tomorrow = "Tomorrow"
-    case thisWeek = "This Week"
-    case overdue = "Overdue"
-    case all = "All Tasks"
-    
-    static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Filter")
-    static var caseDisplayRepresentations: [TaskFilterOption: DisplayRepresentation] = [
-        .today: DisplayRepresentation(title: "Today"),
-        .tomorrow: DisplayRepresentation(title: "Tomorrow"),
-        .thisWeek: DisplayRepresentation(title: "This Week"),
-        .overdue: DisplayRepresentation(title: "Overdue"),
-        .all: DisplayRepresentation(title: "All Tasks")
-    ]
-    
-    static var filterColor: [TaskFilterOption: Color] = [
-        .today: .green,
-        .tomorrow: .blue,
-        .thisWeek: .blue,
-        .overdue: .red,
-        .all: .gray
-    ]
-    
-    // FIXME: Is this needed?
-    func toTaskFilter() -> ToDoTask.TaskFilter {
-        switch self {
-        case .today: return .today
-        case .tomorrow: return .tomorrow
-        case .thisWeek: return .thisWeek
-        case .overdue: return .overdue
-        case .all: return .all
-        }
-    }
-}
+

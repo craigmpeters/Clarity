@@ -18,21 +18,15 @@ struct ListTasksIntent: AppIntent {
     @Parameter(title: "Only Repeating Tasks", default: false)
     var repeatingOnly: Bool
     
-    @Parameter(title: "Only Overdue", default: false)
-    var onlyOverdue: Bool
+    @Parameter(title: "Filter", default: .today)
+    var filter: TaskFilterOption
 
 
     func perform() async throws -> some IntentResult & ProvidesDialog & ReturnsValue<[TaskEntity]> {
-        let now = Date()
-        let tasks = try await TaskQuery().allEntities()
+        let tasks = try await TaskQuery().entities(matching: filter)
         var filtered = tasks
         if repeatingOnly {
             filtered = filtered.filter { $0.repeating }
-        }
-        if onlyOverdue {
-            filtered = filtered.filter { task in
-                return task.date < now
-            }
         }
         return .result(value: filtered, dialog: "Clarity Tasks")
     }

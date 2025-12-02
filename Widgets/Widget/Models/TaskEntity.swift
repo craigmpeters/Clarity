@@ -6,6 +6,7 @@
 //
 
 import AppIntents
+import SwiftUI
 
 
 struct TaskEntity: AppEntity, Identifiable, Sendable {
@@ -36,5 +37,65 @@ struct TaskQuery: EntityQuery, Sendable {
         let tasks = ClarityServices.snapshotTasks()
         return tasks.map { TaskEntity(id: $0.uuid.uuidString, name: $0.name, date: $0.due, repeating: $0.repeating) }
 
+    }
+}
+
+extension TaskQuery {
+    func entities(matching filter: TaskFilterOption) async throws -> [TaskEntity] {
+        let all = try await allEntities()
+        let now = Date()
+        let calendar = Calendar.current
+        
+        switch filter {
+        case .today:
+            return all.filter { calendar.isDate($0.date, inSameDayAs: now) }
+        case .tomorrow:
+            if let tomorrow = calendar.date(byAdding: .day, value: 1, to: now) {
+                return all.filter { calendar.isDate($0.date, inSameDayAs: tomorrow) }
+            }
+            return []
+        case .thisWeek:
+            return all.filter { calendar.isDate($0.date, equalTo: now, toGranularity: .weekOfYear) }
+        case .overdue:
+            return all.filter { $0.date <  Calendar.current.startOfDay(for: now) }
+        case .all:
+            return all
+        }
+    }
+}
+
+enum TaskFilterOption: String, AppEnum, CaseIterable {
+    case today = "Today"
+    case tomorrow = "Tomorrow"
+    case thisWeek = "This Week"
+    case overdue = "Overdue"
+    case all = "All Tasks"
+    
+    static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Filter")
+    static var caseDisplayRepresentations: [TaskFilterOption: DisplayRepresentation] = [
+        .today: DisplayRepresentation(title: "Today"),
+        .tomorrow: DisplayRepresentation(title: "Tomorrow"),
+        .thisWeek: DisplayRepresentation(title: "This Week"),
+        .overdue: DisplayRepresentation(title: "Overdue"),
+        .all: DisplayRepresentation(title: "All Tasks")
+    ]
+    
+    static var filterColor: [TaskFilterOption: Color] = [
+        .today: .green,
+        .tomorrow: .blue,
+        .thisWeek: .blue,
+        .overdue: .red,
+        .all: .gray
+    ]
+    
+    // FIXME: Is this needed?
+    func toTaskFilter() -> ToDoTask.TaskFilter {
+        switch self {
+        case .today: return .today
+        case .tomorrow: return .tomorrow
+        case .thisWeek: return .thisWeek
+        case .overdue: return .overdue
+        case .all: return .all
+        }
     }
 }
