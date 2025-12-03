@@ -80,7 +80,11 @@ struct RecurrenceIndicatorBadge: View {
 }
 
 #if DEBUG
-#Preview {
-    RecurrenceIndicatorBadge(task: PreviewData.shared.getToDoTask())
+#Preview("Every Monday") {
+    HStack {
+        RecurrenceIndicatorBadge(task: PreviewData.shared.makeEveryMonday(PreviewData.shared.getToDoTask()))
+    }
+    .padding(4)
+    
 }
 #endif

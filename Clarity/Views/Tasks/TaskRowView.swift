@@ -127,7 +127,7 @@ func dateAccentBackgroundColor(_ due: Date) -> Color {
     return Color.accentColor.opacity(0.12)
 }
 #if DEBUG
-#Preview {
+#Preview("Default") {
     HStack() {
         TaskRowView(
             task: PreviewData.shared.getToDoTask(),
@@ -138,6 +138,32 @@ func dateAccentBackgroundColor(_ due: Date) -> Color {
         )
     }
     .padding(30)
+}
 
+#Preview("Overdue") {
+    HStack() {
+        TaskRowView(
+            task: PreviewData.shared.getOverDueToDoTask(),
+            onEdit: { print("Task Edited") },
+            onDelete: { print("Task Deleted") },
+            onComplete: { print("Task Completed") },
+            onStartTimer: { print("Timer Started") }
+        )
+    }
+    .padding(30)
+}
+
+#Preview("Many Categories") {
+    HStack() {
+        TaskRowView(
+            task: PreviewData.shared.makeEveryMonday(PreviewData.shared.getTaskWithManyCategories()) ,
+            onEdit: { print("Task Edited") },
+            onDelete: { print("Task Deleted") },
+            onComplete: { print("Task Completed") },
+            onStartTimer: { print("Timer Started") }
+        )
+    }
+    .padding(30)
 }
 #endif
+
