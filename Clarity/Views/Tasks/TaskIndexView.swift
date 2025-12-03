@@ -88,6 +88,8 @@ struct TaskIndexView: View {
     
     // MARK: - Actions (moved to background)
     
+    
+    
     private func editTask(_ task: ToDoTask) {
         print("Editing \(task.name ?? "New Task")")
         taskToEdit = ToDoTaskDTO(from: task)
