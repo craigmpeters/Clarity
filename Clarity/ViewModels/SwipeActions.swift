@@ -39,6 +39,25 @@ extension SwipeAction {
         case .startTimer: return Image(systemName: "timer")
         }
     }
+    
+    /// The SF Symbol name for the action's icon.
+    var systemImageName: String {
+        switch self {
+        case .none: return "minus"
+        case .delete: return "trash"
+        case .edit: return "pencil"
+        case .complete: return "checkmark"
+        case .startTimer: return "timer"
+        }
+    }
+    
+    /// Suggested button role for this action.
+    var role: ButtonRole? {
+        switch self {
+        case .delete: return .destructive
+        default: return nil
+        }
+    }
 }
 
 /// A protocol that defines how to perform each swipe action.
@@ -67,6 +86,22 @@ extension SwipeAction {
             handler.startTimer(task)
         }
     }
+    
+    /// Create a SwiftUI Button for this action using a handler and tasks.
+    @ViewBuilder
+    func button(on handler: SwipeActionPerforming,
+                task: ToDoTaskDTO) -> some View {
+        switch self {
+        case .none:
+            EmptyView()
+        default:
+            Button(role: role) {
+                self.perform(on: handler, task: task)
+            } label: {
+                Label(title, systemImage: systemImageName)
+            }
+        }
+    }
 }
 
 /// Convenience overload that allows providing closures inline instead of a conforming type.
@@ -91,6 +126,39 @@ extension SwipeAction {
             handlers.complete()
         case .startTimer:
             handlers.startTimer()
+        }
+    }
+    
+    /// Create a SwiftUI Button for this action using closure handlers.
+    @ViewBuilder
+    func button(using handlers: Handlers) -> some View {
+        switch self {
+        case .none:
+            EmptyView()
+        case .delete:
+            Button(role: .destructive) {
+                handlers.delete()
+            } label: {
+                Label(title, systemImage: systemImageName)
+            }
+        case .edit:
+            Button {
+                handlers.edit()
+            } label: {
+                Label(title, systemImage: systemImageName)
+            }
+        case .complete:
+            Button {
+                handlers.complete()
+            } label: {
+                Label(title, systemImage: systemImageName)
+            }
+        case .startTimer:
+            Button {
+                handlers.startTimer()
+            } label: {
+                Label(title, systemImage: systemImageName)
+            }
         }
     }
 }
