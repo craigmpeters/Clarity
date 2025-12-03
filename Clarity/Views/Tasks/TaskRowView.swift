@@ -13,6 +13,12 @@ struct TaskRowView: View {
     let onComplete: () -> Void
     let onStartTimer: () -> Void
     
+    // Left Primary Action
+    // Left Secondary Action
+    // Right Primary Action
+    // Right Secondary Action
+    // Tap Action
+    
     @State private var showingDeleteAlert = false
     @State private var isDismissing = false
     
