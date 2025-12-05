@@ -7,6 +7,8 @@
 
 import SwiftUI
 import SwiftData
+import os
+
 struct TaskRowView: View {
     let task: ToDoTask
     let onEdit: () -> Void
@@ -126,18 +128,47 @@ struct TaskRowView: View {
             }
         }
     }
-}
-
-func performAction(_ action: ActionOption) {
-
     
+    func performAction(_ action: ActionOption) {
+        Logger.UserInterface.debug("Perform action: \(String(describing: action))")
+        switch action {
+        case .LeadingPrimary: performActionOption(currentTaskSwipeAndTapOptions.primarySwipeLeading)
+        case .LeadingSecondary: performActionOption(currentTaskSwipeAndTapOptions.secondarySwipeLeading)
+        case .TrailingPrimary: performActionOption(currentTaskSwipeAndTapOptions.primarySwipeTrailing)
+        case .TrailingSecondary: performActionOption(currentTaskSwipeAndTapOptions.secondarySwipeTrailing)
+        }
+    }
+    
+    func performActionOption(_ action: SwipeAction) {
+        switch action {
+        case .complete:
+            onComplete()
+        case .delete:
+            showingDeleteAlert = true
+        case .edit:
+            onEdit()
+        case .startTimer:
+            onStartTimer()
+        case .none:
+            return
+        }
+    }
 }
 
-enum ActionOption{
+enum ActionOption: CustomStringConvertible {
     case LeadingPrimary
     case LeadingSecondary
     case TrailingPrimary
     case TrailingSecondary
+    
+    var description: String {
+        switch self {
+        case .LeadingPrimary: return "LeadingPrimary"
+        case .LeadingSecondary: return "LeadingSecondary"
+        case .TrailingPrimary: return "TrailingPrimary"
+        case .TrailingSecondary: return "TrailingSecondary"
+        }
+    }
 }
 
 
