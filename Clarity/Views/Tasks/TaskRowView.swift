@@ -88,7 +88,9 @@ struct TaskRowView: View {
             }
             .padding(.vertical, 8)
             .contentShape(Rectangle())
-            .onTapGesture(perform: onEdit)
+            .onTapGesture {
+                performAction(.Tap)
+            }
             .swipeActions(edge: .trailing,  allowsFullSwipe: false) {
                 Button {
                     performAction(.TrailingPrimary)
@@ -136,6 +138,7 @@ struct TaskRowView: View {
         case .LeadingSecondary: performActionOption(currentTaskSwipeAndTapOptions.secondarySwipeLeading)
         case .TrailingPrimary: performActionOption(currentTaskSwipeAndTapOptions.primarySwipeTrailing)
         case .TrailingSecondary: performActionOption(currentTaskSwipeAndTapOptions.secondarySwipeTrailing)
+        case .Tap: performActionOption(currentTaskSwipeAndTapOptions.tap)
         }
     }
     
@@ -160,13 +163,15 @@ enum ActionOption: CustomStringConvertible {
     case LeadingSecondary
     case TrailingPrimary
     case TrailingSecondary
+    case Tap
     
     var description: String {
         switch self {
-        case .LeadingPrimary: return "LeadingPrimary"
-        case .LeadingSecondary: return "LeadingSecondary"
-        case .TrailingPrimary: return "TrailingPrimary"
-        case .TrailingSecondary: return "TrailingSecondary"
+        case .LeadingPrimary: return "Leading Primary"
+        case .LeadingSecondary: return "Leading Secondary"
+        case .TrailingPrimary: return "Trailing Primary"
+        case .TrailingSecondary: return "Trailing Secondary"
+        case .Tap: return "Tap"
         }
     }
 }
