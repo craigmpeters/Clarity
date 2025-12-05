@@ -190,6 +190,20 @@
 			);
 			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
 		};
+		44F875FB2EE35FA70049C5A3 /* Exceptions for "Clarity" folder in "ClarityWatch" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				ViewModels/SwipeActions.swift,
+			);
+			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
+		};
+		44F875FC2EE35FA70049C5A3 /* Exceptions for "Clarity" folder in "Widgets" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				ViewModels/SwipeActions.swift,
+			);
+			target = 4448AD602E579266005CDDDF /* Widgets */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -279,6 +293,8 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				44BCDE032E5D2E5F00B61B9C /* Exceptions for "Clarity" folder in "Clarity" target */,
+				44F875FB2EE35FA70049C5A3 /* Exceptions for "Clarity" folder in "ClarityWatch" target */,
+				44F875FC2EE35FA70049C5A3 /* Exceptions for "Clarity" folder in "Widgets" target */,
 			);
 			path = Clarity;
 			sourceTree = "<group>";

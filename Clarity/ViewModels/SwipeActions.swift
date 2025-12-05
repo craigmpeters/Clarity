@@ -10,7 +10,7 @@ import SwiftUI
 import SwiftData
 
 /// Represents the possible swipe actions a user can perform on a row
-enum SwipeAction: Equatable, Sendable {
+enum SwipeAction: String, Codable, Equatable, Sendable {
     case none
     case delete
     case edit
@@ -31,13 +31,23 @@ extension SwipeAction {
     }
     
     /// Icon for the action
-    var systemImage: Image {
+    var systemImage: String {
         switch self {
-        case .none: return Image(systemName: "minus")
-        case .delete: return Image(systemName: "trash")
-        case .edit: return Image(systemName: "pencil")
-        case .complete: return Image(systemName: "checkmark")
-        case .startTimer: return Image(systemName: "timer")
+        case .none: return "minus"
+        case .delete: return "trash"
+        case .edit: return "pencil"
+        case .complete: return "checkmark"
+        case .startTimer: return "timer"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .none: return .black
+        case .delete: return .red
+        case .edit: return .blue
+        case .complete: return .green
+        case .startTimer: return .blue
         }
     }
     
@@ -68,9 +78,9 @@ extension SwipeAction {
 public final class  TaskSwipeAndTapOptions {
     
     var tap: SwipeAction = SwipeAction.edit
-    var primarySwipeLeading: SwipeAction = SwipeAction.complete
-    var primarySwipeTrailing: SwipeAction = SwipeAction.startTimer
-    var secondarySwipeLeading: SwipeAction = SwipeAction.delete
+    var primarySwipeLeading: SwipeAction = SwipeAction.startTimer 
+    var primarySwipeTrailing: SwipeAction = SwipeAction.delete
+    var secondarySwipeLeading: SwipeAction = SwipeAction.complete
     var secondarySwipeTrailing: SwipeAction = SwipeAction.none
     
     public init() {

@@ -22,6 +22,8 @@ final class PreviewData {
     private init() {
         insertPreviewCategories()
         insertPreviewTasks()
+        
+        insertTaskSwipeAndTapOptions()
     }
     
     // MARK: Public Functions
@@ -157,6 +159,11 @@ final class PreviewData {
         settings.weeklyGlobalTarget = 10
         previewContext.insert(settings)
         
+    }
+    
+    private func insertTaskSwipeAndTapOptions() {
+        let swipeOptions = TaskSwipeAndTapOptions()
+        previewContext.insert(swipeOptions)
     }
     
     
