@@ -292,7 +292,7 @@ enum ClarityModelActorFactory {
 // Containers.swift
 enum Containers {
     static func liveApp() throws -> ModelContainer {
-        let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self])
+        let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self, TaskSwipeAndTapOptions.self])
         let cfg = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,
@@ -304,7 +304,7 @@ enum Containers {
     }
 
     static func liveExtension() throws -> ModelContainer {
-        let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self])
+        let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self, TaskSwipeAndTapOptions.self])
         let cfg = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,
@@ -316,7 +316,7 @@ enum Containers {
     }
 
     static func inMemory() throws -> ModelContainer {
-        let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self])
+        let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self, TaskSwipeAndTapOptions.self])
         let cfg = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, allowsSave: true)
         return try ModelContainer(for: schema, configurations: [cfg])
     }

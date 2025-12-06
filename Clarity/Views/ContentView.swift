@@ -93,8 +93,10 @@ struct ContentView: View {
 }
 
 #if DEBUG
-// #Preview {
-//    ContentView(store: ClarityModelActor)
-//        .modelContainer(PreviewData.shared.previewContainer)
-// }
+ #Preview("Demo View") {
+    ContentView()
+        .modelContainer(PreviewData.shared.previewContainer)
+        .environmentObject(AppState())
+ }
+
 #endif
