@@ -100,6 +100,7 @@ actor ClarityModelActor {
         Logger.ModelActor.debug("Update Task Day Day \(task.everySpecificDayDay)")
         
         try modelContext.save()
+        try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
         WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
         return ToDoTaskDTO(from: model)
     }
@@ -130,6 +131,7 @@ actor ClarityModelActor {
         modelContext.insert(toDoTask)
         
         try? modelContext.save()
+        try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
         WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
         
         return ToDoTaskDTO(from: toDoTask)
@@ -140,6 +142,7 @@ actor ClarityModelActor {
             modelContext.delete(model)
             try modelContext.save()
         }
+        try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
         WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
     }
     
@@ -154,6 +157,7 @@ actor ClarityModelActor {
             _ = try addTask(nextTask)
         }
         try modelContext.save()
+        try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
         WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
     }
     

@@ -34,7 +34,13 @@ struct TaskQuery: EntityQuery, Sendable {
     }
 
     func allEntities() async throws -> [TaskEntity] {
-        let tasks = ClarityServices.snapshotTasks()
+        //let tasks = ClarityServices.snapshotTasks()
+        var tasks : [ToDoTaskDTO] = []
+        do {
+            tasks = try WidgetFileCoordinator.shared.readTasks()
+        } catch {
+            print("Failed to read tasks from file DB: \(error)")
+        }
         return tasks.map { TaskEntity(id: $0.uuid.uuidString, name: $0.name, date: $0.due, repeating: $0.repeating) }
 
     }

@@ -22,6 +22,9 @@ struct DevelopmentMenuView: View {
     var body: some View {
         NavigationView {
             List {
+                Section("File Data"){
+                    Text("Total Tasks in File Database:  \(getTotalTasksinFileDB())")
+                }
                 Section("Test Data") {
                     Button("Populate Sample Tasks") {
                         populateSampleTasks()
@@ -98,6 +101,18 @@ struct DevelopmentMenuView: View {
             Button("OK") { }
         } message: {
             Text(alertMessage)
+        }
+    }
+    
+    // MARK: - File Debug Section Functions
+    
+    private func getTotalTasksinFileDB() -> Int {
+        do {
+            let tasks = try WidgetFileCoordinator.shared.readTasks()
+            return tasks.count
+        } catch {
+            print("Failed to read tasks from file DB: \(error)")
+            return 0
         }
     }
     
@@ -564,3 +579,4 @@ struct DevelopmentSection: View {
 }
 
 #endif
+

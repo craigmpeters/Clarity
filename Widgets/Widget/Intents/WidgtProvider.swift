@@ -24,13 +24,25 @@ struct ClarityWidgetProvider: AppIntentTimelineProvider {
     
     func snapshot(for configuration: TaskWidgetIntent, in context: Context) async -> TaskWidgetEntry {
         // For previews, return sample data
-        let todos = await ClarityServices.snapshotTasksAsync(filter: configuration.filter.toTaskFilter())
+        //let todos = await ClarityServices.snapshotTasksAsync(filter: configuration.filter.toTaskFilter())
+        var todos : [ToDoTaskDTO] = []
+        do {
+            todos = try WidgetFileCoordinator.shared.readTasks()
+        } catch {
+            print("Failed to read tasks from file DB: \(error)")
+        }
         let progress = ClarityServices.fetchWeeklyProgress()
         return TaskWidgetEntry(date: .now, todos: todos, progress: progress, filter: configuration.filter)
     }
     
     func timeline(for configuration: TaskWidgetIntent, in context: Context) async -> Timeline<TaskWidgetEntry> {
-        let todos = await ClarityServices.snapshotTasksAsync(filter: configuration.filter.toTaskFilter())
+        // let todos = await ClarityServices.snapshotTasksAsync(filter: configuration.filter.toTaskFilter())
+        var todos : [ToDoTaskDTO] = []
+        do {
+            todos = try WidgetFileCoordinator.shared.readTasks()
+        } catch {
+            print("Failed to read tasks from file DB: \(error)")
+        }
         let progress = ClarityServices.fetchWeeklyProgress()
         let entry = TaskWidgetEntry(date: .now, todos: todos, progress: progress, filter: configuration.filter)
         
