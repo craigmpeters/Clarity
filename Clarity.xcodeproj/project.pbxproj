@@ -114,6 +114,7 @@
 			membershipExceptions = (
 				ClarityModelActor.swift,
 				ClarityServices.swift,
+				FileCoordinator.swift,
 			);
 			target = 4448AD602E579266005CDDDF /* Widgets */;
 		};
@@ -122,6 +123,7 @@
 			membershipExceptions = (
 				ClarityModelActor.swift,
 				ClarityServices.swift,
+				FileCoordinator.swift,
 				WatchConnectivity.swift,
 			);
 			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
