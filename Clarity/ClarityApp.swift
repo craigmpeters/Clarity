@@ -84,7 +84,7 @@ struct ClarityApp: App {
                 .modelContainer(container)
                 .onAppear {
                     appDelegate.appState = appState
-                    populateUUIDsIfNeeded(modelContext: container.mainContext, minimumBuild: "1")
+                    populateUUIDsIfNeeded(modelContext: container.mainContext, minimumBuild: "1.3.0")
                 }
                 .environmentObject(LogCenter.shared)
                 .task {

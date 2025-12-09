@@ -98,13 +98,20 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
     private func createFileIfNeeded(at url: URL) {
         if !FileManager.default.fileExists(atPath: url.path) {
             do {
-                let empty: ToDoTaskList = []
-                let data = try encoder.encode(empty)
+                let tasks: ToDoTaskList = ClarityServices.snapshotTasks(filter: .all)
+                let data = try encoder.encode(tasks)
                 FileManager.default.createFile(atPath: url.path, contents: data)
             } catch {
                 logger.error("Failed to create initial file: \(error.localizedDescription)")
             }
         }
+    }
+    
+    func readTasks(with filter: ToDoTask.TaskFilter) throws -> ToDoTaskList {
+        let now = Date()
+        let tasks = try readTasks()
+        return tasks
+            .filter { filter.matches(dto: $0, at: now) }
     }
 
     // MARK: Reading

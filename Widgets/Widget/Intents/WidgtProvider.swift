@@ -27,7 +27,7 @@ struct ClarityWidgetProvider: AppIntentTimelineProvider {
         //let todos = await ClarityServices.snapshotTasksAsync(filter: configuration.filter.toTaskFilter())
         var todos : [ToDoTaskDTO] = []
         do {
-            todos = try WidgetFileCoordinator.shared.readTasks()
+            todos = try WidgetFileCoordinator.shared.readTasks(with: configuration.filter.toTaskFilter())
         } catch {
             print("Failed to read tasks from file DB: \(error)")
         }
@@ -39,7 +39,7 @@ struct ClarityWidgetProvider: AppIntentTimelineProvider {
         // let todos = await ClarityServices.snapshotTasksAsync(filter: configuration.filter.toTaskFilter())
         var todos : [ToDoTaskDTO] = []
         do {
-            todos = try WidgetFileCoordinator.shared.readTasks()
+            todos = try WidgetFileCoordinator.shared.readTasks(with: configuration.filter.toTaskFilter())
         } catch {
             print("Failed to read tasks from file DB: \(error)")
         }
