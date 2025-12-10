@@ -119,6 +119,40 @@ struct ClarityApp: App {
                         }
                     }
                 }
+                .environmentObject(LogCenter.shared)
+                .task {
+                    if let id = consumePendingStartTimerTaskId() {
+                        appState.pomodoroUuid = id
+                        let store = ClarityModelActor(modelContainer: container)
+                        do {
+                            if let taskDTO = try await store.fetchTaskByUuid(id) {
+                                PomodoroService.shared.startPomodoro(for: taskDTO, container: container, device: .iPhone)
+                                appState.showingPomodoro = true
+                            }
+                        } catch {
+                            // Log and swallow the error to keep the .task closure non-throwing
+                            print("Failed to fetch task by UUID: \(error)")
+                        }
+                    }
+                }
+                .onChange(of: scenePhase) { _, newPhase in
+                    guard newPhase == .active else { return }
+                    if let id = consumePendingStartTimerTaskId() {
+                        appState.pomodoroUuid = id
+                        let store = ClarityModelActor(modelContainer: container)
+                        Task {
+                            do {
+                                if let taskDTO = try await store.fetchTaskByUuid(id) {
+                                    PomodoroService.shared.startPomodoro(for: taskDTO, container: container, device: .iPhone)
+                                    appState.showingPomodoro = true
+                                }
+                            } catch {
+                                print("Failed to fetch task by UUID (resume): \(error)")
+                            }
+                        }
+                    }
+                }
+                .environmentObject(LogCenter.shared)
         }
     }
     
