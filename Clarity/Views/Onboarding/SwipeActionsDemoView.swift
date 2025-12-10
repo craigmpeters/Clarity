@@ -9,7 +9,7 @@ import SwiftUI
 
 struct SwipeActionsDemoView: View {
     @State private var currentDemoIndex = 0
-    @State private var showingInstructions = true
+    @State var showingInstructions = true
     
     private let swipeActions = [
         SwipeActionDemo(
@@ -363,6 +363,7 @@ struct InteractiveTaskDemo: View {
 }
 
 #Preview {
+    @Previewable @State var showingInstructions = false
     SwipeActionsDemoView()
         .padding()
 }

@@ -20,6 +20,10 @@ final class PreviewData {
     
     // Private Init as Singleton
     private init() {
+        insertPreviewCategories()
+        insertPreviewTasks()
+        
+        insertTaskSwipeAndTapOptions()
     }
     
     // MARK: Public Functions
@@ -49,8 +53,37 @@ final class PreviewData {
         }
     }
     
+    // #MARK: Individual Task Functions
+    
     func getToDoTask() -> ToDoTask {
         return getToDoTasks().first!
+    }
+    
+    func getOverDueToDoTask() -> ToDoTask{
+        let task =  getToDoTasks().first!
+        task.due =  Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+        return task
+    }
+    
+    func getTaskWithManyCategories() -> ToDoTask{
+        let task = getToDoTask()
+        task.categories = getCategories()
+        return task
+    }
+    
+    
+    // #MARK: Preview Helper Functions
+    
+    func makeEveryMonday(_ task: ToDoTask) -> ToDoTask {
+        task.repeating = true
+        task.recurrenceInterval = .specific
+        task.everySpecificDayDay = 1
+        return task
+    }
+    
+    
+    func toToDoTaskDTO(from task: ToDoTask) -> ToDoTaskDTO {
+        return ToDoTaskDTO(from: task)
     }
     
     func getToDoTaskDTO() -> ToDoTaskDTO {
@@ -126,6 +159,11 @@ final class PreviewData {
         settings.weeklyGlobalTarget = 10
         previewContext.insert(settings)
         
+    }
+    
+    private func insertTaskSwipeAndTapOptions() {
+        let swipeOptions = TaskSwipeAndTapOptions()
+        previewContext.insert(swipeOptions)
     }
     
     

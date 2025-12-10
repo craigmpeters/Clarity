@@ -100,6 +100,7 @@ actor ClarityModelActor {
         Logger.ModelActor.debug("Update Task Day Day \(task.everySpecificDayDay)")
         
         try modelContext.save()
+        try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
         WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
         return ToDoTaskDTO(from: model)
     }
@@ -130,6 +131,7 @@ actor ClarityModelActor {
         modelContext.insert(toDoTask)
         
         try? modelContext.save()
+        try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
         WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
         
         return ToDoTaskDTO(from: toDoTask)
@@ -140,6 +142,7 @@ actor ClarityModelActor {
             modelContext.delete(model)
             try modelContext.save()
         }
+        try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
         WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
     }
     
@@ -154,9 +157,21 @@ actor ClarityModelActor {
             _ = try addTask(nextTask)
         }
         try modelContext.save()
+        try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
         WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
     }
     
+    func fetchTaskByUuid(_ id: UUID) throws -> ToDoTaskDTO? {
+        let descriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate {
+                $0.uuid == id &&
+                !$0.completed
+            }
+        )
+        let tasks = try modelContext.fetch(descriptor)
+        Logger.ClarityServices.debug("fetchTaskByUuid: \(id) returned: \(tasks.count)")
+        return tasks.first.map(ToDoTaskDTO.init(from:))
+    }
     func fetchTaskById(_ id: PersistentIdentifier) throws -> ToDoTaskDTO? {
         if let model = modelContext.model(for: id) as? ToDoTask {
             return ToDoTaskDTO(from: model)
@@ -281,7 +296,7 @@ enum ClarityModelActorFactory {
 // Containers.swift
 enum Containers {
     static func liveApp() throws -> ModelContainer {
-        let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self])
+        let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self, TaskSwipeAndTapOptions.self])
         let cfg = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,
@@ -293,7 +308,7 @@ enum Containers {
     }
 
     static func liveExtension() throws -> ModelContainer {
-        let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self])
+        let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self, TaskSwipeAndTapOptions.self])
         let cfg = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,
@@ -305,7 +320,7 @@ enum Containers {
     }
 
     static func inMemory() throws -> ModelContainer {
-        let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self])
+        let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self, TaskSwipeAndTapOptions.self])
         let cfg = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, allowsSave: true)
         return try ModelContainer(for: schema, configurations: [cfg])
     }

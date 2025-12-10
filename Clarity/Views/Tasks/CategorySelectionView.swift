@@ -201,18 +201,14 @@ struct AddCategoryView: View {
 
 #if DEBUG
 
-private struct CategorySelectionView_PreviewWrapper: View {
-    @State private var selectedCategories: [CategoryDTO] = []
-    var body: some View {
-        CategorySelectionView(selectedCategories: $selectedCategories)
-            .padding()
-    }
-}
-
 #Preview {
-
-    return CategorySelectionView_PreviewWrapper()
-        .modelContainer(PreviewData.shared.previewContainer)
+    @Previewable @State var selectedCategories: [CategoryDTO] = []
+    Form {
+        Section{
+            CategorySelectionView(selectedCategories: .constant(selectedCategories))
+                .modelContainer(PreviewData.shared.previewContainer)
+        }
+    }
 }
 
 #endif

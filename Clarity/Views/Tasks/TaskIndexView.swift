@@ -37,7 +37,7 @@ struct TaskIndexView: View {
         List(filteredTasks) { task in
             TaskRowView(
                 task: task,
-                onEdit: { editTask(task) },
+                onEdit: { editTask(ToDoTaskDTO(from: task)) },
                 onDelete: { deleteTask(ToDoTaskDTO(from: task)) },
                 onComplete: { completeTask(ToDoTaskDTO(from: task)) },
                 onStartTimer: { startTimer(for: ToDoTaskDTO(from: task)) }
@@ -88,9 +88,11 @@ struct TaskIndexView: View {
     
     // MARK: - Actions (moved to background)
     
-    private func editTask(_ task: ToDoTask) {
+    
+    
+    private func editTask(_ task: ToDoTaskDTO) {
         print("Editing \(task.name)")
-        taskToEdit = ToDoTaskDTO(from: task)
+        taskToEdit = task
         showingTaskForm = true
     }
     

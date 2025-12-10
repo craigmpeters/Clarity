@@ -362,11 +362,13 @@ extension TaskFormView {
 
 #if DEBUG
 #Preview("New Task") {
- //   TaskFormView()
+    TaskFormView()
+    .modelContainer(PreviewData.shared.previewContainer)
 }
 
 #Preview("Edit Task") {
- //   TaskFormView(task: PreviewData.shared.getToDoTask())
+    TaskFormView(task: PreviewData.shared.toToDoTaskDTO(from: PreviewData.shared.getToDoTask()) )
+        .modelContainer(PreviewData.shared.previewContainer)
 }
 #endif
 

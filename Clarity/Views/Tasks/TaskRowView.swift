@@ -6,6 +6,9 @@
 //
 
 import SwiftUI
+import SwiftData
+import os
+
 struct TaskRowView: View {
     let task: ToDoTask
     let onEdit: () -> Void
@@ -13,8 +16,21 @@ struct TaskRowView: View {
     let onComplete: () -> Void
     let onStartTimer: () -> Void
     
+    @Environment(\.modelContext) private var context
     @State private var showingDeleteAlert = false
     @State private var isDismissing = false
+    @Query private var taskSwipeAndTapOptions: [TaskSwipeAndTapOptions]
+    private var currentTaskSwipeAndTapOptions: TaskSwipeAndTapOptions {
+        if let existing = taskSwipeAndTapOptions.first {
+            return existing
+        }
+        // No options persisted yet — create a default one, insert into the model context, and return it.
+        let defaults = TaskSwipeAndTapOptions()
+        context.insert(defaults)
+        // Attempt to save; if save fails, we still return the in-memory defaults so UI can function.
+        try? context.save()
+        return defaults
+    }
     
     var body: some View {
         HStack(spacing:12) {
@@ -72,25 +88,33 @@ struct TaskRowView: View {
             }
             .padding(.vertical, 8)
             .contentShape(Rectangle())
-            .onTapGesture(perform: onEdit)
-            .swipeActions(edge: .trailing) {
+            .onTapGesture {
+                performAction(.Tap)
+            }
+            .swipeActions(edge: .trailing,  allowsFullSwipe: false) {
                 Button {
-                    showingDeleteAlert = true
+                    performAction(.TrailingPrimary)
+                    
                 } label: {
-                    Label("Delete", systemImage: "trash")
+                    Label(currentTaskSwipeAndTapOptions.primarySwipeTrailing.title, systemImage: currentTaskSwipeAndTapOptions.primarySwipeTrailing.systemImage)
                 }
-                .tint(.red)
+                .tint(currentTaskSwipeAndTapOptions.primarySwipeTrailing.color)
+                
+                // TODO: Trailing Button Secondary
             }
             .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                Button(action: onStartTimer, label: {
-                    Label("Start Timer", systemImage: "timer")
-                })
-                .tint(.blue)
-                
-                Button(action: onComplete, label: {
-                    Label("Complete", systemImage: "checkmark")
-                })
-                .tint(.green)
+                Button{
+                    performAction(.LeadingPrimary)
+                } label: {
+                    Label(currentTaskSwipeAndTapOptions.primarySwipeLeading.title, systemImage: currentTaskSwipeAndTapOptions.primarySwipeLeading.systemImage)
+                }
+                .tint(currentTaskSwipeAndTapOptions.primarySwipeLeading.color)
+                Button{
+                    performAction(.LeadingSecondary)
+                } label: {
+                    Label(currentTaskSwipeAndTapOptions.secondarySwipeLeading.title, systemImage: currentTaskSwipeAndTapOptions.secondarySwipeLeading.systemImage)
+                }
+                .tint(currentTaskSwipeAndTapOptions.secondarySwipeLeading.color)
             }
             .confirmationDialog(
                 "Are you sure you want to delete \(task.name ?? "task")?",
@@ -106,10 +130,52 @@ struct TaskRowView: View {
             }
         }
     }
+    
+    func performAction(_ action: ActionOption) {
+        Logger.UserInterface.debug("Perform action: \(String(describing: action))")
+        switch action {
+        case .LeadingPrimary: performActionOption(currentTaskSwipeAndTapOptions.primarySwipeLeading)
+        case .LeadingSecondary: performActionOption(currentTaskSwipeAndTapOptions.secondarySwipeLeading)
+        case .TrailingPrimary: performActionOption(currentTaskSwipeAndTapOptions.primarySwipeTrailing)
+        case .TrailingSecondary: performActionOption(currentTaskSwipeAndTapOptions.secondarySwipeTrailing)
+        case .Tap: performActionOption(currentTaskSwipeAndTapOptions.tap)
+        }
+    }
+    
+    func performActionOption(_ action: SwipeAction) {
+        switch action {
+        case .complete:
+            onComplete()
+        case .delete:
+            showingDeleteAlert = true
+        case .edit:
+            onEdit()
+        case .startTimer:
+            onStartTimer()
+        case .none:
+            return
+        }
+    }
 }
-//let isToday = Calendar.current.isDateInToday(due)
-//let isTomorrow = Calendar.current.isDateInTomorrow(due)
-//let isPast = due < Date()
+
+enum ActionOption: CustomStringConvertible {
+    case LeadingPrimary
+    case LeadingSecondary
+    case TrailingPrimary
+    case TrailingSecondary
+    case Tap
+    
+    var description: String {
+        switch self {
+        case .LeadingPrimary: return "Leading Primary"
+        case .LeadingSecondary: return "Leading Secondary"
+        case .TrailingPrimary: return "Trailing Primary"
+        case .TrailingSecondary: return "Trailing Secondary"
+        case .Tap: return "Tap"
+        }
+    }
+}
+
 
 func dateAccentTextColor(_ due: Date) -> Color {
     let isToday = Calendar.current.isDateInToday(due)
@@ -130,7 +196,7 @@ func dateAccentBackgroundColor(_ due: Date) -> Color {
     return Color.accentColor.opacity(0.12)
 }
 #if DEBUG
-#Preview {
+#Preview("Default") {
     HStack() {
         TaskRowView(
             task: PreviewData.shared.getToDoTask(),
@@ -139,8 +205,37 @@ func dateAccentBackgroundColor(_ due: Date) -> Color {
             onComplete: { print("Task Completed") },
             onStartTimer: { print("Timer Started") }
         )
+        .modelContainer(PreviewData.shared.previewContainer)
     }
     .padding(30)
+}
 
+#Preview("Overdue") {
+    HStack() {
+        TaskRowView(
+            task: PreviewData.shared.getOverDueToDoTask(),
+            onEdit: { print("Task Edited") },
+            onDelete: { print("Task Deleted") },
+            onComplete: { print("Task Completed") },
+            onStartTimer: { print("Timer Started") }
+        )
+        .modelContainer(PreviewData.shared.previewContainer)
+    }
+    .padding(30)
+}
+
+#Preview("Many Categories") {
+    HStack() {
+        TaskRowView(
+            task: PreviewData.shared.makeEveryMonday(PreviewData.shared.getTaskWithManyCategories()) ,
+            onEdit: { print("Task Edited") },
+            onDelete: { print("Task Deleted") },
+            onComplete: { print("Task Completed") },
+            onStartTimer: { print("Timer Started") }
+        )
+        .modelContainer(PreviewData.shared.previewContainer)
+    }
+    .padding(30)
 }
 #endif
+

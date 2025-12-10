@@ -143,6 +143,11 @@ struct PomodoroView: View {
             print("⌚️ Pomodoro View Dismissing... ")
             dismiss()
         }
+        .onAppear {
+            if let end = pomodoro.endTime, end <= Date() {
+                dismiss()
+            }
+        }
     }
 }
 

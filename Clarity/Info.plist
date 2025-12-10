@@ -2,14 +2,29 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLIconFile</key>
+			<string>Appicon-iOS-Default-1024x1024@1x</string>
+			<key>CFBundleURLName</key>
+			<string>me.craigpeters.clarity</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>clarityapp</string>
+			</array>
+		</dict>
+	</array>
+	<key>LOG_VIEWER_ENABLED</key>
+	<string>$(LOG_VIEWER_ENABLED)</string>
 	<key>NSFoundationModelsUsageDescription</key>
 	<string>This app uses AI to help split complex tasks into manageable subtasks.</string>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>IntentIntent</string>
 	</array>
-	<key>LOG_VIEWER_ENABLED</key>
-	<string>$(LOG_VIEWER_ENABLED)</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

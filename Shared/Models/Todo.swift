@@ -210,6 +210,23 @@ extension ToDoTask.TaskFilter {
             return (di.start ... di.end).contains(task.due)
         }
     }
+    
+    func matches(dto: ToDoTaskDTO, at now: Date, calendar: Calendar = .current) -> Bool {
+        switch self {
+        case .all:
+            return true
+        case .overdue:
+            return dto.due < calendar.startOfDay(for: now)
+        case .today:
+            return calendar.isDate(dto.due, inSameDayAs: now)
+        case .tomorrow:
+            guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) else { return false }
+            return calendar.isDate(dto.due, inSameDayAs: tomorrow)
+        case .thisWeek:
+            guard let di = calendar.dateInterval(of: .weekOfYear, for: now) else { return false }
+            return (di.start ... di.end).contains(dto.due)
+        }
+    }
 }
 
 extension ToDoTask.TaskFilter {
