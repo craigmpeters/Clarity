@@ -119,6 +119,7 @@ struct ClarityApp: App {
                         }
                     }
                 }
+                .environmentObject(LogCenter.shared)
         }
     }
     
