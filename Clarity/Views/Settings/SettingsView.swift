@@ -37,6 +37,14 @@ struct SettingsView: View {
                         Spacer()
                     }
                 }
+                HStack {
+                    NavigationLink(destination: SwipeSettingsView()) {
+                        Image(systemName: "appwindow.swipe.rectangle")
+                            .foregroundColor(.purple)
+                        Text("Change Swipe Options")
+                        Spacer()
+                    }
+                }
             }
             if isLogViewerEnabled {
                 Section("Logging") {
