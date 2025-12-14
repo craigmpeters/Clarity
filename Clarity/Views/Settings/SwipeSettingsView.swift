@@ -29,7 +29,7 @@ struct SwipeSettingsView: View {
             Section("Current Configuration") {
                 SwipePreviewTask(currentTaskSwipeAndTapOptions: currentTaskSwipeAndTapOptions)
             }
-            Section("Configuration") {
+            Section("Swipe Configuration") {
                     //Text("First Left")
                     //Spacer()
                     Picker("First Left", selection: Binding<SwipeAction>(
@@ -81,6 +81,19 @@ struct SwipeSettingsView: View {
                 }
                 .pickerStyle(.menu)
             }
+            Section("Tap Configuration") {
+                Picker("Tap", selection: Binding<SwipeAction>(
+                    get: {currentTaskSwipeAndTapOptions.tap},
+                    set: { newValue in
+                        currentTaskSwipeAndTapOptions.tap = newValue
+                        try? context.save()
+                    }
+                )) {
+                    ForEach(SwipeAction.allCases, id: \.self) { action in
+                        Text(action.title).tag(action)}
+                }
+            }
+            .pickerStyle(.menu)
         }
         .navigationTitle("Swipe Settings")
         
