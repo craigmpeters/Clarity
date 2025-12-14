@@ -8,6 +8,7 @@
 import Foundation
 import SwiftData
 import SwiftUI
+import AppIntents
 
 @Model
 class Category {
@@ -95,3 +96,22 @@ extension CategoryDTO {
         self.init(id: model.persistentModelID, name: model.name!, color: model.color ?? Category.CategoryColor.Red , weeklyTarget: model.weeklyTarget)
     }
 }
+
+
+struct CategoryFilterSettings {
+    var Categories: [CategoryEntity]
+    var showOrHide: FilterShowOrHide
+}
+
+enum FilterShowOrHide: String, AppEnum {
+    case show
+    case hide
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Show or Hide Categories"
+
+    static var caseDisplayRepresentations: [FilterShowOrHide: DisplayRepresentation] = [
+        .show: "Show",
+        .hide: "Hide"
+    ]
+}
+

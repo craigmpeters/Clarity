@@ -102,6 +102,45 @@
 			);
 			target = 441B7E032EEED7F4008D76CA /* ClarityAppIntentsExtension */;
 		};
+		441B7E1A2EEEFDA3008D76CA /* Exceptions for "Widgets" folder in "ClarityAppIntentsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Widget/Models/CategoryEntity.swift,
+			);
+			target = 441B7E032EEED7F4008D76CA /* ClarityAppIntentsExtension */;
+		};
+		441B7E1C2EEF0DB9008D76CA /* Exceptions for "Data" folder in "ClarityAppIntentsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				ClarityModelActor.swift,
+				ClarityServices.swift,
+				FileCoordinator.swift,
+			);
+			target = 441B7E032EEED7F4008D76CA /* ClarityAppIntentsExtension */;
+		};
+		441B7E1E2EEF0DCA008D76CA /* Exceptions for "Models" folder in "ClarityAppIntentsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Category.swift,
+				Statistics.swift,
+				Todo.swift,
+			);
+			target = 441B7E032EEED7F4008D76CA /* ClarityAppIntentsExtension */;
+		};
+		441B7E242EEF0E4F008D76CA /* Exceptions for "Clarity" folder in "ClarityAppIntentsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				ViewModels/SwipeActions.swift,
+			);
+			target = 441B7E032EEED7F4008D76CA /* ClarityAppIntentsExtension */;
+		};
+		441B7E262EEF27CC008D76CA /* Exceptions for "Widgets" folder in "ClarityWatch" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Widget/Models/CategoryEntity.swift,
+			);
+			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
+		};
 		4448AD792E579268005CDDDF /* Exceptions for "Widgets" folder in "Widgets" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -255,7 +294,9 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				44F7D0F82E998D4300F520BF /* Exceptions for "Widgets" folder in "Clarity" target */,
+				441B7E262EEF27CC008D76CA /* Exceptions for "Widgets" folder in "ClarityWatch" target */,
 				4448AD792E579268005CDDDF /* Exceptions for "Widgets" folder in "Widgets" target */,
+				441B7E1A2EEEFDA3008D76CA /* Exceptions for "Widgets" folder in "ClarityAppIntentsExtension" target */,
 			);
 			path = Widgets;
 			sourceTree = "<group>";
@@ -296,6 +337,7 @@
 			exceptions = (
 				44D6F01E2E85DA9500B5EF9E /* Exceptions for "Data" folder in "ClarityWatch" target */,
 				44D6F01D2E85DA9500B5EF9E /* Exceptions for "Data" folder in "Widgets" target */,
+				441B7E1C2EEF0DB9008D76CA /* Exceptions for "Data" folder in "ClarityAppIntentsExtension" target */,
 			);
 			path = Data;
 			sourceTree = "<group>";
@@ -305,6 +347,7 @@
 			exceptions = (
 				44D6F0382E85DA9800B5EF9E /* Exceptions for "Models" folder in "ClarityWatch" target */,
 				44D6F0372E85DA9800B5EF9E /* Exceptions for "Models" folder in "Widgets" target */,
+				441B7E1E2EEF0DCA008D76CA /* Exceptions for "Models" folder in "ClarityAppIntentsExtension" target */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -340,6 +383,7 @@
 				44BCDE032E5D2E5F00B61B9C /* Exceptions for "Clarity" folder in "Clarity" target */,
 				44F875FB2EE35FA70049C5A3 /* Exceptions for "Clarity" folder in "ClarityWatch" target */,
 				44F875FC2EE35FA70049C5A3 /* Exceptions for "Clarity" folder in "Widgets" target */,
+				441B7E242EEF0E4F008D76CA /* Exceptions for "Clarity" folder in "ClarityAppIntentsExtension" target */,
 			);
 			path = Clarity;
 			sourceTree = "<group>";
