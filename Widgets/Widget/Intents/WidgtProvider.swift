@@ -43,6 +43,13 @@ struct ClarityWidgetProvider: AppIntentTimelineProvider {
         } catch {
             print("Failed to read tasks from file DB: \(error)")
         }
+        
+        let selectedCategories: [CategoryEntity] = configuration.categoryFilter
+        let selectedCategoryNames = Set(selectedCategories.map(\.name))
+        todos = todos.filter { task in
+            let taskCategories = Set((task.categories).compactMap(\.name))
+            return !taskCategories.isDisjoint(with: selectedCategoryNames)
+        }
         let progress = ClarityServices.fetchWeeklyProgress()
         let entry = TaskWidgetEntry(date: .now, todos: todos, progress: progress, filter: configuration.filter)
         

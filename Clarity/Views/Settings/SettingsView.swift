@@ -79,6 +79,11 @@ struct SettingsView: View {
                     buildInformation()
                         .foregroundColor(.secondary)
                 }
+                HStack {
+                    Image(systemName: "cup.and.saucer.fill")
+                        .foregroundColor(.brown)
+                    Link("Buy me a Coffee", destination: URL(string: "https://buymeacoffee.com/craigmpeters")!)
+                }
             }
             // Development tools section - only shows in DEBUG builds
             #if DEBUG
@@ -408,4 +413,5 @@ struct AppIconSettingsView: View {
 }
 
 #Preview {
+    SettingsView()
 }

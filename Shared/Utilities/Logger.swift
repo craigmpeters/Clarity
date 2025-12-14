@@ -17,4 +17,5 @@ extension Logger {
     static let ClarityServices = Logger(subsystem: subsystem, category: "Data Model")
     static let Intelligence = Logger(subsystem: subsystem, category: "Apple Intelligence")
     static let UserInterface = Logger(subsystem: subsystem, category: "User Interface")
+    static let AppIntents = Logger(subsystem: subsystem, category: "App Intents")
 }
