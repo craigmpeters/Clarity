@@ -37,6 +37,14 @@ struct SettingsView: View {
                         Spacer()
                     }
                 }
+                HStack {
+                    NavigationLink(destination: SwipeSettingsView()) {
+                        Image(systemName: "appwindow.swipe.rectangle")
+                            .foregroundColor(.purple)
+                        Text("Change Swipe Options")
+                        Spacer()
+                    }
+                }
             }
             if isLogViewerEnabled {
                 Section("Logging") {
@@ -70,6 +78,11 @@ struct SettingsView: View {
                     Spacer()
                     buildInformation()
                         .foregroundColor(.secondary)
+                }
+                HStack {
+                    Image(systemName: "cup.and.saucer.fill")
+                        .foregroundColor(.brown)
+                    Link("Buy me a Coffee", destination: URL(string: "https://buymeacoffee.com/craigmpeters")!)
                 }
             }
             // Development tools section - only shows in DEBUG builds
@@ -400,4 +413,5 @@ struct AppIconSettingsView: View {
 }
 
 #Preview {
+    SettingsView()
 }

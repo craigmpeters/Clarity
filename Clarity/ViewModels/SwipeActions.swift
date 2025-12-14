@@ -10,12 +10,20 @@ import SwiftUI
 import SwiftData
 
 /// Represents the possible swipe actions a user can perform on a row
-enum SwipeAction: String, Codable, Equatable, Sendable {
+enum SwipeAction: String, Codable, Equatable, Sendable, CaseIterable {
     case none
     case delete
     case edit
     case complete
     case startTimer
+
+    static let allCases: [SwipeAction] = [
+        .none,
+        .delete,
+        .edit,
+        .complete,
+        .startTimer
+    ]
 }
 
 extension SwipeAction {

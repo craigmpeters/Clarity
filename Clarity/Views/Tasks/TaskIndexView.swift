@@ -129,6 +129,7 @@ struct TaskIndexView: View {
             print("Error requesting notification permission: \(error)")
         }
     }
+    
 }
 
 #if DEBUG
