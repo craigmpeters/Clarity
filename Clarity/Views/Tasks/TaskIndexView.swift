@@ -2,6 +2,7 @@ import ActivityKit
 import SwiftData
 import SwiftUI
 import UserNotifications
+import OSLog
 
 struct TaskIndexView: View {
     @Environment(\.modelContext) private var context
@@ -14,22 +15,55 @@ struct TaskIndexView: View {
     @State private var selectedFilter: ToDoTask.TaskFilter = .all
     @State private var selectedCategory: Category?
     @State private var store: ClarityModelActor?
+    @State private var refreshID = UUID()
     
-    @Query private var allCategories: [Category]
+    @Query(sort: \Category.name, order: .forward) private var allCategories: [Category]
+    
     @Query(filter: #Predicate<ToDoTask> { !$0.completed }, sort: \ToDoTask.due, order: .forward) private var allTasks: [ToDoTask]
     
     private var filteredTasks: [ToDoTask] {
+        // 1) Load focus settings from UserDefaults (if present)
+        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
+        let focusData = defaults?.data(forKey: "ClarityFocusFilter")
+        let focusSettings = focusData.flatMap { try? JSONDecoder().decode(CategoryFilterSettings.self, from: $0) }
+
+        // 2) Start from all category names fetched by SwiftData
+        var allowedNames = Set(allCategories.compactMap { $0.name })
+
+        // 3) Apply focus rules if we have settings
+        if let settings = focusSettings {
+            let focusedNames = Set(settings.Categories.compactMap { $0.name })
+            switch settings.showOrHide {
+            case .show:
+                // Only categories explicitly listed
+                allowedNames = allowedNames.intersection(focusedNames)
+            case .hide:
+                // All categories except those listed
+                allowedNames.subtract(focusedNames)
+            }
+        }
+
+        // 4) Now filter tasks based on due date, allowed categories, and selectedCategory (if any)
         let filtered = allTasks.filter { task in
             let dueDateMatches = selectedFilter.matches(task: task)
-            let categoryMatches: Bool = {
-                guard let selectedCategory else { return true }
-                let taskCategories = task.categories ?? []
-                return taskCategories.contains { $0.name == selectedCategory.name }
+            let taskCategories = task.categories ?? []
+
+            // Task must have at least one category in the allowed set
+            let isWithinAllowed = taskCategories.contains { cat in
+                if let name = cat.name { return allowedNames.contains(name) }
+                return false
+            }
+
+            // If a specific category is selected, task must include it
+            let matchesSelectedCategory: Bool = {
+                guard let selectedCategory, let selectedName = selectedCategory.name else { return true }
+                return taskCategories.contains { $0.name == selectedName }
             }()
-            
-            return dueDateMatches && categoryMatches
+
+            return dueDateMatches && isWithinAllowed && matchesSelectedCategory
         }
-        print("Total tasks: \(allTasks.count), Filtered: \(filtered.count)")
+
+        Logger.UserInterface.debug("Total tasks: \(allTasks.count), Filtered: \(filtered.count)")
         return filtered
     }
 
@@ -43,6 +77,7 @@ struct TaskIndexView: View {
                 onStartTimer: { startTimer(for: ToDoTaskDTO(from: task)) }
             )
         }
+        .id(refreshID)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 FilterMenuView(
@@ -62,9 +97,10 @@ struct TaskIndexView: View {
                 }
             }
         }
-        .task {
-            await requestNotificationPermission()
-            store = await StoreRegistry.shared.store(for: context.container)
+        .onReceive(NotificationCenter.default.publisher(for: .focusSettingsChanged)) { _ in
+            // Force a view refresh so filtering re-evaluates with new focus settings
+            Logger.UserInterface.debug("Refreshing View: focusSettingsChanged")
+            refreshID = UUID()
         }
         .onReceive(NotificationCenter.default.publisher(for: .pomodoroCompleted)) { notification in
             if PomodoroService.shared.startedDevice == .watchOS { return }
@@ -143,3 +179,4 @@ struct TaskIndexView: View {
     .modelContainer(PreviewData.shared.previewContainer)
 }
 #endif
+

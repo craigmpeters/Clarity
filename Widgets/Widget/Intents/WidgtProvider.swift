@@ -45,11 +45,15 @@ struct ClarityWidgetProvider: AppIntentTimelineProvider {
         }
         
         let selectedCategories: [CategoryEntity] = configuration.categoryFilter
-        let selectedCategoryNames = Set(selectedCategories.map(\.name))
-        todos = todos.filter { task in
-            let taskCategories = Set((task.categories).compactMap(\.name))
-            return !taskCategories.isDisjoint(with: selectedCategoryNames)
+        if selectedCategories.count > 0 {
+            // If empty display everything
+            let selectedCategoryNames = Set(selectedCategories.map(\.name))
+            todos = todos.filter { task in
+                let taskCategories = Set((task.categories).compactMap(\.name))
+                return !taskCategories.isDisjoint(with: selectedCategoryNames)
+            }
         }
+
         let progress = ClarityServices.fetchWeeklyProgress()
         let entry = TaskWidgetEntry(date: .now, todos: todos, progress: progress, filter: configuration.filter)
         

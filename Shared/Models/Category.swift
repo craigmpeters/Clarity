@@ -24,6 +24,41 @@ class Category {
         self.weeklyTarget = weeklyTarget
     }
     
+    // Example reusable predicate for SwiftData queries. Adjust as needed.
+    // Use as: let results = try modelContext.fetch(FetchDescriptor<Category>(predicate: Category.nameIsNotEmpty))
+//    static var focusFilter: Predicate<Category> {
+//        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
+//        if let data = defaults?.data(forKey: "ClarityFocusFilter") {
+//            if let settings = try? JSONDecoder().decode(CategoryFilterSettings.self, from: data) {
+//                // Build a predicate based on settings. This example filters by category name.
+//                // Adjust to use IDs if your CategoryEntity contains identifiers.
+//                let names = Set(settings.Categories.compactMap { $0.name })
+//                switch settings.showOrHide {
+//                case .show:
+//                    return #Predicate<Category> { category in
+//                        if let name = category.name {
+//                            return names.contains(name)
+//                        } else {
+//                            return false
+//                        }
+//                    }
+//                case .hide:
+//                    return #Predicate<Category> { category in
+//                        if let name = category.name {
+//                            return !names.contains(name)
+//                        } else {
+//                            return true
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//        // Fallback: include everything that has a non-empty name
+//        return #Predicate<Category> { category in
+//            category.name != nil && category.name != ""
+//        }
+//    }
+    
     enum CategoryColor: String, CaseIterable, Codable {
         case Red = "Red"
         case Blue = "Blue"
@@ -98,12 +133,12 @@ extension CategoryDTO {
 }
 
 
-struct CategoryFilterSettings {
+struct CategoryFilterSettings: Codable {
     var Categories: [CategoryEntity]
     var showOrHide: FilterShowOrHide
 }
 
-enum FilterShowOrHide: String, AppEnum {
+enum FilterShowOrHide: String, Codable, AppEnum {
     case show
     case hide
 

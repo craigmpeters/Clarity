@@ -24,7 +24,7 @@ struct ClarityFocusFilter: SetFocusFilterIntent {
         if categories.count > 1 {
             return "\(categories.count) Categories"
         } else {
-            return categories.first!.name
+            return categories.first?.name ?? "No Categories Selected"
         }
     }
     
@@ -47,6 +47,9 @@ struct ClarityFocusFilter: SetFocusFilterIntent {
         let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
         let settings = CategoryFilterSettings(Categories: self.categories ?? [], showOrHide: showOrHide)
         defaults?.set(settings, forKey: "ClarityFocusFilter")
+        let categoryNames = (categories ?? []).map { $0.name }.joined(separator: ", ")
+        Logger.AppIntents.debug("Set Categories: \(categoryNames)")
         return .result()
     }
 }
+

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import OSLog
 
 struct FilterMenuView: View {
     @Binding var selectedFilter: ToDoTask.TaskFilter
@@ -13,6 +14,29 @@ struct FilterMenuView: View {
     let allCategories: [Category]
 
     // let onFilterChange: (ToDoStore.TaskFilter) -> Void
+    
+    // Compute the categories allowed by current focus settings
+    private var filteredCategories: [Category] {
+        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
+        let focusData = defaults?.data(forKey: "ClarityFocusFilter")
+        let focusSettings = focusData.flatMap { try? JSONDecoder().decode(CategoryFilterSettings.self, from: $0) }
+
+        var allowedNames = Set(allCategories.compactMap { $0.name })
+        if let settings = focusSettings {
+            let focusedNames = Set(settings.Categories.compactMap { $0.name })
+            switch settings.showOrHide {
+            case .show:
+                allowedNames = allowedNames.intersection(focusedNames)
+            case .hide:
+                allowedNames.subtract(focusedNames)
+            }
+        }
+
+        return allCategories.filter { cat in
+            if let name = cat.name { return allowedNames.contains(name) }
+            return false
+        }
+    }
     
     var body: some View {
         Menu {
@@ -32,7 +56,7 @@ struct FilterMenuView: View {
                 }
             }
                         
-            if !allCategories.isEmpty {
+            if !filteredCategories.isEmpty {
                 Section("Category") {
                     Button(action: { selectedCategory = nil }) {
                         HStack {
@@ -43,7 +67,7 @@ struct FilterMenuView: View {
                         }
                     }
                                 
-                    ForEach(getCategoryFilter(allCategories), id: \.id) { category in
+                    ForEach(filteredCategories, id: \.id) { category in
                         Button(action: { selectedCategory = category }) {
                             HStack {
                                 Circle()
@@ -64,48 +88,48 @@ struct FilterMenuView: View {
         }
     }
     
-    func getCategoryFilter(_ categories: [Category]) -> [Category] {
-        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
-        
-        // Read settings; if unavailable, return the input
-        guard
-            let raw = defaults?.object(forKey: "ClarityFocusFilter"),
-            let settings = raw as? CategoryFilterSettings
-        else {
-            return categories
-        }
-        
-        // Build a set of selected category names from settings
-        let selectedNames = Set(settings.Categories.compactMap { $0.name })
-        
-        // If there are no selected names, just return the original categories
-        if selectedNames.isEmpty {
-            return categories
-        }
-        
-        // Determine whether settings represent a hide mode. We compare to a string to avoid depending on an unknown enum type.
-        let isHideMode: Bool
-        if let showOrHide = (settings as AnyObject).value(forKey: "showOrHide") as? String {
-            isHideMode = (showOrHide.lowercased() == "hide")
-        } else {
-            // Default to show mode if unknown
-            isHideMode = false
-        }
-        
-        if isHideMode {
-            // Hide the listed categories
-            return categories.filter { category in
-                guard let name = category.name else { return true }
-                return !selectedNames.contains(name)
-            }
-        } else {
-            // Show only the listed categories
-            return categories.filter { category in
-                guard let name = category.name else { return false }
-                return selectedNames.contains(name)
-            }
-        }
-    }
+//    func getCategoryFilter(_ categories: [Category]) -> [Category] {
+//        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
+//        
+//        // Read settings; if unavailable, return the input
+//        guard
+//            let raw = defaults?.object(forKey: "ClarityFocusFilter"),
+//            let settings = raw as? CategoryFilterSettings
+//        else {
+//            return categories
+//        }
+//        
+//        // Build a set of selected category names from settings
+//        let selectedNames = Set(settings.Categories.compactMap { $0.name })
+//        
+//        // If there are no selected names, just return the original categories
+//        if selectedNames.isEmpty {
+//            return categories
+//        }
+//        
+//        // Determine whether settings represent a hide mode. We compare to a string to avoid depending on an unknown enum type.
+//        let isHideMode: Bool
+//        if let showOrHide = (settings as AnyObject).value(forKey: "showOrHide") as? String {
+//            isHideMode = (showOrHide.lowercased() == "hide")
+//        } else {
+//            // Default to show mode if unknown
+//            isHideMode = false
+//        }
+//        
+//        if isHideMode {
+//            // Hide the listed categories
+//            return categories.filter { category in
+//                guard let name = category.name else { return true }
+//                return !selectedNames.contains(name)
+//            }
+//        } else {
+//            // Show only the listed categories
+//            return categories.filter { category in
+//                guard let name = category.name else { return false }
+//                return selectedNames.contains(name)
+//            }
+//        }
+//    }
 }
 
 #if DEBUG
@@ -120,4 +144,3 @@ struct FilterMenuView: View {
     )
 }
 #endif
-
