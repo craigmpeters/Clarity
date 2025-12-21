@@ -612,10 +612,5 @@ struct DevelopmentSection: View {
         #endif
     }
 }
-
-extension Notification.Name {
-    static let focusSettingsChanged = Notification.Name("focusSettingsChanged")
-}
-
 #endif
 
