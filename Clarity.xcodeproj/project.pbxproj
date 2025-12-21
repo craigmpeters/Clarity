@@ -95,13 +95,6 @@
 			);
 			target = 441B7E032EEED7F4008D76CA /* ClarityAppIntentsExtension */;
 		};
-		441B7E142EEED89C008D76CA /* Exceptions for "Utilities" folder in "ClarityAppIntentsExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Logger.swift,
-			);
-			target = 441B7E032EEED7F4008D76CA /* ClarityAppIntentsExtension */;
-		};
 		441B7E1A2EEEFDA3008D76CA /* Exceptions for "Widgets" folder in "ClarityAppIntentsExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -367,7 +360,6 @@
 			exceptions = (
 				44D6F0482E85DAA100B5EF9E /* Exceptions for "Utilities" folder in "ClarityWatch" target */,
 				44D6F0472E85DAA100B5EF9E /* Exceptions for "Utilities" folder in "Widgets" target */,
-				441B7E142EEED89C008D76CA /* Exceptions for "Utilities" folder in "ClarityAppIntentsExtension" target */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -501,6 +493,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				441B7E052EEED7F4008D76CA /* ClarityAppIntentsExtension */,
+				44D6F0432E85DAA100B5EF9E /* Utilities */,
 			);
 			name = ClarityAppIntentsExtension;
 			packageProductDependencies = (

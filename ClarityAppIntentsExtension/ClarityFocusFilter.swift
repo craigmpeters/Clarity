@@ -46,10 +46,21 @@ struct ClarityFocusFilter: SetFocusFilterIntent {
         Logger.AppIntents.debug("Performing Focus Intent")
         let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
         let settings = CategoryFilterSettings(Categories: self.categories ?? [], showOrHide: showOrHide)
-        defaults?.set(settings, forKey: "ClarityFocusFilter")
+        saveFocusSettings(settings)
+        NotificationCenter.default.post(name: .focusSettingsChanged, object: nil)
         let categoryNames = (categories ?? []).map { $0.name }.joined(separator: ", ")
         Logger.AppIntents.debug("Set Categories: \(categoryNames)")
         return .result()
+    }
+    
+    private func saveFocusSettings(_ settings: CategoryFilterSettings) {
+        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
+        do {
+            let data = try JSONEncoder().encode(settings)
+            defaults?.set(data, forKey: "ClarityFocusFilter")
+        } catch {
+            print("Failed to encode CategoryFilterSettings: \(error)")
+        }
     }
 }
 
