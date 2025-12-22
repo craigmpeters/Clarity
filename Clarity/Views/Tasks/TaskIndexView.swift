@@ -26,6 +26,18 @@ struct TaskIndexView: View {
         let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
         let focusData = defaults?.data(forKey: "ClarityFocusFilter")
         let focusSettings = focusData.flatMap { try? JSONDecoder().decode(CategoryFilterSettings.self, from: $0) }
+        
+        if let data = focusData {
+            if let jsonString = String(data: data, encoding: .utf8) {
+                Logger.UserInterface.debug("Focus filter raw JSON: \(jsonString)")
+            } else {
+                // Fallback: log a short hex preview if not valid UTF-8
+                let preview = data.prefix(64).map { String(format: "%02x", $0) }.joined()
+                Logger.UserInterface.debug("Focus filter data (non-UTF8), size: \(data.count) bytes, hex preview: \(preview)...")
+            }
+        } else {
+            Logger.UserInterface.debug("Focus filter data: nil")
+        }
 
         // 2) Start from all category names fetched by SwiftData
         var allowedNames = Set(allCategories.compactMap { $0.name })
@@ -96,6 +108,10 @@ struct TaskIndexView: View {
                         .foregroundStyle(.blue)
                 }
             }
+        }
+        .task {
+            await requestNotificationPermission()
+            store = await StoreRegistry.shared.store(for: context.container)
         }
         .onReceive(NotificationCenter.default.publisher(for: .focusSettingsChanged)) { _ in
             // Force a view refresh so filtering re-evaluates with new focus settings

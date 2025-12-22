@@ -13,14 +13,14 @@ struct FilterMenuView: View {
     @Binding var selectedCategory: Category?
     let allCategories: [Category]
 
-    // let onFilterChange: (ToDoStore.TaskFilter) -> Void
-    
-    // Compute the categories allowed by current focus settings
-    private var filteredCategories: [Category] {
+    // MARK: - Derived data
+    private var focusSettings: CategoryFilterSettings? {
         let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
         let focusData = defaults?.data(forKey: "ClarityFocusFilter")
-        let focusSettings = focusData.flatMap { try? JSONDecoder().decode(CategoryFilterSettings.self, from: $0) }
+        return focusData.flatMap { try? JSONDecoder().decode(CategoryFilterSettings.self, from: $0) }
+    }
 
+    private var filteredCategories: [Category] {
         var allowedNames = Set(allCategories.compactMap { $0.name })
         if let settings = focusSettings {
             let focusedNames = Set(settings.Categories.compactMap { $0.name })
@@ -31,12 +31,13 @@ struct FilterMenuView: View {
                 allowedNames.subtract(focusedNames)
             }
         }
-
         return allCategories.filter { cat in
             if let name = cat.name { return allowedNames.contains(name) }
             return false
         }
     }
+    
+    // let onFilterChange: (ToDoStore.TaskFilter) -> Void
     
     var body: some View {
         Menu {
@@ -71,9 +72,9 @@ struct FilterMenuView: View {
                         Button(action: { selectedCategory = category }) {
                             HStack {
                                 Circle()
-                                    .fill(category.color!.SwiftUIColor)
+                                    .fill((category.color?.SwiftUIColor) ?? .gray)
                                     .frame(width: 12, height: 12)
-                                Text(category.name!)
+                                Text(category.name ?? "Unnamed")
                                 if selectedCategory?.name == category.name {
                                     Image(systemName: "checkmark")
                                 }
