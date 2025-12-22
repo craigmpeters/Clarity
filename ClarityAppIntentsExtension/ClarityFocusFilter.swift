@@ -34,7 +34,7 @@ struct ClarityFocusFilter: SetFocusFilterIntent {
     @Parameter(title: "Selected Categories")
     var categories: [CategoryEntity]?
     
-    @Parameter(title: "Show or Hide Categories", default: .show)
+    @Parameter(title: "Show or Hide Categories", default: .hide)
     var showOrHide: FilterShowOrHide
     
     var appContext: FocusFilterAppContext {
