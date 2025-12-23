@@ -8,6 +8,7 @@
 import Foundation
 import OSLog
 import AppIntents
+import WidgetKit
 
 struct ClarityFocusFilter: SetFocusFilterIntent {
     static var title: LocalizedStringResource = "Set Categories"
@@ -49,6 +50,7 @@ struct ClarityFocusFilter: SetFocusFilterIntent {
         defaults?.set(settings, forKey: "ClarityFocusFilter")
         let categoryNames = (categories ?? []).map { $0.name }.joined(separator: ", ")
         Logger.AppIntents.debug("Set Categories: \(categoryNames)")
+        WidgetCenter.shared.reloadTimelines(ofKind: "TodoWidget")
         return .result()
     }
 }

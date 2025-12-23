@@ -31,6 +31,7 @@ struct ClarityWidgetProvider: AppIntentTimelineProvider {
         } catch {
             print("Failed to read tasks from file DB: \(error)")
         }
+        todos = ToDoTaskDTO.focusFilter(in: todos)
         let progress = ClarityServices.fetchWeeklyProgress()
         return TaskWidgetEntry(date: .now, todos: todos, progress: progress, filter: configuration.filter)
     }
@@ -55,6 +56,7 @@ struct ClarityWidgetProvider: AppIntentTimelineProvider {
         }
 
         let progress = ClarityServices.fetchWeeklyProgress()
+        todos = ToDoTaskDTO.focusFilter(in: todos)
         let entry = TaskWidgetEntry(date: .now, todos: todos, progress: progress, filter: configuration.filter)
         
         let calendar = Calendar.current

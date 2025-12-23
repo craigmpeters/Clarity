@@ -191,6 +191,33 @@ extension ToDoTaskDTO {
             uuid: model.uuid ?? UUID()
         )
     }
+    
+    public static func focusFilter(in tasks: [ToDoTaskDTO]) -> [ToDoTaskDTO] {
+        // Load focus settings from UserDefaults
+        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
+        let focusData = defaults?.data(forKey: "ClarityFocusFilter")
+        guard let focusData, let settings = try? JSONDecoder().decode(CategoryFilterSettings.self, from: focusData) else {
+            // No settings found or decode failed; return tasks unchanged
+            return tasks
+        }
+
+        // Build the set of focused category names from settings
+        let focusedNames = Set(settings.Categories.compactMap { $0.name })
+
+        // Build a helper that checks if a task has any category in a given allowed set
+        func hasAllowedCategory(_ task: ToDoTaskDTO, allowed: Set<String>) -> Bool {
+            return task.categories.contains { allowed.contains($0.name) }
+        }
+
+        switch settings.showOrHide {
+        case .show:
+            // Keep only tasks that include at least one of the focused categories
+            return tasks.filter { hasAllowedCategory($0, allowed: focusedNames) }
+        case .hide:
+            // Keep tasks that do NOT include any of the focused categories
+            return tasks.filter { !hasAllowedCategory($0, allowed: focusedNames) }
+        }
+    }
 }
 
 extension ToDoTask.TaskFilter {
@@ -250,3 +277,4 @@ extension ToDoTask.TaskFilter {
         }
     }
 }
+
