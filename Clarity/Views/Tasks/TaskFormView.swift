@@ -116,15 +116,6 @@ struct TaskFormView: View {
                                         
                     // Expanded date picker
                     if showingDatePicker {
-                        DatePicker(
-                            "Select Date",
-                            selection: $dueDate,
-                            in: Date()...,
-                            displayedComponents: [.date]
-                        )
-                        .datePickerStyle(.graphical)
-                        .labelsHidden()
-                                            
                         // Quick date options
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
@@ -135,7 +126,17 @@ struct TaskFormView: View {
                                 QuickDateButton(title: "In 2 Weeks", date: Date().addingTimeInterval(86400 * 14), selectedDate: $dueDate)
                             }
                         }
-                        .padding(.vertical, 8)
+                        DatePicker(
+                            "Select Date",
+                            selection: $dueDate,
+                            in: Date()...,
+                            displayedComponents: [.date]
+                        )
+                        .datePickerStyle(.graphical)
+                        .labelsHidden()
+                        //.padding(.vertical, 8)
+                                            
+
                     }
                     
                     Toggle(isOn: Binding<Bool>(
