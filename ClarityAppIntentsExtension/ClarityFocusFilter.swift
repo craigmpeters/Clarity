@@ -47,7 +47,19 @@ struct ClarityFocusFilter: SetFocusFilterIntent {
         Logger.AppIntents.debug("Performing Focus Intent")
         let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
         let settings = CategoryFilterSettings(Categories: self.categories ?? [], showOrHide: showOrHide)
-        defaults?.set(settings, forKey: "ClarityFocusFilter")
+        if let defaults {
+            do {
+                let data = try JSONEncoder().encode(settings)
+                defaults.set(data, forKey: "ClarityFocusFilter")
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    Logger.AppIntents.debug("Saved ClarityFocusFilter JSON: \(jsonString, privacy: .public)")
+                } else {
+                    Logger.AppIntents.debug("Saved ClarityFocusFilter JSON (non-UTF8 data)")
+                }
+            } catch {
+                Logger.AppIntents.error("Failed to encode ClarityFocusFilter: \(String(describing: error))")
+            }
+        }
         let categoryNames = (categories ?? []).map { $0.name }.joined(separator: ", ")
         Logger.AppIntents.debug("Set Categories: \(categoryNames)")
         WidgetCenter.shared.reloadTimelines(ofKind: "TodoWidget")
