@@ -193,28 +193,65 @@ extension ToDoTaskDTO {
     }
     
     public static func focusFilter(in tasks: [ToDoTaskDTO]) -> [ToDoTaskDTO] {
-        // Load focus settings from UserDefaults
         let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
         let focusData = defaults?.data(forKey: "ClarityFocusFilter")
+        if let focusData {
+            let base64 = focusData.base64EncodedString()
+            Logger(subsystem: "me.craigpeters.clarity", category: "FocusFilter").debug("ClarityFocusFilter (base64, length=\(base64.count)) = \(base64)")
+            if let json = String(data: focusData, encoding: .utf8) {
+                Logger(subsystem: "me.craigpeters.clarity", category: "FocusFilter").debug("ClarityFocusFilter (json) = \(json)")
+            } else {
+                Logger(subsystem: "me.craigpeters.clarity", category: "FocusFilter").debug("ClarityFocusFilter data is not valid UTF-8 JSON")
+            }
+        }
         guard let focusData, let settings = try? JSONDecoder().decode(CategoryFilterSettings.self, from: focusData) else {
-            // No settings found or decode failed; return tasks unchanged
+            return tasks
+        }
+        
+        let focusedNames = Set(settings.Categories.compactMap { $0.name })
+        
+        func hasAllowedCategory(_ task: ToDoTaskDTO, allowed: Set<String>) -> Bool {
+            return task.categories.contains { allowed.contains($0.name) }
+        }
+        
+        switch settings.showOrHide {
+        case .show:
+            return tasks.filter { hasAllowedCategory($0, allowed: focusedNames) }
+        case .hide:
+            return tasks.filter { !hasAllowedCategory($0, allowed: focusedNames) }
+        }
+    }
+}
+
+extension ToDoTask {
+
+    public static func focusFilter(in tasks: [ToDoTask]) -> [ToDoTask] {
+        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
+        let focusData = defaults?.data(forKey: "ClarityFocusFilter")
+        if let focusData {
+            let base64 = focusData.base64EncodedString()
+            Logger(subsystem: "me.craigpeters.clarity", category: "FocusFilter").debug("ClarityFocusFilter (base64, length=\(base64.count)) = \(base64)")
+            if let json = String(data: focusData, encoding: .utf8) {
+                Logger(subsystem: "me.craigpeters.clarity", category: "FocusFilter").debug("ClarityFocusFilter (json) = \(json)")
+            } else {
+                Logger(subsystem: "me.craigpeters.clarity", category: "FocusFilter").debug("ClarityFocusFilter data is not valid UTF-8 JSON")
+            }
+        }
+        guard let focusData, let settings = try? JSONDecoder().decode(CategoryFilterSettings.self, from: focusData) else {
             return tasks
         }
 
-        // Build the set of focused category names from settings
         let focusedNames = Set(settings.Categories.compactMap { $0.name })
 
-        // Build a helper that checks if a task has any category in a given allowed set
-        func hasAllowedCategory(_ task: ToDoTaskDTO, allowed: Set<String>) -> Bool {
-            return task.categories.contains { allowed.contains($0.name) }
+        func hasAllowedCategory(_ task: ToDoTask, allowed: Set<String>) -> Bool {
+            let categoryNames = (task.categories ?? []).map { $0.name }
+            return categoryNames.contains { focusedNames.contains($0!) }
         }
 
         switch settings.showOrHide {
         case .show:
-            // Keep only tasks that include at least one of the focused categories
             return tasks.filter { hasAllowedCategory($0, allowed: focusedNames) }
         case .hide:
-            // Keep tasks that do NOT include any of the focused categories
             return tasks.filter { !hasAllowedCategory($0, allowed: focusedNames) }
         }
     }

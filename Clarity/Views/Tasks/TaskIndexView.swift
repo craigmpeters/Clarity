@@ -22,49 +22,12 @@ struct TaskIndexView: View {
     @Query(filter: #Predicate<ToDoTask> { !$0.completed }, sort: \ToDoTask.due, order: .forward) private var allTasks: [ToDoTask]
     
     private var filteredTasks: [ToDoTask] {
-        // 1) Load focus settings from UserDefaults (if present)
-        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
-        let focusData = defaults?.data(forKey: "ClarityFocusFilter")
-        let focusSettings = focusData.flatMap { try? JSONDecoder().decode(CategoryFilterSettings.self, from: $0) }
-        
-        if let data = focusData {
-            if let jsonString = String(data: data, encoding: .utf8) {
-                Logger.UserInterface.debug("Focus filter raw JSON: \(jsonString)")
-            } else {
-                // Fallback: log a short hex preview if not valid UTF-8
-                let preview = data.prefix(64).map { String(format: "%02x", $0) }.joined()
-                Logger.UserInterface.debug("Focus filter data (non-UTF8), size: \(data.count) bytes, hex preview: \(preview)...")
-            }
-        } else {
-            Logger.UserInterface.debug("Focus filter data: nil")
-        }
-
-        // 2) Start from all category names fetched by SwiftData
-        var allowedNames = Set(allCategories.compactMap { $0.name })
-
-        // 3) Apply focus rules if we have settings
-        if let settings = focusSettings {
-            let focusedNames = Set(settings.Categories.compactMap { $0.name })
-            switch settings.showOrHide {
-            case .show:
-                // Only categories explicitly listed
-                allowedNames = allowedNames.intersection(focusedNames)
-            case .hide:
-                // All categories except those listed
-                allowedNames.subtract(focusedNames)
-            }
-        }
+        var tasks = ToDoTask.focusFilter(in: allTasks)
 
         // 4) Now filter tasks based on due date, allowed categories, and selectedCategory (if any)
-        let filtered = allTasks.filter { task in
+        let filtered = tasks.filter { task in
             let dueDateMatches = selectedFilter.matches(task: task)
             let taskCategories = task.categories ?? []
-
-            // Task must have at least one category in the allowed set
-            let isWithinAllowed = taskCategories.contains { cat in
-                if let name = cat.name { return allowedNames.contains(name) }
-                return false
-            }
 
             // If a specific category is selected, task must include it
             let matchesSelectedCategory: Bool = {
@@ -72,7 +35,7 @@ struct TaskIndexView: View {
                 return taskCategories.contains { $0.name == selectedName }
             }()
 
-            return dueDateMatches && isWithinAllowed && matchesSelectedCategory
+            return dueDateMatches && matchesSelectedCategory
         }
 
         Logger.UserInterface.debug("Total tasks: \(allTasks.count), Filtered: \(filtered.count)")
