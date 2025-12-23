@@ -226,13 +226,12 @@ extension ToDoTaskDTO {
 extension ToDoTask {
 
     public static func focusFilter(in tasks: [ToDoTask]) -> [ToDoTask] {
+        let logger = Logger.FocusFilter
         let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
         let focusData = defaults?.data(forKey: "ClarityFocusFilter")
         if let focusData {
-            let base64 = focusData.base64EncodedString()
-            Logger(subsystem: "me.craigpeters.clarity", category: "FocusFilter").debug("ClarityFocusFilter (base64, length=\(base64.count)) = \(base64)")
             if let json = String(data: focusData, encoding: .utf8) {
-                Logger(subsystem: "me.craigpeters.clarity", category: "FocusFilter").debug("ClarityFocusFilter (json) = \(json)")
+                logger.log(level: .debug, "ClarityFocusFilter (json) = \(json, privacy: .public)")
             } else {
                 Logger(subsystem: "me.craigpeters.clarity", category: "FocusFilter").debug("ClarityFocusFilter data is not valid UTF-8 JSON")
             }
