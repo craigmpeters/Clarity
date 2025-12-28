@@ -244,6 +244,7 @@ extension ToDoTask {
 
         func hasAllowedCategory(_ task: ToDoTask, allowed: Set<String>) -> Bool {
             let categoryNames = (task.categories ?? []).map { $0.name }
+            if categoryNames.isEmpty { return true } // Return true if uncategoried
             return categoryNames.contains { focusedNames.contains($0!) }
         }
 

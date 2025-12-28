@@ -216,7 +216,7 @@ actor ClarityModelActor {
 
                 let calendar = Calendar.current
                 let startOfToday = calendar.startOfDay(for: Date())
-                let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? Date().addingTimeInterval(86_400)
+                // let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? Date().addingTimeInterval(86_400)
 
                 if let computed = calendar.nextDate(after: startOfToday,
                                                     matching: com,

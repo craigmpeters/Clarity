@@ -180,7 +180,7 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
                 let tmp = writeURL.deletingLastPathComponent().appendingPathComponent(".tmp_\(UUID().uuidString)")
                 try data.write(to: tmp, options: .atomic)
                 // Replace the destination with the temp file
-                try FileManager.default.replaceItemAt(writeURL, withItemAt: tmp)
+                try _ = FileManager.default.replaceItemAt(writeURL, withItemAt: tmp)
             } catch {
                 innerError = error as NSError
             }
