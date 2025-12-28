@@ -29,8 +29,11 @@ struct DevelopmentMenuView: View {
                     Button("Turn off Focus State") {
                         turnOffFocus()
                     }
-                    Button("Turn on Focus State") {
+                    Button("Set show focus state") {
                         turnOnFocus()
+                    }
+                    Button("Set hide focus state") {
+                        turnonHideFocus()
                     }
                     
                 }
@@ -555,6 +558,16 @@ struct DevelopmentMenuView: View {
         NotificationCenter.default.post(name: .focusSettingsChanged, object: nil)
         showAlert("Focus Set")
     }
+    
+    private func turnonHideFocus() {
+        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
+        let entity = CategoryEntity(name: "Work")
+        let settings = CategoryFilterSettings(Categories: [entity], showOrHide: .hide)
+        saveFocusSettings(settings)
+        NotificationCenter.default.post(name: .focusSettingsChanged, object: nil)
+        showAlert("Focus Set")
+    }
+    
     private func saveFocusSettings(_ settings: CategoryFilterSettings) {
         let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
         do {

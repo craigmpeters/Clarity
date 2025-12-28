@@ -192,6 +192,7 @@ extension ToDoTaskDTO {
         )
     }
     
+    //TODO: Remove Duplication
     public static func focusFilter(in tasks: [ToDoTaskDTO]) -> [ToDoTaskDTO] {
         let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
         let focusData = defaults?.data(forKey: "ClarityFocusFilter")
@@ -210,15 +211,22 @@ extension ToDoTaskDTO {
         
         let focusedNames = Set(settings.Categories.compactMap { $0.name })
         
-        func hasAllowedCategory(_ task: ToDoTaskDTO, allowed: Set<String>) -> Bool {
-            return task.categories.contains { allowed.contains($0.name) }
+        func hasAllowedCategory(_ task: ToDoTaskDTO, allowed: Set<String>, showOrHide: FilterShowOrHide) -> Bool {
+            let categoryNames = (task.categories).map { $0.name }
+            if categoryNames.isEmpty { // If show include, if hide do not include
+                switch showOrHide {
+                case .show: return true
+                case .hide: return false
+                }
+            }
+            return categoryNames.contains { focusedNames.contains($0) }
         }
         
         switch settings.showOrHide {
         case .show:
-            return tasks.filter { hasAllowedCategory($0, allowed: focusedNames) }
+            return tasks.filter { hasAllowedCategory($0, allowed: focusedNames, showOrHide: .show) }
         case .hide:
-            return tasks.filter { !hasAllowedCategory($0, allowed: focusedNames) }
+            return tasks.filter { !hasAllowedCategory($0, allowed: focusedNames, showOrHide: .hide) }
         }
     }
 }
@@ -242,17 +250,22 @@ extension ToDoTask {
 
         let focusedNames = Set(settings.Categories.compactMap { $0.name })
 
-        func hasAllowedCategory(_ task: ToDoTask, allowed: Set<String>) -> Bool {
+        func hasAllowedCategory(_ task: ToDoTask, allowed: Set<String>, showOrHide: FilterShowOrHide) -> Bool {
             let categoryNames = (task.categories ?? []).map { $0.name }
-            if categoryNames.isEmpty { return true } // Return true if uncategoried
+            if categoryNames.isEmpty { // If show include, if hide do not include
+                switch showOrHide {
+                case .show: return true
+                case .hide: return false
+                }
+            }
             return categoryNames.contains { focusedNames.contains($0!) }
         }
 
         switch settings.showOrHide {
         case .show:
-            return tasks.filter { hasAllowedCategory($0, allowed: focusedNames) }
+            return tasks.filter { hasAllowedCategory($0, allowed: focusedNames, showOrHide: .show) }
         case .hide:
-            return tasks.filter { !hasAllowedCategory($0, allowed: focusedNames) }
+            return tasks.filter { !hasAllowedCategory($0, allowed: focusedNames, showOrHide: .hide) }
         }
     }
 }
