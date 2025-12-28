@@ -148,6 +148,7 @@ actor ClarityModelActor {
     
     func completeTask(_ id: PersistentIdentifier) throws {
         guard let model = modelContext.model(for: id) as? ToDoTask else {
+            Logger.ModelActor.error("PersistentIdentifier Not found!")
             throw NSError(domain: "ClarityActor", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing PersistentIdentifier"])
         }
         Logger.ClarityServices.debug("Complete Task DayDay: \(model.everySpecificDayDay.map(String.init) ?? "None")")

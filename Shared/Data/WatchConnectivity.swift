@@ -278,12 +278,11 @@ final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObj
     func sessionDidBecomeInactive(_ session: WCSession) {}
     func sessionDidDeactivate(_ session: WCSession) {
         session.activate()
-        Task { @MainActor in
-            if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
-                ClarityWatchConnectivity.shared.pushSnapshot(todos)
-            }
-        }
+//        Task { @MainActor in
+//            ClarityWatchConnectivity.shared.pushSnapshot(ClarityWatchConnectivity.getAllTasks())
+//        }
     }
+    
     func sessionWatchStateDidChange(_ session: WCSession) {
         // This fires when pairing status, installed state, or complication enabled changes
         Logger.WatchConnectivity.trace("[iOS] ⌚️ sessionWatchStateDidChange → isPaired=\(session.isPaired) isWatchAppInstalled=\(session.isWatchAppInstalled) isComplicationEnabled=\(session.isComplicationEnabled)")
@@ -403,16 +402,22 @@ extension ClarityWatchConnectivity {
     // MARK: iOS Process Functions
     #if os(iOS)
     
-    private static func processWatchListAllRequest(_ message: [String: Any]?) async -> Envelope {
-        if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
-            Logger.WatchConnectivity.trace("📦 iOS listAll returning \(todos.count) tasks")
-            // Push snapshot so counterpart updates when this is triggered via reliable path
-            ClarityWatchConnectivity.shared.pushSnapshot(todos)
-            return Envelope(kind: WCKeys.Requests.listAll, todos: todos)
-        } else {
-            Logger.WatchConnectivity.error("📱 Could not fetch tasks")
-            return Envelope(kind: WCKeys.Requests.listAll, todos: nil)
+    private static func getAllTasks() -> [ToDoTaskDTO] {
+        //TODO: Need to add a filter at some point, until then getting all
+        var todos: [ToDoTaskDTO] = []
+        do {
+            todos = try WidgetFileCoordinator.shared.readTasks()
+            todos = ToDoTaskDTO.focusFilter(in: todos)
+        } catch {
+            Logger.WatchConnectivity.error("📱 Could not fetch tasks from WidgetFileCoordinator \(error.localizedDescription)")
         }
+        return todos
+    }
+    
+    private static func processWatchListAllRequest(_ message: [String: Any]?) async -> Envelope {
+        let todos = getAllTasks()
+        ClarityWatchConnectivity.shared.pushSnapshot(todos)
+        return Envelope(kind: WCKeys.Requests.listAll, todos: todos)
     }
     
     private static func processWatchCompleteRequest(_ message: [String:Any]?) async -> Envelope {
@@ -423,9 +428,8 @@ extension ClarityWatchConnectivity {
                 Logger.WatchConnectivity.error("📱 Failed to complete Watch to Phone Task")
             }
             
-            if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
-                ClarityWatchConnectivity.shared.pushSnapshot(todos)
-            }
+            let todos = getAllTasks()
+            ClarityWatchConnectivity.shared.pushSnapshot(todos)
         }
         return Envelope(kind: WCKeys.Requests.complete)
     }
@@ -435,7 +439,8 @@ extension ClarityWatchConnectivity {
         // TODO: Change Watch to send DTO
         if let id = decodeMessageToPid(message) {
             do {
-                guard let dto = try? await ClarityServices.store().fetchTaskById(id) else {
+                guard let dto = try? WidgetFileCoordinator.shared.readTaskById(id: id) else {
+                //guard let dto = try? await ClarityServices.store().fetchTaskById(id) else {
                     Logger.WatchConnectivity.error("Task Not Found")
                     return Envelope(kind: WCKeys.Requests.startPomodoro)
                 }
@@ -464,10 +469,7 @@ extension ClarityWatchConnectivity {
         } else {
             Logger.WatchConnectivity.error("Could not decode Persistent Identifier from Pomodoro")
         }
-
-        if let todos = try? await ClarityServices.store().fetchTasks(filter: .all) {
-            ClarityWatchConnectivity.shared.pushSnapshot(todos)
-        }
+        ClarityWatchConnectivity.shared.pushSnapshot(getAllTasks())
         return Envelope(kind: WCKeys.Requests.stopPomodoro)
     }
     

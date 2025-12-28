@@ -6,6 +6,7 @@
 //
 import Foundation
 import os
+import SwiftData
 
 // File payload is an array of tasks. Adjust if your schema differs.
 public typealias ToDoTaskList = [ToDoTaskDTO]
@@ -115,6 +116,17 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
     }
 
     // MARK: Reading
+    
+    public func readTaskById(id: PersistentIdentifier) throws -> ToDoTaskDTO? {
+        do {
+            let tasks = ToDoTaskDTO.focusFilter(in: try readTasks())
+            return tasks.first { $0.id == id }
+        } catch {
+            Logger.ClarityServices.error("Cannot find Task: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+    
     public func readTasks() throws -> ToDoTaskList {
         guard let url = fileURL() else { throw NSError(domain: "WidgetFileCoordinator", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing App Group URL"]) }
 
