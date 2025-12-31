@@ -151,6 +151,11 @@ actor ClarityModelActor {
             Logger.ModelActor.error("PersistentIdentifier Not found!")
             throw NSError(domain: "ClarityActor", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing PersistentIdentifier"])
         }
+        if model.completed {
+            let completedAtString = model.completedAt.map { $0.formatted() } ?? "None"
+            Logger.ModelActor.error("Task \(model.name!, privacy: .public) was completed at \(completedAtString, privacy: .public)")
+            return
+        }
         Logger.ClarityServices.debug("Complete Task DayDay: \(model.everySpecificDayDay.map(String.init) ?? "None")")
         model.completed = true
         model.completedAt = Date.now
@@ -334,3 +339,4 @@ enum AppContainer {
         return try! Containers.liveApp()
     }()
 }
+
