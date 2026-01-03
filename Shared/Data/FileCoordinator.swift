@@ -127,6 +127,16 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
         }
     }
     
+    public func readTaskByUuid(_ id: UUID) throws -> ToDoTaskDTO? {
+        do {
+            let tasks = ToDoTaskDTO.focusFilter(in: try readTasks())
+            return tasks.first { $0.uuid == id}
+        } catch {
+            Logger.ClarityServices.error("Cannot find task: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+    
     public func readTasks() throws -> ToDoTaskList {
         guard let url = fileURL() else { throw NSError(domain: "WidgetFileCoordinator", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing App Group URL"]) }
 

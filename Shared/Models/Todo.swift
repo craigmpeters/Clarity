@@ -161,18 +161,18 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
         self.uuid = uuid ?? UUID()
     }
     
-    var encodedId: String? {
-        guard let id else { return nil }
-        guard let data = try? JSONEncoder().encode(id) else { return nil }
-        return data.base64EncodedString()
-    }
-    
-    public static func decodeId(_ encodedId: String) throws -> PersistentIdentifier? {
-        guard let data = Data(base64Encoded: encodedId) else {
-            throw NSError(domain: "ToDo", code: 0, userInfo: nil)
-        }
-        return try JSONDecoder().decode(PersistentIdentifier.self, from: data)
-    }
+//    var encodedId: String? {
+//        guard let id else { return nil }
+//        guard let data = try? JSONEncoder().encode(id) else { return nil }
+//        return data.base64EncodedString()
+//    }
+//    
+//    public static func decodeId(_ encodedId: String) throws -> UUID? {
+//        guard let data = Data(base64Encoded: encodedId) else {
+//            throw NSError(domain: "ToDo", code: 0, userInfo: nil)
+//        }
+//        return try JSONDecoder().decode(UUID.self, from: data)
+//    }
 }
 
 extension ToDoTaskDTO {

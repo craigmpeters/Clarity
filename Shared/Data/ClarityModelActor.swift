@@ -13,6 +13,7 @@ import WidgetKit
 @ModelActor
 actor ClarityModelActor {
     // MARK: Category Functions
+    let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Clarity" , category: "ModelActor")
     
     func addCategory(_ dto: CategoryDTO) throws -> CategoryDTO {
         let category = Category(
@@ -97,7 +98,7 @@ actor ClarityModelActor {
         model.repeating = task.repeating
         model.pomodoro = task.pomodoro
         model.everySpecificDayDay = task.everySpecificDayDay
-        Logger.ModelActor.debug("Update Task Day Day \(task.everySpecificDayDay)")
+        self.logger.debug("Update Task Day Day \(task.everySpecificDayDay, privacy: .public)")
         
         try modelContext.save()
         try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
@@ -113,7 +114,7 @@ actor ClarityModelActor {
         let categories = allCategories.filter { category in
             dto.categories.contains(where: { $0.name == category.name })
         }
-        Logger.ModelActor.debug("Add Task Day Day \(dto.everySpecificDayDay)")
+        self.logger.debug("Add Task Day Day \(dto.everySpecificDayDay, privacy: .public)")
         
         let toDoTask = ToDoTask(
             name: dto.name,
@@ -146,21 +147,35 @@ actor ClarityModelActor {
         WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
     }
     
-    func completeTask(_ id: PersistentIdentifier) throws {
-        guard let model = modelContext.model(for: id) as? ToDoTask else {
-            Logger.ModelActor.error("PersistentIdentifier Not found!")
-            throw NSError(domain: "ClarityActor", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing PersistentIdentifier"])
-        }
-        if model.completed {
-            let completedAtString = model.completedAt.map { $0.formatted() } ?? "None"
-            Logger.ModelActor.error("Task \(model.name!, privacy: .public) was completed at \(completedAtString, privacy: .public)")
+    func completeTask(_ id: UUID) throws {
+        logger.debug("Completing task with UUID \(id.uuidString, privacy: .public)")
+        let descriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate {
+                $0.uuid == id &&
+                !$0.completed
+            }
+        )
+        var tasks = try modelContext.fetch(descriptor)
+        switch tasks.count {
+        case 0: do { // No tasks found
+            self.logger.error("No tasks found to complete for UUID \(id.uuidString, privacy: .public)")
             return
         }
-        Logger.ClarityServices.debug("Complete Task DayDay: \(model.everySpecificDayDay.map(String.init) ?? "None")")
-        model.completed = true
-        model.completedAt = Date.now
-        if model.repeating == true, let nextTask = createNextOccurrence(id) {
-            _ = try addTask(nextTask)
+        case 2...: do { // Multiple Tasks to complete
+            self.logger.error("Multiple incomplete tasks found for UUID \(id.uuidString, privacy: .public) names \(tasks.map { $0.name ?? "No Task Name Found" }.joined(separator: ","))")
+        }
+        default:
+            self.logger.trace("Task \(tasks.first!.name!) found")
+        }
+        do {
+            tasks = try tasks.map { task in
+                task.completed = true
+                task.completedAt = Date.now
+                if task.repeating! { _ = try addTask(createNextOccurrence(task.id)!) }
+                return task
+            }
+        } catch {
+            self.logger.error("Error in completing task \(error.localizedDescription, privacy: .public)")
         }
         try modelContext.save()
         try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
@@ -335,7 +350,6 @@ enum Containers {
 // AppContainer.swift (APP TARGET)
 enum AppContainer {
     static let shared: ModelContainer = {
-        Logger.ModelActor.debug("🏗️ Creating CloudKit container (APP)")
         return try! Containers.liveApp()
     }()
 }
