@@ -174,11 +174,8 @@ final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObj
             return
         }
         Logger.WatchConnectivity.debug("Stopping Pomodoro for \(task.name)")
-        if let pid = task.id {
-            try? await ClarityServices.store().completeTask(pid)
-        } else {
-            Logger.WatchConnectivity.error("Could not decode Persistent ID for \(task.name)")
-        }
+        let uuid = task.uuid
+        try? await ClarityServices.store().completeTask(uuid)
         
         self.sendImmediateOrReliable(.init(kind: WCKeys.Requests.pomodoroStopped))
     }
@@ -421,25 +418,27 @@ extension ClarityWatchConnectivity {
     }
     
     private static func processWatchCompleteRequest(_ message: [String:Any]?) async -> Envelope {
-        if let id = decodeMessageToPid(message) {
+        if let uuid = decodeMessagetoUUID(message) {
             do {
-                try await ClarityServices.store().completeTask(id)
+                try await ClarityServices.store().completeTask(uuid)
             } catch {
-                Logger.WatchConnectivity.error("📱 Failed to complete Watch to Phone Task")
+                Logger.WatchConnectivity.error("Could not complete task \(error.localizedDescription, privacy: .public)")
             }
-            
-            let todos = getAllTasks()
-            ClarityWatchConnectivity.shared.pushSnapshot(todos)
+        } else {
+            Logger.WatchConnectivity.error("Could not decode message to UUID. Failed to complete Task")
         }
+        let todos = getAllTasks()
+        ClarityWatchConnectivity.shared.pushSnapshot(todos)
+        
         return Envelope(kind: WCKeys.Requests.complete)
     }
     
     private static func ProcessWatchPomodoroStart(_ message: [String:Any]?) async -> Envelope {
         // Get the Task ID
         // TODO: Change Watch to send DTO
-        if let id = decodeMessageToPid(message) {
+        if let uuid = decodeMessagetoUUID(message) {
             do {
-                guard let dto = try? WidgetFileCoordinator.shared.readTaskById(id: id) else {
+                guard let dto = try? WidgetFileCoordinator.shared.readTaskByUuid(uuid) else {
                 //guard let dto = try? await ClarityServices.store().fetchTaskById(id) else {
                     Logger.WatchConnectivity.error("Task Not Found")
                     return Envelope(kind: WCKeys.Requests.startPomodoro)
@@ -460,14 +459,11 @@ extension ClarityWatchConnectivity {
         Logger.WatchConnectivity.debug("Recieved End Pomodoro for Task \(dto.toDoTask.name)")
         //TODO: Replace with intent
         await PomodoroService.shared.endPomodoro()
-        if let pid = dto.toDoTask.id {
-            do {
-                try await ClarityServices.store().completeTask(pid)
-            } catch {
-                Logger.WatchConnectivity.error("Error in completing task \(dto.toDoTask.name) error: \(error)")
-            }
-        } else {
-            Logger.WatchConnectivity.error("Could not decode Persistent Identifier from Pomodoro")
+        let uuid = dto.toDoTask.uuid
+        do {
+            try await ClarityServices.store().completeTask(uuid)
+        } catch {
+            Logger.WatchConnectivity.error("Error in completing task \(dto.toDoTask.name) error: \(error)")
         }
         ClarityWatchConnectivity.shared.pushSnapshot(getAllTasks())
         return Envelope(kind: WCKeys.Requests.stopPomodoro)
@@ -481,13 +477,12 @@ extension ClarityWatchConnectivity {
         }
         Logger.WatchConnectivity.debug("Recieved A Stopped Pomodoro for Task \(dto.name)")
         
-        if let id = dto.id {
+        let uuid = dto.uuid
             do {
-                try await ClarityServices.store().completeTask(id)
+                try await ClarityServices.store().completeTask(uuid)
             } catch {
                 Logger.WatchConnectivity.error("Error Completing Task \(dto.name) error: \(error)")
             }
-        }
         return Envelope(kind: WCKeys.Requests.pomodoroStopped)
     }
     
@@ -538,6 +533,15 @@ extension ClarityWatchConnectivity {
         return encodedDto
     }
     
+    private static func decodeMessagetoUUID(_ message: [String:Any]?) -> UUID? {
+        var encodedUuid: UUID?
+        if let msg = message, let data = msg[WCKeys.payload] as? Data,
+           let env = try? JSONDecoder().decode(Envelope.self, from: data) {
+            encodedUuid = UUID(uuidString: env.todotaskid!)
+        }
+        return encodedUuid
+    }
+    
     private static func decodeMessageToPomodoro(_ message: [String:Any]?) -> PomodoroDTO? {
         
         // get PomodoroDTO
@@ -547,21 +551,6 @@ extension ClarityWatchConnectivity {
             encodedDto = env.pomodoro
         }
         return encodedDto
-    }
-    
-    private static func decodeMessageToPid(_ message: [String:Any]?) -> PersistentIdentifier? {
-        var encodedId: String?
-        if let msg = message, let id = msg["id"] as? String { encodedId = id }
-        if encodedId == nil, let msg = message, let data = msg[WCKeys.payload] as? Data,
-           let env = try? JSONDecoder().decode(Envelope.self, from: data) {
-            encodedId = env.todotaskid
-        }
-        if let encodedId, let pid = try? ToDoTaskDTO.decodeId(encodedId) {
-            do {
-                return pid
-            }
-        }
-        return nil
     }
     
 }

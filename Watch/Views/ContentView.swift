@@ -80,14 +80,14 @@ struct ContentView: View {
 
     private func completeTask(_ task: ToDoTaskDTO) {
         print("Attempting to complete task \(task.name)")
-        guard let encodedId = task.encodedId else { return }
+        let uuid = task.uuid
         // Optimistically remove from local list
-        if let idx = todos.firstIndex(where: { $0.id == task.id }) {
+        if let idx = todos.firstIndex(where: { $0.uuid == task.uuid }) {
             todos.remove(at: idx)
         }
         // Use reliable transfer only for completion
-        print("Sending complete for id=\(encodedId)")
-        let env = Envelope(kind: WCKeys.Requests.complete, todotaskid: encodedId)
+        print("Sending complete for id=\(uuid)")
+        let env = Envelope(kind: WCKeys.Requests.complete, todotaskid: uuid.uuidString)
         
         if WCSession.default.activationState == .activated,
            WCSession.default.isReachable,
@@ -96,18 +96,18 @@ struct ContentView: View {
             WCSession.default.sendMessage(message, replyHandler: { _ in
                 // Do something with reply?
             }, errorHandler: { error in
-                self.connectivity.sendComplete(todotaskid: encodedId)
+                self.connectivity.sendComplete(todotaskid: uuid.uuidString)
                 print("Immediate complete send failed; queued reliable. Error: \(error)")
             })
         } else {
-            self.connectivity.sendComplete(todotaskid: encodedId)
+            self.connectivity.sendComplete(todotaskid: uuid.uuidString)
         }
     }
 
     private func startTimer(_ task: ToDoTaskDTO) {
         print("Attempting to start timer \(task.name)")
-        guard let encodedId = task.encodedId else { return }
-        let env = Envelope(kind: WCKeys.Requests.startPomodoro, todotaskid: encodedId)
+        let uuid = task.uuid
+        let env = Envelope(kind: WCKeys.Requests.startPomodoro, todotaskid: uuid.uuidString)
 
         // Prefer immediate path with ack; fall back to reliable
         if WCSession.default.activationState == .activated,
@@ -118,13 +118,13 @@ struct ContentView: View {
                 // Removed setting selectedPomodoroTask
             }, errorHandler: { error in
                 // Fall back to reliable and still present
-                self.connectivity.sendPomodoroStart(todotaskid: encodedId)
+                self.connectivity.sendPomodoroStart(todotaskid: uuid.uuidString)
                 print("Immediate pomodoro send failed; queued reliable. Error: \(error)")
                 // Removed setting selectedPomodoroTask
             })
         } else {
             // Not reachable; queue reliable and present
-            connectivity.sendPomodoroStart(todotaskid: encodedId)
+            connectivity.sendPomodoroStart(todotaskid: uuid.uuidString)
             // Removed setting selectedPomodoroTask
         }
     }

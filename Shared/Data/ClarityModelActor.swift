@@ -13,7 +13,7 @@ import WidgetKit
 @ModelActor
 actor ClarityModelActor {
     // MARK: Category Functions
-    let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Clarity" , category: "ModelActor")
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Clarity" , category: "ModelActor")
     
     func addCategory(_ dto: CategoryDTO) throws -> CategoryDTO {
         let category = Category(
@@ -162,7 +162,7 @@ actor ClarityModelActor {
             return
         }
         case 2...: do { // Multiple Tasks to complete
-            self.logger.error("Multiple incomplete tasks found for UUID \(id.uuidString, privacy: .public) names \(tasks.map { $0.name ?? "No Task Name Found" }.joined(separator: ","))")
+            self.logger.error("Multiple incomplete tasks found for UUID \(id.uuidString, privacy: .public) names \(tasks.map { $0.name ?? "No Task Name Found" }.joined(separator: ","), privacy: .public) ... completing all tasks")
         }
         default:
             self.logger.trace("Task \(tasks.first!.name!) found")

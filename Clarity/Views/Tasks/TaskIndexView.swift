@@ -85,9 +85,9 @@ struct TaskIndexView: View {
             if PomodoroService.shared.startedDevice == .watchOS { return }
             print("📱 Finishing task on Phone")
             guard let store = store else { return }
-            if let id = notification.userInfo?["taskID"] as? PersistentIdentifier {
+            if let id = notification.userInfo?["taskID"] as? UUID {
                 Task { try? await store.completeTask(id) }
-            } else if let id = PomodoroService.shared.toDoTask?.id {
+            } else if let id = PomodoroService.shared.toDoTask?.uuid {
                 Task { try? await store.completeTask(id) }
             }
         }
@@ -121,7 +121,7 @@ struct TaskIndexView: View {
     private func completeTask(_ task: ToDoTaskDTO) {
         print("Attempting to complete task for ID: \(task.id.debugDescription)")
         guard let store = store else { return }
-        guard let id = task.id else { return }
+        let id = task.uuid
         print("Attempting to complete task \(task.name)")
         Task {
             try? await store.completeTask(id)
