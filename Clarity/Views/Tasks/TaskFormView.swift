@@ -93,7 +93,7 @@ struct TaskFormView: View {
                             .foregroundStyle(.orange)
                         Text("Duration")
                         Spacer()
-                        MinutePickerView(selectedTimeInterval: $toDoTask.pomodoroTime)
+                        MinutePickerView(selectedTimeInterval: $toDoTask.pomodoroTime, TaskName: $toDoTask.name)
                     }
                     
                     HStack {

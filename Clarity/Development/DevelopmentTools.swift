@@ -37,6 +37,12 @@ struct DevelopmentMenuView: View {
                     }
                     
                 }
+                if #available(iOS 26.0, *) {
+                    Section("Apple Intelligence Testing") {
+                        DevPomodoroSuggestionText()
+                    }
+
+                }
                 Section("Test Data") {
                     Button("Populate Sample Tasks") {
                         populateSampleTasks()
