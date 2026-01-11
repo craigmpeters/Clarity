@@ -12,7 +12,7 @@ import SwiftData
 import os
 
 @MainActor
-final class ClarityWatchConnectivity: NSObject, WCSessionDelegate, ObservableObject {
+final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, ObservableObject {
     static let shared = ClarityWatchConnectivity()
     private let session = WCSession.default
     private let jsonEncoder = JSONEncoder()

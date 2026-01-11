@@ -55,6 +55,7 @@ import AppIntents
     
     // MARK: Public Functions
     
+    @MainActor
     func startPomodoro(for toDoTask: ToDoTaskDTO, container: ModelContainer, device: DeviceType) {
         startedDevice = device
         self.container = container

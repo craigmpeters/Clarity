@@ -22,7 +22,7 @@ struct TaskIndexView: View {
     @Query(filter: #Predicate<ToDoTask> { !$0.completed }, sort: \ToDoTask.due, order: .forward) private var allTasks: [ToDoTask]
     
     private var filteredTasks: [ToDoTask] {
-        var tasks = ToDoTask.focusFilter(in: allTasks)
+        let tasks = ToDoTask.focusFilter(in: allTasks)
 
         // 4) Now filter tasks based on due date, allowed categories, and selectedCategory (if any)
         let filtered = tasks.filter { task in
