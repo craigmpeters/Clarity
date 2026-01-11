@@ -292,3 +292,12 @@ struct CategoryProgressRow: View {
         .padding(.vertical, 4)
     }
 }
+
+
+#if DEBUG
+#Preview {
+    WeeklyTargetsProgressView(tasks: PreviewData.shared.getCompletedTasks())
+    .modelContainer(PreviewData.shared.previewContainer)
+    .padding(20)
+}
+#endif

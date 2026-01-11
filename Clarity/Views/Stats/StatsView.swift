@@ -823,3 +823,11 @@ struct ActivityViewController: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
+
+
+#if DEBUG
+#Preview {
+    StatsView()
+    .modelContainer(PreviewData.shared.previewContainer)
+}
+#endif
