@@ -148,6 +148,8 @@ actor ClarityModelActor {
     }
     
     func completeTask(_ id: UUID) throws {
+        var completed = false
+        
         logger.debug("Completing task with UUID \(id.uuidString, privacy: .public)")
         let descriptor = FetchDescriptor<ToDoTask>(
             predicate: #Predicate {
@@ -171,7 +173,10 @@ actor ClarityModelActor {
             tasks = try tasks.map { task in
                 task.completed = true
                 task.completedAt = Date.now
-                if task.repeating! { _ = try addTask(createNextOccurrence(task.id)!) }
+                if task.repeating! && !completed {
+                    _ = try addTask(createNextOccurrence(task.id)!)
+                    completed = true
+                }
                 return task
             }
         } catch {
