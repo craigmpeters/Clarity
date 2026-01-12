@@ -557,6 +557,7 @@
 				4448AD762E579268005CDDDF /* Embed Foundation Extensions */,
 				44D6EAE12E83177400B5EF9E /* Embed Watch Content */,
 				441B7E122EEED7F4008D76CA /* Embed ExtensionKit Extensions */,
+				441B80242F152BBA008D76CA /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -658,6 +659,26 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		441B80242F152BBA008D76CA /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ \"$ENABLE_LOG_VIEWER\" = \"true\" ]; then\n    echo \"Enabling LOG_VIEWER_ENABLED\"\n    echo \"SWIFT_ACTIVE_COMPILATION_CONDITIONS=\\${SWIFT_ACTIVE_COMPILATION_CONDITIONS} LOG_VIEWER_ENABLED\" >> \"$CI_WORKSPACE/.xcodecloud.env\"\n  fi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		441B7E002EEED7F4008D76CA /* Sources */ = {

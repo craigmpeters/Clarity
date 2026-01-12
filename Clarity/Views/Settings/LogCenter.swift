@@ -9,36 +9,21 @@ import SwiftUI
 import Combine
 import OSLog
 
-// MARK: - Feature Flags
-struct FeatureFlags {
-    // Reads default enablement from Info.plist key `LOG_VIEWER_ENABLED` (Boolean) or falls back to false.
-    static var logViewerDefaultEnabled: Bool = {
-        if let info = Bundle.main.infoDictionary {
-            if let value = info["LOG_VIEWER_ENABLED"] as? Bool {
-                return value
-            }
-            if let stringValue = info["LOG_VIEWER_ENABLED"] as? String {
-                return (stringValue as NSString).boolValue
-            }
-        }
-        // As a convenience, allow enabling via process env (useful for previews/tests)
-        if let env = ProcessInfo.processInfo.environment["LOG_VIEWER_ENABLED"], (env as NSString).boolValue == true {
-            return true
-        }
-        return false
-    }()
-}
-
-private struct LogViewerEnabledKey: EnvironmentKey {
-    static let defaultValue: Bool = FeatureFlags.logViewerDefaultEnabled
-}
-
 extension EnvironmentValues {
-    var isLogViewerEnabled: Bool {
-        get { self[LogViewerEnabledKey.self] }
-        set { self[LogViewerEnabledKey.self] = newValue }
-    }
-}
+      var isLogViewerEnabled: Bool {
+          get { self[IsLogViewerEnabledKey.self] }
+          set { self[IsLogViewerEnabledKey.self] = newValue }
+      }
+  }
+
+  private struct IsLogViewerEnabledKey: EnvironmentKey {
+  #if LOG_VIEWER_ENABLED
+      static let defaultValue: Bool = true
+  #else
+      static let defaultValue: Bool = false
+  #endif
+  }
+
 
 final class LogCenter: @MainActor ObservableObject {
     @Published var entries: [String] = []
