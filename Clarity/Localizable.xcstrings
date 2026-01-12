@@ -330,9 +330,6 @@
     "Edit Task" : {
 
     },
-    "Enable Log Viewer" : {
-
-    },
     "Enable Notifications" : {
 
     },
@@ -397,9 +394,6 @@
 
     },
     "Load" : {
-
-    },
-    "Logging" : {
 
     },
     "Logs" : {
@@ -723,9 +717,6 @@
 
     },
     "Version" : {
-
-    },
-    "View Logs" : {
 
     },
     "We'll ask for permission to send you notifications." : {

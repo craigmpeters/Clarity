@@ -46,29 +46,18 @@ struct SettingsView: View {
                     }
                 }
             }
-            if isLogViewerEnabled {
+            #if INTERNAL
                 Section("Logging") {
-                    Toggle(isOn: $logViewerRuntimeEnabled) {
-                        HStack {
-                            Image(systemName: "switch.2")
+                    HStack {
+                        NavigationLink(destination: LogView()) {
+                            Image(systemName: "doc.text.magnifyingglass")
                                 .foregroundColor(.purple)
-                            Text("Enable Log Viewer")
-                        }
-                    }
-                    
-                    
-                    if isLogViewerEnabled && logViewerRuntimeEnabled {
-                        HStack {
-                            NavigationLink(destination: LogView()) {
-                                Image(systemName: "doc.text.magnifyingglass")
-                                    .foregroundColor(.purple)
-                                Text("View Logs")
-                                Spacer()
-                            }
+                            Text("View Logs")
+                            Spacer()
                         }
                     }
                 }
-            }
+            #endif
 
             Section("About") {
                 HStack {
