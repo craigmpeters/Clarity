@@ -69,7 +69,7 @@ struct ContentView: View {
                 {
                     Logger.UserInterface.debug("timer")
                     Task {
-                        Logger.UserInterface.debug("Recieved Start Pomodoro for \(taskId)")
+                        Logger.UserInterface.info("Recieved Start Pomodoro for \(taskId)")
 
 //                        if let store = store {
 //                            guard let uuid = UUID(from: taskId as! Decoder) else {

@@ -9,10 +9,10 @@ import os
 import Foundation
 
 extension Logger {
-    static var subsystem = Bundle.main.bundleIdentifier ?? "Clarity"
+    static var subsystem = Bundle.main.bundleIdentifier ?? "me.craigpeters.Clarity"
     
     static let WatchConnectivity = Logger(subsystem: subsystem, category: "WatchConnectivity")
-    static let LogViewer = Logger(subsystem: subsystem, category: "Stetttings.LogView")
+    static let LogViewer = Logger(subsystem: subsystem, category: "Settings.LogView")
     // static let ModelActor = Logger(subsystem: subsystem, category: "ModelActor")
     static let ClarityServices = Logger(subsystem: subsystem, category: "Data Model")
     static let Intelligence = Logger(subsystem: subsystem, category: "Apple Intelligence")

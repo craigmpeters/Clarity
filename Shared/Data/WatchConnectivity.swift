@@ -173,7 +173,7 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
             self.sendImmediateOrReliable(.init(kind: WCKeys.Requests.pomodoroStopped))
             return
         }
-        Logger.WatchConnectivity.debug("Stopping Pomodoro for \(task.name)")
+        Logger.WatchConnectivity.info("Stopping Pomodoro for \(task.name) - Completing Task")
         let uuid = task.uuid
         try? await ClarityServices.store().completeTask(uuid)
         
@@ -456,7 +456,7 @@ extension ClarityWatchConnectivity {
             Logger.WatchConnectivity.error("Error in decoding Pomodoro from message")
             return Envelope(kind: WCKeys.Requests.stopPomodoro)
         }
-        Logger.WatchConnectivity.debug("Recieved End Pomodoro for Task \(dto.toDoTask.name)")
+        Logger.WatchConnectivity.info("Recieved End Pomodoro for Task \(dto.toDoTask.name) ending Pomodoro and Completing Task")
         //TODO: Replace with intent
         await PomodoroService.shared.endPomodoro()
         let uuid = dto.toDoTask.uuid
@@ -475,7 +475,7 @@ extension ClarityWatchConnectivity {
             Logger.WatchConnectivity.error("Error in decoding ToDoTask from message")
             return Envelope(kind: WCKeys.Requests.pomodoroStopped)
         }
-        Logger.WatchConnectivity.debug("Recieved A Stopped Pomodoro for Task \(dto.name)")
+        Logger.WatchConnectivity.info("Recieved A Stopped Pomodoro for Task \(dto.name)")
         
         let uuid = dto.uuid
             do {

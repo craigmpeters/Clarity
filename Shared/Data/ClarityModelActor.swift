@@ -150,7 +150,7 @@ actor ClarityModelActor {
     func completeTask(_ id: UUID) throws {
         var completed = false
         
-        logger.debug("Completing task with UUID \(id.uuidString, privacy: .public)")
+        logger.info("Completing task with UUID \(id.uuidString, privacy: .public)")
         let descriptor = FetchDescriptor<ToDoTask>(
             predicate: #Predicate {
                 $0.uuid == id &&
@@ -195,7 +195,7 @@ actor ClarityModelActor {
             }
         )
         let tasks = try modelContext.fetch(descriptor)
-        Logger.ClarityServices.debug("fetchTaskByUuid: \(id) returned: \(tasks.count)")
+        Logger.ClarityServices.info("fetchTaskByUuid: \(id) returned: \(tasks.count)")
         return tasks.first.map(ToDoTaskDTO.init(from:))
     }
     func fetchTaskById(_ id: PersistentIdentifier) throws -> ToDoTaskDTO? {

@@ -137,7 +137,7 @@ class PomodoroSuggestionService: ObservableObject {
                 to: prompt,
                 options: options
             )
-            Logger.Intelligence.debug("Apple Intelligence Response: \(response.content, privacy: .public) for \(task)")
+            Logger.Intelligence.info("Apple Intelligence Response: \(response.content, privacy: .public) for \(task)")
             
             let minutes = Int(response.content)
             await MainActor.run {

@@ -33,7 +33,7 @@ final class LogCenter: @MainActor ObservableObject {
     func loadEntries() async {
         do {
             let store = try OSLogStore(scope: .currentProcessIdentifier)
-            let bundleID = Bundle.main.bundleIdentifier ?? ""
+            let bundleID = Bundle.main.bundleIdentifier ?? "me.craigpeters.Clarity"
             let predicate = NSPredicate(format: "subsystem == %@", bundleID)
             let position = store.position(date: .distantPast)
             let entriesSeq = try store.getEntries(at: position, matching: predicate)
