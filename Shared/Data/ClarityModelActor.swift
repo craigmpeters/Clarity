@@ -116,6 +116,23 @@ actor ClarityModelActor {
         }
         self.logger.debug("Add Task Day Day \(dto.everySpecificDayDay, privacy: .public)")
         
+        
+        // Capture the UUID outside the predicate to avoid global function calls inside the predicate body
+        let targetUUID: UUID? = dto.uuid
+        let existingDescriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate {
+                $0.uuid == targetUUID &&
+                !$0.completed
+            }
+        )
+        
+        let existing = try modelContext.fetch(existingDescriptor)
+
+        if let existingTask = existing.first {
+            logger.info("addTask deduped: active task already exists for UUID \(existingTask.uuid?.uuidString ?? "Unknown UUID", privacy: .public)")
+            return ToDoTaskDTO(from: existingTask)
+        }
+        
         let toDoTask = ToDoTask(
             name: dto.name,
             pomodoro: dto.pomodoro,
@@ -128,14 +145,13 @@ actor ClarityModelActor {
             categories: categories,
             uuid: dto.uuid
         )
-        
-        modelContext.insert(toDoTask)
-        
-        try? modelContext.save()
-        try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
-        WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
-        
-        return ToDoTaskDTO(from: toDoTask)
+            modelContext.insert(toDoTask)
+            
+            try modelContext.save()
+            try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
+            WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
+            
+            return ToDoTaskDTO(from: toDoTask)
     }
     
     func deleteTask(_ id: PersistentIdentifier) throws {
@@ -151,9 +167,10 @@ actor ClarityModelActor {
         var completed = false
         
         logger.info("Completing task with UUID \(id.uuidString, privacy: .public)")
+        let taskUuid: UUID? = id
         let descriptor = FetchDescriptor<ToDoTask>(
             predicate: #Predicate {
-                $0.uuid == id &&
+                $0.uuid == taskUuid &&
                 !$0.completed
             }
         )
@@ -167,14 +184,15 @@ actor ClarityModelActor {
             self.logger.error("Multiple incomplete tasks found for UUID \(id.uuidString, privacy: .public) names \(tasks.map { $0.name ?? "No Task Name Found" }.joined(separator: ","), privacy: .public) ... completing all tasks")
         }
         default:
-            self.logger.trace("Task \(tasks.first!.name!) found")
+            self.logger.info("Task \(tasks.first!.name!, privacy: .public) found")
         }
         do {
             tasks = try tasks.map { task in
                 task.completed = true
                 task.completedAt = Date.now
                 if task.repeating! && !completed {
-                    _ = try addTask(createNextOccurrence(task.id)!)
+                    let newTask = try addTask(createNextOccurrence(task.id)!)
+                    self.logger.info("Created New Task for \(newTask.name, privacy: .public)")
                     completed = true
                 }
                 return task
@@ -188,9 +206,10 @@ actor ClarityModelActor {
     }
     
     func fetchTaskByUuid(_ id: UUID) throws -> ToDoTaskDTO? {
+        let taskUuid: UUID? = id
         let descriptor = FetchDescriptor<ToDoTask>(
             predicate: #Predicate {
-                $0.uuid == id &&
+                $0.uuid == taskUuid &&
                 !$0.completed
             }
         )
