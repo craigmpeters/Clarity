@@ -179,6 +179,11 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         UNUserNotificationCenter.current().delegate = self
         // Migrations are triggered from ClarityApp.onAppear via modelContext
         ClarityWatchConnectivity.shared.start()
+        _ = LogManager.shared
+        let url = LogManager.defaultLogFileURL()
+        print("Log file path:", url.path)
+        LogManager.shared.log.info("Clarity logger initialized in AppDelegate")
+        LogManager.shared.log.debug("Test log write to \(url.path)")
         NotificationCenter.default.publisher(for: .pomodoroStarted)
             .sink { [weak self] _ in
                 DispatchQueue.main.async {

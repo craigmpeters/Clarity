@@ -8,10 +8,11 @@
 import AppIntents
 import ExtensionFoundation
 import OSLog
+import XCGLogger
 
 @main
 struct ClarityAppIntentsExtension: AppIntentsExtension {
     init() {
-        Logger.AppIntents.debug("Launched AppIntents")
+        LogManager.shared.log.debug("Launched AppIntents")
     }
 }

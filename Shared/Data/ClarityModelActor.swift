@@ -9,6 +9,7 @@ import Foundation
 import os
 import SwiftData
 import WidgetKit
+import XCGLogger
 
 @ModelActor
 actor ClarityModelActor {
@@ -98,7 +99,7 @@ actor ClarityModelActor {
         model.repeating = task.repeating
         model.pomodoro = task.pomodoro
         model.everySpecificDayDay = task.everySpecificDayDay
-        self.logger.debug("Update Task Day Day \(task.everySpecificDayDay, privacy: .public)")
+        LogManager.shared.log.debug("Update Task Day Day \(task.everySpecificDayDay)")
         
         try modelContext.save()
         try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
@@ -114,7 +115,7 @@ actor ClarityModelActor {
         let categories = allCategories.filter { category in
             dto.categories.contains(where: { $0.name == category.name })
         }
-        self.logger.debug("Add Task Day Day \(dto.everySpecificDayDay, privacy: .public)")
+        LogManager.shared.log.debug("Add Task Day Day \(dto.everySpecificDayDay)")
         
         
         // Capture the UUID outside the predicate to avoid global function calls inside the predicate body
@@ -129,7 +130,7 @@ actor ClarityModelActor {
         let existing = try modelContext.fetch(existingDescriptor)
 
         if let existingTask = existing.first {
-            logger.info("addTask deduped: active task already exists for UUID \(existingTask.uuid?.uuidString ?? "Unknown UUID", privacy: .public)")
+            LogManager.shared.log.info("addTask deduped: active task already exists for UUID \(existingTask.uuid?.uuidString ?? "Unknown UUID")")
             return ToDoTaskDTO(from: existingTask)
         }
         
@@ -166,7 +167,7 @@ actor ClarityModelActor {
     func completeTask(_ id: UUID) throws {
         var completed = false
         
-        logger.info("Completing task with UUID \(id.uuidString, privacy: .public)")
+        LogManager.shared.log.info("Completing task with UUID \(id.uuidString)")
         let taskUuid: UUID? = id
         let descriptor = FetchDescriptor<ToDoTask>(
             predicate: #Predicate {
@@ -177,14 +178,14 @@ actor ClarityModelActor {
         var tasks = try modelContext.fetch(descriptor)
         switch tasks.count {
         case 0: do { // No tasks found
-            self.logger.error("No tasks found to complete for UUID \(id.uuidString, privacy: .public)")
+            LogManager.shared.log.error("No tasks found to complete for UUID \(id.uuidString)")
             return
         }
         case 2...: do { // Multiple Tasks to complete
-            self.logger.error("Multiple incomplete tasks found for UUID \(id.uuidString, privacy: .public) names \(tasks.map { $0.name ?? "No Task Name Found" }.joined(separator: ","), privacy: .public) ... completing all tasks")
+            LogManager.shared.log.error("Multiple incomplete tasks found for UUID \(id.uuidString) names \(tasks.map { $0.name ?? "No Task Name Found" }.joined(separator: ",")) ... completing all tasks")
         }
         default:
-            self.logger.info("Task \(tasks.first!.name!, privacy: .public) found")
+            LogManager.shared.log.info("Task \(tasks.first!.name!) found")
         }
         do {
             tasks = try tasks.map { task in
@@ -192,13 +193,13 @@ actor ClarityModelActor {
                 task.completedAt = Date.now
                 if task.repeating! && !completed {
                     let newTask = try addTask(createNextOccurrence(task.id)!)
-                    self.logger.info("Created New Task for \(newTask.name, privacy: .public)")
+                    LogManager.shared.log.info("Created New Task for \(newTask.name)")
                     completed = true
                 }
                 return task
             }
         } catch {
-            self.logger.error("Error in completing task \(error.localizedDescription, privacy: .public)")
+            LogManager.shared.log.error("Error in completing task \(error.localizedDescription)")
         }
         try modelContext.save()
         try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
@@ -214,7 +215,7 @@ actor ClarityModelActor {
             }
         )
         let tasks = try modelContext.fetch(descriptor)
-        Logger.ClarityServices.info("fetchTaskByUuid: \(id) returned: \(tasks.count)")
+        LogManager.shared.log.info("fetchTaskByUuid: \(id) returned: \(tasks.count)")
         return tasks.first.map(ToDoTaskDTO.init(from:))
     }
     func fetchTaskById(_ id: PersistentIdentifier) throws -> ToDoTaskDTO? {
@@ -229,7 +230,7 @@ actor ClarityModelActor {
         
         guard let task = modelContext.model(for: id) as? ToDoTask else {
             // Avoid interpolating PersistentIdentifier directly in logs
-            Logger.ClarityServices.error("Task not found for provided PersistentIdentifier")
+            LogManager.shared.log.error("Task not found for provided PersistentIdentifier")
             return nil
         }
         
@@ -243,7 +244,7 @@ actor ClarityModelActor {
             } else
             if interval == .specific {
                 // Stored value already matches Calendar weekday (1...7). Clamp to be safe; default to Sunday (1) if nil.
-                Logger.ClarityServices.debug("createNextOccurrence Day Day: \(task.everySpecificDayDay.map(String.init) ?? "None")")
+                LogManager.shared.log.debug("createNextOccurrence Day Day: \(task.everySpecificDayDay.map(String.init) ?? "None")")
                 var com = DateComponents()
                 // Map app's weekday index (where 3 = Wednesday) to Calendar's weekday (1 = Sunday ... 7 = Saturday)
                 if let appWeekday = task.everySpecificDayDay {
@@ -269,7 +270,7 @@ actor ClarityModelActor {
                 {
                     nextDueDate = computed
                 } else {
-                    Logger.ClarityServices.error("Failed to compute next specific weekday; falling back to interval.nextDate")
+                    LogManager.shared.log.error("Failed to compute next specific weekday; falling back to interval.nextDate")
                     nextDueDate = interval.nextDate(from: Date.now)
                 }
             } else {

@@ -9,6 +9,7 @@ import Foundation
 import OSLog
 import AppIntents
 import WidgetKit
+import XCGLogger
 
 struct ClarityFocusFilter: SetFocusFilterIntent {
     static var title: LocalizedStringResource = "Set Categories"
@@ -39,12 +40,12 @@ struct ClarityFocusFilter: SetFocusFilterIntent {
     var showOrHide: FilterShowOrHide
     
     var appContext: FocusFilterAppContext {
-        Logger.AppIntents.debug("App Context Called")
+        LogManager.shared.log.debug("App Context Called")
         return FocusFilterAppContext()
     }
     
     func perform() async throws -> some IntentResult {
-        Logger.AppIntents.debug("Performing Focus Intent")
+        LogManager.shared.log.debug("Performing Focus Intent")
         let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
         let settings = CategoryFilterSettings(Categories: self.categories ?? [], showOrHide: showOrHide)
         if let defaults {
@@ -52,16 +53,16 @@ struct ClarityFocusFilter: SetFocusFilterIntent {
                 let data = try JSONEncoder().encode(settings)
                 defaults.set(data, forKey: "ClarityFocusFilter")
                 if let jsonString = String(data: data, encoding: .utf8) {
-                    Logger.AppIntents.debug("Saved ClarityFocusFilter JSON: \(jsonString, privacy: .public)")
+                    LogManager.shared.log.debug("Saved ClarityFocusFilter JSON: \(jsonString)")
                 } else {
-                    Logger.AppIntents.debug("Saved ClarityFocusFilter JSON (non-UTF8 data)")
+                    LogManager.shared.log.debug("Saved ClarityFocusFilter JSON (non-UTF8 data)")
                 }
             } catch {
-                Logger.AppIntents.error("Failed to encode ClarityFocusFilter: \(String(describing: error))")
+                LogManager.shared.log.error("Failed to encode ClarityFocusFilter: \(String(describing: error))")
             }
         }
         let categoryNames = (categories ?? []).map { $0.name }.joined(separator: ", ")
-        Logger.AppIntents.debug("Set Categories: \(categoryNames)")
+        LogManager.shared.log.debug("Set Categories: \(categoryNames)")
         WidgetCenter.shared.reloadTimelines(ofKind: "TodoWidget")
         return .result()
     }

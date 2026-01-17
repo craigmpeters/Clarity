@@ -61,15 +61,15 @@ struct ContentView: View {
         }
         .animation(.easeInOut(duration: 0.3), value: showingPomodoro)
         .onOpenURL { url in
-            Logger.UserInterface.debug("Got URL: \(url)")
+            LogManager.shared.log.debug("Got URL: \(url)")
             if url.scheme == "clarityapp" {
-                Logger.UserInterface.debug("clarityapp")
+                LogManager.shared.log.debug("clarityapp")
                 if url.host == "timer",
                    let taskId = url.pathComponents.last
                 {
-                    Logger.UserInterface.debug("timer")
+                    LogManager.shared.log.debug("timer")
                     Task {
-                        Logger.UserInterface.info("Recieved Start Pomodoro for \(taskId)")
+                        LogManager.shared.log.info("Recieved Start Pomodoro for \(taskId)")
 
 //                        if let store = store {
 //                            guard let uuid = UUID(from: taskId as! Decoder) else {

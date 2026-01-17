@@ -8,6 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		441B7E0D2EEED7F4008D76CA /* ClarityAppIntentsExtension.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 441B7E042EEED7F4008D76CA /* ClarityAppIntentsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		441B802C2F1A5F55008D76CA /* XCGLogger in Frameworks */ = {isa = PBXBuildFile; productRef = 441B802B2F1A5F55008D76CA /* XCGLogger */; };
+		441B802E2F1AAF81008D76CA /* XCGLogger in Frameworks */ = {isa = PBXBuildFile; productRef = 441B802D2F1AAF81008D76CA /* XCGLogger */; };
+		441B80302F1AAF8B008D76CA /* XCGLogger in Frameworks */ = {isa = PBXBuildFile; productRef = 441B802F2F1AAF8B008D76CA /* XCGLogger */; };
+		441B80322F1AAF92008D76CA /* XCGLogger in Frameworks */ = {isa = PBXBuildFile; productRef = 441B80312F1AAF92008D76CA /* XCGLogger */; };
 		4448AD642E579266005CDDDF /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4448AD632E579266005CDDDF /* WidgetKit.framework */; };
 		4448AD662E579266005CDDDF /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4448AD652E579266005CDDDF /* SwiftUI.framework */; };
 		4448AD752E579268005CDDDF /* Widgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4448AD612E579266005CDDDF /* Widgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -387,6 +391,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				441B80322F1AAF92008D76CA /* XCGLogger in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -396,6 +401,7 @@
 			files = (
 				4448AD662E579266005CDDDF /* SwiftUI.framework in Frameworks */,
 				4448AD642E579266005CDDDF /* WidgetKit.framework in Frameworks */,
+				441B80302F1AAF8B008D76CA /* XCGLogger in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -403,6 +409,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				441B802E2F1AAF81008D76CA /* XCGLogger in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -410,6 +417,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				441B802C2F1A5F55008D76CA /* XCGLogger in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -497,6 +505,7 @@
 			);
 			name = ClarityAppIntentsExtension;
 			packageProductDependencies = (
+				441B80312F1AAF92008D76CA /* XCGLogger */,
 			);
 			productName = ClarityAppIntentsExtension;
 			productReference = 441B7E042EEED7F4008D76CA /* ClarityAppIntentsExtension.appex */;
@@ -519,6 +528,7 @@
 			);
 			name = Widgets;
 			packageProductDependencies = (
+				441B802F2F1AAF8B008D76CA /* XCGLogger */,
 			);
 			productName = PomodoroExtensionExtension;
 			productReference = 4448AD612E579266005CDDDF /* Widgets.appex */;
@@ -542,6 +552,7 @@
 			);
 			name = ClarityWatch;
 			packageProductDependencies = (
+				441B802D2F1AAF81008D76CA /* XCGLogger */,
 			);
 			productName = "WatchClarity Watch App";
 			productReference = 44D6EABD2E83176B00B5EF9E /* ClarityWatch.app */;
@@ -577,6 +588,7 @@
 			);
 			name = Clarity;
 			packageProductDependencies = (
+				441B802B2F1A5F55008D76CA /* XCGLogger */,
 			);
 			productName = Clarity;
 			productReference = 44FB495E2E51F1EB0059CC5B /* Clarity.app */;
@@ -616,6 +628,9 @@
 			);
 			mainGroup = 44FB49552E51F1EB0059CC5B;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				441B802A2F1A5F55008D76CA /* XCRemoteSwiftPackageReference "XCGLogger" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 44FB495F2E51F1EB0059CC5B /* Products */;
 			projectDirPath = "";
@@ -1368,6 +1383,40 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		441B802A2F1A5F55008D76CA /* XCRemoteSwiftPackageReference "XCGLogger" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/DaveWoodCom/XCGLogger.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.1.5;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		441B802B2F1A5F55008D76CA /* XCGLogger */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 441B802A2F1A5F55008D76CA /* XCRemoteSwiftPackageReference "XCGLogger" */;
+			productName = XCGLogger;
+		};
+		441B802D2F1AAF81008D76CA /* XCGLogger */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 441B802A2F1A5F55008D76CA /* XCRemoteSwiftPackageReference "XCGLogger" */;
+			productName = XCGLogger;
+		};
+		441B802F2F1AAF8B008D76CA /* XCGLogger */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 441B802A2F1A5F55008D76CA /* XCRemoteSwiftPackageReference "XCGLogger" */;
+			productName = XCGLogger;
+		};
+		441B80312F1AAF92008D76CA /* XCGLogger */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 441B802A2F1A5F55008D76CA /* XCRemoteSwiftPackageReference "XCGLogger" */;
+			productName = XCGLogger;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 44FB49562E51F1EB0059CC5B /* Project object */;
 }

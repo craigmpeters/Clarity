@@ -32,7 +32,7 @@ struct PomodoroSuggestion: View {
     private func createSuggestion() async {
         await suggestion.suggestTime(for: taskSuggestion)
         suggestedTime = min(suggestion.suggestedInterval, 25 * 60) // Clamp to 25 minutes
-        Logger.UserInterface.debug("Returned time interval: \(suggestedTime / 60, privacy: .public) minutes")
+        LogManager.shared.log.debug("Returned time interval: \(suggestedTime / 60) minutes")
          
     }
 }

@@ -38,7 +38,7 @@ struct TaskIndexView: View {
             return dueDateMatches && matchesSelectedCategory
         }
 
-        Logger.UserInterface.debug("Total tasks: \(allTasks.count), Filtered: \(filtered.count)")
+        LogManager.shared.log.debug("Total tasks: \(allTasks.count), Filtered: \(filtered.count)")
         return filtered
     }
 
@@ -78,7 +78,7 @@ struct TaskIndexView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .focusSettingsChanged)) { _ in
             // Force a view refresh so filtering re-evaluates with new focus settings
-            Logger.UserInterface.debug("Refreshing View: focusSettingsChanged")
+            LogManager.shared.log.debug("Refreshing View: focusSettingsChanged")
             refreshID = UUID()
         }
         .onReceive(NotificationCenter.default.publisher(for: .pomodoroCompleted)) { notification in

@@ -137,7 +137,7 @@ class PomodoroSuggestionService: ObservableObject {
                 to: prompt,
                 options: options
             )
-            Logger.Intelligence.info("Apple Intelligence Response: \(response.content, privacy: .public) for \(task)")
+            LogManager.shared.log.info("Apple Intelligence Response: \(response.content) for \(task)")
             
             let minutes = Int(response.content)
             await MainActor.run {
@@ -146,7 +146,7 @@ class PomodoroSuggestionService: ObservableObject {
             }
             
         } catch {
-            Logger.Intelligence.error("Cannot Generate Suggested Pomodoro: \(error)")
+            LogManager.shared.log.error("Cannot Generate Suggested Pomodoro: \(error)")
             await MainActor.run {
                 self.error = "Failed to generate suggestions: \(error.localizedDescription)"
                 self.isProcessing = false

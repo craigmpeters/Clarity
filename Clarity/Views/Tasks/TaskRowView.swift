@@ -149,7 +149,7 @@ struct TaskRowView: View {
     }
     
     func performAction(_ action: ActionOption) {
-        Logger.UserInterface.debug("Perform action: \(String(describing: action))")
+        LogManager.shared.log.debug("Perform action: \(String(describing: action))")
         switch action {
         case .LeadingPrimary: performActionOption(currentTaskSwipeAndTapOptions.primarySwipeLeading)
         case .LeadingSecondary: performActionOption(currentTaskSwipeAndTapOptions.secondarySwipeLeading)

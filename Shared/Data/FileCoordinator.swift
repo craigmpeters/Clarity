@@ -7,6 +7,7 @@
 import Foundation
 import os
 import SwiftData
+import XCGLogger
 
 // File payload is an array of tasks. Adjust if your schema differs.
 public typealias ToDoTaskList = [ToDoTaskDTO]
@@ -70,11 +71,11 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
             createDirectoryIfNeeded(url.deletingLastPathComponent())
             createFileIfNeeded(at: url)
             self.presenter = WidgetFilePresenter(url: url) { [weak self] in
-                self?.logger.debug("Presented item changed")
+                LogManager.shared.log.debug("Presented item changed")
                 // Hook: Post notifications or refresh caches if needed
             }
         } else {
-            logger.error("Failed to resolve App Group container URL.")
+            LogManager.shared.log.error("Failed to resolve App Group container URL.")
         }
     }
 
@@ -91,7 +92,7 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
         var isDir: ObjCBool = false
         if !FileManager.default.fileExists(atPath: dir.path, isDirectory: &isDir) || !isDir.boolValue {
             do { try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true) } catch {
-                logger.error("Failed to create directory: \(error.localizedDescription)")
+                LogManager.shared.log.error("Failed to create directory: \(error.localizedDescription)")
             }
         }
     }
@@ -103,7 +104,7 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
                 let data = try encoder.encode(tasks)
                 FileManager.default.createFile(atPath: url.path, contents: data)
             } catch {
-                logger.error("Failed to create initial file: \(error.localizedDescription)")
+                LogManager.shared.log.error("Failed to create initial file: \(error.localizedDescription)")
             }
         }
     }
@@ -122,7 +123,7 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
             let tasks = ToDoTaskDTO.focusFilter(in: try readTasks())
             return tasks.first { $0.id == id }
         } catch {
-            Logger.ClarityServices.error("Cannot find Task: \(error.localizedDescription, privacy: .public)")
+            LogManager.shared.log.error("Cannot find Task: \(error.localizedDescription)")
             return nil
         }
     }
@@ -132,7 +133,7 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
             let tasks = ToDoTaskDTO.focusFilter(in: try readTasks())
             return tasks.first { $0.uuid == id}
         } catch {
-            Logger.ClarityServices.error("Cannot find task: \(error.localizedDescription, privacy: .public)")
+            LogManager.shared.log.error("Cannot find task: \(error.localizedDescription)")
             return nil
         }
     }

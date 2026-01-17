@@ -62,10 +62,10 @@ final class LogCenter: @MainActor ObservableObject {
             }
             await MainActor.run { [lines] in
                 self.entries = lines
-                Logger.LogViewer.trace("Total lines displayed: \(self.entries.count)")
+                LogManager.shared.log.verbose("Total lines displayed: \(self.entries.count)")
             }
         } catch {
-            Logger.LogViewer.error("Error Fetching OSLogStore: \(error.localizedDescription)")
+            LogManager.shared.log.error("Error Fetching OSLogStore: \(error.localizedDescription)")
         }
         
     }
@@ -127,7 +127,7 @@ struct LogView: View {
             color = .orange
         } else if lower.contains("info") {
             color = .blue
-        } else if lower.contains("debug") || lower.contains("trace") {
+        } else if lower.contains("debug") || lower.contains("verbose") {
             color = .gray
         } else {
             color = .primary
@@ -171,17 +171,17 @@ struct LogView: View {
             .listStyle(PlainListStyle())
             .navigationTitle("Logs")
             .onAppear {
-                Logger.LogViewer.info("LogView appeared – requesting logs")
+                LogManager.shared.log.info("LogView appeared – requesting logs")
                 Task { await logCenter.loadEntries() }
             }
             .refreshable {
-                Logger.LogViewer.info("User pulled to refresh – requesting logs")
+                LogManager.shared.log.info("User pulled to refresh – requesting logs")
                 await logCenter.loadEntries()
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Load") {
-                        Logger.LogViewer.info("Load button tapped – requesting logs")
+                        LogManager.shared.log.info("Load button tapped – requesting logs")
                         Task { await logCenter.loadEntries() }
                     }
                 }

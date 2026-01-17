@@ -10,6 +10,7 @@ import WatchConnectivity
 import Combine
 import SwiftData
 import os
+import XCGLogger
 
 @MainActor
 final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, ObservableObject {
@@ -28,28 +29,28 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
         guard WCSession.isSupported() else { return }
         session.delegate = self
         #if os(iOS)
-        Logger.WatchConnectivity.trace("[iOS] ⌚️ Creating Watch Session")
+        LogManager.shared.log.verbose("[iOS] ⌚️ Creating Watch Session")
         #elseif os(watchOS)
-        Logger.WatchConnectivity.trace("[watchOS] ⌚️ Creating Watch Session")
+        LogManager.shared.log.verbose("[watchOS] ⌚️ Creating Watch Session")
         #else
-        Logger.WatchConnectivity.trace("⌚️ Creating Watch Session")
+        LogManager.shared.log.verbose("⌚️ Creating Watch Session")
         #endif
         session.activate()
         #if os(iOS)
         // Initial state diagnostics for iOS
-        Logger.WatchConnectivity.trace("[iOS] ⌚️ isPaired=\(self.session.isPaired) isWatchAppInstalled=\(self.session.isWatchAppInstalled) isReachable=\(self.session.isReachable)")
+        LogManager.shared.log.verbose("[iOS] ⌚️ isPaired=\(self.session.isPaired) isWatchAppInstalled=\(self.session.isWatchAppInstalled) isReachable=\(self.session.isReachable)")
         #endif
     }
 
     // MARK: - Requests (phone<->watch both implement these)
 
     func requestListAll(preferReliable: Bool = false, reply: @escaping (Result<[ToDoTaskDTO], Error>) -> Void) {
-        Logger.WatchConnectivity.trace("⌚️ Requesting Watch Data (preferReliable=\(preferReliable))")
+        LogManager.shared.log.verbose("⌚️ Requesting Watch Data (preferReliable=\(preferReliable))")
         let msg: [String: Any] = [WCKeys.request: WCKeys.Requests.listAll]
 
         // If session isn't activated, just queue reliable and return snapshot
         guard self.session.activationState == .activated else {
-            Logger.WatchConnectivity.trace("⌚️ Session not activated; queue reliable listAll and return snapshot")
+            LogManager.shared.log.verbose("⌚️ Session not activated; queue reliable listAll and return snapshot")
             self.enqueueRequest(.init(kind: WCKeys.Requests.listAll))
             reply(.success(self.lastSnapshot))
             return
@@ -57,7 +58,7 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
 
         // Caller prefers reliable, but we'll still attempt immediate when reachable and fall back to reliable
         if preferReliable {
-            Logger.WatchConnectivity.trace("⌚️ preferReliable=true but reachable path will be attempted; will fall back to reliable on timeout/failure")
+            LogManager.shared.log.verbose("⌚️ preferReliable=true but reachable path will be attempted; will fall back to reliable on timeout/failure")
         }
 
         // Reachable path with extended timeout and reliable fallback
@@ -68,7 +69,7 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
             let timeout = DispatchWorkItem { [weak self] in
                 guard let self = self, !completed else { return }
                 completed = true
-                Logger.WatchConnectivity.trace("⌚️ Immediate listAll timed out after \(timeoutSeconds)s → queue reliable and return snapshot")
+                LogManager.shared.log.verbose("⌚️ Immediate listAll timed out after \(timeoutSeconds)s → queue reliable and return snapshot")
                 self.enqueueRequest(.init(kind: WCKeys.Requests.listAll))
                 reply(.success(self.lastSnapshot))
             }
@@ -89,7 +90,7 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
                     } else {
                         completed = true
                         timeout.cancel()
-                        Logger.WatchConnectivity.trace("⚠️ Immediate listAll missing payload; queue reliable and return snapshot")
+                        LogManager.shared.log.verbose("⚠️ Immediate listAll missing payload; queue reliable and return snapshot")
                         self.enqueueRequest(.init(kind: WCKeys.Requests.listAll))
                         reply(.success(self.lastSnapshot))
                     }
@@ -98,7 +99,7 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
                     completed = true
                     timeout.cancel()
                     self.enqueueRequest(.init(kind: WCKeys.Requests.listAll))
-                    Logger.WatchConnectivity.trace("⚠️ Immediate listAll decode failed, queued reliable fallback: \(error)")
+                    LogManager.shared.log.verbose("⚠️ Immediate listAll decode failed, queued reliable fallback: \(error)")
                     reply(.success(self.lastSnapshot))
                 }
             }, errorHandler: { error in
@@ -107,11 +108,11 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
                 timeout.cancel()
                 // If immediate message fails, queue a reliable request and fall back to snapshot
                 self.enqueueRequest(.init(kind: WCKeys.Requests.listAll))
-                Logger.WatchConnectivity.trace("⌚️ sendMessage failed, queued listAll via transferUserInfo: \(error)")
+                LogManager.shared.log.verbose("⌚️ sendMessage failed, queued listAll via transferUserInfo: \(error)")
                 reply(.success(self.lastSnapshot))
             })
         } else {
-            Logger.WatchConnectivity.trace("⌚️ Session not reachable; queue reliable listAll and return snapshot")
+            LogManager.shared.log.verbose("⌚️ Session not reachable; queue reliable listAll and return snapshot")
             // Queue a reliable request so counterpart can respond later
             self.enqueueRequest(.init(kind: WCKeys.Requests.listAll))
             // Fallback to cached snapshot
@@ -122,35 +123,35 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
     /// Try to send immediately if reachable; fall back to reliable transfer if not or on failure.
     private func sendImmediateOrReliable(_ env: Envelope) {
         guard self.session.activationState == .activated else {
-            Logger.WatchConnectivity.trace("⌚️ sendImmediateOrReliable aborted: session not activated; falling back to queue")
+            LogManager.shared.log.verbose("⌚️ sendImmediateOrReliable aborted: session not activated; falling back to queue")
             self.enqueueRequest(env)
             return
         }
         guard let data = try? self.jsonEncoder.encode(env) else {
-            Logger.WatchConnectivity.trace("⌚️ sendImmediateOrReliable aborted: encode failed for \(env.kind)")
+            LogManager.shared.log.verbose("⌚️ sendImmediateOrReliable aborted: encode failed for \(env.kind)")
             return
         }
 
         let message: [String: Any] = [WCKeys.request: env.kind, WCKeys.payload: data]
 
         if self.session.isReachable {
-            Logger.WatchConnectivity.trace("⌚️ Attempting immediate send(kind:\(env.kind)) …")
+            LogManager.shared.log.verbose("⌚️ Attempting immediate send(kind:\(env.kind)) …")
             self.session.sendMessage(message, replyHandler: { reply in
                 #if DEBUG
                 if JSONSerialization.isValidJSONObject(reply),
                    let data = try? JSONSerialization.data(withJSONObject: reply, options: [.prettyPrinted]),
                    let json = String(data: data, encoding: .utf8) {
-                    Logger.WatchConnectivity.trace("📬 Immediate reply for \(env.kind):\n\(json)")
+                    LogManager.shared.log.verbose("📬 Immediate reply for \(env.kind):\n\(json)")
                 } else {
-                    Logger.WatchConnectivity.trace("📬 Immediate reply for \(env.kind): \(reply)")
+                    LogManager.shared.log.verbose("📬 Immediate reply for \(env.kind): \(reply)")
                 }
                 #endif
             }, errorHandler: { error in
-                Logger.WatchConnectivity.trace("⚠️ Immediate send(kind:\(env.kind)) failed → falling back to reliable: \(error)")
+                LogManager.shared.log.verbose("⚠️ Immediate send(kind:\(env.kind)) failed → falling back to reliable: \(error)")
                 self.session.transferUserInfo([WCKeys.payload: data])
             })
         } else {
-            Logger.WatchConnectivity.trace("⌚️ Not reachable; queueing reliable transfer(kind:\(env.kind))")
+            LogManager.shared.log.verbose("⌚️ Not reachable; queueing reliable transfer(kind:\(env.kind))")
             self.session.transferUserInfo([WCKeys.payload: data])
         }
     }
@@ -160,7 +161,7 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
     }
 
     func sendComplete(todotaskid: String) {
-        Logger.WatchConnectivity.trace("Complete Toggled with ID")
+        LogManager.shared.log.verbose("Complete Toggled with ID")
         self.sendImmediateOrReliable(.init(kind: WCKeys.Requests.complete, todotaskid: todotaskid))
     }
     
@@ -173,7 +174,7 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
             self.sendImmediateOrReliable(.init(kind: WCKeys.Requests.pomodoroStopped))
             return
         }
-        Logger.WatchConnectivity.info("Stopping Pomodoro for \(task.name) - Completing Task")
+        LogManager.shared.log.info("Stopping Pomodoro for \(task.name) - Completing Task")
         let uuid = task.uuid
         try? await ClarityServices.store().completeTask(uuid)
         
@@ -207,44 +208,44 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
             do {
                 try self.session.updateApplicationContext([WCKeys.payload: data])
             } catch {
-                Logger.WatchConnectivity.error("❌ Failed to update application context: \(error)")
+                LogManager.shared.log.error("❌ Failed to update application context: \(error)")
             }
         }
     }
 
     private func enqueueRequest(_ env: Envelope) {
         guard self.session.activationState == .activated else {
-            Logger.WatchConnectivity.error("⌚️ enqueueRequest aborted: session not activated"); return
+            LogManager.shared.log.error("⌚️ enqueueRequest aborted: session not activated"); return
         }
         guard let data = try? self.jsonEncoder.encode(env) else {
-            Logger.WatchConnectivity.error("⌚️ enqueueRequest aborted: encode failed for \(env.kind)"); return
+            LogManager.shared.log.error("⌚️ enqueueRequest aborted: encode failed for \(env.kind)"); return
         }
-        Logger.WatchConnectivity.trace("⌚️ enqueue transferUserInfo(kind:\(env.kind)) queued; reachable=\(self.session.isReachable)")
+        LogManager.shared.log.verbose("⌚️ enqueue transferUserInfo(kind:\(env.kind)) queued; reachable=\(self.session.isReachable)")
         self.session.transferUserInfo([WCKeys.payload: data])
     }
 
     private func sendReliable(_ env: Envelope) {
         guard self.session.activationState == .activated else {
-            Logger.WatchConnectivity.error("⌚️ sendReliable aborted: session not activated"); return
+            LogManager.shared.log.error("⌚️ sendReliable aborted: session not activated"); return
         }
         guard let data = try? self.jsonEncoder.encode(env) else {
-            Logger.WatchConnectivity.error("⌚️ sendReliable aborted: encode failed for \(env.kind)"); return
+            LogManager.shared.log.error("⌚️ sendReliable aborted: encode failed for \(env.kind)"); return
         }
-        Logger.WatchConnectivity.trace("⌚️ outstanding transfers (pre-queue): \(self.session.outstandingUserInfoTransfers.count)")
+        LogManager.shared.log.verbose("⌚️ outstanding transfers (pre-queue): \(self.session.outstandingUserInfoTransfers.count)")
         #if DEBUG
         if let jsonString = String(data: data, encoding: .utf8) {
-            Logger.WatchConnectivity.trace("📮 sendReliable payload JSON:\n\(jsonString)")
+            LogManager.shared.log.verbose("📮 sendReliable payload JSON:\n\(jsonString)")
         }
         #endif
-        Logger.WatchConnectivity.trace("⌚️ transferUserInfo(kind:\(env.kind)) queued; reachable=\(self.session.isReachable)")
+        LogManager.shared.log.verbose("⌚️ transferUserInfo(kind:\(env.kind)) queued; reachable=\(self.session.isReachable)")
         self.session.transferUserInfo([WCKeys.payload: data])
-        Logger.WatchConnectivity.trace("⌚️ outstanding transfers (post-queue): \(self.session.outstandingUserInfoTransfers.count)")
-        Logger.WatchConnectivity.trace("⌚️ outstanding transfers: \(self.session.outstandingUserInfoTransfers.count)")
+        LogManager.shared.log.verbose("⌚️ outstanding transfers (post-queue): \(self.session.outstandingUserInfoTransfers.count)")
+        LogManager.shared.log.verbose("⌚️ outstanding transfers: \(self.session.outstandingUserInfoTransfers.count)")
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-            Logger.WatchConnectivity.trace("⌚️ outstanding transfers (5s later): \(self.session.outstandingUserInfoTransfers.count)")
+            LogManager.shared.log.verbose("⌚️ outstanding transfers (5s later): \(self.session.outstandingUserInfoTransfers.count)")
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
-            Logger.WatchConnectivity.trace("⌚️ outstanding transfers (15s later): \(self.session.outstandingUserInfoTransfers.count)")
+            LogManager.shared.log.verbose("⌚️ outstanding transfers (15s later): \(self.session.outstandingUserInfoTransfers.count)")
         }
     }
 
@@ -252,7 +253,7 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
     // MARK: - WCSessionDelegate
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
-        Logger.WatchConnectivity.trace("⌚️ activationDidCompleteWith state=\(activationState.rawValue) error=\(String(describing: error))")
+        LogManager.shared.log.verbose("⌚️ activationDidCompleteWith state=\(activationState.rawValue) error=\(String(describing: error))")
         #if os(watchOS)
         // When the watch session activates, immediately request the latest tasks
         if activationState == .activated {
@@ -260,11 +261,11 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
                 switch result {
                 case .success(let todos):
                     DispatchQueue.main.async {
-                        Logger.WatchConnectivity.trace("⌚️ Watch pulled \(todos.count) tasks after activation")
+                        LogManager.shared.log.verbose("⌚️ Watch pulled \(todos.count) tasks after activation")
                         self.lastSnapshot = todos
                     }
                 case .failure(let err):
-                    Logger.WatchConnectivity.trace("⚠️ listAll after activation failed: \(err)")
+                    LogManager.shared.log.verbose("⚠️ listAll after activation failed: \(err)")
                 }
             }
         }
@@ -282,8 +283,8 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
     
     func sessionWatchStateDidChange(_ session: WCSession) {
         // This fires when pairing status, installed state, or complication enabled changes
-        Logger.WatchConnectivity.trace("[iOS] ⌚️ sessionWatchStateDidChange → isPaired=\(session.isPaired) isWatchAppInstalled=\(session.isWatchAppInstalled) isComplicationEnabled=\(session.isComplicationEnabled)")
-        Logger.WatchConnectivity.trace("[iOS] ⌚️ reachable=\(session.isReachable) activationState=\(session.activationState.rawValue)")
+        LogManager.shared.log.verbose("[iOS] ⌚️ sessionWatchStateDidChange → isPaired=\(session.isPaired) isWatchAppInstalled=\(session.isWatchAppInstalled) isComplicationEnabled=\(session.isComplicationEnabled)")
+        LogManager.shared.log.verbose("[iOS] ⌚️ reachable=\(session.isReachable) activationState=\(session.activationState.rawValue)")
     }
     #endif
 
@@ -295,9 +296,9 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
             if JSONSerialization.isValidJSONObject(message),
                let data = try? JSONSerialization.data(withJSONObject: message, options: [.prettyPrinted]),
                let jsonString = String(data: data, encoding: .utf8) {
-                Logger.WatchConnectivity.trace("📥 didReceiveMessage full JSON:\n\(jsonString)")
+                LogManager.shared.log.verbose("📥 didReceiveMessage full JSON:\n\(jsonString)")
             } else {
-                Logger.WatchConnectivity.trace("📥 didReceiveMessage raw message: \(message)")
+                LogManager.shared.log.verbose("📥 didReceiveMessage raw message: \(message)")
             }
             #endif
             
@@ -310,27 +311,27 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
 
     // Incoming reliable events
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any] = [:]) {
-        Logger.WatchConnectivity.trace("📨 iOS received userInfo raw keys: \(Array(userInfo.keys))")
+        LogManager.shared.log.verbose("📨 iOS received userInfo raw keys: \(Array(userInfo.keys))")
         if let payloadData = userInfo[WCKeys.payload] as? Data {
-            Logger.WatchConnectivity.trace("📦 userInfo payload bytes: \(payloadData.count)")
+            LogManager.shared.log.verbose("📦 userInfo payload bytes: \(payloadData.count)")
             if let env = try? self.jsonDecoder.decode(Envelope.self, from: payloadData),
                let pretty = try? JSONEncoder().encode(env),
                let json = String(data: pretty, encoding: .utf8) {
-                Logger.WatchConnectivity.trace("📦 userInfo decoded Envelope JSON:\n\(json)")
+                LogManager.shared.log.verbose("📦 userInfo decoded Envelope JSON:\n\(json)")
             }
         }
         guard let data = userInfo[WCKeys.payload] as? Data else {
-            Logger.WatchConnectivity.error("❌ iOS userInfo missing payload under key \(WCKeys.payload)")
+            LogManager.shared.log.error("❌ iOS userInfo missing payload under key \(WCKeys.payload)")
             return
         }
         guard let env = try? self.jsonDecoder.decode(Envelope.self, from: data) else {
-            Logger.WatchConnectivity.error("❌ iOS failed to decode Envelope from userInfo (\(data.count) bytes)")
+            LogManager.shared.log.error("❌ iOS failed to decode Envelope from userInfo (\(data.count) bytes)")
             return
         }
-        Logger.WatchConnectivity.trace("📨 …. kind=\(env.kind)")
+        LogManager.shared.log.verbose("📨 …. kind=\(env.kind)")
         Task {
             await Self.applyEvent(env)
-            Logger.WatchConnectivity.trace("✅ iOS applied event kind=\(env.kind)")
+            LogManager.shared.log.verbose("✅ iOS applied event kind=\(env.kind)")
         } // implemented per-platform
     }
 
@@ -347,7 +348,7 @@ extension ClarityWatchConnectivity {
     static func process(kind: String?, message: [String: Any]?) async -> Envelope {
         guard let kind else { return .init(kind: "error") }
         #if DEBUG
-        Logger.WatchConnectivity.trace("🧭 process received kind=\(kind)")
+        LogManager.shared.log.verbose("🧭 process received kind=\(kind)")
         #endif
         #if os(iOS)
         switch kind {
@@ -368,7 +369,7 @@ extension ClarityWatchConnectivity {
         case WCKeys.Requests.pomodoroStopped:
             return await ProcessWatchPomodoroStopped(message)
         default:
-            Logger.WatchConnectivity.error("Invalid Request Type: \(kind)")
+            LogManager.shared.log.error("Invalid Request Type: \(kind)")
             return Envelope(kind: "error")
         }
         
@@ -380,7 +381,7 @@ extension ClarityWatchConnectivity {
         case WCKeys.Requests.pomodoroStopped:
             return await ProcessPhonePomodoroStopped(message)
         default:
-            Logger.WatchConnectivity.trace("Not proessing request type on watch: \(kind)")
+            LogManager.shared.log.verbose("Not proessing request type on watch: \(kind)")
             return Envelope(kind: "error")
         }
         #endif
@@ -406,7 +407,7 @@ extension ClarityWatchConnectivity {
             todos = try WidgetFileCoordinator.shared.readTasks()
             todos = ToDoTaskDTO.focusFilter(in: todos)
         } catch {
-            Logger.WatchConnectivity.error("📱 Could not fetch tasks from WidgetFileCoordinator \(error.localizedDescription)")
+            LogManager.shared.log.error("📱 Could not fetch tasks from WidgetFileCoordinator \(error.localizedDescription)")
         }
         return todos
     }
@@ -422,10 +423,10 @@ extension ClarityWatchConnectivity {
             do {
                 try await ClarityServices.store().completeTask(uuid)
             } catch {
-                Logger.WatchConnectivity.error("Could not complete task \(error.localizedDescription, privacy: .public)")
+                LogManager.shared.log.error("Could not complete task \(error.localizedDescription)")
             }
         } else {
-            Logger.WatchConnectivity.error("Could not decode message to UUID. Failed to complete Task")
+            LogManager.shared.log.error("Could not decode message to UUID. Failed to complete Task")
         }
         let todos = getAllTasks()
         ClarityWatchConnectivity.shared.pushSnapshot(todos)
@@ -440,12 +441,12 @@ extension ClarityWatchConnectivity {
             do {
                 guard let dto = try? WidgetFileCoordinator.shared.readTaskByUuid(uuid) else {
                 //guard let dto = try? await ClarityServices.store().fetchTaskById(id) else {
-                    Logger.WatchConnectivity.error("Task Not Found")
+                    LogManager.shared.log.error("Task Not Found")
                     return Envelope(kind: WCKeys.Requests.startPomodoro)
                 }
                 try await PomodoroService.shared.startPomodoro(for: dto, container: ClarityServices.store().modelContainer, device: .watchOS)
             } catch {
-                Logger.WatchConnectivity.error("📱 Failed to start Pomodoro: \(error) ")
+                LogManager.shared.log.error("📱 Failed to start Pomodoro: \(error) ")
             }
         }
         return Envelope(kind: WCKeys.Requests.startPomodoro)
@@ -453,17 +454,17 @@ extension ClarityWatchConnectivity {
     
     private static func ProcessWatchPomodoroStop(_ message: [String:Any]?) async -> Envelope {
         guard let dto = decodeMessageToPomodoro(message) else {
-            Logger.WatchConnectivity.error("Error in decoding Pomodoro from message")
+            LogManager.shared.log.error("Error in decoding Pomodoro from message")
             return Envelope(kind: WCKeys.Requests.stopPomodoro)
         }
-        Logger.WatchConnectivity.info("Recieved End Pomodoro for Task \(dto.toDoTask.name) ending Pomodoro and Completing Task")
+        LogManager.shared.log.info("Recieved End Pomodoro for Task \(dto.toDoTask.name) ending Pomodoro and Completing Task")
         //TODO: Replace with intent
         await PomodoroService.shared.endPomodoro()
         let uuid = dto.toDoTask.uuid
         do {
             try await ClarityServices.store().completeTask(uuid)
         } catch {
-            Logger.WatchConnectivity.error("Error in completing task \(dto.toDoTask.name) error: \(error)")
+            LogManager.shared.log.error("Error in completing task \(dto.toDoTask.name) error: \(error)")
         }
         ClarityWatchConnectivity.shared.pushSnapshot(getAllTasks())
         return Envelope(kind: WCKeys.Requests.stopPomodoro)
@@ -472,16 +473,16 @@ extension ClarityWatchConnectivity {
     private static func ProcessWatchPomodoroStopped(_ message: [String:Any]?) async -> Envelope {
         // If a ToDoTaskDTO is provided, attempt to complete the task on iOS
         guard let dto = decodeMessageToToDoTask(message) else {
-            Logger.WatchConnectivity.error("Error in decoding ToDoTask from message")
+            LogManager.shared.log.error("Error in decoding ToDoTask from message")
             return Envelope(kind: WCKeys.Requests.pomodoroStopped)
         }
-        Logger.WatchConnectivity.info("Recieved A Stopped Pomodoro for Task \(dto.name)")
+        LogManager.shared.log.info("Recieved A Stopped Pomodoro for Task \(dto.name)")
         
         let uuid = dto.uuid
             do {
                 try await ClarityServices.store().completeTask(uuid)
             } catch {
-                Logger.WatchConnectivity.error("Error Completing Task \(dto.name) error: \(error)")
+                LogManager.shared.log.error("Error Completing Task \(dto.name) error: \(error)")
             }
         return Envelope(kind: WCKeys.Requests.pomodoroStopped)
     }
@@ -493,16 +494,16 @@ extension ClarityWatchConnectivity {
     
     private static func ProcessPhonePomodoroStarted(_ message: [String:Any]?) async -> Envelope {
         guard let dto = decodeMessageToPomodoro(message) else {
-            Logger.WatchConnectivity.trace("Cannot decode DTO")
+            LogManager.shared.log.verbose("Cannot decode DTO")
             return Envelope(kind: WCKeys.Requests.pomodoroStarted)
         }
         ClarityWatchConnectivity.shared.activePomodoro = dto
-        Logger.WatchConnectivity.trace("⌚️ Received pomodoroStarted with DTO for task: \(dto.toDoTask.name)")
+        LogManager.shared.log.verbose("⌚️ Received pomodoroStarted with DTO for task: \(dto.toDoTask.name)")
         return Envelope(kind: WCKeys.Requests.pomodoroStarted)
     }
     
     private static func ProcessPhonePomodoroStopped(_ message: [String:Any]?) async -> Envelope {
-        Logger.WatchConnectivity.trace("⌚️ Dismissing Pomodoro")
+        LogManager.shared.log.verbose("⌚️ Dismissing Pomodoro")
         ClarityWatchConnectivity.shared.activePomodoro = nil
         
         // After stopping, request a fresh snapshot from the phone
@@ -510,11 +511,11 @@ extension ClarityWatchConnectivity {
             switch result {
             case .success(let todos):
                 DispatchQueue.main.async {
-                    Logger.WatchConnectivity.trace("⌚️ Watch requested snapshot after pomodoroStopped: \(todos.count) tasks")
+                    LogManager.shared.log.verbose("⌚️ Watch requested snapshot after pomodoroStopped: \(todos.count) tasks")
                     ClarityWatchConnectivity.shared.lastSnapshot = todos
                 }
             case .failure(let error):
-                Logger.WatchConnectivity.trace("⚠️ Watch failed to request snapshot after pomodoroStopped: \(error)")
+                LogManager.shared.log.verbose("⚠️ Watch failed to request snapshot after pomodoroStopped: \(error)")
             }
         }
         return Envelope(kind: WCKeys.Requests.pomodoroStopped)
@@ -598,8 +599,8 @@ extension ClarityWatchConnectivity {
     
 
     func sessionReachabilityDidChange(_ session: WCSession) {
-        Logger.WatchConnectivity.trace("⌚️ Reachability changed → \(session.isReachable)")
-        Logger.WatchConnectivity.trace("⌚️ activationState=\(session.activationState.rawValue)")
+        LogManager.shared.log.verbose("⌚️ Reachability changed → \(session.isReachable)")
+        LogManager.shared.log.verbose("⌚️ activationState=\(session.activationState.rawValue)")
 
         // Only pull new data when the phone becomes reachable
         guard session.isReachable else { return }
@@ -607,7 +608,7 @@ extension ClarityWatchConnectivity {
         self.requestListAll(preferReliable: false) { result in
             if case let .success(todos) = result {
                 DispatchQueue.main.async {
-                    Logger.WatchConnectivity.trace("⌚️ Watch pulled \(todos.count) tasks from phone")
+                    LogManager.shared.log.verbose("⌚️ Watch pulled \(todos.count) tasks from phone")
                     self.lastSnapshot = todos
                 }
             } else {
@@ -618,7 +619,7 @@ extension ClarityWatchConnectivity {
                 case .failure(let error):
                     message = "error: \(error.localizedDescription)"
                 }
-                Logger.WatchConnectivity.trace("⌚️ Watch failed to pull list from phone: \(message)")
+                LogManager.shared.log.verbose("⌚️ Watch failed to pull list from phone: \(message)")
             }
         }
     }
