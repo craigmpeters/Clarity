@@ -50,6 +50,7 @@ struct ClarityApp: App {
         // Only run once per build
         let currentBuild = Migration.currentBuild
         guard currentBuild >= minimumBuild, Migration.hasRun(forBuild: currentBuild) == false else { return }
+        LogManager.shared.log.debug("Running Populate UUID Migration")
 
         // Define a dynamic fetch to avoid compile-time dependency on Todo type if not imported here
         // If you have a concrete model type like `Todo`, replace with a typed FetchDescriptor<Todo>()
@@ -89,6 +90,7 @@ struct ClarityApp: App {
                 .task {
                     if let id = consumePendingStartTimerTaskId() {
                         appState.pomodoroUuid = id
+                        LogManager.shared.log.debug("Starting Pomodero (.task) for \(id.uuidString)")
                         let store = ClarityModelActor(modelContainer: container)
                         do {
                             if let taskDTO = try await store.fetchTaskByUuid(id) {
@@ -97,13 +99,14 @@ struct ClarityApp: App {
                             }
                         } catch {
                             // Log and swallow the error to keep the .task closure non-throwing
-                            print("Failed to fetch task by UUID: \(error)")
+                            LogManager.shared.log.error("Failed to fetch task by UUID: \(error)")
                         }
                     }
                 }
                 .onChange(of: scenePhase) { _, newPhase in
                     guard newPhase == .active else { return }
                     if let id = consumePendingStartTimerTaskId() {
+                        LogManager.shared.log.debug("Starting Pomodero (.onChange Active) for \(id.uuidString)")
                         appState.pomodoroUuid = id
                         let store = ClarityModelActor(modelContainer: container)
                         Task {
@@ -113,39 +116,7 @@ struct ClarityApp: App {
                                     appState.showingPomodoro = true
                                 }
                             } catch {
-                                print("Failed to fetch task by UUID (resume): \(error)")
-                            }
-                        }
-                    }
-                }
-                .task {
-                    if let id = consumePendingStartTimerTaskId() {
-                        appState.pomodoroUuid = id
-                        let store = ClarityModelActor(modelContainer: container)
-                        do {
-                            if let taskDTO = try await store.fetchTaskByUuid(id) {
-                                PomodoroService.shared.startPomodoro(for: taskDTO, container: container, device: .iPhone)
-                                appState.showingPomodoro = true
-                            }
-                        } catch {
-                            // Log and swallow the error to keep the .task closure non-throwing
-                            print("Failed to fetch task by UUID: \(error)")
-                        }
-                    }
-                }
-                .onChange(of: scenePhase) { _, newPhase in
-                    guard newPhase == .active else { return }
-                    if let id = consumePendingStartTimerTaskId() {
-                        appState.pomodoroUuid = id
-                        let store = ClarityModelActor(modelContainer: container)
-                        Task {
-                            do {
-                                if let taskDTO = try await store.fetchTaskByUuid(id) {
-                                    PomodoroService.shared.startPomodoro(for: taskDTO, container: container, device: .iPhone)
-                                    appState.showingPomodoro = true
-                                }
-                            } catch {
-                                print("Failed to fetch task by UUID (resume): \(error)")
+                                LogManager.shared.log.error("Failed to fetch task by UUID (resume): \(error)")
                             }
                         }
                     }
@@ -178,9 +149,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         ClarityWatchConnectivity.shared.start()
         _ = LogManager.shared
         let url = LogManager.defaultLogFileURL()
-        print("Log file path:", url.path)
         LogManager.shared.log.info("Clarity logger initialized in AppDelegate")
-        LogManager.shared.log.debug("Test log write to \(url.path)")
         NotificationCenter.default.publisher(for: .pomodoroStarted)
             .sink { [weak self] _ in
                 DispatchQueue.main.async {
