@@ -15,6 +15,8 @@ import XCGLogger
 actor ClarityModelActor {
     // MARK: Category Functions
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Clarity" , category: "ModelActor")
+    // Prevent concurrent completions for the same UUID within this actor
+    private var inFlightCompletions: Set<UUID> = []
     
     func addCategory(_ dto: CategoryDTO) throws -> CategoryDTO {
         let category = Category(
@@ -111,10 +113,16 @@ actor ClarityModelActor {
         // Safely fetch categories using the provided context
         let descriptor = FetchDescriptor<Category>()
         let allCategories = try modelContext.fetch(descriptor)
-        // Filter to only the selected categories
-        let categories = allCategories.filter { category in
-            dto.categories.contains(where: { $0.name == category.name })
+        let incomingCategoryNames = dto.categories.map { $0.name }
+        LogManager.shared.log.debug("addTask incoming categories: names=\(incomingCategoryNames) count=\(dto.categories.count)")
+        // Map CategoryDTOs to persisted Category models (prefer id, fallback to name)
+        let categories: [Category] = dto.categories.compactMap { dto in
+            if let catId = dto.id, let existing = modelContext.model(for: catId) as? Category {
+                return existing
+            }
+            return allCategories.first(where: { $0.name == dto.name })
         }
+        LogManager.shared.log.debug("addTask mapped categories count=\(categories.count)")
         LogManager.shared.log.debug("Add Task Day Day \(dto.everySpecificDayDay)")
         
         
@@ -131,6 +139,13 @@ actor ClarityModelActor {
 
         if let existingTask = existing.first {
             LogManager.shared.log.info("addTask deduped: active task already exists for UUID \(existingTask.uuid?.uuidString ?? "Unknown UUID")")
+            return ToDoTaskDTO(from: existingTask)
+        }
+        // Re-check just before insert to avoid races
+        let existingBeforeInsert = try modelContext.fetch(existingDescriptor)
+        LogManager.shared.log.debug("addTask existingBeforeInsert count=\(existingBeforeInsert.count)")
+        if let existingTask = existingBeforeInsert.first {
+            LogManager.shared.log.info("addTask deduped (pre-insert): active task already exists for UUID \(existingTask.uuid?.uuidString ?? "Unknown UUID")")
             return ToDoTaskDTO(from: existingTask)
         }
         
@@ -167,6 +182,14 @@ actor ClarityModelActor {
     func completeTask(_ id: UUID) throws {
         var completed = false
         
+        // In-flight guard to avoid concurrent duplicate next-occurrence creation
+        if inFlightCompletions.contains(id) {
+            LogManager.shared.log.warning("completeTask: UUID \(id.uuidString) already in-flight, ignoring duplicate call")
+            return
+        }
+        inFlightCompletions.insert(id)
+        defer { inFlightCompletions.remove(id) }
+        
         LogManager.shared.log.info("Completing task with UUID \(id.uuidString)")
         let taskUuid: UUID? = id
         let descriptor = FetchDescriptor<ToDoTask>(
@@ -186,14 +209,20 @@ actor ClarityModelActor {
         }
         default:
             LogManager.shared.log.info("Task \(tasks.first!.name!) found")
+            let first = tasks.first!
+            let catCount = first.categories?.count ?? 0
+            LogManager.shared.log.debug("completeTask: found task uuid=\(first.uuid?.uuidString ?? "nil"), categories=\(catCount)")
         }
         do {
             tasks = try tasks.map { task in
                 task.completed = true
                 task.completedAt = Date.now
                 if task.repeating! && !completed {
-                    let newTask = try addTask(createNextOccurrence(task.id)!)
-                    LogManager.shared.log.info("Created New Task for \(newTask.name)")
+                    if let nextDTO = createNextOccurrence(task.id) {
+                        LogManager.shared.log.debug("completeTask: creating next occurrence for uuid=\(task.uuid?.uuidString ?? "nil"), dtoCategoryCount=\(nextDTO.categories.count)")
+                        let newTask = try addTask(nextDTO)
+                        LogManager.shared.log.info("Created New Task for \(newTask.name)")
+                    }
                     completed = true
                 }
                 return task
@@ -280,6 +309,10 @@ actor ClarityModelActor {
             // Fallback to daily if no interval set
             nextDueDate = Calendar.current.date(byAdding: .day, value: 1, to: task.due) ?? task.due
         }
+        
+        // Ensure categories are realized before mapping (if lazily loaded)
+        let categoryCount = task.categories?.count ?? 0
+        LogManager.shared.log.debug("createNextOccurrence: base task uuid=\(task.uuid?.uuidString ?? "nil"), name=\(task.name ?? "nil"), categories=\(categoryCount), nextDue=\(nextDueDate)")
         
         let newTask = ToDoTaskDTO(
             name: task.name,

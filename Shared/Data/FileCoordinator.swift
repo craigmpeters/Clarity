@@ -71,7 +71,7 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
             createDirectoryIfNeeded(url.deletingLastPathComponent())
             createFileIfNeeded(at: url)
             self.presenter = WidgetFilePresenter(url: url) { [weak self] in
-                LogManager.shared.log.debug("Presented item changed")
+                LogManager.shared.log.notice("Presented item changed")
                 // Hook: Post notifications or refresh caches if needed
             }
         } else {

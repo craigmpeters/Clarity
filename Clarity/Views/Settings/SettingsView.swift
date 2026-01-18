@@ -3,9 +3,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @State private var showingCategoryManagement = false
-    @AppStorage("logViewerRuntimeEnabled") private var logViewerRuntimeEnabled = false
-    @Environment(\.isLogViewerEnabled) private var isLogViewerEnabled
-
+    
     var body: some View {
         Form {
             Section("Categories") {
@@ -46,18 +44,6 @@ struct SettingsView: View {
                     }
                 }
             }
-            #if INTERNAL
-                Section("Logging") {
-                    HStack {
-                        NavigationLink(destination: LogView()) {
-                            Image(systemName: "doc.text.magnifyingglass")
-                                .foregroundColor(.purple)
-                            Text("View Logs")
-                            Spacer()
-                        }
-                    }
-                }
-            #endif
 
             Section("About") {
                 HStack {

@@ -41,6 +41,7 @@ final class LogManager {
         systemDestination.showLineNumber = true
         systemDestination.showDate = true
 
+        #if INTERNAL
         // 4) File destination (visible in Files app under your app’s Documents)
         let fileURL = LogManager.defaultLogFileURL()
         let fileDestination = AutoRotatingFileDestination(writeToFile: fileURL,
@@ -57,6 +58,9 @@ final class LogManager {
         fileDestination.showFileName = true
         fileDestination.showLineNumber = true
         fileDestination.showDate = true
+        
+        logger.add(destination: fileDestination)
+        #endif
 
         // Optional: Add a formatter for consistent timestamps or JSON, etc.
         // let formatter = PrePostFixLogFormatter()
@@ -66,7 +70,7 @@ final class LogManager {
 
         // 5) Add destinations
         logger.add(destination: systemDestination)
-        logger.add(destination: fileDestination)
+        
 
         // 6) Start the logger
         logger.logAppDetails()

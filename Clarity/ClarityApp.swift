@@ -86,7 +86,6 @@ struct ClarityApp: App {
                     appDelegate.appState = appState
                     populateUUIDsIfNeeded(modelContext: container.mainContext, minimumBuild: "1.3.0")
                 }
-                .environmentObject(LogCenter.shared)
                 .task {
                     if let id = consumePendingStartTimerTaskId() {
                         appState.pomodoroUuid = id
@@ -119,7 +118,6 @@ struct ClarityApp: App {
                         }
                     }
                 }
-                .environmentObject(LogCenter.shared)
                 .task {
                     if let id = consumePendingStartTimerTaskId() {
                         appState.pomodoroUuid = id
@@ -152,7 +150,6 @@ struct ClarityApp: App {
                         }
                     }
                 }
-                .environmentObject(LogCenter.shared)
         }
     }
     
