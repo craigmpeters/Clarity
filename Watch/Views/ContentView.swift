@@ -8,6 +8,7 @@
 import SwiftUI
 import WatchConnectivity
 import Combine
+import XCGLogger
 
 struct ContentView: View {
     @ObservedObject private var connectivity = ClarityWatchConnectivity.shared
@@ -79,14 +80,14 @@ struct ContentView: View {
     }
 
     private func completeTask(_ task: ToDoTaskDTO) {
-        print("Attempting to complete task \(task.name)")
+        LogManager.shared.log.debug("Attempting to complete task \(task.name)")
         let uuid = task.uuid
         // Optimistically remove from local list
         if let idx = todos.firstIndex(where: { $0.uuid == task.uuid }) {
             todos.remove(at: idx)
         }
         // Use reliable transfer only for completion
-        print("Sending complete for id=\(uuid)")
+        LogManager.shared.log.debug("Sending complete for id=\(uuid)")
         let env = Envelope(kind: WCKeys.Requests.complete, todotaskid: uuid.uuidString)
         
         if WCSession.default.activationState == .activated,
@@ -97,7 +98,7 @@ struct ContentView: View {
                 // Do something with reply?
             }, errorHandler: { error in
                 self.connectivity.sendComplete(todotaskid: uuid.uuidString)
-                print("Immediate complete send failed; queued reliable. Error: \(error)")
+                LogManager.shared.log.error("Immediate complete send failed; queued reliable. Error: \(error)")
             })
         } else {
             self.connectivity.sendComplete(todotaskid: uuid.uuidString)
@@ -105,7 +106,7 @@ struct ContentView: View {
     }
 
     private func startTimer(_ task: ToDoTaskDTO) {
-        print("Attempting to start timer \(task.name)")
+        LogManager.shared.log.debug("Attempting to start timer \(task.name)")
         let uuid = task.uuid
         let env = Envelope(kind: WCKeys.Requests.startPomodoro, todotaskid: uuid.uuidString)
 
@@ -119,7 +120,7 @@ struct ContentView: View {
             }, errorHandler: { error in
                 // Fall back to reliable and still present
                 self.connectivity.sendPomodoroStart(todotaskid: uuid.uuidString)
-                print("Immediate pomodoro send failed; queued reliable. Error: \(error)")
+                LogManager.shared.log.error("Immediate pomodoro send failed; queued reliable. Error: \(error)")
                 // Removed setting selectedPomodoroTask
             })
         } else {
