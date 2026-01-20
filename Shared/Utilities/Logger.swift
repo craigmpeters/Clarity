@@ -43,8 +43,10 @@ final class LogManager {
 
         #if INTERNAL
         // 4) File destination (visible in Files app under your app’s Documents)
-        let fileURL = LogManager.defaultLogFileURL()
-        let fileDestination = AutoRotatingFileDestination(writeToFile: fileURL,
+        let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity")
+        let fileURL = (containerURL ?? LogManager.fallbackDocumentsDirectory()).appendingPathComponent("clarity.log")
+        
+        let fileDestination = AutoRotatingFileDestination(writeToFile: fileURL.path,
                                                           identifier: "me.craigpeters.clarity.fileLog",
                                                           shouldAppend: true,
                                                           maxFileSize: 10 * 1024 * 1024, // 10 MB
@@ -78,17 +80,16 @@ final class LogManager {
         self.log = logger
     }
 
-    // Location: Documents/MyAppLogs/app.log (visible in Files app)
-    static func defaultLogFileURL() -> URL {
+    /// Preferred log file location in the shared App Group so extensions/widgets can access it.
+    static func sharedLogFileURL() -> URL {
+        let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity")
+        return (containerURL ?? fallbackDocumentsDirectory()).appendingPathComponent("clarity.log")
+    }
+
+    /// Fallback only if the App Group container is unavailable (e.g., misconfigured in development builds).
+    static func fallbackDocumentsDirectory() -> URL {
         let fm = FileManager.default
         let docs = fm.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let logsDir = docs.appendingPathComponent("ClarityLogs", isDirectory: true)
-
-        // Ensure directory exists
-        if !fm.fileExists(atPath: logsDir.path) {
-            try? fm.createDirectory(at: logsDir, withIntermediateDirectories: true)
-        }
-
-        return logsDir.appendingPathComponent("clarity.log")
+        return docs
     }
 }

@@ -1,8 +1,13 @@
 import SwiftData
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @State private var showingCategoryManagement = false
+#if INTERNAL
+    @State private var showingShareSheet = false
+    @State private var shareItems: [URL] = []
+#endif
     
     var body: some View {
         Form {
@@ -44,6 +49,41 @@ struct SettingsView: View {
                     }
                 }
             }
+
+#if INTERNAL
+            Section("Logs") {
+                Button {
+                    let items = logFileURLs()
+                    if !items.isEmpty {
+                        shareItems = items
+                        showingShareSheet = true
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "square.and.arrow.up")
+                            .foregroundColor(.blue)
+                        Text("Share Logs (ZIP)")
+                        Spacer()
+                    }
+                }
+
+                Button(role: .destructive) {
+                    clearLogs()
+                } label: {
+                    HStack {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red)
+                        Text("Clear Logs")
+                        Spacer()
+                    }
+                }
+            }
+            .sheet(isPresented: $showingShareSheet, onDismiss: { shareItems = [] }) {
+                if !shareItems.isEmpty {
+                    ActivityView(activityItems: shareItems)
+                }
+            }
+#endif
 
             Section("About") {
                 HStack {
@@ -386,6 +426,77 @@ struct AppIconSettingsView: View {
         #endif
     }
 }
+
+#if INTERNAL
+private func logsDirectoryURL() -> URL {
+    // Match the App Group used by LogManager
+    let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity")
+    return containerURL ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+}
+
+private func logFileURLs() -> [URL] {
+    let dir = logsDirectoryURL()
+    let fm = FileManager.default
+    let contents = (try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? []
+    // Include primary log and rotated logs
+    return contents.filter { $0.lastPathComponent.hasPrefix("clarity") && $0.pathExtension.lowercased() == "log" }
+}
+
+/* Removed:
+private func createLogsZip() -> URL? {
+    let fm = FileManager.default
+    let tempDir = fm.temporaryDirectory
+    let zipURL = tempDir.appendingPathComponent("Clarity-Logs-\(Int(Date().timeIntervalSince1970)).zip")
+
+    // Remove any existing file at destination
+    try? fm.removeItem(at: zipURL)
+
+    let files = logFileURLs()
+    guard !files.isEmpty else { return nil }
+
+    // Create archive using Apple's Archive framework via FileManager (compression using zip format)
+    // Use a simple approach by creating a temporary folder and zipping it via built-in APIs on iOS 16+ using .zip compression.
+    let tempFolder = tempDir.appendingPathComponent("Logs-\(UUID().uuidString)", isDirectory: true)
+    do {
+        try fm.createDirectory(at: tempFolder, withIntermediateDirectories: true)
+        for file in files {
+            let dst = tempFolder.appendingPathComponent(file.lastPathComponent)
+            try? fm.removeItem(at: dst)
+            try fm.copyItem(at: file, to: dst)
+        }
+        // Use built-in compression API
+        try fm.zipItem(at: tempFolder, to: zipURL)
+        // Clean temp folder
+        try? fm.removeItem(at: tempFolder)
+        return zipURL
+    } catch {
+        print("Failed to create logs zip: \(error)")
+        try? fm.removeItem(at: tempFolder)
+        try? fm.removeItem(at: zipURL)
+        return nil
+    }
+}
+*/
+
+private func clearLogs() {
+    let fm = FileManager.default
+    for url in logFileURLs() {
+        try? fm.removeItem(at: url)
+    }
+}
+
+// UIKit wrapper for share sheet
+struct ActivityView: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    let applicationActivities: [UIActivity]? = nil
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: applicationActivities)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+#endif
 
 #Preview {
     SettingsView()

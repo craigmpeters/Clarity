@@ -8,6 +8,7 @@
 import WidgetKit
 import AppIntents
 import SwiftUI
+import XCGLogger
 
 struct TaskWidgetIntent: WidgetConfigurationIntent {
     static var title: LocalizedStringResource = "Task Filter"
@@ -28,6 +29,7 @@ struct TaskWidgetIntent: WidgetConfigurationIntent {
     init(filter: TaskFilterOption, categoryFilter: [CategoryEntity]) {
         self.filter = filter
         self.categoryFilter = categoryFilter
+        LogManager.shared.log.debug("Widget Intent Loaded")
     }
 }
 

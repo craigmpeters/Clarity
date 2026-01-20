@@ -210,6 +210,9 @@
     "Clear All Tasks" : {
 
     },
+    "Clear Logs" : {
+
+    },
     "Color" : {
 
     },
@@ -393,6 +396,9 @@
     "List Tasks" : {
 
     },
+    "Logs" : {
+
+    },
     "Longest Streak" : {
 
     },
@@ -573,6 +579,9 @@
 
     },
     "Settings" : {
+
+    },
+    "Share Logs (ZIP)" : {
 
     },
     "Show" : {
