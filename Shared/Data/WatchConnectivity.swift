@@ -159,6 +159,11 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
     func sendCreate(_ dto: ToDoTaskDTO) {
         self.sendImmediateOrReliable(.init(kind: WCKeys.Requests.create, todo: dto))
     }
+    
+    func sendLogs(_ data: Data) {
+        LogManager.shared.log.debug("Sending Watch Log Data")
+        self.sendImmediateOrReliable(.init(kind: WCKeys.Requests.sendLogs, logs: data))
+    }
 
     func sendComplete(todotaskid: String) {
         LogManager.shared.log.verbose("Complete Toggled with ID")
@@ -368,6 +373,8 @@ extension ClarityWatchConnectivity {
             return await ProcessWatchPomodoroStop(message)
         case WCKeys.Requests.pomodoroStopped:
             return await ProcessWatchPomodoroStopped(message)
+        case WCKeys.Requests.sendLogs:
+            return await ProcessSendLogs(message)
         default:
             LogManager.shared.log.error("Invalid Request Type: \(kind)")
             return Envelope(kind: "error")
@@ -487,6 +494,29 @@ extension ClarityWatchConnectivity {
         return Envelope(kind: WCKeys.Requests.pomodoroStopped)
     }
     
+    private static func ProcessSendLogs(_ message: [String:Any]?) async -> Envelope {
+        
+        guard let data = decodeMessageToData(message) else {
+            LogManager.shared.log.error("Error in decoding Data from message")
+            return Envelope(kind: WCKeys.Requests.sendLogs)
+        }
+    
+        LogManager.shared.log.debug("Recieved a watch log")
+        LogManager.shared.log.debug("Log File: \(String(data: data, encoding: .utf8))")
+        guard let containerUrl = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity") else {
+            LogManager.shared.log.error("Could not create container for watch log files")
+            return Envelope(kind: WCKeys.Requests.sendLogs)
+        }
+        let watchLogPath = containerUrl.appendingPathComponent("watch_logs.log")
+        do {
+                try data.write(to: watchLogPath, options: .atomic)
+        } catch {
+            LogManager.shared.log.error("Could not write Watch Logs: \(error.localizedDescription)")
+        }
+        
+        return Envelope(kind: WCKeys.Requests.sendLogs)
+    }
+    
     #endif
     
     // MARK: WatchOS Process Functions
@@ -524,6 +554,15 @@ extension ClarityWatchConnectivity {
     #endif
     
     // MARK: Helper Functions
+    
+    private static func decodeMessageToData(_ message: [String:Any]?) -> Data? {
+        var encodedData: Data?
+        if let msg = message, let data = msg[WCKeys.payload] as? Data,
+           let env = try? JSONDecoder().decode(Envelope.self, from: data) {
+            encodedData = env.logs
+        }
+        return encodedData
+    }
     
     private static func decodeMessageToToDoTask(_ message: [String:Any]?) -> ToDoTaskDTO? {
         var encodedDto: ToDoTaskDTO?
@@ -569,6 +608,7 @@ public enum WCKeys {
         public static let stopPomodoro = "stopPomodoro"
         public static let pomodoroStarted = "pomodoroStarted"
         public static let pomodoroStopped = "pomodoroStopped"
+        public static let sendLogs = "sendLogs"
     }
 }
 
@@ -584,13 +624,15 @@ public struct Envelope: Codable, Sendable {
     public let todo: ToDoTaskDTO?          // for single op
     public let todotaskid: String?
     public let pomodoro: PomodoroDTO?
+    public let logs: Data?
 
-    public init(kind: String, todos: [ToDoTaskDTO]? = nil, todo: ToDoTaskDTO? = nil, todotaskid : String? = nil, pomodoro: PomodoroDTO? = nil) {
+    public init(kind: String, todos: [ToDoTaskDTO]? = nil, todo: ToDoTaskDTO? = nil, todotaskid : String? = nil, pomodoro: PomodoroDTO? = nil, logs: Data? = nil) {
         self.kind = kind
         self.todos = todos
         self.todo = todo
         self.todotaskid = todotaskid
         self.pomodoro = pomodoro
+        self.logs = logs
     }
 }
 

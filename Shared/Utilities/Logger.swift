@@ -32,7 +32,15 @@ final class LogManager {
 
         // 3) Console / unified logging destination (shows in Xcode/Console.app)
         let systemDestination = AppleSystemLogDestination(identifier: "me.craigpeters.clarity.systemLog")
+        systemDestination.outputLevel = .error
+        
+        #if INTERNAL
         systemDestination.outputLevel = .debug
+        #endif
+        
+        #if DEBUG
+        systemDestination.outputLevel = .verbose
+        #endif
         systemDestination.showLogIdentifier = false
         systemDestination.showFunctionName = true
         systemDestination.showThreadName = false

@@ -11,6 +11,7 @@ import Foundation
 import SwiftData
 import UserNotifications
 import AppIntents
+import XCGLogger
 
 @MainActor final class PomodoroService: ObservableObject {
     static let shared = PomodoroService()
@@ -57,6 +58,7 @@ import AppIntents
     
     @MainActor
     func startPomodoro(for toDoTask: ToDoTaskDTO, container: ModelContainer, device: DeviceType) {
+        LogManager.shared.log.info("Starting Pomodoro for \(toDoTask.name)")
         startedDevice = device
         self.container = container
         self.toDoTask = toDoTask
@@ -83,7 +85,7 @@ import AppIntents
     func endPomodoro() async {
         // Make idempotent: if already inactive, do nothing
         guard isActive else {
-            print("Pomodoro is not active")
+            LogManager.shared.log.error("Pomodoro is not active")
             return
         }
 
@@ -102,11 +104,11 @@ import AppIntents
         NotificationCenter.default.post(name: .pomodoroCompleted, object: nil)
         if startedDevice == .watchOS {
             if let task = toDoTask {
-                print("Sending Pomodoro Stopped with Task")
+                LogManager.shared.log.debug("Sending Pomodoro Stopped with Task")
                 await ClarityWatchConnectivity.shared.sendPomodoroStopped(task)
             }
         } else {
-            print("Sending Pomodoro Stopped without Task")
+            LogManager.shared.log.debug("Sending Pomodoro Stopped without Task")
             await ClarityWatchConnectivity.shared.sendPomodoroStopped()
         }
     }
@@ -129,9 +131,9 @@ import AppIntents
                 content: activityContent,
                 pushType: nil
             )
-            print("SUCCESS: Live Activity started for task: \(task.name)")
+            LogManager.shared.log.debug("SUCCESS: Live Activity started for task: \(task.name)")
         } catch {
-            print("ERROR: Failed to start Live Activity: \(error.localizedDescription)")
+            LogManager.shared.log.error("ERROR: Failed to start Live Activity: \(error.localizedDescription)")
         }
     }
     
@@ -139,6 +141,7 @@ import AppIntents
         guard let activity = activity else { return }
         Task {
             await activity.end(ActivityContent(state: activity.content.state, staleDate: nil), dismissalPolicy: .immediate)
+            LogManager.shared.log.debug("Stopped Live Activity")
         }
         self.activity = nil
     }
@@ -167,14 +170,15 @@ import AppIntents
         
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
-                print("Error scheduling notification: \(error)")
+                LogManager.shared.log.error("Error scheduling notification: \(error)")
             } else {
-                print("Notification scheduled successfully")
+                LogManager.shared.log.error("Notification scheduled successfully for \(date.ISO8601Format())")
             }
         }
     }
     
     private func cancelNotification() {
+        LogManager.shared.log.debug("Cancelling Notification")
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [notificationid])
         notificationid = ""
     }
@@ -182,6 +186,7 @@ import AppIntents
     // MARK: Pomodoro Timer Function
 
     private func startTimer() {
+        LogManager.shared.log.debug("Starting Pomodoro Timer")
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor in

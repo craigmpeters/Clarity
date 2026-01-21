@@ -2,7 +2,7 @@ import ActivityKit
 import SwiftData
 import SwiftUI
 import UserNotifications
-import OSLog
+import XCGLogger
 
 struct TaskIndexView: View {
     @Environment(\.modelContext) private var context
@@ -37,7 +37,8 @@ struct TaskIndexView: View {
 
             return dueDateMatches && matchesSelectedCategory
         }
-
+        
+        // #TODO: Change level back to verbose once sync issue sorted
         LogManager.shared.log.debug("Total tasks: \(allTasks.count), Filtered: \(filtered.count)")
         return filtered
     }
@@ -106,23 +107,23 @@ struct TaskIndexView: View {
     
     
     private func editTask(_ task: ToDoTaskDTO) {
-        print("Editing \(task.name)")
+        LogManager.shared.log.debug("Editing \(task.name)")
         taskToEdit = task
         showingTaskForm = true
     }
     
     private func deleteTask(_ task: ToDoTaskDTO) {
-        print("Deleting: (\(task.name))")
+        LogManager.shared.log.debug("Deleting: (\(task.name))")
         Task {
             try? await store?.deleteTask(task.id!)
         }
     }
     
     private func completeTask(_ task: ToDoTaskDTO) {
-        print("Attempting to complete task for ID: \(task.id.debugDescription)")
+        LogManager.shared.log.debug("Attempting to complete task for ID: \(task.id.debugDescription) : \(task.name)")
         guard let store = store else { return }
         let id = task.uuid
-        print("Attempting to complete task \(task.name)")
+
         Task {
             try? await store.completeTask(id)
         }
@@ -130,6 +131,7 @@ struct TaskIndexView: View {
     }
     
     private func startTimer(for task: ToDoTaskDTO) {
+        LogManager.shared.log.debug("Starting Pomodoro for \(task.name)")
         selectedTask = task
         withAnimation(.easeInOut(duration: 0.3)) {
             // showingPomodoro = true
@@ -141,7 +143,7 @@ struct TaskIndexView: View {
         do {
             _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
         } catch {
-            print("Error requesting notification permission: \(error)")
+            LogManager.shared.log.error("Error requesting notification permission: \(error)")
         }
     }
     

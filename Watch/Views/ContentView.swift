@@ -24,13 +24,15 @@ struct ContentView: View {
             }
             .navigationTitle("Tasks")
             .toolbar {
+                #if INTERNAL
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        // Filter Action
+                        transferLogButton()
                     } label: {
                         Image(systemName: "line.3.horizontal.decrease")
                     }
                 }
+                #endif
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: refresh) {
                         if isRefreshing {
@@ -78,6 +80,37 @@ struct ContentView: View {
                      onComplete: onComplete,
                      onStartTimer: onStart)
     }
+    
+    #if INTERNAL
+    
+    private func transferLogButton() {
+        LogManager.shared.log.debug("Sending Logs to Phone")
+        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity") else {
+            LogManager.shared.log.error("Cannot create Container URL")
+            return }
+        guard let logData = try? Data(contentsOf: containerURL.appendingPathComponent("clarity.log")) else {
+            LogManager.shared.log.error("Cannot read from log file clarity.txt")
+            return }
+        let env = Envelope(kind: WCKeys.Requests.sendLogs, logs: logData)
+                
+        if WCSession.default.activationState == .activated,
+           WCSession.default.isReachable,
+           let data = try? JSONEncoder().encode(env) {
+               let message: [String: Any] = [WCKeys.request: WCKeys.Requests.sendLogs, WCKeys.payload: data]
+                WCSession.default.sendMessage(message, replyHandler: { _ in
+                    LogManager.shared.log.verbose("Recieved Reply from Phone for WCKeys.Requests.sendLogs")
+                }, errorHandler: { error in
+                self.connectivity.sendLogs(logData)
+                LogManager.shared.log.error("Immediate complete send failed; queued reliable. Error: \(error)")
+            })
+        } else {
+            LogManager.shared.log.debug("Sending Logs")
+            self.connectivity.sendLogs(logData)
+        }
+        
+    }
+    
+    #endif
 
     private func completeTask(_ task: ToDoTaskDTO) {
         LogManager.shared.log.debug("Attempting to complete task \(task.name)")
