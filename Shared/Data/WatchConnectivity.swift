@@ -502,14 +502,15 @@ extension ClarityWatchConnectivity {
         }
     
         LogManager.shared.log.debug("Recieved a watch log")
-        LogManager.shared.log.debug("Log File: \(String(data: data, encoding: .utf8))")
+        LogManager.shared.log.debug("Log File: \(String(describing: String(data: data, encoding: .utf8)))")
         guard let containerUrl = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity") else {
             LogManager.shared.log.error("Could not create container for watch log files")
             return Envelope(kind: WCKeys.Requests.sendLogs)
         }
         let watchLogPath = containerUrl.appendingPathComponent("watch_logs.log")
         do {
-                try data.write(to: watchLogPath, options: .atomic)
+            try data.write(to: watchLogPath, options: .atomic)
+            LogManager.shared.log.info("Written Watch log to \(watchLogPath)")
         } catch {
             LogManager.shared.log.error("Could not write Watch Logs: \(error.localizedDescription)")
         }

@@ -328,6 +328,7 @@ struct AppIconSettingsView: View {
         .init(id: "Autumn", displayName: "Autumn", previewImageName: "Appicon-Preview-Autumn"),
         .init(id: "Christmas", displayName: "Christmas", previewImageName: "Appicon-Preview-Christmas"),
         .init(id: "Valentines", displayName: "Valentines", previewImageName: "Appicon-Preview-Valentines")
+        .init(id: "NewYear", displayName: "Chinese New Year", previewImageName: "Appicon-Preview-NewYear")
     ]
 
     @State private var currentIconName: String = "primary"
@@ -439,7 +440,7 @@ private func logFileURLs() -> [URL] {
     let fm = FileManager.default
     let contents = (try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? []
     // Include primary log and rotated logs
-    return contents.filter { $0.lastPathComponent.hasPrefix("clarity") && $0.pathExtension.lowercased() == "log" }
+    return contents.filter { $0.pathExtension.lowercased() == "log" }
 }
 
 /* Removed:

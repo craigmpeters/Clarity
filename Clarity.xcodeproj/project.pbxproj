@@ -169,6 +169,7 @@
 			membershipExceptions = (
 				Appicon.icon,
 				Default.icon,
+				NewYear.icon,
 			);
 			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
 		};
