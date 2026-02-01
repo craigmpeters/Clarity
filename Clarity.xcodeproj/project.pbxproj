@@ -203,7 +203,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Category.swift,
-				Pomodoro.swift,
 				PomodoroAttributes.swift,
 				Statistics.swift,
 				Todo.swift,

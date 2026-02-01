@@ -86,6 +86,12 @@ struct ClarityApp: App {
                 .onAppear {
                     appDelegate.appState = appState
                     populateUUIDsIfNeeded(modelContext: container.mainContext, minimumBuild: "1.3.0")
+                    Task { @MainActor in
+                        await PomodoroService.shared.restoreIfNeeded(container: container, device: .iPhone)
+                        if PomodoroService.shared.isActive {
+                            appState.showingPomodoro = true
+                        }
+                    }
                 }
                 .task {
                     if let id = consumePendingStartTimerTaskId() {
