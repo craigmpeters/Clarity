@@ -256,7 +256,7 @@ import XCGLogger
             if let error = error {
                 LogManager.shared.log.error("Error scheduling notification: \(error)")
             } else {
-                LogManager.shared.log.error("Notification scheduled successfully for \(date.ISO8601Format())")
+                LogManager.shared.log.debug("Notification scheduled successfully for \(date.ISO8601Format())")
             }
         }
     }
