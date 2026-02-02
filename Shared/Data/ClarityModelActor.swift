@@ -60,6 +60,19 @@ actor ClarityModelActor {
     }
     
     // MARK: Task Functions
+    
+    func fetchLastCompletedTask(filter: ToDoTask.TaskFilter = .all) -> ToDoTaskDTO? {
+        let descriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate { $0.completed },
+            sortBy: [SortDescriptor(\.completedAt, order: .reverse)]
+        )
+        
+        let tasks = try? modelContext.fetch(descriptor)
+        if let task = tasks?.first {
+            return ToDoTaskDTO(from: task)
+        }
+        return nil
+    }
 
     func fetchTasks(filter: ToDoTask.TaskFilter) throws -> [ToDoTaskDTO] {
         let descriptor = FetchDescriptor<ToDoTask>(

@@ -137,7 +137,7 @@ import XCGLogger
     
     @MainActor
     func restoreIfNeeded(container: ModelContainer, device: DeviceType) async {
-        guard let data = appGroupDefaults()?.data(forKey: "pomodoroState") else {
+        guard let data = appGroupDefaults()?.data(forKey: pomodoroPersistKey) else {
             LogManager.shared.log.debug("No Pomodoro state to restore")
             return
         }
