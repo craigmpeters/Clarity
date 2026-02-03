@@ -147,6 +147,8 @@ struct ClarityApp: App {
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     private var cancellables = Set<AnyCancellable>()
+    private static var remoteLoggerInstalled = false
+    
     weak var appState: AppState?
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
@@ -156,6 +158,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         _ = LogManager.shared
         // let url = LogManager.defaultLogFileURL()
         LogManager.shared.log.info("Clarity logger initialized in AppDelegate")
+        AppDelegate.installRemoteChangeLogger()
         NotificationCenter.default.publisher(for: .pomodoroStarted)
             .sink { [weak self] _ in
                 DispatchQueue.main.async {
@@ -167,6 +170,21 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         
         return true
     }
+    
+    // Remote change logging (CloudKit merges)
+    
+    private static func installRemoteChangeLogger() {
+        #if canImport(CoreData)
+        guard !remoteLoggerInstalled else { return }
+        remoteLoggerInstalled = true
+        NotificationCenter.default.addObserver(forName: Notification.Name.NSPersistentStoreRemoteChange, object: nil, queue: .main) { note in
+            let date = ISO8601DateFormatter().string(from: Date())
+            LogManager.shared.log.info("📥 SwiftData remote change merged at \(date)")
+        }
+        LogManager.shared.log.info("✅ Installed remote change logger for SwiftData (NSPersistentStoreRemoteChange)")
+        #endif
+    }
+
     
     // This allows notifications to show when app is in foreground
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {

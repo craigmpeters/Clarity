@@ -151,6 +151,8 @@ import XCGLogger
                     try await store.completeTask(uuid)
                 }
                 clearPersistedState()
+                stopLiveActivity()
+                cancelNotification()
                 return
             }
             
