@@ -67,11 +67,17 @@ actor ClarityModelActor {
             sortBy: [SortDescriptor(\.completedAt, order: .reverse)]
         )
         
-        let tasks = try? modelContext.fetch(descriptor)
-        if let task = tasks?.first {
-            return ToDoTaskDTO(from: task)
+        do {
+            let tasks = try modelContext.fetch(descriptor)
+            let now = Date()
+            let filtered = tasks.filter { filter.matches(task: $0, at: now) }
+            if let task = filtered.first {
+                return ToDoTaskDTO(from: task)
+            }
+            return nil
+        } catch {
+            return nil
         }
-        return nil
     }
 
     func fetchTasks(filter: ToDoTask.TaskFilter) throws -> [ToDoTaskDTO] {

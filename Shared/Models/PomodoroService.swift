@@ -147,8 +147,13 @@ import XCGLogger
             guard persisted.endTime > Date() else {
                 LogManager.shared.log.debug("Pomodoro already completed, not restoring")
                 let store = ClarityModelActor(modelContainer: container)
+                let lastCompleted = await store.fetchLastCompletedTask()
                 if let uuid = persisted.taskUUID {
-                    try await store.completeTask(uuid)
+                    if lastCompleted?.uuid == uuid && (lastCompleted?.completedAt)! > persisted.startTime {
+                        LogManager.shared.log.debug("Task already completed")
+                    } else {
+                        try await store.completeTask(uuid)
+                    }
                 }
                 clearPersistedState()
                 stopLiveActivity()

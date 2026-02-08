@@ -39,7 +39,12 @@ struct TaskIndexView: View {
         }
         
         // #TODO: Change level back to verbose once sync issue sorted
-        LogManager.shared.log.debug("Total tasks: \(allTasks.count), Filtered: \(filtered.count)")
+        LogManager.shared.log.verbose("Total tasks: \(allTasks.count), Filtered: \(filtered.count)")
+        #if INTERNAL
+        // MARK: Duplicate task logging
+        logDuplicateTasks(in: filtered)
+        #endif
+        
         return filtered
     }
 
@@ -147,6 +152,56 @@ struct TaskIndexView: View {
         }
     }
     
+    // Logs detailed information for any duplicate (by UUID) incomplete tasks in the provided collection
+    private func logDuplicateTasks(in tasks: [ToDoTask]) {
+        // Group only tasks that have a UUID
+        var groups: [UUID: [ToDoTask]] = [:]
+        for task in tasks {
+            guard let id = task.uuid else { continue }
+            groups[id, default: []].append(task)
+        }
+        // Find duplicates
+        for (uuid, group) in groups where group.count > 1 {
+            LogManager.shared.log.error("Duplicate tasks detected for UUID=\(uuid.uuidString); count=\(group.count)")
+            for (index, t) in group.enumerated() {
+                let dump = dumpTask(t)
+                LogManager.shared.log.error("  [\(index)] \n\(dump)")
+            }
+        }
+    }
+    
+    // Produce a comprehensive, human-readable dump of a ToDoTask record
+    private func dumpTask(_ t: ToDoTask) -> String {
+        var lines: [String] = []
+        // Known fields first (stable ordering)
+        lines.append("id: \(t.id.debugDescription)")
+        lines.append("uuid: \(t.uuid?.uuidString ?? "nil")")
+        lines.append("name: \(t.name ?? "nil")")
+        lines.append("due: \(t.due.formatted())")
+        lines.append("completed: \(t.completed)")
+        lines.append("completedAt: \(t.completedAt?.formatted() ?? "nil")")
+        lines.append("pomodoro: \(t.pomodoro.description)")
+        lines.append("pomodoroTime: \(t.pomodoroTime.description)")
+        lines.append("repeating: \(t.repeating?.description ?? "nil")")
+        lines.append("recurrenceInterval: \(String(describing: t.recurrenceInterval))")
+        lines.append("customRecurrenceDays: \(t.customRecurrenceDays.description)")
+        lines.append("everySpecificDayDay: \(t.everySpecificDayDay?.description ?? "nil")")
+        let categoryNames = (t.categories ?? []).compactMap { $0.name }.joined(separator: ", ")
+        lines.append("categories.count: \(t.categories?.count ?? 0)")
+        lines.append("categories: [\(categoryNames)]")
+
+        // Reflect any additional properties (best-effort; avoids duplicates by skipping known keys)
+        let knownKeys: Set<String> = [
+            "id","uuid","name","due","completed","completedAt","pomodoro","pomodoroTime","repeating","recurrenceInterval","customRecurrenceDays","everySpecificDayDay","categories"
+        ]
+        let mirror = Mirror(reflecting: t)
+        for child in mirror.children {
+            if let key = child.label, !knownKeys.contains(key) {
+                lines.append("\(key): \(String(describing: child.value))")
+            }
+        }
+        return lines.joined(separator: "\n")
+    }
 }
 
 #if DEBUG
