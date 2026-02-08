@@ -14,9 +14,11 @@ import XCGLogger
 @ModelActor
 actor ClarityModelActor {
     // MARK: Category Functions
-    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Clarity" , category: "ModelActor")
+    private let logger = LogManager.shared.log
     // Prevent concurrent completions for the same UUID within this actor
     private var inFlightCompletions: Set<UUID> = []
+    // Throttle dedup runs triggered by remote merges / write paths
+    private var lastDedupRunAt: Date? = nil
     
     func addCategory(_ dto: CategoryDTO) throws -> CategoryDTO {
         let category = Category(
@@ -125,6 +127,7 @@ actor ClarityModelActor {
         try modelContext.save()
         try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
         WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
+        try? deduplicateTasksByUUID()
         return ToDoTaskDTO(from: model)
     }
     
@@ -185,6 +188,7 @@ actor ClarityModelActor {
             try modelContext.save()
             try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
             WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
+            try? deduplicateTasksByUUID()
             
             return ToDoTaskDTO(from: toDoTask)
     }
@@ -196,6 +200,7 @@ actor ClarityModelActor {
         }
         try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
         WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
+        try? deduplicateTasksByUUID()
     }
     
     func completeTask(_ id: UUID) throws {
@@ -252,6 +257,7 @@ actor ClarityModelActor {
         try modelContext.save()
         try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
         WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
+        try? deduplicateTasksByUUID()
     }
     
     func fetchTaskByUuid(_ id: UUID) throws -> ToDoTaskDTO? {
@@ -377,6 +383,74 @@ actor ClarityModelActor {
             error: "",
             categories: []
         )
+    }
+    
+    // MARK: - Maintenance / Deduplication
+    /// Scan for duplicate incomplete tasks that share the same series UUID and remove extras.
+    /// Winner selection rule (deterministic):
+    /// 1) Earliest `due` wins; if ties, the one with non-nil `name` wins; then smallest `id` debugDescription.
+    /// Losers are deleted. Categories are not merged (by design) to preserve the winner as source of truth.
+    /// This function is intentionally not hooked up to any notifications; call it manually when needed.
+    func deduplicateTasksByUUID() throws {
+        // Throttle: avoid running too frequently (e.g., during remote merge storms)
+        let now = Date()
+        if let last = lastDedupRunAt, now.timeIntervalSince(last) < 5 { // 5s window
+            logger.debug("Dedup: Skipping run (throttled)")
+            return
+        }
+        lastDedupRunAt = now
+
+        // Fetch all incomplete tasks
+        let descriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate { !$0.completed }
+        )
+        let tasks = try modelContext.fetch(descriptor)
+
+        // Group by UUID (ignore nil)
+        var groups: [UUID: [ToDoTask]] = [:]
+        for task in tasks {
+            guard let id = task.uuid else { continue }
+            groups[id, default: []].append(task)
+        }
+
+        var totalDuplicateGroups = 0
+        var totalDeleted = 0
+
+        for (uuid, group) in groups where group.count > 1 {
+            logger.error("Dedup: Found duplicate group uuid=\(uuid.uuidString) count=\(group.count)")
+
+            // Log full details for each record in the group
+            for (idx, t) in group.enumerated() {
+                let categories = (t.categories ?? []).compactMap { $0.name }.joined(separator: ",")
+                logger.error("  [\(idx)] id=\(t.id.debugDescription) name=\(t.name ?? "nil") due=\(t.due) completed=\(t.completed) completedAt=\(String(describing: t.completedAt)) cats=[\(categories)]")
+            }
+
+            // Choose the winner deterministically
+            let winner = group.min { a, b in
+                if a.due != b.due { return a.due < b.due }
+                let aNameNil = (a.name == nil)
+                let bNameNil = (b.name == nil)
+                if aNameNil != bNameNil { return bNameNil } // prefer non-nil name
+                return a.id.debugDescription < b.id.debugDescription
+            }!
+
+            // Delete all others
+            for t in group where t.id != winner.id {
+                logger.warning("Dedup: Deleting loser id=\(t.id.debugDescription) for uuid=\(uuid.uuidString)")
+                modelContext.delete(t)
+                totalDeleted += 1
+            }
+            totalDuplicateGroups += 1
+        }
+
+        if totalDuplicateGroups > 0 {
+            try modelContext.save()
+            // Keep widgets in sync with the new state
+            try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
+            WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
+        }
+
+        logger.info("Dedup: groups=\(totalDuplicateGroups) deleted=\(totalDeleted)")
     }
 }
 

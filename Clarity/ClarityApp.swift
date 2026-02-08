@@ -180,6 +180,15 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         NotificationCenter.default.addObserver(forName: Notification.Name.NSPersistentStoreRemoteChange, object: nil, queue: .main) { note in
             let date = ISO8601DateFormatter().string(from: Date())
             LogManager.shared.log.info("📥 SwiftData remote change merged at \(date)")
+            Task.detached(priority: .utility) {
+                do {
+                    let container = try ClarityServices.sharedContainer()
+                    let store = await StoreRegistry.shared.store(for: container)
+                    try await store.deduplicateTasksByUUID()
+                } catch {
+                    LogManager.shared.log.error("Remote merge dedup failed: \(error.localizedDescription)")
+                }
+            }
         }
         LogManager.shared.log.info("✅ Installed remote change logger for SwiftData (NSPersistentStoreRemoteChange)")
         #endif
