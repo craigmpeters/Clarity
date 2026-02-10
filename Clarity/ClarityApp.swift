@@ -127,7 +127,6 @@ struct ClarityApp: App {
                         }
                     }
                 }
-                .environmentObject(LogCenter.shared)
                 .task {
                     if let id = consumePendingStartTimerTaskId() {
                         appState.pomodoroUuid = id
@@ -159,8 +158,7 @@ struct ClarityApp: App {
                             }
                         }
                     }
-                }
-                .environmentObject(LogCenter.shared)
+                } 
         }
     }
     
