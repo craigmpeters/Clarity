@@ -8,6 +8,7 @@
 import SwiftUI
 import WatchConnectivity
 import Combine
+import XCGLogger
 
 struct ContentView: View {
     @ObservedObject private var connectivity = ClarityWatchConnectivity.shared
@@ -23,13 +24,15 @@ struct ContentView: View {
             }
             .navigationTitle("Tasks")
             .toolbar {
+                #if INTERNAL
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        // Filter Action
+                        transferLogButton()
                     } label: {
                         Image(systemName: "line.3.horizontal.decrease")
                     }
                 }
+                #endif
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: refresh) {
                         if isRefreshing {
@@ -77,17 +80,48 @@ struct ContentView: View {
                      onComplete: onComplete,
                      onStartTimer: onStart)
     }
+    
+    #if INTERNAL
+    
+    private func transferLogButton() {
+        LogManager.shared.log.debug("Sending Logs to Phone")
+        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity") else {
+            LogManager.shared.log.error("Cannot create Container URL")
+            return }
+        guard let logData = try? Data(contentsOf: containerURL.appendingPathComponent("clarity.log")) else {
+            LogManager.shared.log.error("Cannot read from log file clarity.txt")
+            return }
+        let env = Envelope(kind: WCKeys.Requests.sendLogs, logs: logData)
+                
+        if WCSession.default.activationState == .activated,
+           WCSession.default.isReachable,
+           let data = try? JSONEncoder().encode(env) {
+               let message: [String: Any] = [WCKeys.request: WCKeys.Requests.sendLogs, WCKeys.payload: data]
+                WCSession.default.sendMessage(message, replyHandler: { _ in
+                    LogManager.shared.log.verbose("Recieved Reply from Phone for WCKeys.Requests.sendLogs")
+                }, errorHandler: { error in
+                self.connectivity.sendLogs(logData)
+                LogManager.shared.log.error("Immediate complete send failed; queued reliable. Error: \(error)")
+            })
+        } else {
+            LogManager.shared.log.debug("Sending Logs")
+            self.connectivity.sendLogs(logData)
+        }
+        
+    }
+    
+    #endif
 
     private func completeTask(_ task: ToDoTaskDTO) {
-        print("Attempting to complete task \(task.name)")
-        guard let encodedId = task.encodedId else { return }
+        LogManager.shared.log.debug("Attempting to complete task \(task.name)")
+        let uuid = task.uuid
         // Optimistically remove from local list
-        if let idx = todos.firstIndex(where: { $0.id == task.id }) {
+        if let idx = todos.firstIndex(where: { $0.uuid == task.uuid }) {
             todos.remove(at: idx)
         }
         // Use reliable transfer only for completion
-        print("Sending complete for id=\(encodedId)")
-        let env = Envelope(kind: WCKeys.Requests.complete, todotaskid: encodedId)
+        LogManager.shared.log.debug("Sending complete for id=\(uuid)")
+        let env = Envelope(kind: WCKeys.Requests.complete, todotaskid: uuid.uuidString)
         
         if WCSession.default.activationState == .activated,
            WCSession.default.isReachable,
@@ -96,18 +130,18 @@ struct ContentView: View {
             WCSession.default.sendMessage(message, replyHandler: { _ in
                 // Do something with reply?
             }, errorHandler: { error in
-                self.connectivity.sendComplete(todotaskid: encodedId)
-                print("Immediate complete send failed; queued reliable. Error: \(error)")
+                self.connectivity.sendComplete(todotaskid: uuid.uuidString)
+                LogManager.shared.log.error("Immediate complete send failed; queued reliable. Error: \(error)")
             })
         } else {
-            self.connectivity.sendComplete(todotaskid: encodedId)
+            self.connectivity.sendComplete(todotaskid: uuid.uuidString)
         }
     }
 
     private func startTimer(_ task: ToDoTaskDTO) {
-        print("Attempting to start timer \(task.name)")
-        guard let encodedId = task.encodedId else { return }
-        let env = Envelope(kind: WCKeys.Requests.startPomodoro, todotaskid: encodedId)
+        LogManager.shared.log.debug("Attempting to start timer \(task.name)")
+        let uuid = task.uuid
+        let env = Envelope(kind: WCKeys.Requests.startPomodoro, todotaskid: uuid.uuidString)
 
         // Prefer immediate path with ack; fall back to reliable
         if WCSession.default.activationState == .activated,
@@ -118,13 +152,13 @@ struct ContentView: View {
                 // Removed setting selectedPomodoroTask
             }, errorHandler: { error in
                 // Fall back to reliable and still present
-                self.connectivity.sendPomodoroStart(todotaskid: encodedId)
-                print("Immediate pomodoro send failed; queued reliable. Error: \(error)")
+                self.connectivity.sendPomodoroStart(todotaskid: uuid.uuidString)
+                LogManager.shared.log.error("Immediate pomodoro send failed; queued reliable. Error: \(error)")
                 // Removed setting selectedPomodoroTask
             })
         } else {
             // Not reachable; queue reliable and present
-            connectivity.sendPomodoroStart(todotaskid: encodedId)
+            connectivity.sendPomodoroStart(todotaskid: uuid.uuidString)
             // Removed setting selectedPomodoroTask
         }
     }

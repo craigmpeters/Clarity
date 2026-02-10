@@ -125,20 +125,19 @@ class PomodoroSuggestionService: ObservableObject {
                 
                 Requirements:
                 - Suggest the amount of time that it would take a typical adult
-                - The amount of time should be no longer than 25 minutes, if you think it would take longer then suggest 25 minutes
-                - The time interval should be in intervals of 5 minutes
+                - The amount of time should be divisible by 5 with no remainder
                 - The minimum amount of time it should take is 5 minutes
                 
                 Format Your response as a simple single number
                 """
             
-            let options = GenerationOptions(temperature: 2.0)
+            let options = GenerationOptions(temperature: 0.9)
             let session = LanguageModelSession()
             let response = try await session.respond(
                 to: prompt,
                 options: options
             )
-            Logger.Intelligence.debug("Apple Intelligence Response: \(response.content)")
+            LogManager.shared.log.info("Apple Intelligence Response: \(response.content) for \(task)")
             
             let minutes = Int(response.content)
             await MainActor.run {
@@ -147,7 +146,7 @@ class PomodoroSuggestionService: ObservableObject {
             }
             
         } catch {
-            Logger.Intelligence.error("Cannot Generate Suggested Pomodoro: \(error)")
+            LogManager.shared.log.error("Cannot Generate Suggested Pomodoro: \(error)")
             await MainActor.run {
                 self.error = "Failed to generate suggestions: \(error.localizedDescription)"
                 self.isProcessing = false

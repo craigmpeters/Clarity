@@ -8,6 +8,7 @@
 import Foundation
 import SwiftData
 import SwiftUI
+import AppIntents
 
 @Model
 class Category {
@@ -22,6 +23,41 @@ class Category {
         self.color = color
         self.weeklyTarget = weeklyTarget
     }
+    
+    // Example reusable predicate for SwiftData queries. Adjust as needed.
+    // Use as: let results = try modelContext.fetch(FetchDescriptor<Category>(predicate: Category.nameIsNotEmpty))
+//    static var focusFilter: Predicate<Category> {
+//        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
+//        if let data = defaults?.data(forKey: "ClarityFocusFilter") {
+//            if let settings = try? JSONDecoder().decode(CategoryFilterSettings.self, from: data) {
+//                // Build a predicate based on settings. This example filters by category name.
+//                // Adjust to use IDs if your CategoryEntity contains identifiers.
+//                let names = Set(settings.Categories.compactMap { $0.name })
+//                switch settings.showOrHide {
+//                case .show:
+//                    return #Predicate<Category> { category in
+//                        if let name = category.name {
+//                            return names.contains(name)
+//                        } else {
+//                            return false
+//                        }
+//                    }
+//                case .hide:
+//                    return #Predicate<Category> { category in
+//                        if let name = category.name {
+//                            return !names.contains(name)
+//                        } else {
+//                            return true
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//        // Fallback: include everything that has a non-empty name
+//        return #Predicate<Category> { category in
+//            category.name != nil && category.name != ""
+//        }
+//    }
     
     enum CategoryColor: String, CaseIterable, Codable {
         case Red = "Red"
@@ -95,3 +131,22 @@ extension CategoryDTO {
         self.init(id: model.persistentModelID, name: model.name!, color: model.color ?? Category.CategoryColor.Red , weeklyTarget: model.weeklyTarget)
     }
 }
+
+
+struct CategoryFilterSettings: Codable {
+    var Categories: [CategoryEntity]
+    var showOrHide: FilterShowOrHide
+}
+
+enum FilterShowOrHide: String, Codable, AppEnum {
+    case show
+    case hide
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Show or Hide Categories"
+
+    static var caseDisplayRepresentations: [FilterShowOrHide: DisplayRepresentation] = [
+        .show: "Show",
+        .hide: "Hide"
+    ]
+}
+

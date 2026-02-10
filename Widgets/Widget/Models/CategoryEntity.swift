@@ -10,7 +10,7 @@ import AppIntents
 
 // MARK: - AppIntents Entity for Category
 
-struct CategoryEntity: AppEntity, Identifiable, Sendable {
+struct CategoryEntity: AppEntity, Identifiable, Sendable, Codable {
     static var typeDisplayRepresentation: TypeDisplayRepresentation = "Category"
     static var defaultQuery = CategoryQuery()
 

@@ -17,6 +17,7 @@ extension Date {
 extension Notification.Name {
     static let pomodoroCompleted = Notification.Name("pomodoroCompleted")
     static let pomodoroStarted = Notification.Name("pomodoroStarted")
+    static let focusSettingsChanged = Notification.Name("focusSettingsChanged")
 }
 
 extension Calendar {

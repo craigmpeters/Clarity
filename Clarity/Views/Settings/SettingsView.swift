@@ -1,11 +1,14 @@
 import SwiftData
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @State private var showingCategoryManagement = false
-    @AppStorage("logViewerRuntimeEnabled") private var logViewerRuntimeEnabled = false
-    @Environment(\.isLogViewerEnabled) private var isLogViewerEnabled
-
+#if INTERNAL
+    @State private var showingShareSheet = false
+    @State private var shareItems: [URL] = []
+#endif
+    
     var body: some View {
         Form {
             Section("Categories") {
@@ -37,30 +40,50 @@ struct SettingsView: View {
                         Spacer()
                     }
                 }
-            }
-            if isLogViewerEnabled {
-                Section("Logging") {
-                    Toggle(isOn: $logViewerRuntimeEnabled) {
-                        HStack {
-                            Image(systemName: "switch.2")
-                                .foregroundColor(.purple)
-                            Text("Enable Log Viewer")
-                        }
-                    }
-                    
-                    
-                    if isLogViewerEnabled && logViewerRuntimeEnabled {
-                        HStack {
-                            NavigationLink(destination: LogView()) {
-                                Image(systemName: "doc.text.magnifyingglass")
-                                    .foregroundColor(.purple)
-                                Text("View Logs")
-                                Spacer()
-                            }
-                        }
+                HStack {
+                    NavigationLink(destination: SwipeSettingsView()) {
+                        Image(systemName: "appwindow.swipe.rectangle")
+                            .foregroundColor(.purple)
+                        Text("Change Swipe Options")
+                        Spacer()
                     }
                 }
             }
+
+#if INTERNAL
+            Section("Logs") {
+                Button {
+                    let items = logFileURLs()
+                    if !items.isEmpty {
+                        shareItems = items
+                        showingShareSheet = true
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "square.and.arrow.up")
+                            .foregroundColor(.blue)
+                        Text("Share Logs (ZIP)")
+                        Spacer()
+                    }
+                }
+
+                Button(role: .destructive) {
+                    clearLogs()
+                } label: {
+                    HStack {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red)
+                        Text("Clear Logs")
+                        Spacer()
+                    }
+                }
+            }
+            .sheet(isPresented: $showingShareSheet, onDismiss: { shareItems = [] }) {
+                if !shareItems.isEmpty {
+                    ActivityView(activityItems: shareItems)
+                }
+            }
+#endif
 
             Section("About") {
                 HStack {
@@ -70,6 +93,11 @@ struct SettingsView: View {
                     Spacer()
                     buildInformation()
                         .foregroundColor(.secondary)
+                }
+                HStack {
+                    Image(systemName: "cup.and.saucer.fill")
+                        .foregroundColor(.brown)
+                    Link("Buy me a Coffee", destination: URL(string: "https://buymeacoffee.com/craigmpeters")!)
                 }
             }
             // Development tools section - only shows in DEBUG builds
@@ -299,7 +327,8 @@ struct AppIconSettingsView: View {
         .init(id: "Pride", displayName: "Pride", previewImageName: "Appicon-Preview-Pride"),
         .init(id: "Autumn", displayName: "Autumn", previewImageName: "Appicon-Preview-Autumn"),
         .init(id: "Christmas", displayName: "Christmas", previewImageName: "Appicon-Preview-Christmas"),
-        .init(id: "Valentines", displayName: "Valentines", previewImageName: "Appicon-Preview-Valentines")
+        .init(id: "Valentines", displayName: "Valentines", previewImageName: "Appicon-Preview-Valentines"),
+        .init(id: "NewYear", displayName: "Chinese New Year", previewImageName: "Appicon-Preview-NewYear")
     ]
 
     @State private var currentIconName: String = "primary"
@@ -399,5 +428,77 @@ struct AppIconSettingsView: View {
     }
 }
 
+#if INTERNAL
+private func logsDirectoryURL() -> URL {
+    // Match the App Group used by LogManager
+    let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity")
+    return containerURL ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+}
+
+private func logFileURLs() -> [URL] {
+    let dir = logsDirectoryURL()
+    let fm = FileManager.default
+    let contents = (try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? []
+    // Include primary log and rotated logs
+    return contents.filter { $0.pathExtension.lowercased() == "log" }
+}
+
+/* Removed:
+private func createLogsZip() -> URL? {
+    let fm = FileManager.default
+    let tempDir = fm.temporaryDirectory
+    let zipURL = tempDir.appendingPathComponent("Clarity-Logs-\(Int(Date().timeIntervalSince1970)).zip")
+
+    // Remove any existing file at destination
+    try? fm.removeItem(at: zipURL)
+
+    let files = logFileURLs()
+    guard !files.isEmpty else { return nil }
+
+    // Create archive using Apple's Archive framework via FileManager (compression using zip format)
+    // Use a simple approach by creating a temporary folder and zipping it via built-in APIs on iOS 16+ using .zip compression.
+    let tempFolder = tempDir.appendingPathComponent("Logs-\(UUID().uuidString)", isDirectory: true)
+    do {
+        try fm.createDirectory(at: tempFolder, withIntermediateDirectories: true)
+        for file in files {
+            let dst = tempFolder.appendingPathComponent(file.lastPathComponent)
+            try? fm.removeItem(at: dst)
+            try fm.copyItem(at: file, to: dst)
+        }
+        // Use built-in compression API
+        try fm.zipItem(at: tempFolder, to: zipURL)
+        // Clean temp folder
+        try? fm.removeItem(at: tempFolder)
+        return zipURL
+    } catch {
+        print("Failed to create logs zip: \(error)")
+        try? fm.removeItem(at: tempFolder)
+        try? fm.removeItem(at: zipURL)
+        return nil
+    }
+}
+*/
+
+private func clearLogs() {
+    let fm = FileManager.default
+    for url in logFileURLs() {
+        try? fm.removeItem(at: url)
+    }
+}
+
+// UIKit wrapper for share sheet
+struct ActivityView: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    let applicationActivities: [UIActivity]? = nil
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: applicationActivities)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+#endif
+
 #Preview {
+    SettingsView()
 }

@@ -42,8 +42,8 @@ struct CompleteTaskIntent: AppIntent {
                 return .result(dialog: "Invalid task Identifier.")
             }
 
-            let taskID = dto.id
-            try await store.completeTask(taskID!)
+            let uuid = dto.uuid
+            try await store.completeTask(uuid)
 
             ClarityServices.reloadWidgets(kind: "ClarityWidget")
             return .result(dialog: "Task completed")

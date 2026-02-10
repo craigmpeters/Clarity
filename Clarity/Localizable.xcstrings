@@ -1,0 +1,739 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+
+    },
+    "/ week" : {
+
+    },
+    "%@" : {
+
+    },
+    "%@ (%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (%2$@)"
+          }
+        }
+      }
+    },
+    "%@: %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$lld"
+          }
+        }
+      }
+    },
+    "%@. %@. %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@. %2$@. %3$@"
+          }
+        }
+      }
+    },
+    "%lld" : {
+
+    },
+    "%lld / –" : {
+
+    },
+    "%lld / %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld / %2$lld"
+          }
+        }
+      }
+    },
+    "%lld / week" : {
+
+    },
+    "%lld completed" : {
+
+    },
+    "%lld days left" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld tag übrig"
+          }
+        }
+      }
+    },
+    "%lld min" : {
+
+    },
+    "%lld selected" : {
+
+    },
+    "%lld tasks" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldaufgabe"
+          }
+        }
+      }
+    },
+    "%lld%%" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%%"
+          }
+        }
+      }
+    },
+    "✕" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "X"
+          }
+        }
+      }
+    },
+    "About" : {
+
+    },
+    "Add" : {
+
+    },
+    "Add category" : {
+
+    },
+    "Add Category" : {
+
+    },
+    "Add Historical Data (30 days)" : {
+
+    },
+    "Add Sample Categories" : {
+
+    },
+    "Add Task" : {
+
+    },
+    "Add This Week's Completed Tasks" : {
+
+    },
+    "AI can suggest subtasks" : {
+
+    },
+    "AI will suggest smaller, manageable tasks" : {
+
+    },
+    "All Categories" : {
+
+    },
+    "All Tasks" : {
+
+    },
+    "Allow Notifications in Settings" : {
+
+    },
+    "Analyzing task..." : {
+
+    },
+    "App Icon" : {
+
+    },
+    "Apple Intelligence has not finished downloading. Come back soon for the ability to split tasks" : {
+
+    },
+    "Apple Intelligence Testing" : {
+
+    },
+    "Apply categories to all tasks" : {
+
+    },
+    "Are you sure you want to delete %@" : {
+
+    },
+    "Are you sure you want to delete %@?" : {
+
+    },
+    "Back" : {
+
+    },
+    "Buy me a Coffee" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Categories" : {
+
+    },
+    "Categories & Targets" : {
+
+    },
+    "Category" : {
+
+    },
+    "Category Details" : {
+
+    },
+    "Category Name" : {
+
+    },
+    "Category Targets" : {
+
+    },
+    "Change App Icon" : {
+
+    },
+    "Change Swipe Options" : {
+
+    },
+    "Choose a preferred app icon. You can change this anytime." : {
+
+    },
+    "Clear All Categories" : {
+
+    },
+    "Clear All Tasks" : {
+
+    },
+    "Clear Logs" : {
+
+    },
+    "Color" : {
+
+    },
+    "Complete onboarding and start using the app" : {
+
+    },
+    "Complete some tasks to see your statistics" : {
+
+    },
+    "Complete task" : {
+
+    },
+    "Complete Task" : {
+
+    },
+    "Completed Tasks" : {
+
+    },
+    "Completed Tasks by Category" : {
+
+    },
+    "Couldn’t Change Icon" : {
+
+    },
+    "Couldn’t complete the task." : {
+
+    },
+    "Couldn’t delete task: %@" : {
+
+    },
+    "Count" : {
+
+    },
+    "Create a new task in Clarity" : {
+
+    },
+    "Create Overdue Tasks" : {
+
+    },
+    "Create Task" : {
+
+    },
+    "Create Tasks" : {
+
+    },
+    "Create Test Recurring Tasks" : {
+
+    },
+    "Current Configuration" : {
+
+    },
+    "Current Streak" : {
+
+    },
+    "Daily Breakdown" : {
+
+    },
+    "Data Management" : {
+
+    },
+    "day" : {
+
+    },
+    "days" : {
+
+    },
+    "Days" : {
+
+    },
+    "Debug Action" : {
+
+    },
+    "Debug Info" : {
+
+    },
+    "Delete" : {
+
+    },
+    "Delete a Task" : {
+
+    },
+    "Delete a task in Clarity" : {
+
+    },
+    "Delete Category" : {
+
+    },
+    "Deleted Task: %@" : {
+
+    },
+    "Development" : {
+
+    },
+    "Development Tools" : {
+
+    },
+    "Done" : {
+
+    },
+    "Due Date" : {
+
+    },
+    "Duration" : {
+
+    },
+    "Duration (Minutes)" : {
+
+    },
+    "Edge Cases" : {
+
+    },
+    "Edit" : {
+
+    },
+    "Edit Category" : {
+
+    },
+    "Edit Task" : {
+
+    },
+    "Enable Notifications" : {
+
+    },
+    "Essential Gestures" : {
+
+    },
+    "Every" : {
+
+    },
+    "Export Stats" : {
+
+    },
+    "File Data" : {
+
+    },
+    "Filter" : {
+
+    },
+    "Finish Task" : {
+
+    },
+    "First Left" : {
+
+    },
+    "First Right" : {
+
+    },
+    "Focus State Testing" : {
+
+    },
+    "General" : {
+
+    },
+    "Generate Weekly Progress Data" : {
+
+    },
+    "Get Started" : {
+
+    },
+    "Global Target" : {
+
+    },
+    "Global Weekly Target" : {
+
+    },
+    "Go to next page" : {
+
+    },
+    "Go to previous page" : {
+
+    },
+    "Hide" : {
+
+    },
+    "Invalid task Identifier." : {
+
+    },
+    "Learn these powerful swipe actions" : {
+
+    },
+    "List Tasks" : {
+
+    },
+    "Logs" : {
+
+    },
+    "Longest Streak" : {
+
+    },
+    "Manage Categories & Targets" : {
+
+    },
+    "Manage Targets" : {
+
+    },
+    "Mark a task as completed" : {
+
+    },
+    "Memory Usage" : {
+
+    },
+    "Most productive hours" : {
+
+    },
+    "Need help breaking this down?" : {
+
+    },
+    "New Category" : {
+
+    },
+    "New Task" : {
+
+    },
+    "Next" : {
+
+    },
+    "Next occurrence" : {
+
+    },
+    "No completed tasks" : {
+
+    },
+    "No data available" : {
+
+    },
+    "No weekly targets set" : {
+
+    },
+    "Notification Settings" : {
+
+    },
+    "Notification status unknown." : {
+
+    },
+    "Notifications" : {
+
+    },
+    "Notifications are allowed. You can change this in Settings at any time." : {
+
+    },
+    "Notifications are currently disabled. You can enable them in the Settings app." : {
+
+    },
+    "Notifications are turned off. Use the button above to open Settings and enable notifications for this app." : {
+
+    },
+    "Notifications Enabled" : {
+
+    },
+    "OK" : {
+
+    },
+    "Only Repeating Tasks" : {
+
+    },
+    "Open Clarity" : {
+
+    },
+    "Open Development Tools" : {
+
+    },
+    "Open Settings" : {
+
+    },
+    "Open Settings to Allow" : {
+
+    },
+    "Overall Progress" : {
+
+    },
+    "Overall Target" : {
+
+    },
+    "Overdue" : {
+
+    },
+    "Page %lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Page %1$lld of %2$lld"
+          }
+        }
+      }
+    },
+    "Populate Sample Tasks" : {
+
+    },
+    "Populate Specific Day Tasks" : {
+
+    },
+    "Preview" : {
+
+    },
+    "Productivity Heatmap" : {
+
+    },
+    "Reflects current system authorization for notifications" : {
+
+    },
+    "Refresh Status" : {
+
+    },
+    "Regenerate" : {
+
+    },
+    "Remove '%@' from %lld tasks and delete the category?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Remove '%1$@' from %2$lld tasks and delete the category?"
+          }
+        }
+      }
+    },
+    "Repeat Interval" : {
+
+    },
+    "Repeating Task" : {
+
+    },
+    "Repeating Task?" : {
+
+    },
+    "Requires iOS 26 or later • Powered by Apple Intelligence" : {
+
+    },
+    "Reset Everything" : {
+
+    },
+    "Returns a list of your tasks" : {
+
+    },
+    "Save" : {
+
+    },
+    "Second Left" : {
+
+    },
+    "Second Right" : {
+
+    },
+    "Select Categories" : {
+
+    },
+    "Select Date" : {
+
+    },
+    "Selected" : {
+
+    },
+    "Set a target for total tasks to complete each week across all categories" : {
+
+    },
+    "Set hide focus state" : {
+
+    },
+    "Set show focus state" : {
+
+    },
+    "Set targets in Category Settings" : {
+
+    },
+    "Settings" : {
+
+    },
+    "Share Logs (ZIP)" : {
+
+    },
+    "Show" : {
+
+    },
+    "Show or Hide Categories" : {
+
+    },
+    "Simulate Productivity Streaks" : {
+
+    },
+    "Specific Day" : {
+
+    },
+    "Split into subtasks" : {
+
+    },
+    "Split with AI" : {
+
+    },
+    "Start a timer for a task" : {
+
+    },
+    "Start Date" : {
+
+    },
+    "Start Timer" : {
+
+    },
+    "Statistics" : {
+
+    },
+    "Stats" : {
+
+    },
+    "Stop Timer" : {
+
+    },
+    "Suggest" : {
+
+    },
+    "Suggested: %@ min" : {
+
+    },
+    "Sum of Category Targets" : {
+
+    },
+    "Swipe Configuration" : {
+
+    },
+    "Swipe Settings" : {
+
+    },
+    "Tap" : {
+
+    },
+    "Tap a category to edit name and color. Adjust targets with +/- buttons." : {
+
+    },
+    "Tap Configuration" : {
+
+    },
+    "Target Summary" : {
+
+    },
+    "Task" : {
+
+    },
+    "Task completed" : {
+
+    },
+    "Task Details" : {
+
+    },
+    "Task for Suggestion" : {
+
+    },
+    "Task name" : {
+
+    },
+    "Task Name" : {
+
+    },
+    "Task Settings" : {
+
+    },
+    "Task: %@" : {
+
+    },
+    "tasks" : {
+
+    },
+    "Tasks" : {
+
+    },
+    "Tasks per week" : {
+
+    },
+    "Tasks with Long Names" : {
+
+    },
+    "Tasks Without Categories" : {
+
+    },
+    "Test Data" : {
+
+    },
+    "This device does not support alternate app icons." : {
+
+    },
+    "This Week" : {
+
+    },
+    "Time Period" : {
+
+    },
+    "Today" : {
+
+    },
+    "Tomorrow" : {
+
+    },
+    "Total Tasks in File Database:  %lld" : {
+
+    },
+    "Try the gesture or wait to see the next one" : {
+
+    },
+    "Turn off Focus State" : {
+
+    },
+    "Unable to generate suggestions" : {
+
+    },
+    "Uncategorized" : {
+
+    },
+    "Version" : {
+
+    },
+    "We'll ask for permission to send you notifications." : {
+
+    },
+    "Weekly Target" : {
+
+    },
+    "Weekly Targets" : {
+
+    },
+    "What’s the task name?" : {
+
+    }
+  },
+  "version" : "1.1"
+}

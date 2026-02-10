@@ -92,29 +92,46 @@ struct TaskRowView: View {
                 performAction(.Tap)
             }
             .swipeActions(edge: .trailing,  allowsFullSwipe: false) {
-                Button {
-                    performAction(.TrailingPrimary)
-                    
-                } label: {
-                    Label(currentTaskSwipeAndTapOptions.primarySwipeTrailing.title, systemImage: currentTaskSwipeAndTapOptions.primarySwipeTrailing.systemImage)
+                if (currentTaskSwipeAndTapOptions.primarySwipeTrailing != .none) {
+                    Button {
+                        performAction(.TrailingPrimary)
+                        
+                    } label: {
+                        Label(currentTaskSwipeAndTapOptions.primarySwipeTrailing.title, systemImage: currentTaskSwipeAndTapOptions.primarySwipeTrailing.systemImage)
+                    }
+                    .tint(currentTaskSwipeAndTapOptions.primarySwipeTrailing.color)
                 }
-                .tint(currentTaskSwipeAndTapOptions.primarySwipeTrailing.color)
-                
-                // TODO: Trailing Button Secondary
+                if (currentTaskSwipeAndTapOptions.secondarySwipeTrailing != .none) {
+                    Button {
+                        performAction(.TrailingSecondary)
+                        
+                    } label: {
+                        Label(currentTaskSwipeAndTapOptions.secondarySwipeTrailing.title, systemImage: currentTaskSwipeAndTapOptions.secondarySwipeTrailing.systemImage)
+                    }
+                    .tint(currentTaskSwipeAndTapOptions.secondarySwipeTrailing.color)
+                }
+
             }
             .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                Button{
-                    performAction(.LeadingPrimary)
-                } label: {
-                    Label(currentTaskSwipeAndTapOptions.primarySwipeLeading.title, systemImage: currentTaskSwipeAndTapOptions.primarySwipeLeading.systemImage)
+                if (currentTaskSwipeAndTapOptions.primarySwipeLeading != .none) {
+                    Button{
+                        performAction(.LeadingPrimary)
+                    } label: {
+                        Label(currentTaskSwipeAndTapOptions.primarySwipeLeading.title, systemImage: currentTaskSwipeAndTapOptions.primarySwipeLeading.systemImage)
+                    }
+                    .tint(currentTaskSwipeAndTapOptions.primarySwipeLeading.color)
                 }
-                .tint(currentTaskSwipeAndTapOptions.primarySwipeLeading.color)
-                Button{
-                    performAction(.LeadingSecondary)
-                } label: {
-                    Label(currentTaskSwipeAndTapOptions.secondarySwipeLeading.title, systemImage: currentTaskSwipeAndTapOptions.secondarySwipeLeading.systemImage)
+                
+                if (currentTaskSwipeAndTapOptions.secondarySwipeLeading != .none) {
+                    Button{
+                        performAction(.LeadingSecondary)
+                    } label: {
+                        Label(currentTaskSwipeAndTapOptions.secondarySwipeLeading.title, systemImage: currentTaskSwipeAndTapOptions.secondarySwipeLeading.systemImage)
+                    }
+                    .tint(currentTaskSwipeAndTapOptions.secondarySwipeLeading.color)
                 }
-                .tint(currentTaskSwipeAndTapOptions.secondarySwipeLeading.color)
+
+
             }
             .confirmationDialog(
                 "Are you sure you want to delete \(task.name ?? "task")?",
@@ -132,7 +149,7 @@ struct TaskRowView: View {
     }
     
     func performAction(_ action: ActionOption) {
-        Logger.UserInterface.debug("Perform action: \(String(describing: action))")
+        LogManager.shared.log.debug("Perform action: \(String(describing: action))")
         switch action {
         case .LeadingPrimary: performActionOption(currentTaskSwipeAndTapOptions.primarySwipeLeading)
         case .LeadingSecondary: performActionOption(currentTaskSwipeAndTapOptions.secondarySwipeLeading)

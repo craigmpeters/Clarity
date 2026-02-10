@@ -8,22 +8,28 @@
 import WidgetKit
 import AppIntents
 import SwiftUI
+import XCGLogger
 
 struct TaskWidgetIntent: WidgetConfigurationIntent {
     static var title: LocalizedStringResource = "Task Filter"
     static var description = IntentDescription("Choose which tasks to display")
     
-    @Parameter(title: "Filter", default: .today)
+    @Parameter(title: "Date Filter", default: .today)
     var filter: TaskFilterOption
+
+    @Parameter(title: "Category Filter", default: [])
+    var categoryFilter: [CategoryEntity]
     
     // Add this initializer to help with intent mapping
     init() {
         self.filter = .today
+        self.categoryFilter = []
     }
     
-    init(filter: TaskFilterOption) {
+    init(filter: TaskFilterOption, categoryFilter: [CategoryEntity]) {
         self.filter = filter
+        self.categoryFilter = categoryFilter
+        LogManager.shared.log.debug("Widget Intent Loaded")
     }
 }
-
 

@@ -31,6 +31,7 @@ struct ClarityWidgetProvider: AppIntentTimelineProvider {
         } catch {
             print("Failed to read tasks from file DB: \(error)")
         }
+        todos = ToDoTaskDTO.focusFilter(in: todos)
         let progress = ClarityServices.fetchWeeklyProgress()
         return TaskWidgetEntry(date: .now, todos: todos, progress: progress, filter: configuration.filter)
     }
@@ -43,7 +44,19 @@ struct ClarityWidgetProvider: AppIntentTimelineProvider {
         } catch {
             print("Failed to read tasks from file DB: \(error)")
         }
+        
+        let selectedCategories: [CategoryEntity] = configuration.categoryFilter
+        if selectedCategories.count > 0 {
+            // If empty display everything
+            let selectedCategoryNames = Set(selectedCategories.map(\.name))
+            todos = todos.filter { task in
+                let taskCategories = Set((task.categories).compactMap(\.name))
+                return !taskCategories.isDisjoint(with: selectedCategoryNames)
+            }
+        }
+
         let progress = ClarityServices.fetchWeeklyProgress()
+        todos = ToDoTaskDTO.focusFilter(in: todos)
         let entry = TaskWidgetEntry(date: .now, todos: todos, progress: progress, filter: configuration.filter)
         
         let calendar = Calendar.current

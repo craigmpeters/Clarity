@@ -243,7 +243,7 @@ struct StatsView: View {
             csv += "\"\(task.name ?? "")\",\"\(completedDate)\",\"\(categories)\",\(pomodoroMinutes),\n"
         }
         
-        Logger.UserInterface.debug("CSV \(csv)")
+        LogManager.shared.log.debug("CSV \(csv)")
         
         // Build a friendly filename using app name, timeframe, and today's date
         let dateFormatter = DateFormatter()
@@ -259,7 +259,7 @@ struct StatsView: View {
         do {
             try csv.write(to: tempURL, atomically: true, encoding: .utf8)
         } catch {
-            Logger.UserInterface.error("Failed to write CSV to temp file: \(error.localizedDescription)")
+            LogManager.shared.log.error("Failed to write CSV to temp file: \(error.localizedDescription)")
         }
         shareItems = [tempURL]
         shareSubject = "To-Do Statistics — \(selectedTimeframe.rawValue)"
@@ -823,3 +823,11 @@ struct ActivityViewController: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
+
+
+#if DEBUG
+#Preview {
+    StatsView()
+    .modelContainer(PreviewData.shared.previewContainer)
+}
+#endif

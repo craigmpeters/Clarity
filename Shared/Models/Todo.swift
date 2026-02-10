@@ -10,6 +10,7 @@ import SwiftData
 import Observation
 import SwiftUI
 import os
+import XCGLogger
 
 @Model
 class ToDoTask {
@@ -41,7 +42,7 @@ class ToDoTask {
         
         if interval == .specific{
             guard let day = everySpecificDayDay else {
-                Logger.ClarityServices.critical("Specific Day of the week but no day set, setting monday")
+                LogManager.shared.log.debug("Specific Day of the week but no day set, setting monday")
                 everySpecificDayDay = 1
                 return "Every Monday"
             }
@@ -161,18 +162,18 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
         self.uuid = uuid ?? UUID()
     }
     
-    var encodedId: String? {
-        guard let id else { return nil }
-        guard let data = try? JSONEncoder().encode(id) else { return nil }
-        return data.base64EncodedString()
-    }
-    
-    public static func decodeId(_ encodedId: String) throws -> PersistentIdentifier? {
-        guard let data = Data(base64Encoded: encodedId) else {
-            throw NSError(domain: "ToDo", code: 0, userInfo: nil)
-        }
-        return try JSONDecoder().decode(PersistentIdentifier.self, from: data)
-    }
+//    var encodedId: String? {
+//        guard let id else { return nil }
+//        guard let data = try? JSONEncoder().encode(id) else { return nil }
+//        return data.base64EncodedString()
+//    }
+//    
+//    public static func decodeId(_ encodedId: String) throws -> UUID? {
+//        guard let data = Data(base64Encoded: encodedId) else {
+//            throw NSError(domain: "ToDo", code: 0, userInfo: nil)
+//        }
+//        return try JSONDecoder().decode(UUID.self, from: data)
+//    }
 }
 
 extension ToDoTaskDTO {
@@ -190,6 +191,82 @@ extension ToDoTaskDTO {
             categories: (model.categories ?? []).map(CategoryDTO.init(from:)),
             uuid: model.uuid ?? UUID()
         )
+    }
+    
+    //TODO: Remove Duplication
+    public static func focusFilter(in tasks: [ToDoTaskDTO]) -> [ToDoTaskDTO] {
+        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
+        let focusData = defaults?.data(forKey: "ClarityFocusFilter")
+        if let focusData {
+            let base64 = focusData.base64EncodedString()
+            Logger(subsystem: "me.craigpeters.clarity", category: "FocusFilter").debug("ClarityFocusFilter (base64, length=\(base64.count)) = \(base64)")
+            if let json = String(data: focusData, encoding: .utf8) {
+                Logger(subsystem: "me.craigpeters.clarity", category: "FocusFilter").debug("ClarityFocusFilter (json) = \(json)")
+            } else {
+                Logger(subsystem: "me.craigpeters.clarity", category: "FocusFilter").debug("ClarityFocusFilter data is not valid UTF-8 JSON")
+            }
+        }
+        guard let focusData, let settings = try? JSONDecoder().decode(CategoryFilterSettings.self, from: focusData) else {
+            return tasks
+        }
+        
+        let focusedNames = Set(settings.Categories.compactMap { $0.name })
+        
+        func hasAllowedCategory(_ task: ToDoTaskDTO, allowed: Set<String>, showOrHide: FilterShowOrHide) -> Bool {
+            let categoryNames = (task.categories).map { $0.name }
+            if categoryNames.isEmpty { // If show include, if hide do not include
+                switch showOrHide {
+                case .show: return true
+                case .hide: return false
+                }
+            }
+            return categoryNames.contains { focusedNames.contains($0) }
+        }
+        
+        switch settings.showOrHide {
+        case .show:
+            return tasks.filter { hasAllowedCategory($0, allowed: focusedNames, showOrHide: .show) }
+        case .hide:
+            return tasks.filter { !hasAllowedCategory($0, allowed: focusedNames, showOrHide: .hide) }
+        }
+    }
+}
+
+extension ToDoTask {
+
+    public static func focusFilter(in tasks: [ToDoTask]) -> [ToDoTask] {
+        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
+        let focusData = defaults?.data(forKey: "ClarityFocusFilter")
+        if let focusData {
+            if let json = String(data: focusData, encoding: .utf8) {
+                
+            } else {
+                LogManager.shared.log.debug("Not valid JSON")
+            }
+        }
+        guard let focusData, let settings = try? JSONDecoder().decode(CategoryFilterSettings.self, from: focusData) else {
+            return tasks
+        }
+
+        let focusedNames = Set(settings.Categories.compactMap { $0.name })
+
+        func hasAllowedCategory(_ task: ToDoTask, allowed: Set<String>, showOrHide: FilterShowOrHide) -> Bool {
+            let categoryNames = (task.categories ?? []).map { $0.name }
+            if categoryNames.isEmpty { // If show include, if hide do not include
+                switch showOrHide {
+                case .show: return true
+                case .hide: return false
+                }
+            }
+            return categoryNames.contains { focusedNames.contains($0!) }
+        }
+
+        switch settings.showOrHide {
+        case .show:
+            return tasks.filter { hasAllowedCategory($0, allowed: focusedNames, showOrHide: .show) }
+        case .hide:
+            return tasks.filter { !hasAllowedCategory($0, allowed: focusedNames, showOrHide: .hide) }
+        }
     }
 }
 
@@ -250,3 +327,4 @@ extension ToDoTask.TaskFilter {
         }
     }
 }
+

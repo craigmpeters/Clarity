@@ -25,6 +25,24 @@ struct DevelopmentMenuView: View {
                 Section("File Data"){
                     Text("Total Tasks in File Database:  \(getTotalTasksinFileDB())")
                 }
+                Section("Focus State Testing") {
+                    Button("Turn off Focus State") {
+                        turnOffFocus()
+                    }
+                    Button("Set show focus state") {
+                        turnOnFocus()
+                    }
+                    Button("Set hide focus state") {
+                        turnonHideFocus()
+                    }
+                    
+                }
+                if #available(iOS 26.0, *) {
+                    Section("Apple Intelligence Testing") {
+                        DevPomodoroSuggestionText()
+                    }
+
+                }
                 Section("Test Data") {
                     Button("Populate Sample Tasks") {
                         populateSampleTasks()
@@ -529,6 +547,42 @@ struct DevelopmentMenuView: View {
         alertMessage = message
         showingAlert = true
     }
+    
+    private func turnOffFocus() {
+        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
+        let settings = CategoryFilterSettings(Categories: [], showOrHide: .hide)
+        saveFocusSettings(settings)
+        NotificationCenter.default.post(name: .focusSettingsChanged, object: nil)
+        showAlert("Focus Off")
+    }
+    
+    private func turnOnFocus() {
+        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
+        let entity = CategoryEntity(name: "Work")
+        let settings = CategoryFilterSettings(Categories: [entity], showOrHide: .show)
+        saveFocusSettings(settings)
+        NotificationCenter.default.post(name: .focusSettingsChanged, object: nil)
+        showAlert("Focus Set")
+    }
+    
+    private func turnonHideFocus() {
+        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
+        let entity = CategoryEntity(name: "Work")
+        let settings = CategoryFilterSettings(Categories: [entity], showOrHide: .hide)
+        saveFocusSettings(settings)
+        NotificationCenter.default.post(name: .focusSettingsChanged, object: nil)
+        showAlert("Focus Set")
+    }
+    
+    private func saveFocusSettings(_ settings: CategoryFilterSettings) {
+        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
+        do {
+            let data = try JSONEncoder().encode(settings)
+            defaults?.set(data, forKey: "ClarityFocusFilter")
+        } catch {
+            print("Failed to encode CategoryFilterSettings: \(error)")
+        }
+    }
 }
 
 // MARK: - Development Menu Modifier
@@ -577,6 +631,10 @@ struct DevelopmentSection: View {
         #endif
     }
 }
+
+//extension Notification.Name {
+//    static let focusSettingsChanged = Notification.Name("focusSettingsChanged")
+//}
 
 #endif
 

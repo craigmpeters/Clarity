@@ -50,6 +50,7 @@ struct ClarityApp: App {
         // Only run once per build
         let currentBuild = Migration.currentBuild
         guard currentBuild >= minimumBuild, Migration.hasRun(forBuild: currentBuild) == false else { return }
+        LogManager.shared.log.debug("Running Populate UUID Migration")
 
         // Define a dynamic fetch to avoid compile-time dependency on Todo type if not imported here
         // If you have a concrete model type like `Todo`, replace with a typed FetchDescriptor<Todo>()
@@ -85,11 +86,17 @@ struct ClarityApp: App {
                 .onAppear {
                     appDelegate.appState = appState
                     populateUUIDsIfNeeded(modelContext: container.mainContext, minimumBuild: "1.3.0")
+                    Task { @MainActor in
+                        await PomodoroService.shared.restoreIfNeeded(container: container, device: .iPhone)
+                        if PomodoroService.shared.isActive {
+                            appState.showingPomodoro = true
+                        }
+                    }
                 }
-                .environmentObject(LogCenter.shared)
                 .task {
                     if let id = consumePendingStartTimerTaskId() {
                         appState.pomodoroUuid = id
+                        LogManager.shared.log.debug("Starting Pomodero (.task) for \(id.uuidString)")
                         let store = ClarityModelActor(modelContainer: container)
                         do {
                             if let taskDTO = try await store.fetchTaskByUuid(id) {
@@ -98,13 +105,14 @@ struct ClarityApp: App {
                             }
                         } catch {
                             // Log and swallow the error to keep the .task closure non-throwing
-                            print("Failed to fetch task by UUID: \(error)")
+                            LogManager.shared.log.error("Failed to fetch task by UUID: \(error)")
                         }
                     }
                 }
                 .onChange(of: scenePhase) { _, newPhase in
                     guard newPhase == .active else { return }
                     if let id = consumePendingStartTimerTaskId() {
+                        LogManager.shared.log.debug("Starting Pomodero (.onChange Active) for \(id.uuidString)")
                         appState.pomodoroUuid = id
                         let store = ClarityModelActor(modelContainer: container)
                         Task {
@@ -114,7 +122,7 @@ struct ClarityApp: App {
                                     appState.showingPomodoro = true
                                 }
                             } catch {
-                                print("Failed to fetch task by UUID (resume): \(error)")
+                                LogManager.shared.log.error("Failed to fetch task by UUID (resume): \(error)")
                             }
                         }
                     }
@@ -173,12 +181,18 @@ struct ClarityApp: App {
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     private var cancellables = Set<AnyCancellable>()
+    private static var remoteLoggerInstalled = false
+    
     weak var appState: AppState?
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
         // Migrations are triggered from ClarityApp.onAppear via modelContext
         ClarityWatchConnectivity.shared.start()
+        _ = LogManager.shared
+        // let url = LogManager.defaultLogFileURL()
+        LogManager.shared.log.info("Clarity logger initialized in AppDelegate")
+        AppDelegate.installRemoteChangeLogger()
         NotificationCenter.default.publisher(for: .pomodoroStarted)
             .sink { [weak self] _ in
                 DispatchQueue.main.async {
@@ -190,6 +204,30 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         
         return true
     }
+    
+    // Remote change logging (CloudKit merges)
+    
+    private static func installRemoteChangeLogger() {
+        #if canImport(CoreData)
+        guard !remoteLoggerInstalled else { return }
+        remoteLoggerInstalled = true
+        NotificationCenter.default.addObserver(forName: Notification.Name.NSPersistentStoreRemoteChange, object: nil, queue: .main) { note in
+            let date = ISO8601DateFormatter().string(from: Date())
+            LogManager.shared.log.info("📥 SwiftData remote change merged at \(date)")
+            Task.detached(priority: .utility) {
+                do {
+                    let container = try ClarityServices.sharedContainer()
+                    let store = await StoreRegistry.shared.store(for: container)
+                    try await store.deduplicateTasksByUUID()
+                } catch {
+                    LogManager.shared.log.error("Remote merge dedup failed: \(error.localizedDescription)")
+                }
+            }
+        }
+        LogManager.shared.log.info("✅ Installed remote change logger for SwiftData (NSPersistentStoreRemoteChange)")
+        #endif
+    }
+
     
     // This allows notifications to show when app is in foreground
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {

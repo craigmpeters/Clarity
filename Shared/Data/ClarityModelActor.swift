@@ -9,10 +9,16 @@ import Foundation
 import os
 import SwiftData
 import WidgetKit
+import XCGLogger
 
 @ModelActor
 actor ClarityModelActor {
     // MARK: Category Functions
+    private let logger = LogManager.shared.log
+    // Prevent concurrent completions for the same UUID within this actor
+    private var inFlightCompletions: Set<UUID> = []
+    // Throttle dedup runs triggered by remote merges / write paths
+    private var lastDedupRunAt: Date? = nil
     
     func addCategory(_ dto: CategoryDTO) throws -> CategoryDTO {
         let category = Category(
@@ -56,6 +62,25 @@ actor ClarityModelActor {
     }
     
     // MARK: Task Functions
+    
+    func fetchLastCompletedTask(filter: ToDoTask.TaskFilter = .all) -> ToDoTaskDTO? {
+        let descriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate { $0.completed },
+            sortBy: [SortDescriptor(\.completedAt, order: .reverse)]
+        )
+        
+        do {
+            let tasks = try modelContext.fetch(descriptor)
+            let now = Date()
+            let filtered = tasks.filter { filter.matches(task: $0, at: now) }
+            if let task = filtered.first {
+                return ToDoTaskDTO(from: task)
+            }
+            return nil
+        } catch {
+            return nil
+        }
+    }
 
     func fetchTasks(filter: ToDoTask.TaskFilter) throws -> [ToDoTaskDTO] {
         let descriptor = FetchDescriptor<ToDoTask>(
@@ -97,11 +122,12 @@ actor ClarityModelActor {
         model.repeating = task.repeating
         model.pomodoro = task.pomodoro
         model.everySpecificDayDay = task.everySpecificDayDay
-        Logger.ModelActor.debug("Update Task Day Day \(task.everySpecificDayDay)")
+        LogManager.shared.log.debug("Update Task Day Day \(task.everySpecificDayDay)")
         
         try modelContext.save()
         try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
         WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
+        try? deduplicateTasksByUUID()
         return ToDoTaskDTO(from: model)
     }
     
@@ -109,11 +135,41 @@ actor ClarityModelActor {
         // Safely fetch categories using the provided context
         let descriptor = FetchDescriptor<Category>()
         let allCategories = try modelContext.fetch(descriptor)
-        // Filter to only the selected categories
-        let categories = allCategories.filter { category in
-            dto.categories.contains(where: { $0.name == category.name })
+        let incomingCategoryNames = dto.categories.map { $0.name }
+        LogManager.shared.log.debug("addTask incoming categories: names=\(incomingCategoryNames) count=\(dto.categories.count)")
+        // Map CategoryDTOs to persisted Category models (prefer id, fallback to name)
+        let categories: [Category] = dto.categories.compactMap { dto in
+            if let catId = dto.id, let existing = modelContext.model(for: catId) as? Category {
+                return existing
+            }
+            return allCategories.first(where: { $0.name == dto.name })
         }
-        Logger.ModelActor.debug("Add Task Day Day \(dto.everySpecificDayDay)")
+        LogManager.shared.log.debug("addTask mapped categories count=\(categories.count)")
+        LogManager.shared.log.debug("Add Task Day Day \(dto.everySpecificDayDay)")
+        
+        
+        // Capture the UUID outside the predicate to avoid global function calls inside the predicate body
+        let targetUUID: UUID? = dto.uuid
+        let existingDescriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate {
+                $0.uuid == targetUUID &&
+                !$0.completed
+            }
+        )
+        
+        let existing = try modelContext.fetch(existingDescriptor)
+
+        if let existingTask = existing.first {
+            LogManager.shared.log.info("addTask deduped: active task already exists for UUID \(existingTask.uuid?.uuidString ?? "Unknown UUID")")
+            return ToDoTaskDTO(from: existingTask)
+        }
+        // Re-check just before insert to avoid races
+        let existingBeforeInsert = try modelContext.fetch(existingDescriptor)
+        LogManager.shared.log.debug("addTask existingBeforeInsert count=\(existingBeforeInsert.count)")
+        if let existingTask = existingBeforeInsert.first {
+            LogManager.shared.log.info("addTask deduped (pre-insert): active task already exists for UUID \(existingTask.uuid?.uuidString ?? "Unknown UUID")")
+            return ToDoTaskDTO(from: existingTask)
+        }
         
         let toDoTask = ToDoTask(
             name: dto.name,
@@ -127,14 +183,14 @@ actor ClarityModelActor {
             categories: categories,
             uuid: dto.uuid
         )
-        
-        modelContext.insert(toDoTask)
-        
-        try? modelContext.save()
-        try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
-        WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
-        
-        return ToDoTaskDTO(from: toDoTask)
+            modelContext.insert(toDoTask)
+            
+            try modelContext.save()
+            try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
+            WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
+            try? deduplicateTasksByUUID()
+            
+            return ToDoTaskDTO(from: toDoTask)
     }
     
     func deleteTask(_ id: PersistentIdentifier) throws {
@@ -144,32 +200,76 @@ actor ClarityModelActor {
         }
         try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
         WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
+        try? deduplicateTasksByUUID()
     }
     
-    func completeTask(_ id: PersistentIdentifier) throws {
-        guard let model = modelContext.model(for: id) as? ToDoTask else {
-            throw NSError(domain: "ClarityActor", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing PersistentIdentifier"])
+    func completeTask(_ id: UUID) throws {
+        var completed = false
+        
+        // In-flight guard to avoid concurrent duplicate next-occurrence creation
+        if inFlightCompletions.contains(id) {
+            LogManager.shared.log.warning("completeTask: UUID \(id.uuidString) already in-flight, ignoring duplicate call")
+            return
         }
-        Logger.ClarityServices.debug("Complete Task DayDay: \(model.everySpecificDayDay.map(String.init) ?? "None")")
-        model.completed = true
-        model.completedAt = Date.now
-        if model.repeating == true, let nextTask = createNextOccurrence(id) {
-            _ = try addTask(nextTask)
+        inFlightCompletions.insert(id)
+        defer { inFlightCompletions.remove(id) }
+        
+        LogManager.shared.log.info("Completing task with UUID \(id.uuidString)")
+        let taskUuid: UUID? = id
+        let descriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate {
+                $0.uuid == taskUuid &&
+                !$0.completed
+            }
+        )
+        var tasks = try modelContext.fetch(descriptor)
+        switch tasks.count {
+        case 0: do { // No tasks found
+            LogManager.shared.log.error("No tasks found to complete for UUID \(id.uuidString)")
+            return
+        }
+        case 2...: do { // Multiple Tasks to complete
+            LogManager.shared.log.error("Multiple incomplete tasks found for UUID \(id.uuidString) names \(tasks.map { $0.name ?? "No Task Name Found" }.joined(separator: ",")) ... completing all tasks")
+        }
+        default:
+            LogManager.shared.log.info("Task \(tasks.first!.name!) found")
+            let first = tasks.first!
+            let catCount = first.categories?.count ?? 0
+            LogManager.shared.log.debug("completeTask: found task uuid=\(first.uuid?.uuidString ?? "nil"), categories=\(catCount)")
+        }
+        do {
+            tasks = try tasks.map { task in
+                task.completed = true
+                task.completedAt = Date.now
+                if task.repeating! && !completed {
+                    if let nextDTO = createNextOccurrence(task.id) {
+                        LogManager.shared.log.debug("completeTask: creating next occurrence for uuid=\(task.uuid?.uuidString ?? "nil"), dtoCategoryCount=\(nextDTO.categories.count)")
+                        let newTask = try addTask(nextDTO)
+                        LogManager.shared.log.info("Created New Task for \(newTask.name)")
+                    }
+                    completed = true
+                }
+                return task
+            }
+        } catch {
+            LogManager.shared.log.error("Error in completing task \(error.localizedDescription)")
         }
         try modelContext.save()
         try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
         WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
+        try? deduplicateTasksByUUID()
     }
     
     func fetchTaskByUuid(_ id: UUID) throws -> ToDoTaskDTO? {
+        let taskUuid: UUID? = id
         let descriptor = FetchDescriptor<ToDoTask>(
             predicate: #Predicate {
-                $0.uuid == id &&
+                $0.uuid == taskUuid &&
                 !$0.completed
             }
         )
         let tasks = try modelContext.fetch(descriptor)
-        Logger.ClarityServices.debug("fetchTaskByUuid: \(id) returned: \(tasks.count)")
+        LogManager.shared.log.info("fetchTaskByUuid: \(id) returned: \(tasks.count)")
         return tasks.first.map(ToDoTaskDTO.init(from:))
     }
     func fetchTaskById(_ id: PersistentIdentifier) throws -> ToDoTaskDTO? {
@@ -184,7 +284,7 @@ actor ClarityModelActor {
         
         guard let task = modelContext.model(for: id) as? ToDoTask else {
             // Avoid interpolating PersistentIdentifier directly in logs
-            Logger.ClarityServices.error("Task not found for provided PersistentIdentifier")
+            LogManager.shared.log.error("Task not found for provided PersistentIdentifier")
             return nil
         }
         
@@ -198,7 +298,7 @@ actor ClarityModelActor {
             } else
             if interval == .specific {
                 // Stored value already matches Calendar weekday (1...7). Clamp to be safe; default to Sunday (1) if nil.
-                Logger.ClarityServices.debug("createNextOccurrence Day Day: \(task.everySpecificDayDay.map(String.init) ?? "None")")
+                LogManager.shared.log.debug("createNextOccurrence Day Day: \(task.everySpecificDayDay.map(String.init) ?? "None")")
                 var com = DateComponents()
                 // Map app's weekday index (where 3 = Wednesday) to Calendar's weekday (1 = Sunday ... 7 = Saturday)
                 if let appWeekday = task.everySpecificDayDay {
@@ -215,7 +315,7 @@ actor ClarityModelActor {
 
                 let calendar = Calendar.current
                 let startOfToday = calendar.startOfDay(for: Date())
-                let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? Date().addingTimeInterval(86_400)
+                // let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? Date().addingTimeInterval(86_400)
 
                 if let computed = calendar.nextDate(after: startOfToday,
                                                     matching: com,
@@ -224,7 +324,7 @@ actor ClarityModelActor {
                 {
                     nextDueDate = computed
                 } else {
-                    Logger.ClarityServices.error("Failed to compute next specific weekday; falling back to interval.nextDate")
+                    LogManager.shared.log.error("Failed to compute next specific weekday; falling back to interval.nextDate")
                     nextDueDate = interval.nextDate(from: Date.now)
                 }
             } else {
@@ -234,6 +334,10 @@ actor ClarityModelActor {
             // Fallback to daily if no interval set
             nextDueDate = Calendar.current.date(byAdding: .day, value: 1, to: task.due) ?? task.due
         }
+        
+        // Ensure categories are realized before mapping (if lazily loaded)
+        let categoryCount = task.categories?.count ?? 0
+        LogManager.shared.log.debug("createNextOccurrence: base task uuid=\(task.uuid?.uuidString ?? "nil"), name=\(task.name ?? "nil"), categories=\(categoryCount), nextDue=\(nextDueDate)")
         
         let newTask = ToDoTaskDTO(
             name: task.name,
@@ -279,6 +383,74 @@ actor ClarityModelActor {
             error: "",
             categories: []
         )
+    }
+    
+    // MARK: - Maintenance / Deduplication
+    /// Scan for duplicate incomplete tasks that share the same series UUID and remove extras.
+    /// Winner selection rule (deterministic):
+    /// 1) Earliest `due` wins; if ties, the one with non-nil `name` wins; then smallest `id` debugDescription.
+    /// Losers are deleted. Categories are not merged (by design) to preserve the winner as source of truth.
+    /// This function is intentionally not hooked up to any notifications; call it manually when needed.
+    func deduplicateTasksByUUID() throws {
+        // Throttle: avoid running too frequently (e.g., during remote merge storms)
+        let now = Date()
+        if let last = lastDedupRunAt, now.timeIntervalSince(last) < 5 { // 5s window
+            logger.debug("Dedup: Skipping run (throttled)")
+            return
+        }
+        lastDedupRunAt = now
+
+        // Fetch all incomplete tasks
+        let descriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate { !$0.completed }
+        )
+        let tasks = try modelContext.fetch(descriptor)
+
+        // Group by UUID (ignore nil)
+        var groups: [UUID: [ToDoTask]] = [:]
+        for task in tasks {
+            guard let id = task.uuid else { continue }
+            groups[id, default: []].append(task)
+        }
+
+        var totalDuplicateGroups = 0
+        var totalDeleted = 0
+
+        for (uuid, group) in groups where group.count > 1 {
+            logger.error("Dedup: Found duplicate group uuid=\(uuid.uuidString) count=\(group.count)")
+
+            // Log full details for each record in the group
+            for (idx, t) in group.enumerated() {
+                let categories = (t.categories ?? []).compactMap { $0.name }.joined(separator: ",")
+                logger.error("  [\(idx)] id=\(t.id.debugDescription) name=\(t.name ?? "nil") due=\(t.due) completed=\(t.completed) completedAt=\(String(describing: t.completedAt)) cats=[\(categories)]")
+            }
+
+            // Choose the winner deterministically
+            let winner = group.min { a, b in
+                if a.due != b.due { return a.due < b.due }
+                let aNameNil = (a.name == nil)
+                let bNameNil = (b.name == nil)
+                if aNameNil != bNameNil { return bNameNil } // prefer non-nil name
+                return a.id.debugDescription < b.id.debugDescription
+            }!
+
+            // Delete all others
+            for t in group where t.id != winner.id {
+                logger.warning("Dedup: Deleting loser id=\(t.id.debugDescription) for uuid=\(uuid.uuidString)")
+                modelContext.delete(t)
+                totalDeleted += 1
+            }
+            totalDuplicateGroups += 1
+        }
+
+        if totalDuplicateGroups > 0 {
+            try modelContext.save()
+            // Keep widgets in sync with the new state
+            try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
+            WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
+        }
+
+        logger.info("Dedup: groups=\(totalDuplicateGroups) deleted=\(totalDeleted)")
     }
 }
 
@@ -329,7 +501,7 @@ enum Containers {
 // AppContainer.swift (APP TARGET)
 enum AppContainer {
     static let shared: ModelContainer = {
-        Logger.ModelActor.debug("🏗️ Creating CloudKit container (APP)")
         return try! Containers.liveApp()
     }()
 }
+

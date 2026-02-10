@@ -22,12 +22,12 @@ struct ListTasksIntent: AppIntent {
     var filter: TaskFilterOption
 
 
-    func perform() async throws -> some IntentResult & ProvidesDialog & ReturnsValue<[TaskEntity]> {
+    func perform() async throws -> some IntentResult & ReturnsValue<[TaskEntity]> {
         let tasks = try await TaskQuery().entities(matching: filter)
         var filtered = tasks
         if repeatingOnly {
             filtered = filtered.filter { $0.repeating }
         }
-        return .result(value: filtered, dialog: "Clarity Tasks")
+        return .result(value: filtered)
     }
 }

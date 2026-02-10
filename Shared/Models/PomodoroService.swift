@@ -11,6 +11,7 @@ import Foundation
 import SwiftData
 import UserNotifications
 import AppIntents
+import XCGLogger
 
 @MainActor final class PomodoroService: ObservableObject {
     static let shared = PomodoroService()
@@ -44,8 +45,28 @@ import AppIntents
 
     private var calculatedProgress: Double {
         guard remainingTime > 0 else { return 0 }
-        guard let totalTime = toDoTask?.pomodoroTime else { return 0 }
-        return 1.0 - (remainingTime / totalTime)
+        let totalTime: TimeInterval? = {
+            if let t = toDoTask?.pomodoroTime  { return t }
+            if let s = startTime, let e = endTime { return e.timeIntervalSince(s) }
+            return nil
+        }()
+        guard let total = totalTime, total > 0 else { return 0 }
+        return 1.0 - (remainingTime / total)
+    }
+    
+    private let pomodoroPersistKey = "activePomodoroState"
+    private let appGroupID = "group.me.craigpeters.clarity"
+    
+    private struct PersistedPomodoro: Codable {
+        let taskUUID: UUID?
+        let taskName: String?
+        let startTime: Date
+        let endTime: Date
+        let startedDevice: String
+    }
+    
+    private func appGroupDefaults() -> UserDefaults? {
+        UserDefaults(suiteName: appGroupID)
     }
     
     enum DeviceType {
@@ -55,7 +76,9 @@ import AppIntents
     
     // MARK: Public Functions
     
+    @MainActor
     func startPomodoro(for toDoTask: ToDoTaskDTO, container: ModelContainer, device: DeviceType) {
+        LogManager.shared.log.info("Starting Pomodoro for \(toDoTask.name)")
         startedDevice = device
         self.container = container
         self.toDoTask = toDoTask
@@ -65,6 +88,7 @@ import AppIntents
         isActive = true
         startTimer()
         startLiveActivity()
+        persistState()
         if let end = endTime {
             let notif = NotificationContent(
                 title: "Pomodoro Finished",
@@ -82,7 +106,7 @@ import AppIntents
     func endPomodoro() async {
         // Make idempotent: if already inactive, do nothing
         guard isActive else {
-            print("Pomodoro is not active")
+            LogManager.shared.log.error("Pomodoro is not active")
             return
         }
 
@@ -96,18 +120,88 @@ import AppIntents
 
         stopLiveActivity()
         cancelNotification()
+        clearPersistedState()
         
         // Post a single completion notification
         NotificationCenter.default.post(name: .pomodoroCompleted, object: nil)
         if startedDevice == .watchOS {
             if let task = toDoTask {
-                print("Sending Pomodoro Stopped with Task")
+                LogManager.shared.log.debug("Sending Pomodoro Stopped with Task")
                 await ClarityWatchConnectivity.shared.sendPomodoroStopped(task)
             }
         } else {
-            print("Sending Pomodoro Stopped without Task")
+            LogManager.shared.log.debug("Sending Pomodoro Stopped without Task")
             await ClarityWatchConnectivity.shared.sendPomodoroStopped()
         }
+    }
+    
+    @MainActor
+    func restoreIfNeeded(container: ModelContainer, device: DeviceType) async {
+        guard let data = appGroupDefaults()?.data(forKey: pomodoroPersistKey) else {
+            LogManager.shared.log.debug("No Pomodoro state to restore")
+            return
+        }
+        do {
+            let persisted = try JSONDecoder().decode(PersistedPomodoro.self, from: data)
+            LogManager.shared.log.debug("Restoring Pomodoro with task: \(persisted.taskName ?? "Task Unknown")")
+            guard persisted.endTime > Date() else {
+                LogManager.shared.log.debug("Pomodoro already completed, not restoring")
+                let store = ClarityModelActor(modelContainer: container)
+                let lastCompleted = await store.fetchLastCompletedTask()
+                if let uuid = persisted.taskUUID {
+                    if lastCompleted?.uuid == uuid && (lastCompleted?.completedAt)! > persisted.startTime {
+                        LogManager.shared.log.debug("Task already completed")
+                    } else {
+                        try await store.completeTask(uuid)
+                    }
+                }
+                clearPersistedState()
+                stopLiveActivity()
+                cancelNotification()
+                return
+            }
+            
+            // rebuild state
+            self.container = container
+            self.isActive = true
+            self.startedDevice = (persisted.startedDevice == "watchOS") ? .watchOS : .iPhone
+            self.startTime = persisted.startTime
+            self.endTime = persisted.endTime
+            
+            // Find Task
+            if let uuid = persisted.taskUUID {
+                let store = ClarityModelActor(modelContainer: container)
+                if let dto = try? await store.fetchTaskByUuid(uuid) {
+                    self.toDoTask = dto
+                } else {
+                    self.toDoTask = nil
+                    LogManager.shared.log.debug("Failed to find task with UUID: \(uuid)")
+                }
+            }
+            
+            // Attach to Activity
+            if let existing = Activity<PomodoroAttributes>.activities.first {
+                self.activity = existing
+                LogManager.shared.log.debug("Attached to existing Live Activity")
+            } else {
+                LogManager.shared.log.debug("Could not find Live Activity, creating new one")
+                startLiveActivity()
+            }
+            
+            // Recompute time/progress and resume timer
+            self.remainingTime = max(0, self.endTime?.timeIntervalSinceNow ?? 0)
+            self.progress = self.calculatedProgress
+            startTimer()
+
+            // Update UI
+            NotificationCenter.default.post(name: .pomodoroStarted, object: nil)
+            LogManager.shared.log.info("Restored active pomodoro from persisted state")
+            
+        } catch {
+            LogManager.shared.log.error("Failed to decode Pomodoro state: \(error)")
+            clearPersistedState()
+        }
+        
     }
     
     // MARK: Live Activities
@@ -128,9 +222,9 @@ import AppIntents
                 content: activityContent,
                 pushType: nil
             )
-            print("SUCCESS: Live Activity started for task: \(task.name)")
+            LogManager.shared.log.debug("SUCCESS: Live Activity started for task: \(task.name)")
         } catch {
-            print("ERROR: Failed to start Live Activity: \(error.localizedDescription)")
+            LogManager.shared.log.error("ERROR: Failed to start Live Activity: \(error.localizedDescription)")
         }
     }
     
@@ -138,6 +232,7 @@ import AppIntents
         guard let activity = activity else { return }
         Task {
             await activity.end(ActivityContent(state: activity.content.state, staleDate: nil), dismissalPolicy: .immediate)
+            LogManager.shared.log.debug("Stopped Live Activity")
         }
         self.activity = nil
     }
@@ -166,14 +261,15 @@ import AppIntents
         
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
-                print("Error scheduling notification: \(error)")
+                LogManager.shared.log.error("Error scheduling notification: \(error)")
             } else {
-                print("Notification scheduled successfully")
+                LogManager.shared.log.debug("Notification scheduled successfully for \(date.ISO8601Format())")
             }
         }
     }
     
     private func cancelNotification() {
+        LogManager.shared.log.debug("Cancelling Notification")
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [notificationid])
         notificationid = ""
     }
@@ -181,6 +277,7 @@ import AppIntents
     // MARK: Pomodoro Timer Function
 
     private func startTimer() {
+        LogManager.shared.log.debug("Starting Pomodoro Timer")
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor in
@@ -198,4 +295,34 @@ import AppIntents
         }
         RunLoop.main.add(timer!, forMode: .common)
     }
+    
+    // MARK: Persistence
+    @MainActor
+    private func persistState() {
+        guard isActive, let start = startTime, let end = endTime else {
+            clearPersistedState()
+            return
+        }
+        let payload = PersistedPomodoro(
+            taskUUID: toDoTask?.uuid,
+            taskName: toDoTask?.name,
+            startTime: start,
+            endTime: end,
+            startedDevice: (startedDevice == .iPhone) ? "iPhone" : "watchOS"
+        )
+        do {
+            let data = try JSONEncoder().encode(payload)
+            appGroupDefaults()?.set(data, forKey: pomodoroPersistKey)
+            LogManager.shared.log.debug("Persisted active pomodoro to defaults")
+        } catch {
+            LogManager.shared.log.error("Failed to persist pomodoro: \(error.localizedDescription)")
+        }
+    }
+
+    @MainActor
+    private func clearPersistedState() {
+        appGroupDefaults()?.removeObject(forKey: pomodoroPersistKey)
+        LogManager.shared.log.debug("Cleared persisted pomodoro")
+    }
+
 }

@@ -22,8 +22,9 @@ final class PreviewData {
     private init() {
         insertPreviewCategories()
         insertPreviewTasks()
-        
+        insertPreviewGlobalTarget()
         insertTaskSwipeAndTapOptions()
+        insertPreviewAddStatistics()
     }
     
     // MARK: Public Functions
@@ -51,6 +52,18 @@ final class PreviewData {
             print("Failed to fetch tasks: \(error)")
             return []
         }
+    }
+    
+    func getCompletedTasks() -> [ToDoTask] {
+        do {
+            let descriptor = FetchDescriptor<ToDoTask>()
+            let allTasks = try previewContext.fetch(descriptor)
+            return allTasks.filter { $0.completed }
+        } catch {
+            print("Failed to fetch tasks: \(error)")
+            return []
+        }
+        
     }
     
     // #MARK: Individual Task Functions
@@ -158,7 +171,33 @@ final class PreviewData {
         let settings = GlobalTargetSettings()
         settings.weeklyGlobalTarget = 10
         previewContext.insert(settings)
+        saveContext()
+    }
+    
+    private func insertPreviewAddStatistics() {
+        let calendar = Calendar.current
+        let now = Date()
         
+        // Add completed tasks for the past week
+        for dayOffset in 0..<30 {
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: now) else { continue }
+            
+            let taskCount = Int.random(in: 1...3)
+            for taskIndex in 0..<taskCount {
+                let category = getCategories().randomElement()!
+                let task = ToDoTask(
+                    name: "Stats Task \(dayOffset)-\(taskIndex)",
+                    pomodoroTime: TimeInterval(5 * 60),
+                    due: date,
+                    categories: [category]
+                )
+                task.completed = true
+                task.completedAt = date.addingTimeInterval(Double.random(in: 0...86400))
+                previewContext.insert(task)
+            }
+        }
+        
+        saveContext()
     }
     
     private func insertTaskSwipeAndTapOptions() {
