@@ -37,8 +37,7 @@ struct TaskIndexView: View {
 
             return dueDateMatches && matchesSelectedCategory
         }
-        
-        // #TODO: Change level back to verbose once sync issue sorted
+    
         LogManager.shared.log.verbose("Total tasks: \(allTasks.count), Filtered: \(filtered.count)")
         #if INTERNAL
         // MARK: Duplicate task logging
@@ -178,6 +177,7 @@ struct TaskIndexView: View {
         lines.append("uuid: \(t.uuid?.uuidString ?? "nil")")
         lines.append("name: \(t.name ?? "nil")")
         lines.append("due: \(t.due.formatted())")
+        lines.append("created: \(t.completedAt?.formatted() ?? "nil")")
         lines.append("completed: \(t.completed)")
         lines.append("completedAt: \(t.completedAt?.formatted() ?? "nil")")
         lines.append("pomodoro: \(t.pomodoro.description)")
@@ -189,17 +189,6 @@ struct TaskIndexView: View {
         let categoryNames = (t.categories ?? []).compactMap { $0.name }.joined(separator: ", ")
         lines.append("categories.count: \(t.categories?.count ?? 0)")
         lines.append("categories: [\(categoryNames)]")
-
-        // Reflect any additional properties (best-effort; avoids duplicates by skipping known keys)
-        let knownKeys: Set<String> = [
-            "id","uuid","name","due","completed","completedAt","pomodoro","pomodoroTime","repeating","recurrenceInterval","customRecurrenceDays","everySpecificDayDay","categories"
-        ]
-        let mirror = Mirror(reflecting: t)
-        for child in mirror.children {
-            if let key = child.label, !knownKeys.contains(key) {
-                lines.append("\(key): \(String(describing: child.value))")
-            }
-        }
         return lines.joined(separator: "\n")
     }
 }
