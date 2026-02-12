@@ -14,7 +14,7 @@ struct TaskWidgetIntent: WidgetConfigurationIntent {
     static var title: LocalizedStringResource = "Task Filter"
     static var description = IntentDescription("Choose which tasks to display")
     
-    @Parameter(title: "Date Filter", default: .today)
+    @Parameter(title: "Date Filter", default: .all)
     var filter: TaskFilterOption
 
     @Parameter(title: "Category Filter", default: [])
@@ -22,7 +22,7 @@ struct TaskWidgetIntent: WidgetConfigurationIntent {
     
     // Add this initializer to help with intent mapping
     init() {
-        self.filter = .today
+        self.filter = .all
         self.categoryFilter = []
     }
     

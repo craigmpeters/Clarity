@@ -328,3 +328,14 @@ extension ToDoTask.TaskFilter {
     }
 }
 
+extension ToDoTask {
+    static func completedToday() -> Predicate<ToDoTask> {
+        let cal = Calendar.current
+        let now = Date()
+        let startOfDay = cal.startOfDay(for: now)
+        return #Predicate<ToDoTask> { task in
+                task.completed && task.completedAt != nil && task.completedAt! >= startOfDay
+            }
+    }
+}
+

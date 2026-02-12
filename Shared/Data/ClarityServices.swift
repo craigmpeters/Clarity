@@ -45,6 +45,28 @@ enum ClarityServices {
     }
 
     // -------- Snapshots for widgets / quick reads --------
+    
+    static func snapshotCompleted() -> [ToDoTaskDTO] {
+        do {
+            let container = try sharedContainer()
+            let ctx = ModelContext(container)
+            let cal = Calendar.current
+            let now = Date()
+            let startOfDay = cal.startOfDay(for: now)
+
+            let descriptor = FetchDescriptor<ToDoTask>(
+                predicate: #Predicate<ToDoTask> { task in
+                    task.completed && task.completedAt != nil && task.completedAt! >= startOfDay
+                },
+                sortBy: [SortDescriptor(\.completedAt, order: .forward)]
+            )
+            let all = try ctx.fetch(descriptor)
+            return all
+                .map(ToDoTaskDTO.init(from:))
+        } catch {
+            return []
+        }
+    }
 
     static func snapshotTasks(filter: ToDoTask.TaskFilter = .all) -> [ToDoTaskDTO] {
         do {
