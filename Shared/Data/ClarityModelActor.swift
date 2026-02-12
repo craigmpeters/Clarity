@@ -20,6 +20,8 @@ actor ClarityModelActor {
     // Throttle dedup runs triggered by remote merges / write paths
     private var lastDedupRunAt: Date? = nil
     
+    private var totaltasks = 0
+    
     func addCategory(_ dto: CategoryDTO) throws -> CategoryDTO {
         let category = Category(
             name: dto.name,
@@ -386,20 +388,7 @@ actor ClarityModelActor {
     }
     
     // MARK: - Maintenance / Deduplication
-    /// Scan for duplicate incomplete tasks that share the same series UUID and remove extras.
-    /// Winner selection rule (deterministic):
-    /// 1) Earliest `due` wins; if ties, the one with non-nil `name` wins; then smallest `id` debugDescription.
-    /// Losers are deleted. Categories are not merged (by design) to preserve the winner as source of truth.
-    /// This function is intentionally not hooked up to any notifications; call it manually when needed.
     func deduplicateTasksByUUID() throws {
-        // Throttle: avoid running too frequently (e.g., during remote merge storms)
-        let now = Date()
-        if let last = lastDedupRunAt, now.timeIntervalSince(last) < 5 { // 5s window
-            logger.debug("Dedup: Skipping run (throttled)")
-            return
-        }
-        lastDedupRunAt = now
-
         // Fetch all incomplete tasks
         let descriptor = FetchDescriptor<ToDoTask>(
             predicate: #Predicate { !$0.completed }
@@ -422,15 +411,33 @@ actor ClarityModelActor {
             // Log full details for each record in the group
             for (idx, t) in group.enumerated() {
                 let categories = (t.categories ?? []).compactMap { $0.name }.joined(separator: ",")
-                logger.error("  [\(idx)] id=\(t.id.debugDescription) name=\(t.name ?? "nil") due=\(t.due) completed=\(t.completed) completedAt=\(String(describing: t.completedAt)) cats=[\(categories)]")
+                logger.error("  [\(idx)] id=\(t.id.debugDescription) name=\(t.name ?? "nil") due=\(t.due) completed=\(t.completed) completedAt=\(String(describing: t.completedAt)) cats=[\(categories)] created=[\(t.created.ISO8601Format())]")
             }
 
             // Choose the winner deterministically
             let winner = group.min { a, b in
+                let aCatCount = a.categories?.count ?? 0
+                let bCatCount = b.categories?.count ?? 0
+
+                // 1) Prefer the one that has categories if the other doesn't (any positive count beats zero)
+                if (aCatCount > 0) != (bCatCount > 0) {
+                    return aCatCount == 0 // if a has 0 and b > 0, then a is "greater" so return false; but min uses this as "less-than"
+                }
+
+                // 2) If both have categories (or both don't), prefer more categories
+                if aCatCount != bCatCount {
+                    return aCatCount < bCatCount // larger category count wins, so "less-than" should be false when a has more
+                }
+
+                // 3) Earliest due date wins
                 if a.due != b.due { return a.due < b.due }
+
+                // 4) Prefer non-nil name
                 let aNameNil = (a.name == nil)
                 let bNameNil = (b.name == nil)
-                if aNameNil != bNameNil { return bNameNil } // prefer non-nil name
+                if aNameNil != bNameNil { return !aNameNil } // if a has a name and b doesn't, a should come first
+
+                // 5) Stable tie-breaker
                 return a.id.debugDescription < b.id.debugDescription
             }!
 
