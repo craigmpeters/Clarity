@@ -5,11 +5,12 @@
 //  Created by Craig Peters on 17/08/2025.
 //
 
+import AppIntents
 import Foundation
-import SwiftData
 import Observation
-import SwiftUI
 import os
+import SwiftData
+import SwiftUI
 import XCGLogger
 
 @Model
@@ -40,7 +41,7 @@ class ToDoTask {
             }
         }
         
-        if interval == .specific{
+        if interval == .specific {
             guard let day = everySpecificDayDay else {
                 LogManager.shared.log.debug("Specific Day of the week but no day set, setting monday")
                 everySpecificDayDay = 1
@@ -100,8 +101,7 @@ class ToDoTask {
                 // Use the specificDay property
                 return date
             }
-        
-        }
+         }
     }
     
     enum TaskFilter: String, CaseIterable {
@@ -146,10 +146,12 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
     var categories: [CategoryDTO]
     var uuid: UUID
     
-    init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int = 0, categories: [CategoryDTO] = [], uuid: UUID? = UUID()) {
+    init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int = 0, categories: [CategoryDTO] = [], uuid: UUID? = UUID(), complated: Bool = false, completedAt: Date? = nil) {
         self.id = id
         self.name = name ?? ""
         self.created = Date.now
+        self.completed = complated
+        self.completedAt = completedAt
         self.due = due
         self.pomodoro = true // No longer an option
         self.pomodoroTime = pomodoroTime
@@ -167,7 +169,7 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
 //        guard let data = try? JSONEncoder().encode(id) else { return nil }
 //        return data.base64EncodedString()
 //    }
-//    
+//
 //    public static func decodeId(_ encodedId: String) throws -> UUID? {
 //        guard let data = Data(base64Encoded: encodedId) else {
 //            throw NSError(domain: "ToDo", code: 0, userInfo: nil)
@@ -189,11 +191,13 @@ extension ToDoTaskDTO {
             due: model.due,
             everySpecificDayDay: model.everySpecificDayDay ?? 1,
             categories: (model.categories ?? []).map(CategoryDTO.init(from:)),
-            uuid: model.uuid ?? UUID()
+            uuid: model.uuid ?? UUID(),
+            complated: model.completed,
+            completedAt: model.completedAt
         )
     }
     
-    //TODO: Remove Duplication
+    // TODO: Remove Duplication
     public static func focusFilter(in tasks: [ToDoTaskDTO]) -> [ToDoTaskDTO] {
         let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
         let focusData = defaults?.data(forKey: "ClarityFocusFilter")
@@ -233,13 +237,11 @@ extension ToDoTaskDTO {
 }
 
 extension ToDoTask {
-
-    public static func focusFilter(in tasks: [ToDoTask]) -> [ToDoTask] {
+    static func focusFilter(in tasks: [ToDoTask]) -> [ToDoTask] {
         let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
         let focusData = defaults?.data(forKey: "ClarityFocusFilter")
         if let focusData {
             if let json = String(data: focusData, encoding: .utf8) {
-                
             } else {
                 LogManager.shared.log.debug("Not valid JSON")
             }
@@ -328,14 +330,93 @@ extension ToDoTask.TaskFilter {
     }
 }
 
+// MARK: Predicates
+
 extension ToDoTask {
-    static func completedToday() -> Predicate<ToDoTask> {
-        let cal = Calendar.current
-        let now = Date()
-        let startOfDay = cal.startOfDay(for: now)
-        return #Predicate<ToDoTask> { task in
-                task.completed && task.completedAt != nil && task.completedAt! >= startOfDay
+    enum CompletedTaskFilter: String, AppEnum, CaseIterable {
+        case Today
+        case PastWeek = "Past Week"
+        case AllTime = "All Time"
+        
+        static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Filter")
+        static var caseDisplayRepresentations: [CompletedTaskFilter: DisplayRepresentation] = [
+            .Today: DisplayRepresentation(title: "Today"),
+            .PastWeek: DisplayRepresentation(title: "Past Week"),
+            .AllTime: DisplayRepresentation(title: "All Time")
+        ]
+        
+        static func completedToday() -> Predicate<ToDoTaskDTO> {
+            let cal = Calendar.current
+            let now = Date()
+            let startOfDay = cal.startOfDay(for: now)
+            return #Predicate<ToDoTaskDTO> { task in
+                task.completed && task.completedAt! >= startOfDay
             }
+        }
+        
+        static func completedThisWeek() -> Predicate<ToDoTaskDTO> {
+            let cal = Calendar.current
+            let now = Date()
+            var comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
+            comps.weekday = 2 // Monday
+            let weekStart = cal.date(from: comps) ?? now
+            return #Predicate { task in
+                if let completed = task.completedAt {
+                    return completed > weekStart
+                } else {
+                    return false
+                }
+            }
+        }
+        
+        func predicate() -> Predicate<ToDoTaskDTO> {
+            switch self {
+            case .Today:
+                return Self.completedToday()
+            case .PastWeek:
+                return Self.completedThisWeek()
+            case .AllTime:
+                return #Predicate<ToDoTaskDTO> { task in
+                    true
+                }
+            }
+        }
+    }
+
+    enum TaskFilterOption: String, AppEnum, CaseIterable {
+        case today = "Today"
+        case tomorrow = "Tomorrow"
+        case thisWeek = "This Week"
+        case overdue = "Overdue"
+        case all = "All Tasks"
+        
+        static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Filter")
+        static var caseDisplayRepresentations: [TaskFilterOption: DisplayRepresentation] = [
+            .today: DisplayRepresentation(title: "Today"),
+            .tomorrow: DisplayRepresentation(title: "Tomorrow"),
+            .thisWeek: DisplayRepresentation(title: "This Week"),
+            .overdue: DisplayRepresentation(title: "Overdue"),
+            .all: DisplayRepresentation(title: "All Tasks")
+        ]
+        
+        static var filterColor: [TaskFilterOption: Color] = [
+            .today: .green,
+            .tomorrow: .blue,
+            .thisWeek: .blue,
+            .overdue: .red,
+            .all: .gray
+        ]
+        
+        // FIXME: Is this needed?
+        func toTaskFilter() -> ToDoTask.TaskFilter {
+            switch self {
+            case .today: return .today
+            case .tomorrow: return .tomorrow
+            case .thisWeek: return .thisWeek
+            case .overdue: return .overdue
+            case .all: return .all
+            }
+        }
     }
 }
 

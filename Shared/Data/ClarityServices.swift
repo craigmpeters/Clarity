@@ -50,14 +50,8 @@ enum ClarityServices {
         do {
             let container = try sharedContainer()
             let ctx = ModelContext(container)
-            let cal = Calendar.current
-            let now = Date()
-            let startOfDay = cal.startOfDay(for: now)
-
             let descriptor = FetchDescriptor<ToDoTask>(
-                predicate: #Predicate<ToDoTask> { task in
-                    task.completed && task.completedAt != nil && task.completedAt! >= startOfDay
-                },
+                predicate: #Predicate { $0.completed },
                 sortBy: [SortDescriptor(\.completedAt, order: .forward)]
             )
             let all = try ctx.fetch(descriptor)
@@ -83,6 +77,12 @@ enum ClarityServices {
                 .map(ToDoTaskDTO.init(from:))
         } catch {
             return []
+        }
+    }
+    
+    static func snapshotCompletedAsync() async -> [ToDoTaskDTO] {
+        await withUnsafeContinuation { cont in
+            Task.detached{ cont.resume(returning: snapshotCompleted())}
         }
     }
 

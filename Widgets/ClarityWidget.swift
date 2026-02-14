@@ -47,6 +47,15 @@ struct ClarityTaskWidgetView: View {
     }
 }
 
+#if DEBUG
+#Preview("Small", as: .systemSmall) {
+    ClarityTaskWidget()
+} timeline: {
+    PreviewData.shared.getPreviewTaskWidgetEntry()
+}
+#endif
+
+
 // MARK: - Preview
 
 // TODO: Fix Preview

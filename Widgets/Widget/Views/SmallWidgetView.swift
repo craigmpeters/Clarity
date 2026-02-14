@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import WidgetKit
 
 struct SmallTaskWidgetView: View {
     let entry: TaskWidgetEntry
@@ -16,10 +17,7 @@ struct SmallTaskWidgetView: View {
         Link(destination: widgetURL) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Image(systemName: "checkmark")
-                        .font(.title3)
-                        .foregroundStyle(TaskFilterOption.filterColor[entry.filter] ?? .primary)
-                    
+                    Image("clarityactivity")
                     Spacer()
                     
                     // If there's a single task today, show play button
@@ -54,3 +52,11 @@ struct SmallTaskWidgetView: View {
         URL(string: "clarity://tasks?filter=\(entry.filter.rawValue)")!
     }
 }
+
+//
+//#if DEBUG
+//  #Preview("SmallTaskWidgetView") {
+//      SmallTaskWidgetView(entry: PreviewData.shared.getPreviewTaskWidgetEntry())
+//          .previewLayout(.sizeThatFits)
+//  }
+//  #endif

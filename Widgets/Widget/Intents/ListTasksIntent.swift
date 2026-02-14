@@ -19,7 +19,7 @@ struct ListTasksIntent: AppIntent {
     var repeatingOnly: Bool
     
     @Parameter(title: "Filter", default: .today)
-    var filter: TaskFilterOption
+    var filter: ToDoTask.TaskFilterOption
 
 
     func perform() async throws -> some IntentResult & ReturnsValue<[TaskEntity]> {

@@ -18,12 +18,17 @@ struct CompletedTaskWidgetIntent : WidgetConfigurationIntent {
     @Parameter(title: "Category Filter", default: [])
     var categoryFilter: [CategoryEntity]
     
+    @Parameter(title: "Completed Tasks to Display", default: .PastWeek)
+    var completedFilter: ToDoTask.CompletedTaskFilter
+    
     init() {
         self.categoryFilter = []
+        self.completedFilter = .PastWeek
     }
     
-    init(categoryFilter: [CategoryEntity]) {
+    init(categoryFilter: [CategoryEntity], completedFilter: ToDoTask.CompletedTaskFilter) {
         self.categoryFilter = categoryFilter
+        self.completedFilter = completedFilter
         LogManager.shared.log.debug("Completed Task Widget Loaded")
     }
     

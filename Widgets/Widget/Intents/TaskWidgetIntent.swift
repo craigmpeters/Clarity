@@ -15,7 +15,7 @@ struct TaskWidgetIntent: WidgetConfigurationIntent {
     static var description = IntentDescription("Choose which tasks to display")
     
     @Parameter(title: "Date Filter", default: .all)
-    var filter: TaskFilterOption
+    var filter: ToDoTask.TaskFilterOption
 
     @Parameter(title: "Category Filter", default: [])
     var categoryFilter: [CategoryEntity]
@@ -26,7 +26,7 @@ struct TaskWidgetIntent: WidgetConfigurationIntent {
         self.categoryFilter = []
     }
     
-    init(filter: TaskFilterOption, categoryFilter: [CategoryEntity]) {
+    init(filter: ToDoTask.TaskFilterOption, categoryFilter: [CategoryEntity]) {
         self.filter = filter
         self.categoryFilter = categoryFilter
         LogManager.shared.log.debug("Widget Intent Loaded")
