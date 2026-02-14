@@ -52,7 +52,7 @@ class ToDoTask {
         return interval.displayName
     }
     
-    init(name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int? = nil, categories: [Category] = [], uuid: UUID? = UUID()) {
+    init(name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int? = nil, categories: [Category] = [], uuid: UUID? = UUID(), completed: Bool = false, completedAt: Date? = nil) {
         self.name = name ?? ""
         self.created = Date.now
         self.due = due
@@ -65,6 +65,8 @@ class ToDoTask {
         self.everySpecificDayDay = everySpecificDayDay
         self.customRecurrenceDays = customRecurrenceDays
         self.uuid = uuid
+        self.completed = completed
+        self.completedAt = completedAt
     }
     
     enum RecurrenceInterval: String, CaseIterable, Codable {
@@ -146,7 +148,7 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
     var categories: [CategoryDTO]
     var uuid: UUID
     
-    init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int = 0, categories: [CategoryDTO] = [], uuid: UUID? = UUID()) {
+    init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int = 0, categories: [CategoryDTO] = [], uuid: UUID? = UUID(), completedAt: Date? = nil, completed: Bool = false) {
         self.id = id
         self.name = name ?? ""
         self.created = Date.now
@@ -160,20 +162,9 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
         self.customRecurrenceDays = customRecurrenceDays
         self.everySpecificDayDay = everySpecificDayDay
         self.uuid = uuid ?? UUID()
+        self.completed = completed
+        self.completedAt = completedAt
     }
-    
-//    var encodedId: String? {
-//        guard let id else { return nil }
-//        guard let data = try? JSONEncoder().encode(id) else { return nil }
-//        return data.base64EncodedString()
-//    }
-//    
-//    public static func decodeId(_ encodedId: String) throws -> UUID? {
-//        guard let data = Data(base64Encoded: encodedId) else {
-//            throw NSError(domain: "ToDo", code: 0, userInfo: nil)
-//        }
-//        return try JSONDecoder().decode(UUID.self, from: data)
-//    }
 }
 
 extension ToDoTaskDTO {
@@ -189,7 +180,10 @@ extension ToDoTaskDTO {
             due: model.due,
             everySpecificDayDay: model.everySpecificDayDay ?? 1,
             categories: (model.categories ?? []).map(CategoryDTO.init(from:)),
-            uuid: model.uuid ?? UUID()
+            uuid: model.uuid ?? UUID(),
+            completedAt: model.completedAt,
+            completed: model.completed
+
         )
     }
     
