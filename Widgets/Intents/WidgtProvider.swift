@@ -9,13 +9,6 @@ import AppIntents
 import WidgetKit
 import SwiftUI
 
-struct TaskWidgetEntry: TimelineEntry {
-    let date: Date
-    let todos: [ToDoTaskDTO]
-    let progress: WeeklyProgress
-    let filter: TaskFilterOption
-}
-
 struct ClarityWidgetProvider: AppIntentTimelineProvider {
     
     func placeholder(in context: Context) -> TaskWidgetEntry {

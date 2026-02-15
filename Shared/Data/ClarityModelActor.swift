@@ -97,6 +97,16 @@ actor ClarityModelActor {
         return filtered.map(ToDoTaskDTO.init(from:))
     }
     
+    func fetchCompletedTasks() throws -> [ToDoTaskDTO] {
+        let descriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate { $0.completed },
+            sortBy: [SortDescriptor(\.due, order: .forward)]
+        )
+        let tasks = try modelContext.fetch(descriptor)
+        LogManager.shared.log.debug("Fetched \(tasks.count) completed tasks")
+        return tasks.map(ToDoTaskDTO.init(from:))
+    }
+    
     func updateTask(_ task: ToDoTaskDTO) throws -> ToDoTaskDTO {
         guard let id = task.id else {
             throw NSError(domain: "ClarityActor", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing PersistentIdentifier"])
@@ -128,7 +138,8 @@ actor ClarityModelActor {
         
         try modelContext.save()
         try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
-        WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
+        try WidgetFileCoordinator.shared.writeTasks(fetchCompletedTasks(), kind: DataFileKind.completed)
+        WidgetCenter.shared.reloadAllTimelines()
         try? deduplicateTasksByUUID()
         return ToDoTaskDTO(from: model)
     }
@@ -189,7 +200,8 @@ actor ClarityModelActor {
             
             try modelContext.save()
             try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
-            WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
+        try WidgetFileCoordinator.shared.writeTasks(fetchCompletedTasks(), kind: DataFileKind.completed)
+        WidgetCenter.shared.reloadAllTimelines()
             try? deduplicateTasksByUUID()
             
             return ToDoTaskDTO(from: toDoTask)
@@ -201,7 +213,8 @@ actor ClarityModelActor {
             try modelContext.save()
         }
         try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
-        WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
+        try WidgetFileCoordinator.shared.writeTasks(fetchCompletedTasks(), kind: DataFileKind.completed)
+        WidgetCenter.shared.reloadAllTimelines()
         try? deduplicateTasksByUUID()
     }
     
@@ -258,7 +271,8 @@ actor ClarityModelActor {
         }
         try modelContext.save()
         try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
-        WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
+        try WidgetFileCoordinator.shared.writeTasks(fetchCompletedTasks(), kind: DataFileKind.completed)
+        WidgetCenter.shared.reloadAllTimelines()
         try? deduplicateTasksByUUID()
     }
     
@@ -512,3 +526,18 @@ enum AppContainer {
     }()
 }
 
+// #MARK: Timeline Entries
+
+struct TaskWidgetEntry: TimelineEntry {
+    let date: Date
+    let todos: [ToDoTaskDTO]
+    let progress: WeeklyProgress
+    let filter: ToDoTask.TaskFilterOption
+}
+
+struct CompletedTaskEntry: TimelineEntry {
+    let date: Date
+    let tasks: [ToDoTaskDTO]
+    let progress: WeeklyProgress
+    let filter: ToDoTask.CompletedTaskFilter
+}

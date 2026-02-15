@@ -102,7 +102,7 @@
 		441B7E1A2EEEFDA3008D76CA /* Exceptions for "Widgets" folder in "ClarityAppIntentsExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Widget/Models/CategoryEntity.swift,
+				Models/CategoryEntity.swift,
 			);
 			target = 441B7E032EEED7F4008D76CA /* ClarityAppIntentsExtension */;
 		};
@@ -134,7 +134,7 @@
 		441B7E262EEF27CC008D76CA /* Exceptions for "Widgets" folder in "ClarityWatch" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Widget/Models/CategoryEntity.swift,
+				Models/CategoryEntity.swift,
 			);
 			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
 		};
@@ -251,14 +251,16 @@
 		44F7D0F82E998D4300F520BF /* Exceptions for "Widgets" folder in "Clarity" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Widget/Intents/ClarityAppIntentsProvider.swift,
-				Widget/Intents/CompleteTaskIntent.swift,
-				Widget/Intents/CreateTaskIntent.swift,
-				Widget/Intents/DeleteTaskIntent.swift,
-				Widget/Intents/ListTasksIntent.swift,
-				Widget/Intents/StartPomodoroIntent.swift,
-				Widget/Models/CategoryEntity.swift,
-				Widget/Models/TaskEntity.swift,
+				Intents/ClarityAppIntentsProvider.swift,
+				Intents/CompletedTaskProvider.swift,
+				Intents/CompletedTaskWidgetIntent.swift,
+				Intents/CompleteTaskIntent.swift,
+				Intents/CreateTaskIntent.swift,
+				Intents/DeleteTaskIntent.swift,
+				Intents/ListTasksIntent.swift,
+				Intents/StartPomodoroIntent.swift,
+				Models/CategoryEntity.swift,
+				Models/TaskEntity.swift,
 			);
 			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
 		};
@@ -762,7 +764,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.5.1;
+				MARKETING_VERSION = 1.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.ClarityAppIntentsExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -791,7 +793,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.5.1;
+				MARKETING_VERSION = 1.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.ClarityAppIntentsExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -894,7 +896,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.5.1;
+				MARKETING_VERSION = 1.6.0;
 				OTHER_SWIFT_FLAGS = "-D INTERNAL";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -924,7 +926,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.5.1;
+				MARKETING_VERSION = 1.6.0;
 				OTHER_SWIFT_FLAGS = "";
 				"OTHER_SWIFT_FLAGS[arch=*]" = "-D INTERNAL";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.watchkitapp;
@@ -960,7 +962,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.5.1;
+				MARKETING_VERSION = 1.6.0;
 				OTHER_SWIFT_FLAGS = "-D INTERNAL";
 				"OTHER_SWIFT_FLAGS[arch=*]" = "";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.PomodoroExtension;
@@ -988,7 +990,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.5.1;
+				MARKETING_VERSION = 1.6.0;
 				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.ClarityAppIntentsExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1020,7 +1022,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.5.1;
+				MARKETING_VERSION = 1.6.0;
 				OTHER_SWIFT_FLAGS = "-D INTERNAL";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.PomodoroExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1049,7 +1051,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.5.1;
+				MARKETING_VERSION = 1.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.PomodoroExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1079,7 +1081,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.5.1;
+				MARKETING_VERSION = 1.6.0;
 				"OTHER_SWIFT_FLAGS[arch=*]" = "-D INTERNAL";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1116,7 +1118,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.5.1;
+				MARKETING_VERSION = 1.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1288,7 +1290,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.5.1;
+				MARKETING_VERSION = 1.6.0;
 				OTHER_SWIFT_FLAGS = "-D INTERNAL";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1325,7 +1327,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.5.1;
+				MARKETING_VERSION = 1.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
