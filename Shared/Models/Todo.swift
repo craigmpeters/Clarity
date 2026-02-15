@@ -53,7 +53,7 @@ class ToDoTask {
         return interval.displayName
     }
     
-    init(name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int? = nil, categories: [Category] = [], uuid: UUID? = UUID()) {
+    init(name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int? = nil, categories: [Category] = [], uuid: UUID? = UUID(), completed: Bool = false, completedAt: Date? = nil) {
         self.name = name ?? ""
         self.created = Date.now
         self.due = due
@@ -66,6 +66,8 @@ class ToDoTask {
         self.everySpecificDayDay = everySpecificDayDay
         self.customRecurrenceDays = customRecurrenceDays
         self.uuid = uuid
+        self.completed = completed
+        self.completedAt = completedAt
     }
     
     enum RecurrenceInterval: String, CaseIterable, Codable {
@@ -162,6 +164,8 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
         self.customRecurrenceDays = customRecurrenceDays
         self.everySpecificDayDay = everySpecificDayDay
         self.uuid = uuid ?? UUID()
+        self.completed = completed
+        self.completedAt = completedAt
     }
     
 //    var encodedId: String? {
