@@ -39,14 +39,13 @@ struct CompletedWidgetView: View {
         self.entry = entry
         print("Completed: \(entry.progress.completed) Target: \(entry.progress.target) ")
         gaugeData = Double(entry.progress.completed) / Double(entry.progress.target)
-        gaugeData = 0.2
         print("GaugeData: \(gaugeData)")
     }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Image("clarity-transparent")
+                Image("clarity-small")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 40, alignment: .init(horizontal: .leading, vertical: .center))
