@@ -50,7 +50,7 @@ struct CompletedTaskProvider: AppIntentTimelineProvider {
         }
         
         let progress = ClarityServices.fetchWeeklyProgress()
-        let entry = CompletedTaskEntry(date: .now, tasks: tasks, progress: progress, filter: configuration.completedFilter, showWeeklyProgress: true)
+        let entry = CompletedTaskEntry(date: .now, tasks: tasks, progress: progress, filter: configuration.completedFilter, showWeeklyProgress: configuration.showProgress)
         
         let calendar = Calendar.current
         let now = Date()
