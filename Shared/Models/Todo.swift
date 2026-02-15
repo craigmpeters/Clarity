@@ -164,8 +164,6 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
         self.customRecurrenceDays = customRecurrenceDays
         self.everySpecificDayDay = everySpecificDayDay
         self.uuid = uuid ?? UUID()
-        self.completed = completed
-        self.completedAt = completedAt
     }
     
 //    var encodedId: String? {
