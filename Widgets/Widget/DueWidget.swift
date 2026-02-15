@@ -11,7 +11,7 @@ import SwiftData
 import AppIntents
 
 // MARK: - Main Widget
-struct ClarityTaskWidget: Widget {
+struct DueWidget: Widget {
     let kind: String = "ClarityTaskWidget"
     
     var body: some WidgetConfiguration {
@@ -79,19 +79,19 @@ struct ClarityTaskWidgetView: View {
 
 #if DEBUG
 #Preview("Small", as: .systemSmall) {
-    ClarityTaskWidget()
+    DueWidget()
 } timeline: {
     PreviewData.shared.getPreviewTaskWidgetEntry()
 }
 
 #Preview("Medium", as: .systemMedium) {
-    ClarityTaskWidget()
+    DueWidget()
 } timeline: {
     PreviewData.shared.getPreviewTaskWidgetEntry()
 }
 
 #Preview("Large", as: .systemLarge) {
-    ClarityTaskWidget()
+    DueWidget()
 } timeline: {
     PreviewData.shared.getPreviewTaskWidgetEntry()
 }
