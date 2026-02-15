@@ -102,7 +102,7 @@
 		441B7E1A2EEEFDA3008D76CA /* Exceptions for "Widgets" folder in "ClarityAppIntentsExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Widget/Models/CategoryEntity.swift,
+				Models/CategoryEntity.swift,
 			);
 			target = 441B7E032EEED7F4008D76CA /* ClarityAppIntentsExtension */;
 		};
@@ -134,7 +134,7 @@
 		441B7E262EEF27CC008D76CA /* Exceptions for "Widgets" folder in "ClarityWatch" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Widget/Models/CategoryEntity.swift,
+				Models/CategoryEntity.swift,
 			);
 			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
 		};
@@ -251,16 +251,16 @@
 		44F7D0F82E998D4300F520BF /* Exceptions for "Widgets" folder in "Clarity" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Widget/Intents/ClarityAppIntentsProvider.swift,
-				Widget/Intents/CompletedTaskProvider.swift,
-				Widget/Intents/CompletedTaskWidgetIntent.swift,
-				Widget/Intents/CompleteTaskIntent.swift,
-				Widget/Intents/CreateTaskIntent.swift,
-				Widget/Intents/DeleteTaskIntent.swift,
-				Widget/Intents/ListTasksIntent.swift,
-				Widget/Intents/StartPomodoroIntent.swift,
-				Widget/Models/CategoryEntity.swift,
-				Widget/Models/TaskEntity.swift,
+				Intents/ClarityAppIntentsProvider.swift,
+				Intents/CompletedTaskProvider.swift,
+				Intents/CompletedTaskWidgetIntent.swift,
+				Intents/CompleteTaskIntent.swift,
+				Intents/CreateTaskIntent.swift,
+				Intents/DeleteTaskIntent.swift,
+				Intents/ListTasksIntent.swift,
+				Intents/StartPomodoroIntent.swift,
+				Models/CategoryEntity.swift,
+				Models/TaskEntity.swift,
 			);
 			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
 		};

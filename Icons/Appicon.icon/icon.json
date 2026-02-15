@@ -19,6 +19,8 @@
       ],
       "layers" : [
         {
+          "glass" : true,
+          "hidden" : false,
           "image-name" : "Clarity Transparent.png",
           "name" : "Clarity Transparent",
           "position" : {

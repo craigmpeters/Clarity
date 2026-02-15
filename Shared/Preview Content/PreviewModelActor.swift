@@ -46,7 +46,10 @@ final class PreviewData {
     
     func getToDoTasks() -> [ToDoTask] {
         do {
-            let descriptor = FetchDescriptor<ToDoTask>()
+            let descriptor = FetchDescriptor<ToDoTask>(
+                predicate: #Predicate { !$0.completed },
+                sortBy: [SortDescriptor(\.due, order: .forward)]
+            )
             return try previewContext.fetch(descriptor)
         } catch {
             print("Failed to fetch tasks: \(error)")

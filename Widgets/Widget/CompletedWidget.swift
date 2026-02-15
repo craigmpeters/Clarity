@@ -32,14 +32,44 @@ struct CompletedWidgetView: View {
     @Environment(\.widgetFamily) var widgetFamily
     let entry: CompletedTaskEntry
     
+    private var gaugeData : Double
+    let gradient = Gradient(colors: [ .red, .yellow, .orange, .green])
+    
+    init(entry: CompletedTaskEntry) {
+        self.entry = entry
+        print("Completed: \(entry.progress.completed) Target: \(entry.progress.target) ")
+        gaugeData = Double(entry.progress.completed) / Double(entry.progress.target)
+        gaugeData = 0.2
+        print("GaugeData: \(gaugeData)")
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Total Tasks: \(entry.tasks.count)")
-                .font(.caption)
+            HStack {
+                Image("clarity-transparent")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 40, alignment: .init(horizontal: .leading, vertical: .center))
+                Text(entry.filter.localizedStringResource)
+                    .font(.title3)
+            }
+            .fixedSize()
+            .frame(alignment: .leading)
+
+            Text(String(entry.tasks.count))
+                .font(.largeTitle)
+            Text("Completed Tasks")
+                .font(.caption2)
             Spacer(minLength: 0)
-            WeeklyProgressWidget(progress: entry.progress, family: widgetFamily)
-                .padding(.horizontal, 0)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack {
+                Image(systemName: "target")
+                    .foregroundStyle(.orange)
+                Gauge(value: gaugeData) {
+                }
+                .gaugeStyle(LinearCapacityGaugeStyle())
+                .tint(gradient)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
