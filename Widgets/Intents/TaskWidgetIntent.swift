@@ -20,15 +20,20 @@ struct TaskWidgetIntent: WidgetConfigurationIntent {
     @Parameter(title: "Category Filter", default: [])
     var categoryFilter: [CategoryEntity]
     
+    @Parameter(title: "Show Weekly Progress", default: true)
+    var showWeeklyProgress: Bool
+    
     // Add this initializer to help with intent mapping
     init() {
         self.filter = .all
         self.categoryFilter = []
+        self.showWeeklyProgress = true
     }
     
-    init(filter: ToDoTask.TaskFilterOption, categoryFilter: [CategoryEntity]) {
+    init(filter: ToDoTask.TaskFilterOption, categoryFilter: [CategoryEntity], showWeeklyProgress: Bool) {
         self.filter = filter
         self.categoryFilter = categoryFilter
+        self.showWeeklyProgress = showWeeklyProgress
         LogManager.shared.log.debug("Widget Intent Loaded")
     }
 }

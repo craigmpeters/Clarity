@@ -125,12 +125,14 @@ final class PreviewData {
         let dtos: [ToDoTaskDTO] = tasks.map { ToDoTaskDTO(from: $0) }
         let target = returnPreviewWeeklyProgress()
         let option: ToDoTask.TaskFilterOption = .all
-        return TaskWidgetEntry(date: Date.now, todos: dtos, progress: target, filter: option)
+        let showWeeklyTarget = Bool.random()
+        return TaskWidgetEntry(date: Date.now, todos: dtos, progress: target, filter: option, showWeeklyProgress: showWeeklyTarget)
     }
     
     func getPreviewCompletedTaskEntry(filter: ToDoTask.CompletedTaskFilter) -> CompletedTaskEntry {
         let tasks = getCompletedTasks()
         let target = returnPreviewWeeklyProgress()
+        let showWeeklyProgress = Bool.random()
         print("Total Tasks \(tasks.count)")
         let dtos: [ToDoTaskDTO] = tasks.map { ToDoTaskDTO(from: $0)}
         var filtered : [ToDoTaskDTO]
@@ -144,7 +146,7 @@ final class PreviewData {
         print ("Total DTOs \(dtos.count)")
         print("Filtered tasks: \(dtos.count)")
 
-        return CompletedTaskEntry(date: Date.now, tasks: filtered, progress: target, filter: filter)
+        return CompletedTaskEntry(date: Date.now, tasks: filtered, progress: target, filter: filter, showWeeklyProgress: showWeeklyProgress)
     }
     
     // MARK: Functions to insert Preview Data

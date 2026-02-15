@@ -15,7 +15,7 @@ import XCGLogger
 struct CompletedTaskProvider: AppIntentTimelineProvider {
     
     func placeholder(in context: Context) -> CompletedTaskEntry {
-        CompletedTaskEntry(date: .now, tasks: [], progress: WeeklyProgress(completed: 0, target: 0, error: "", categories: []), filter: .Today)
+        CompletedTaskEntry(date: .now, tasks: [], progress: WeeklyProgress(completed: 0, target: 0, error: "", categories: []), filter: .Today, showWeeklyProgress: true)
     }
     
     func snapshot(for configuration: CompletedTaskWidgetIntent, in context: Context) async -> CompletedTaskEntry {
@@ -27,7 +27,7 @@ struct CompletedTaskProvider: AppIntentTimelineProvider {
             LogManager.shared.log.error("Could not read completed tasks: \(error.localizedDescription)")
         }
         let progress = ClarityServices.fetchWeeklyProgress()
-        return CompletedTaskEntry(date: .now, tasks: tasks, progress: progress, filter: configuration.completedFilter)
+        return CompletedTaskEntry(date: .now, tasks: tasks, progress: progress, filter: configuration.completedFilter, showWeeklyProgress: configuration.showProgress)
     }
     
     func timeline(for configuration: CompletedTaskWidgetIntent, in context: Context) async -> Timeline<CompletedTaskEntry> {
@@ -50,7 +50,7 @@ struct CompletedTaskProvider: AppIntentTimelineProvider {
         }
         
         let progress = ClarityServices.fetchWeeklyProgress()
-        let entry = CompletedTaskEntry(date: .now, tasks: tasks, progress: progress, filter: configuration.completedFilter)
+        let entry = CompletedTaskEntry(date: .now, tasks: tasks, progress: progress, filter: configuration.completedFilter, showWeeklyProgress: true)
         
         let calendar = Calendar.current
         let now = Date()

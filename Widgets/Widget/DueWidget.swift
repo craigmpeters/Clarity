@@ -84,14 +84,17 @@ struct ClarityTaskWidgetView: View {
                     }
                 }
                 Spacer()
-                HStack {
-                    Image(systemName: "target")
-                        .foregroundStyle(.orange)
-                    Gauge(value: ((Double(entry.progress.completed) / Double(entry.progress.target)))) {
+                if entry.showWeeklyProgress {
+                    HStack {
+                        Image(systemName: "target")
+                            .foregroundStyle(.orange)
+                        Gauge(value: ((Double(entry.progress.completed) / Double(entry.progress.target)))) {
+                        }
+                        .gaugeStyle(LinearCapacityGaugeStyle())
+                        .tint(gradient)
                     }
-                    .gaugeStyle(LinearCapacityGaugeStyle())
-                    .tint(gradient)
                 }
+
             }
         }
         

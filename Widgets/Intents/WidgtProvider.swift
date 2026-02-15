@@ -12,7 +12,7 @@ import SwiftUI
 struct ClarityWidgetProvider: AppIntentTimelineProvider {
     
     func placeholder(in context: Context) -> TaskWidgetEntry {
-        TaskWidgetEntry(date: .now, todos: [], progress: WeeklyProgress(completed: 0, target: 0, error: "", categories: []),filter: .all)
+        TaskWidgetEntry(date: .now, todos: [], progress: WeeklyProgress(completed: 0, target: 0, error: "", categories: []),filter: .all, showWeeklyProgress: true)
     }
     
     func snapshot(for configuration: TaskWidgetIntent, in context: Context) async -> TaskWidgetEntry {
@@ -26,7 +26,7 @@ struct ClarityWidgetProvider: AppIntentTimelineProvider {
         }
         todos = ToDoTaskDTO.focusFilter(in: todos)
         let progress = ClarityServices.fetchWeeklyProgress()
-        return TaskWidgetEntry(date: .now, todos: todos, progress: progress, filter: configuration.filter)
+        return TaskWidgetEntry(date: .now, todos: todos, progress: progress, filter: configuration.filter, showWeeklyProgress: configuration.showWeeklyProgress)
     }
     
     func timeline(for configuration: TaskWidgetIntent, in context: Context) async -> Timeline<TaskWidgetEntry> {
@@ -50,7 +50,7 @@ struct ClarityWidgetProvider: AppIntentTimelineProvider {
 
         let progress = ClarityServices.fetchWeeklyProgress()
         todos = ToDoTaskDTO.focusFilter(in: todos)
-        let entry = TaskWidgetEntry(date: .now, todos: todos, progress: progress, filter: configuration.filter)
+        let entry = TaskWidgetEntry(date: .now, todos: todos, progress: progress, filter: configuration.filter, showWeeklyProgress: configuration.showWeeklyProgress)
         
         let calendar = Calendar.current
         let now = Date()

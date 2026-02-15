@@ -60,15 +60,18 @@ struct CompletedWidgetView: View {
             Text("Completed Tasks")
                 .font(.caption2)
             Spacer(minLength: 0)
-            HStack {
-                Image(systemName: "target")
-                    .foregroundStyle(.orange)
-                Gauge(value: gaugeData) {
+            if entry.showWeeklyProgress {
+                HStack {
+                    Image(systemName: "target")
+                        .foregroundStyle(.orange)
+                    Gauge(value: gaugeData) {
+                    }
+                    .gaugeStyle(LinearCapacityGaugeStyle())
+                    .tint(gradient)
                 }
-                .gaugeStyle(LinearCapacityGaugeStyle())
-                .tint(gradient)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+
         }
     }
 }

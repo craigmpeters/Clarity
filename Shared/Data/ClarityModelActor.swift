@@ -533,6 +533,7 @@ struct TaskWidgetEntry: TimelineEntry {
     let todos: [ToDoTaskDTO]
     let progress: WeeklyProgress
     let filter: ToDoTask.TaskFilterOption
+    let showWeeklyProgress: Bool
 }
 
 struct CompletedTaskEntry: TimelineEntry {
@@ -540,4 +541,5 @@ struct CompletedTaskEntry: TimelineEntry {
     let tasks: [ToDoTaskDTO]
     let progress: WeeklyProgress
     let filter: ToDoTask.CompletedTaskFilter
+    let showWeeklyProgress: Bool
 }
