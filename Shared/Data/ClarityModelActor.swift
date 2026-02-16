@@ -65,6 +65,45 @@ actor ClarityModelActor {
     
     // MARK: Task Functions
     
+    func fetchWatchWidgetBackingData(completeFilter: ToDoTask.CompletedTaskFilter, dueFilter: ToDoTask.TaskFilterOption) -> WatchWidgetData {
+        var data = WatchWidgetData(due: 0, completed: 0, progress: 0, target: 0)
+        
+        // data.completed
+        let descriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate { $0.completed },
+            sortBy: [SortDescriptor(\.completedAt, order: .reverse)]
+        )
+        do {
+            let tasks = try modelContext.fetch(descriptor)
+            let dto: [ToDoTaskDTO] = tasks.map { ToDoTaskDTO(from: $0)}
+            
+            let filtered = dto.filter { completeFilter.matches($0) }
+            data.completed = filtered.count
+        } catch {
+            data.completed = 0
+        }
+        
+        // data.due
+        do {
+            let dueTasks = try fetchTasks(filter: dueFilter.toTaskFilter())
+            data.due = dueTasks.count
+        } catch {
+            data.due = 0
+        }
+        
+        //data.progress
+        do {
+            let progress = try fetchWeeklyProgress()
+            data.target = progress.target
+            data.completed = progress.completed
+        } catch {
+            data.target = 0
+            data.completed = 0
+        }
+        
+        return data
+    }
+    
     func fetchLastCompletedTask(filter: ToDoTask.TaskFilter = .all) -> ToDoTaskDTO? {
         let descriptor = FetchDescriptor<ToDoTask>(
             predicate: #Predicate { $0.completed },
@@ -542,4 +581,11 @@ struct CompletedTaskEntry: TimelineEntry {
     let progress: WeeklyProgress
     let filter: ToDoTask.CompletedTaskFilter
     let showWeeklyProgress: Bool
+}
+
+public struct WatchWidgetData: Codable, Sendable {
+    public var due: Int
+    public var completed: Int
+    public var progress: Int
+    public var target: Int
 }

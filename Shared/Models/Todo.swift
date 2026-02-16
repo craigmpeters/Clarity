@@ -336,14 +336,14 @@ extension ToDoTask.TaskFilter {
 
 extension ToDoTask {
     enum CompletedTaskFilter: String, AppEnum, CaseIterable {
-        case Today
-        case PastWeek = "Past Week"
+        case Today = "Today"
+        case PastWeek = "This Week"
         case AllTime = "All Time"
         
         static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Filter")
         static var caseDisplayRepresentations: [CompletedTaskFilter: DisplayRepresentation] = [
             .Today: DisplayRepresentation(title: "Today"),
-            .PastWeek: DisplayRepresentation(title: "Past Week"),
+            .PastWeek: DisplayRepresentation(title: "This Week"),
             .AllTime: DisplayRepresentation(title: "All Time")
         ]
         
@@ -351,8 +351,13 @@ extension ToDoTask {
             let cal = Calendar.current
             let now = Date()
             let startOfDay = cal.startOfDay(for: now)
+            let endOfDay = cal.date(byAdding: DateComponents(day: 1, second: -1), to: startOfDay) ?? now
             return #Predicate<ToDoTaskDTO> { task in
-                task.completed && task.completedAt! >= startOfDay
+                if let completedAt = task.completedAt {
+                    return task.completed && completedAt >= startOfDay && completedAt <= endOfDay
+                } else {
+                    return false
+                }
             }
         }
         
@@ -362,27 +367,43 @@ extension ToDoTask {
             var comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
             comps.weekday = 2 // Monday
             let weekStart = cal.date(from: comps) ?? now
+            let weekEnd = cal.date(byAdding: .day, value: 7, to: weekStart) ?? now
             return #Predicate { task in
                 if let completed = task.completedAt {
-                    return completed > weekStart
+                    return task.completed && completed >= weekStart && completed < weekEnd
                 } else {
                     return false
                 }
             }
         }
         
-        func predicate() -> Predicate<ToDoTaskDTO> {
+        func matches(_ dto: ToDoTaskDTO, calendar : Calendar = .current, now: Date = Date()) -> Bool {
             switch self {
             case .Today:
-                return Self.completedToday()
+                return calendar.isDate(dto.completedAt ?? Date(), inSameDayAs: now)
             case .PastWeek:
-                return Self.completedThisWeek()
+                guard let di = calendar.dateInterval(of: .weekOfYear, for: now) else { return false }
+                return (di.start ... di.end).contains(dto.completedAt ?? now)
             case .AllTime:
-                return #Predicate<ToDoTaskDTO> { task in
-                    true
-                }
+                return true
             }
         }
+        
+        
+//        switch self {
+//        case .all:
+//            return true
+//        case .overdue:
+//            return dto.due < calendar.startOfDay(for: now)
+//        case .today:
+//            return calendar.isDate(dto.due, inSameDayAs: now)
+//        case .tomorrow:
+//            guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) else { return false }
+//            return calendar.isDate(dto.due, inSameDayAs: tomorrow)
+//        case .thisWeek:
+//            guard let di = calendar.dateInterval(of: .weekOfYear, for: now) else { return false }
+//            return (di.start ... di.end).contains(dto.due)
+//        }
     }
 
     enum TaskFilterOption: String, AppEnum, CaseIterable {

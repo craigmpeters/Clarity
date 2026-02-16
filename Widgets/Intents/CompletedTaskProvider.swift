@@ -34,8 +34,7 @@ struct CompletedTaskProvider: AppIntentTimelineProvider {
         var tasks : [ToDoTaskDTO] = []
         do {
             tasks = try WidgetFileCoordinator.shared.readTasks(kind: .completed)
-            let predicate = configuration.completedFilter.predicate()
-            tasks = try tasks.filter { try predicate.evaluate($0) }
+            tasks = tasks.filter { configuration.completedFilter.matches($0) }
         } catch {
             LogManager.shared.log.error("Could not read completed tasks: \(error.localizedDescription)")
         }

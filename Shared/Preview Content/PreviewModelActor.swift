@@ -136,13 +136,8 @@ final class PreviewData {
         print("Total Tasks \(tasks.count)")
         let dtos: [ToDoTaskDTO] = tasks.map { ToDoTaskDTO(from: $0)}
         var filtered : [ToDoTaskDTO]
-        do {
-            filtered = try dtos.filter(filter.predicate())
-            print("Total Filtered: \(filtered.count)")
-        } catch {
-            filtered = dtos
-            print("Failed to apply Predicate")
-        }
+        filtered = dtos.filter{ filter.matches($0)}
+        print("Total Filtered: \(filtered.count)")
         print ("Total DTOs \(dtos.count)")
         print("Filtered tasks: \(dtos.count)")
 
