@@ -229,9 +229,15 @@ import XCGLogger
     }
     
     private func stopLiveActivity() {
-        guard let activity = activity else { return }
+        if let existing = Activity<PomodoroAttributes>.activities.first {
+            self.activity = existing
+            LogManager.shared.log.debug("Attached to existing Live Activity")
+        } else {
+            LogManager.shared.log.debug("No Live Activity to stop")
+            return
+        }
         Task {
-            await activity.end(ActivityContent(state: activity.content.state, staleDate: nil), dismissalPolicy: .immediate)
+            await activity!.end(ActivityContent(state: activity!.content.state, staleDate: nil), dismissalPolicy: .immediate)
             LogManager.shared.log.debug("Stopped Live Activity")
         }
         self.activity = nil
