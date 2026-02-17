@@ -237,8 +237,10 @@ import XCGLogger
             return
         }
         Task {
-            await activity!.end(ActivityContent(state: activity!.content.state, staleDate: nil), dismissalPolicy: .immediate)
-            LogManager.shared.log.debug("Stopped Live Activity")
+            if let a = self.activity {
+                await a.end(ActivityContent(state: a.content.state, staleDate: nil), dismissalPolicy: .immediate)
+                LogManager.shared.log.debug("Stopped Live Activity")
+            }
         }
         self.activity = nil
     }
