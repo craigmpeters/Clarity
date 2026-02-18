@@ -62,23 +62,24 @@ struct CompletedWidgetView: View {
                     Text("Completed Tasks")
                         .font(.caption2)
                     Spacer(minLength: 0)
-                    if entry.showWeeklyProgress {
-                        HStack {
-                            Image(systemName: "target")
-                                .foregroundStyle(.orange)
-                            Gauge(value: gaugeData) {
-                            }
-                            .gaugeStyle(LinearCapacityGaugeStyle())
-                            .tint(gradient)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
                 }
                 if widgetFamily == .systemMedium {
                     HStack {
                         WidgetCategoryProgress(entry: entry, entries: 2 )
                     }
+                    .frame(alignment: .top)
                 }
+            }
+            if entry.showWeeklyProgress {
+                HStack {
+                    Image(systemName: "target")
+                        .foregroundStyle(.orange)
+                    Gauge(value: gaugeData) {
+                    }
+                    .gaugeStyle(LinearCapacityGaugeStyle())
+                    .tint(gradient)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
 
         }

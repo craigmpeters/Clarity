@@ -91,15 +91,8 @@ struct WidgetCategoryProgressRow: View {
     let target: Int
     let progress: Double
     
-    private var progressColor: Color {
-        if progress >= 1.0 { return .green }
-        if progress >= 0.7 { return .blue }
-        if progress >= 0.4 { return .orange }
-        return .red
-    }
-    
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading) {
             HStack {
                 HStack(spacing: 6) {
                     Circle()
@@ -114,35 +107,11 @@ struct WidgetCategoryProgressRow: View {
                 Spacer()
                 
                 HStack(spacing: 4) {
-                    Text("\(completed) / \(target)")
+                    Text("\(completed)")
                         .font(.system(.caption, design: .monospaced))
-                    
-                    if progress >= 1.0 {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.green)
-                    }
                 }
             }
-            
-            // Progress bar
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.secondary.opacity(0.2))
-                        .frame(height: 8)
-                    
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(progressColor)
-                        .frame(
-                            width: geometry.size.width * min(progress, 1.0),
-                            height: 8
-                        )
-                }
-            }
-            .frame(height: 8)
         }
-        .padding(.vertical, 4)
     }
 }
 
