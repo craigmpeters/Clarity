@@ -45,7 +45,7 @@ actor ClarityModelActor {
         model.color = dto.color
         model.weeklyTarget = dto.weeklyTarget
         try modelContext.save()
-        WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
+        WidgetCenter.shared.reloadAllTimelines()
         return CategoryDTO(from: model)
     }
     
@@ -54,7 +54,7 @@ actor ClarityModelActor {
             modelContext.delete(model)
             try modelContext.save()
         }
-        WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
+        WidgetCenter.shared.reloadAllTimelines()
     }
     
     func getCategories() throws -> [CategoryDTO] {
@@ -507,7 +507,7 @@ actor ClarityModelActor {
             try modelContext.save()
             // Keep widgets in sync with the new state
             try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
-            WidgetCenter.shared.reloadTimelines(ofKind: "ClarityTaskWidget")
+            WidgetCenter.shared.reloadAllTimelines()
         }
 
         logger.info("Dedup: groups=\(totalDuplicateGroups) deleted=\(totalDeleted)")
