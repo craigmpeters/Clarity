@@ -578,6 +578,7 @@ struct TaskWidgetEntry: TimelineEntry {
 struct CompletedTaskEntry: TimelineEntry {
     let date: Date
     let tasks: [ToDoTaskDTO]
+    let categories: [CategoryDTO]
     let progress: WeeklyProgress
     let filter: ToDoTask.CompletedTaskFilter
     let showWeeklyProgress: Bool

@@ -31,6 +31,7 @@ struct CompletedWidget: Widget {
 struct CompletedWidgetView: View {
     @Environment(\.widgetFamily) var widgetFamily
     let entry: CompletedTaskEntry
+    @Query private var categories: [Category]
     
     private var gaugeData : Double
     let gradient = Gradient(colors: [ .red, .yellow, .orange, .green])
@@ -54,22 +55,30 @@ struct CompletedWidgetView: View {
             }
             .fixedSize()
             .frame(alignment: .leading)
-
-            Text(String(entry.tasks.count))
-                .font(.largeTitle)
-            Text("Completed Tasks")
-                .font(.caption2)
-            Spacer(minLength: 0)
-            if entry.showWeeklyProgress {
-                HStack {
-                    Image(systemName: "target")
-                        .foregroundStyle(.orange)
-                    Gauge(value: gaugeData) {
+            HStack {
+                VStack {
+                    Text(String(entry.tasks.count))
+                        .font(.largeTitle)
+                    Text("Completed Tasks")
+                        .font(.caption2)
+                    Spacer(minLength: 0)
+                    if entry.showWeeklyProgress {
+                        HStack {
+                            Image(systemName: "target")
+                                .foregroundStyle(.orange)
+                            Gauge(value: gaugeData) {
+                            }
+                            .gaugeStyle(LinearCapacityGaugeStyle())
+                            .tint(gradient)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .gaugeStyle(LinearCapacityGaugeStyle())
-                    .tint(gradient)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                if widgetFamily == .systemMedium {
+                    HStack {
+                        WidgetCategoryProgress(entry: entry, entries: 2 )
+                    }
+                }
             }
 
         }
@@ -83,7 +92,7 @@ struct CompletedWidgetView: View {
     PreviewData.shared.getPreviewCompletedTaskEntry(filter: .Today)
 }
 
-#Preview("This Week", as: .systemSmall) {
+#Preview("This Week", as: .systemMedium) {
     CompletedWidget()
 } timeline: {
     PreviewData.shared.getPreviewCompletedTaskEntry(filter: .PastWeek)

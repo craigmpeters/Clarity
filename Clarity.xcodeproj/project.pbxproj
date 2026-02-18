@@ -261,6 +261,7 @@
 				Intents/StartPomodoroIntent.swift,
 				Models/CategoryEntity.swift,
 				Models/TaskEntity.swift,
+				Views/WidgetCategoryProgress.swift,
 			);
 			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
 		};

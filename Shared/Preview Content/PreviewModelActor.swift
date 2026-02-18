@@ -40,6 +40,11 @@ final class PreviewData {
         }
     }
     
+    func getCategoriesDTO() -> [CategoryDTO] {
+        let categories = getCategories()
+        return categories.map { CategoryDTO(from: $0) }
+    }
+    
     func getCategory() -> Category {
         return getCategories().first!
     }
@@ -132,6 +137,7 @@ final class PreviewData {
     func getPreviewCompletedTaskEntry(filter: ToDoTask.CompletedTaskFilter) -> CompletedTaskEntry {
         let tasks = getCompletedTasks()
         let target = returnPreviewWeeklyProgress()
+        let categories = getCategoriesDTO()
         let showWeeklyProgress = Bool.random()
         print("Total Tasks \(tasks.count)")
         let dtos: [ToDoTaskDTO] = tasks.map { ToDoTaskDTO(from: $0)}
@@ -141,7 +147,7 @@ final class PreviewData {
         print ("Total DTOs \(dtos.count)")
         print("Filtered tasks: \(dtos.count)")
 
-        return CompletedTaskEntry(date: Date.now, tasks: filtered, progress: target, filter: filter, showWeeklyProgress: showWeeklyProgress)
+        return CompletedTaskEntry(date: Date.now, tasks: filtered, categories: categories, progress: target, filter: filter, showWeeklyProgress: showWeeklyProgress)
     }
     
     // MARK: Functions to insert Preview Data
