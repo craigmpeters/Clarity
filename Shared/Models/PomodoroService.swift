@@ -229,6 +229,8 @@ import XCGLogger
     }
     
     private func stopLiveActivity() {
+        let activityCount = Activity<PomodoroAttributes>.activities.count
+        LogManager.shared.log.debug("Stopping Live Activities. There are \(activityCount) Live Activities")
         if let existing = Activity<PomodoroAttributes>.activities.first {
             self.activity = existing
             LogManager.shared.log.debug("Attached to existing Live Activity")
@@ -240,6 +242,8 @@ import XCGLogger
             if let a = self.activity {
                 await a.end(ActivityContent(state: a.content.state, staleDate: nil), dismissalPolicy: .immediate)
                 LogManager.shared.log.debug("Stopped Live Activity")
+            } else {
+                LogManager.shared.log.error("Cannot stop live activity")
             }
         }
         self.activity = nil
