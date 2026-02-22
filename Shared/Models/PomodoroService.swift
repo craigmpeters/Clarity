@@ -229,24 +229,38 @@ import XCGLogger
     }
     
     private func stopLiveActivity() {
-        let activityCount = Activity<PomodoroAttributes>.activities.count
-        LogManager.shared.log.debug("Stopping Live Activities. There are \(activityCount) Live Activities")
-        if let existing = Activity<PomodoroAttributes>.activities.first {
-            self.activity = existing
-            LogManager.shared.log.debug("Attached to existing Live Activity")
-        } else {
+        let all = Activity<PomodoroAttributes>.activities
+        LogManager.shared.log.debug("Stopping Live Activities. There are \(all.count) Live Activities")
+
+        guard !all.isEmpty else {
             LogManager.shared.log.debug("No Live Activity to stop")
             return
         }
+
         Task {
-            if let a = self.activity {
-                await a.end(ActivityContent(state: a.content.state, staleDate: nil), dismissalPolicy: .immediate)
-                LogManager.shared.log.debug("Stopped Live Activity")
-            } else {
-                LogManager.shared.log.error("Cannot stop live activity")
+            var endedAny = false
+            for activity in all {
+                LogManager.shared.log.debug("Attempting to stop activity with state: \(activity.activityState)")
+
+                do {
+                    await activity.end(
+                        ActivityContent(state: activity.content.state, staleDate: nil),
+                        dismissalPolicy: .immediate
+                    )
+                    endedAny = true
+                    LogManager.shared.log.debug("Stopped Live Activity")
+                } catch {
+                    LogManager.shared.log.error("Failed to end Live Activity: \(error.localizedDescription)")
+                }
             }
+
+            if !endedAny {
+                LogManager.shared.log.error("Could not stop any Live Activity")
+            }
+
+            // Clear our stored reference regardless
+            self.activity = nil
         }
-        self.activity = nil
     }
     
     // #MARK: Notifications
