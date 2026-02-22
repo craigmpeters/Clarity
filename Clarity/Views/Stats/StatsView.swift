@@ -183,6 +183,8 @@ struct StatsView: View {
         
         let dateFilteredTasks: [ToDoTask]
         
+        
+        // TODO: Put this somewhere else
         switch selectedTimeframe {
         case .today:
             dateFilteredTasks = completedTasks.filter { task in

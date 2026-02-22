@@ -40,13 +40,21 @@ final class PreviewData {
         }
     }
     
+    func getCategoriesDTO() -> [CategoryDTO] {
+        let categories = getCategories()
+        return categories.map { CategoryDTO(from: $0) }
+    }
+    
     func getCategory() -> Category {
         return getCategories().first!
     }
     
     func getToDoTasks() -> [ToDoTask] {
         do {
-            let descriptor = FetchDescriptor<ToDoTask>()
+            let descriptor = FetchDescriptor<ToDoTask>(
+                predicate: #Predicate { !$0.completed },
+                sortBy: [SortDescriptor(\.due, order: .forward)]
+            )
             return try previewContext.fetch(descriptor)
         } catch {
             print("Failed to fetch tasks: \(error)")
@@ -54,16 +62,29 @@ final class PreviewData {
         }
     }
     
-    func getCompletedTasks() -> [ToDoTask] {
+    func getCompletedTasks(filter: ToDoTask.CompletedTaskFilter = .AllTime) -> [ToDoTask] {
         do {
-            let descriptor = FetchDescriptor<ToDoTask>()
+            let descriptor = FetchDescriptor<ToDoTask>(
+                predicate: #Predicate { $0.completed },
+                sortBy: [SortDescriptor(\.due, order: .forward)]
+            )
             let allTasks = try previewContext.fetch(descriptor)
+            
             return allTasks.filter { $0.completed }
         } catch {
             print("Failed to fetch tasks: \(error)")
             return []
         }
         
+    }
+    
+    func getTargets() -> GlobalTargetSettings? {
+        do {
+            let descriptor = FetchDescriptor<GlobalTargetSettings>()
+            return try previewContext.fetch(descriptor).first!
+        } catch {
+            return nil
+        }
     }
     
     // #MARK: Individual Task Functions
@@ -103,7 +124,37 @@ final class PreviewData {
         return ToDoTaskDTO(from: getToDoTasks().first!)
     }
     
+    
+    func getPreviewTaskWidgetEntry() -> TaskWidgetEntry {
+        let tasks = getToDoTasks()
+        let dtos: [ToDoTaskDTO] = tasks.map { ToDoTaskDTO(from: $0) }
+        let target = returnPreviewWeeklyProgress()
+        let option: ToDoTask.TaskFilterOption = .all
+        let showWeeklyTarget = Bool.random()
+        return TaskWidgetEntry(date: Date.now, todos: dtos, progress: target, filter: option, showWeeklyProgress: showWeeklyTarget)
+    }
+    
+    func getPreviewCompletedTaskEntry(filter: ToDoTask.CompletedTaskFilter) -> CompletedTaskEntry {
+        let tasks = getCompletedTasks()
+        let target = returnPreviewWeeklyProgress()
+        let categories = getCategoriesDTO()
+        let showWeeklyProgress = Bool.random()
+        print("Total Tasks \(tasks.count)")
+        let dtos: [ToDoTaskDTO] = tasks.map { ToDoTaskDTO(from: $0)}
+        var filtered : [ToDoTaskDTO]
+        filtered = dtos.filter{ filter.matches($0)}
+        print("Total Filtered: \(filtered.count)")
+        print ("Total DTOs \(dtos.count)")
+        print("Filtered tasks: \(dtos.count)")
+
+        return CompletedTaskEntry(date: Date.now, tasks: filtered, categories: categories, progress: target, filter: filter, showWeeklyProgress: showWeeklyProgress)
+    }
+    
     // MARK: Functions to insert Preview Data
+    
+    private func returnPreviewWeeklyProgress() -> WeeklyProgress{
+        return WeeklyProgress(completed: 2, target: 10, error: nil, categories: [])
+    }
     
     private func insertPreviewCategories(){
         let categories = [
@@ -160,10 +211,20 @@ final class PreviewData {
                 due: dueDate,
                 everySpecificDayDay: nil,
                 categories: taskCategories
-
             )
             previewContext.insert(task)
         }
+        
+        let task = ToDoTask(
+            name: "Completed",
+            pomodoroTime: TimeInterval(1000),
+            due: Date(),
+            everySpecificDayDay: nil,
+            categories: []
+        )
+        task.completed = true
+        task.completedAt = Date()
+        previewContext.insert(task)
         saveContext()
     }
     

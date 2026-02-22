@@ -375,6 +375,8 @@ extension ClarityWatchConnectivity {
             return await ProcessWatchPomodoroStopped(message)
         case WCKeys.Requests.sendLogs:
             return await ProcessSendLogs(message)
+        case WCKeys.Requests.widgetData:
+            return await ProcessSendWWatchWidgetData(message)
         default:
             LogManager.shared.log.error("Invalid Request Type: \(kind)")
             return Envelope(kind: "error")
@@ -407,6 +409,8 @@ extension ClarityWatchConnectivity {
     // MARK: iOS Process Functions
     #if os(iOS)
     
+    
+    
     private static func getAllTasks() -> [ToDoTaskDTO] {
         //TODO: Need to add a filter at some point, until then getting all
         var todos: [ToDoTaskDTO] = []
@@ -417,6 +421,12 @@ extension ClarityWatchConnectivity {
             LogManager.shared.log.error("📱 Could not fetch tasks from WidgetFileCoordinator \(error.localizedDescription)")
         }
         return todos
+    }
+    
+    private static func ProcessSendWWatchWidgetData(_ message: [String: Any]?) async -> Envelope {
+        
+        let data = WatchWidgetData(due: 1, completed: 2, progress: 1, target: 3)
+        return Envelope(kind: WCKeys.Requests.widgetData, data: data)
     }
     
     private static func processWatchListAllRequest(_ message: [String: Any]?) async -> Envelope {
@@ -610,6 +620,7 @@ public enum WCKeys {
         public static let pomodoroStarted = "pomodoroStarted"
         public static let pomodoroStopped = "pomodoroStopped"
         public static let sendLogs = "sendLogs"
+        public static let widgetData = "widgetData"
     }
 }
 
@@ -626,21 +637,22 @@ public struct Envelope: Codable, Sendable {
     public let todotaskid: String?
     public let pomodoro: PomodoroDTO?
     public let logs: Data?
+    public let widgetData: WatchWidgetData?
 
-    public init(kind: String, todos: [ToDoTaskDTO]? = nil, todo: ToDoTaskDTO? = nil, todotaskid : String? = nil, pomodoro: PomodoroDTO? = nil, logs: Data? = nil) {
+    public init(kind: String, todos: [ToDoTaskDTO]? = nil, todo: ToDoTaskDTO? = nil, todotaskid : String? = nil, pomodoro: PomodoroDTO? = nil, logs: Data? = nil, data: WatchWidgetData? = nil) {
         self.kind = kind
         self.todos = todos
         self.todo = todo
         self.todotaskid = todotaskid
         self.pomodoro = pomodoro
         self.logs = logs
+        self.widgetData = data
     }
 }
 
+
 extension ClarityWatchConnectivity {
     
-    
-
     func sessionReachabilityDidChange(_ session: WCSession) {
         LogManager.shared.log.verbose("⌚️ Reachability changed → \(session.isReachable)")
         LogManager.shared.log.verbose("⌚️ activationState=\(session.activationState.rawValue)")

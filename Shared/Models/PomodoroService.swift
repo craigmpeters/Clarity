@@ -229,12 +229,38 @@ import XCGLogger
     }
     
     private func stopLiveActivity() {
-        guard let activity = activity else { return }
-        Task {
-            await activity.end(ActivityContent(state: activity.content.state, staleDate: nil), dismissalPolicy: .immediate)
-            LogManager.shared.log.debug("Stopped Live Activity")
+        let all = Activity<PomodoroAttributes>.activities
+        LogManager.shared.log.debug("Stopping Live Activities. There are \(all.count) Live Activities")
+
+        guard !all.isEmpty else {
+            LogManager.shared.log.debug("No Live Activity to stop")
+            return
         }
-        self.activity = nil
+
+        Task {
+            var endedAny = false
+            for activity in all {
+                LogManager.shared.log.debug("Attempting to stop activity with state: \(activity.activityState)")
+
+                do {
+                    await activity.end(
+                        ActivityContent(state: activity.content.state, staleDate: nil),
+                        dismissalPolicy: .immediate
+                    )
+                    endedAny = true
+                    LogManager.shared.log.debug("Stopped Live Activity")
+                } catch {
+                    LogManager.shared.log.error("Failed to end Live Activity: \(error.localizedDescription)")
+                }
+            }
+
+            if !endedAny {
+                LogManager.shared.log.error("Could not stop any Live Activity")
+            }
+
+            // Clear our stored reference regardless
+            self.activity = nil
+        }
     }
     
     // #MARK: Notifications

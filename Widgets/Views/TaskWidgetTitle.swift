@@ -12,7 +12,7 @@ func TaskWidgetTitle(entry: TaskWidgetEntry) -> some View {
         HStack {
             Label(entry.filter.rawValue, systemImage: "checkmark.square")
                 .font(.headline)
-                .foregroundStyle(TaskFilterOption.filterColor[entry.filter] ?? .primary)
+                .foregroundStyle(ToDoTask.TaskFilterOption.filterColor[entry.filter] ?? .primary)
 
             Spacer()
 
