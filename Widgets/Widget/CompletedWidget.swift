@@ -34,7 +34,7 @@ struct CompletedWidgetView: View {
     @Query private var categories: [Category]
     
     private var gaugeData : Double
-    let gradient = Gradient(colors: [ .red, .yellow, .orange, .green])
+    let gradient = Gradient(colors: [ .red, .orange, .yellow, .green])
     
     init(entry: CompletedTaskEntry) {
         self.entry = entry
@@ -102,7 +102,7 @@ struct CompletedWidgetView: View {
 #Preview("All Time", as: .systemSmall) {
     CompletedWidget()
 } timeline: {
-    PreviewData.shared.getPreviewCompletedTaskEntry(filter: .AllTime)
+    PreviewData.shared.getPreviewCompletedTaskEntry(filter: .Month)
 }
 #endif
 

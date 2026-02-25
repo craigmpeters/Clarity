@@ -62,7 +62,7 @@ final class PreviewData {
         }
     }
     
-    func getCompletedTasks(filter: ToDoTask.CompletedTaskFilter = .AllTime) -> [ToDoTask] {
+    func getCompletedTasks(filter: ToDoTask.CompletedTaskFilter = .Month) -> [ToDoTask] {
         do {
             let descriptor = FetchDescriptor<ToDoTask>(
                 predicate: #Predicate { $0.completed },

@@ -208,13 +208,14 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
 
     func pushSnapshot(_ todos: [ToDoTaskDTO]) {
         guard self.session.activationState == .activated else { return }
+        
+        // TODO: Refactor out
         DispatchQueue.main.async { self.lastSnapshot = todos }
-        if let data = try? self.jsonEncoder.encode(Envelope(kind: "snapshot", todos: todos)) {
-            do {
-                try self.session.updateApplicationContext([WCKeys.payload: data])
-            } catch {
-                LogManager.shared.log.error("❌ Failed to update application context: \(error)")
-            }
+        do {
+            let data = try WidgetFileCoordinator.shared.compressedData()
+            try self.session.updateApplicationContext([WCKeys.payload: data])
+        } catch {
+            LogManager.shared.log.error("❌ Failed to update application context: \(error)")
         }
     }
 
@@ -342,10 +343,15 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
 
     // Snapshot push from counterpart
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String : Any]) {
-        guard let data = applicationContext[WCKeys.payload] as? Data,
-              let env = try? self.jsonDecoder.decode(Envelope.self, from: data),
-              let todos = env.todos else { return }
-        DispatchQueue.main.async { self.lastSnapshot = todos }
+        guard let data = applicationContext[WCKeys.payload] as? Data else { return }
+        do {
+            let tasks = try WidgetFileCoordinator.shared.decodeCompressedData(data)
+            DispatchQueue.main.async { self.lastSnapshot = tasks }
+        }
+        catch {
+            LogManager.shared.log.error("Could not decomress application context: \(error.localizedDescription)")
+            return
+        }
     }
 }
 // MARK: Processing Responses
@@ -512,18 +518,16 @@ extension ClarityWatchConnectivity {
         }
     
         LogManager.shared.log.debug("Recieved a watch log")
-        LogManager.shared.log.debug("Log File: \(String(describing: String(data: data, encoding: .utf8)))")
-        guard let containerUrl = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity") else {
-            LogManager.shared.log.error("Could not create container for watch log files")
-            return Envelope(kind: WCKeys.Requests.sendLogs)
-        }
-        let watchLogPath = containerUrl.appendingPathComponent("watch_logs.log")
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd_HHmmss"
+        let filename = "watch_logs_\(dateFormatter.string(from: Date())).log"
         do {
-            try data.write(to: watchLogPath, options: .atomic)
-            LogManager.shared.log.info("Written Watch log to \(watchLogPath)")
+            try WidgetFileCoordinator.shared.writeLogFile(fileName: filename, data: data)
         } catch {
-            LogManager.shared.log.error("Could not write Watch Logs: \(error.localizedDescription)")
+            LogManager.shared.log.error("Could not write watch logs: \(error.localizedDescription)")
         }
+        
+        // Persist a copy with a timestamped filename in the app group for retrieval
         
         return Envelope(kind: WCKeys.Requests.sendLogs)
     }

@@ -32,7 +32,7 @@ struct DueWidget: Widget {
 struct ClarityTaskWidgetView: View {
     @Environment(\.widgetFamily) var widgetFamily
     let entry: TaskWidgetEntry
-    let gradient = Gradient(colors: [ .red, .yellow, .orange, .green])
+    let gradient = Gradient(colors: [ .red, .orange, .yellow, .green])
     
     var body: some View {
         if widgetFamily == .accessoryCircular {

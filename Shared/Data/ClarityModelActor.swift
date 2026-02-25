@@ -122,6 +122,22 @@ actor ClarityModelActor {
             return nil
         }
     }
+    
+    func fetchRecentTasks() throws -> [ToDoTaskDTO] {
+        let calendar = Calendar.current
+        let now = Date()
+        let oneMonthAgo = calendar.date(byAdding: .month, value: -1, to: now) ?? now
+
+        let cutoff = oneMonthAgo
+        let descriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate { $0.created > cutoff },
+            sortBy: [SortDescriptor(\.created, order: .reverse)]
+        )
+
+        let tasks = try modelContext.fetch(descriptor)
+        LogManager.shared.log.debug("Found \(tasks.count) tasks of which \(tasks.filter(\.completed).count) are completed")
+        return tasks.map(ToDoTaskDTO.init(from:))
+    }
 
     func fetchTasks(filter: ToDoTask.TaskFilter) throws -> [ToDoTaskDTO] {
         let descriptor = FetchDescriptor<ToDoTask>(
@@ -176,8 +192,7 @@ actor ClarityModelActor {
         LogManager.shared.log.debug("Update Task Day Day \(task.everySpecificDayDay)")
         
         try modelContext.save()
-        try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
-        try WidgetFileCoordinator.shared.writeTasks(fetchCompletedTasks(), kind: DataFileKind.completed)
+        try WidgetFileCoordinator.shared.writeTasks(fetchRecentTasks())
         WidgetCenter.shared.reloadAllTimelines()
         try? deduplicateTasksByUUID()
         return ToDoTaskDTO(from: model)
@@ -238,8 +253,7 @@ actor ClarityModelActor {
             modelContext.insert(toDoTask)
             
             try modelContext.save()
-            try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
-        try WidgetFileCoordinator.shared.writeTasks(fetchCompletedTasks(), kind: DataFileKind.completed)
+        try WidgetFileCoordinator.shared.writeTasks(fetchRecentTasks())
         WidgetCenter.shared.reloadAllTimelines()
             try? deduplicateTasksByUUID()
             
@@ -251,8 +265,7 @@ actor ClarityModelActor {
             modelContext.delete(model)
             try modelContext.save()
         }
-        try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
-        try WidgetFileCoordinator.shared.writeTasks(fetchCompletedTasks(), kind: DataFileKind.completed)
+        try WidgetFileCoordinator.shared.writeTasks(fetchRecentTasks())
         WidgetCenter.shared.reloadAllTimelines()
         try? deduplicateTasksByUUID()
     }
@@ -309,8 +322,7 @@ actor ClarityModelActor {
             LogManager.shared.log.error("Error in completing task \(error.localizedDescription)")
         }
         try modelContext.save()
-        try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
-        try WidgetFileCoordinator.shared.writeTasks(fetchCompletedTasks(), kind: DataFileKind.completed)
+        try WidgetFileCoordinator.shared.writeTasks(fetchRecentTasks())
         WidgetCenter.shared.reloadAllTimelines()
         try? deduplicateTasksByUUID()
     }
@@ -506,7 +518,7 @@ actor ClarityModelActor {
         if totalDuplicateGroups > 0 {
             try modelContext.save()
             // Keep widgets in sync with the new state
-            try WidgetFileCoordinator.shared.writeTasks(fetchTasks(filter: .all))
+            try WidgetFileCoordinator.shared.writeTasks(fetchRecentTasks())
             WidgetCenter.shared.reloadAllTimelines()
         }
 
@@ -590,3 +602,4 @@ public struct WatchWidgetData: Codable, Sendable {
     public var progress: Int
     public var target: Int
 }
+

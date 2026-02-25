@@ -21,6 +21,7 @@ struct ClarityWidgetProvider: AppIntentTimelineProvider {
         var todos : [ToDoTaskDTO] = []
         do {
             todos = try WidgetFileCoordinator.shared.readTasks(with: configuration.filter.toTaskFilter())
+            todos = todos.filter { !$0.completed }
         } catch {
             print("Failed to read tasks from file DB: \(error)")
         }
@@ -34,6 +35,7 @@ struct ClarityWidgetProvider: AppIntentTimelineProvider {
         var todos : [ToDoTaskDTO] = []
         do {
             todos = try WidgetFileCoordinator.shared.readTasks(with: configuration.filter.toTaskFilter())
+            todos = todos.filter { !$0.completed }
         } catch {
             print("Failed to read tasks from file DB: \(error)")
         }
