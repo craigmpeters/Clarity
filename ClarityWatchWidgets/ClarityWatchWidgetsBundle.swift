@@ -11,7 +11,6 @@ import SwiftUI
 @main
 struct ClarityWatchWidgetsBundle: WidgetBundle {
     var body: some Widget {
-        ClarityWatchWidgets()
-        ClarityWatchWidgetsControl()
+        WatchDueWidget()
     }
 }

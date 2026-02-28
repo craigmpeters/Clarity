@@ -7,89 +7,122 @@
 
 import WidgetKit
 import SwiftUI
+import OSLog
+import XCGLogger
 
-struct Provider: AppIntentTimelineProvider {
-    func placeholder(in context: Context) -> SimpleEntry {
-        SimpleEntry(date: Date(), configuration: ConfigurationAppIntent())
-    }
 
-    func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> SimpleEntry {
-        SimpleEntry(date: Date(), configuration: configuration)
+struct WatchDueWidgetProvider: AppIntentTimelineProvider {
+    func recommendations() -> [AppIntentRecommendation<WatchDueWidgetIntent>] {
+        [AppIntentRecommendation(intent: WatchDueWidgetIntent(), description: Text("All Tasks"))]
     }
     
-    func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
-        var entries: [SimpleEntry] = []
+    func placeholder(in context: Context) -> WatchWidgetEntry {
+        WatchWidgetEntry(date: .now, todos: [], filter: .all)
+    }
 
-        // Generate a timeline consisting of five entries an hour apart, starting from the current date.
-        let currentDate = Date()
-        for hourOffset in 0 ..< 5 {
-            let entryDate = Calendar.current.date(byAdding: .hour, value: hourOffset, to: currentDate)!
-            let entry = SimpleEntry(date: entryDate, configuration: configuration)
-            entries.append(entry)
+    func snapshot(for configuration: WatchDueWidgetIntent, in context: Context) async -> WatchWidgetEntry {
+        
+        var tasks : [ToDoTaskDTO] = []
+        do {
+            tasks = try WidgetFileCoordinator.shared.readTasks(with: configuration.filter.toTaskFilter())
+            tasks = tasks.filter { !$0.completed }
+        } catch {
+            LogManager.shared.log.error("Could not get tasks: \(error.localizedDescription)")
         }
-
-        return Timeline(entries: entries, policy: .atEnd)
+        // TODO: Is this required?
+        tasks = ToDoTaskDTO.focusFilter(in: tasks)
+        return WatchWidgetEntry(date: .now, todos: tasks, filter: configuration.filter)
     }
-
-    func recommendations() -> [AppIntentRecommendation<ConfigurationAppIntent>] {
-        // Create an array with all the preconfigured widgets to show.
-        [AppIntentRecommendation(intent: ConfigurationAppIntent(), description: "Example Widget")]
+    
+    func timeline(for configuration: WatchDueWidgetIntent, in context: Context) async -> Timeline<WatchWidgetEntry> {
+        var tasks : [ToDoTaskDTO] = []
+        do {
+            tasks = try WidgetFileCoordinator.shared.readTasks(with: configuration.filter.toTaskFilter())
+            tasks = tasks.filter { !$0.completed }
+        } catch {
+            LogManager.shared.log.error("Could not get tasks: \(error.localizedDescription)")
+        }
+        
+        let selectedCategories : [CategoryEntity] = configuration.categoryFilter
+        if selectedCategories.count > 0 {
+            let selectedCategoryNames = Set(selectedCategories.map(\.name))
+            tasks = tasks.filter { task in
+                let taskCategories = Set((task.categories).compactMap(\.name))
+                return !taskCategories.isDisjoint(with: selectedCategoryNames)
+            }
+        }
+        
+        tasks = ToDoTaskDTO.focusFilter(in: tasks)
+        let entry = WatchWidgetEntry(date: .now, todos: tasks, filter: configuration.filter)
+        
+        let cal = Calendar.current
+        let now = Date()
+        
+        // Always update at midnight (when day changes)
+        let nextMidnight = cal.startOfDay(for: cal.date(byAdding: .day, value: 1, to: now) ?? now)
+        
+        // For frequent updates during the day, update every 15 minutes
+        let next15Minutes = cal.date(byAdding: .minute, value: 15, to: now) ?? now
+        
+        // Use whichever comes first - this ensures we update at midnight for date changes
+        let nextUpdate = min(nextMidnight, next15Minutes)
+        
+        return Timeline(entries: [entry], policy: .after(nextUpdate))
     }
-
-//    func relevances() async -> WidgetRelevances<ConfigurationAppIntent> {
-//        // Generate a list containing the contexts this widget is relevant in.
-//    }
 }
 
-struct SimpleEntry: TimelineEntry {
-    let date: Date
-    let configuration: ConfigurationAppIntent
-}
-
-struct ClarityWatchWidgetsEntryView : View {
-    var entry: Provider.Entry
+struct ClarityWatchWidgetDueView : View {
+    @Environment(\.widgetFamily) var widgetFamily
+    var entry: WatchWidgetEntry
 
     var body: some View {
-        VStack {
-            HStack {
-                Text("Time:")
-                Text(entry.date, style: .time)
+        switch widgetFamily {
+        case .accessoryRectangular:
+            VStack {
+                ZStack {
+                    Circle()
+                        .fill(.clarityBlue)
+                        .stroke(.clarityYellow, style: StrokeStyle(lineWidth: 4))
+                    VStack {
+                        Text(entry.filter.rawValue)
+                            .font(.caption)
+                        Text(String(entry.todos.count))
+                    }
+                }
             }
-        
-            Text("Favorite Emoji:")
-            Text(entry.configuration.favoriteEmoji)
+        default:
+            EmptyView()
         }
+        
+
     }
 }
 
-struct ClarityWatchWidgets: Widget {
-    let kind: String = "ClarityWatchWidgets"
+struct WatchDueWidget: Widget {
+    let kind: String = "WatchDueWidget"
 
     var body: some WidgetConfiguration {
-        AppIntentConfiguration(kind: kind, intent: ConfigurationAppIntent.self, provider: Provider()) { entry in
-            ClarityWatchWidgetsEntryView(entry: entry)
+        AppIntentConfiguration(kind: kind, intent: WatchDueWidgetIntent.self, provider: WatchDueWidgetProvider()) { entry in
+            ClarityWatchWidgetDueView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
     }
 }
 
-extension ConfigurationAppIntent {
-    fileprivate static var smiley: ConfigurationAppIntent {
-        let intent = ConfigurationAppIntent()
-        intent.favoriteEmoji = "😀"
-        return intent
-    }
-    
-    fileprivate static var starEyes: ConfigurationAppIntent {
-        let intent = ConfigurationAppIntent()
-        intent.favoriteEmoji = "🤩"
-        return intent
-    }
+#Preview(as: .accessoryRectangular) {
+    WatchDueWidget()
+} timeline: {
+    PreviewData.shared.getPreviewWatchWidgetEntry()
 }
 
-#Preview(as: .accessoryRectangular) {
-    ClarityWatchWidgets()
+#Preview(as: .accessoryCircular) {
+    WatchDueWidget()
 } timeline: {
-    SimpleEntry(date: .now, configuration: .smiley)
-    SimpleEntry(date: .now, configuration: .starEyes)
-}    
+    PreviewData.shared.getPreviewWatchWidgetEntry()
+}
+
+#Preview(as: .accessoryCorner) {
+    WatchDueWidget()
+} timeline: {
+    PreviewData.shared.getPreviewWatchWidgetEntry()
+}

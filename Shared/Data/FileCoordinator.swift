@@ -7,7 +7,6 @@
 import Foundation
 import os
 import SwiftData
-import XCGLogger
 import Compression
 import XCGLogger
 
@@ -349,3 +348,4 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
         // WidgetCenter.shared.reloadAllTimelines()
     }
 }
+

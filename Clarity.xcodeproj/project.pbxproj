@@ -16,6 +16,14 @@
 		443254E42F4B4903003176B3 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4448AD652E579266005CDDDF /* SwiftUI.framework */; };
 		443254F32F4B4904003176B3 /* ClarityWatchWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 443254E22F4B4903003176B3 /* ClarityWatchWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		443254FB2F4B5784003176B3 /* WatchCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 443254FA2F4B577B003176B3 /* WatchCache.swift */; };
+		443255172F4F5CC9003176B3 /* ObjcExceptionBridging in Frameworks */ = {isa = PBXBuildFile; productRef = 443255162F4F5CC9003176B3 /* ObjcExceptionBridging */; };
+		443255192F4F5CCC003176B3 /* XCGLogger in Frameworks */ = {isa = PBXBuildFile; productRef = 443255182F4F5CCC003176B3 /* XCGLogger */; };
+		4432551B2F4F5CDE003176B3 /* ObjcExceptionBridging in Frameworks */ = {isa = PBXBuildFile; productRef = 4432551A2F4F5CDE003176B3 /* ObjcExceptionBridging */; };
+		4432551D2F4F5CE3003176B3 /* ObjcExceptionBridging in Frameworks */ = {isa = PBXBuildFile; productRef = 4432551C2F4F5CE3003176B3 /* ObjcExceptionBridging */; };
+		4432551F2F4F5CE9003176B3 /* ObjcExceptionBridging in Frameworks */ = {isa = PBXBuildFile; productRef = 4432551E2F4F5CE9003176B3 /* ObjcExceptionBridging */; };
+		443255212F4F5CF2003176B3 /* ObjcExceptionBridging in Frameworks */ = {isa = PBXBuildFile; productRef = 443255202F4F5CF2003176B3 /* ObjcExceptionBridging */; };
+		443255302F4F9075003176B3 /* Media.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4432552F2F4F9075003176B3 /* Media.xcassets */; };
+		443255312F4F907E003176B3 /* Media.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4432552F2F4F9075003176B3 /* Media.xcassets */; };
 		4448AD642E579266005CDDDF /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4448AD632E579266005CDDDF /* WidgetKit.framework */; };
 		4448AD662E579266005CDDDF /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4448AD652E579266005CDDDF /* SwiftUI.framework */; };
 		4448AD752E579268005CDDDF /* Widgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4448AD612E579266005CDDDF /* Widgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -105,6 +113,7 @@
 		441B7E042EEED7F4008D76CA /* ClarityAppIntentsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = ClarityAppIntentsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		443254E22F4B4903003176B3 /* ClarityWatchWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ClarityWatchWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		443254FA2F4B577B003176B3 /* WatchCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchCache.swift; sourceTree = "<group>"; };
+		4432552F2F4F9075003176B3 /* Media.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Media.xcassets; sourceTree = "<group>"; };
 		4448AD612E579266005CDDDF /* Widgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = Widgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		4448AD632E579266005CDDDF /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		4448AD652E579266005CDDDF /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -145,6 +154,7 @@
 				Category.swift,
 				Statistics.swift,
 				Todo.swift,
+				Widgets.swift,
 			);
 			target = 441B7E032EEED7F4008D76CA /* ClarityAppIntentsExtension */;
 		};
@@ -166,6 +176,52 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+			);
+			target = 443254E12F4B4903003176B3 /* ClarityWatchWidgetsExtension */;
+		};
+		443255072F4F3D8F003176B3 /* Exceptions for "Widgets" folder in "ClarityWatchWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Models/CategoryEntity.swift,
+			);
+			target = 443254E12F4B4903003176B3 /* ClarityWatchWidgetsExtension */;
+		};
+		4432550C2F4F5A77003176B3 /* Exceptions for "Models" folder in "ClarityWatchWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Category.swift,
+				Statistics.swift,
+				Todo.swift,
+				Widgets.swift,
+			);
+			target = 443254E12F4B4903003176B3 /* ClarityWatchWidgetsExtension */;
+		};
+		443255232F4F5D58003176B3 /* Exceptions for "Utilities" folder in "ClarityWatchWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Date.swift,
+				Logger.swift,
+			);
+			target = 443254E12F4B4903003176B3 /* ClarityWatchWidgetsExtension */;
+		};
+		443255272F4F5D72003176B3 /* Exceptions for "Preview Content" folder in "ClarityAppIntentsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				PreviewModelActor.swift,
+			);
+			target = 441B7E032EEED7F4008D76CA /* ClarityAppIntentsExtension */;
+		};
+		443255282F4F5D72003176B3 /* Exceptions for "Preview Content" folder in "ClarityWatchWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				PreviewModelActor.swift,
+			);
+			target = 443254E12F4B4903003176B3 /* ClarityWatchWidgetsExtension */;
+		};
+		4432552E2F4F8B2C003176B3 /* Exceptions for "Clarity" folder in "ClarityWatchWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				ViewModels/SwipeActions.swift,
 			);
 			target = 443254E12F4B4903003176B3 /* ClarityWatchWidgetsExtension */;
 		};
@@ -237,6 +293,7 @@
 				PomodoroAttributes.swift,
 				Statistics.swift,
 				Todo.swift,
+				Widgets.swift,
 			);
 			target = 4448AD602E579266005CDDDF /* Widgets */;
 		};
@@ -246,6 +303,7 @@
 				Category.swift,
 				Statistics.swift,
 				Todo.swift,
+				Widgets.swift,
 			);
 			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
 		};
@@ -336,6 +394,7 @@
 				441B7E262EEF27CC008D76CA /* Exceptions for "Widgets" folder in "ClarityWatch" target */,
 				4448AD792E579268005CDDDF /* Exceptions for "Widgets" folder in "Widgets" target */,
 				441B7E1A2EEEFDA3008D76CA /* Exceptions for "Widgets" folder in "ClarityAppIntentsExtension" target */,
+				443255072F4F3D8F003176B3 /* Exceptions for "Widgets" folder in "ClarityWatchWidgetsExtension" target */,
 			);
 			path = Widgets;
 			sourceTree = "<group>";
@@ -387,6 +446,7 @@
 				44D6F0382E85DA9800B5EF9E /* Exceptions for "Models" folder in "ClarityWatch" target */,
 				44D6F0372E85DA9800B5EF9E /* Exceptions for "Models" folder in "Widgets" target */,
 				441B7E1E2EEF0DCA008D76CA /* Exceptions for "Models" folder in "ClarityAppIntentsExtension" target */,
+				4432550C2F4F5A77003176B3 /* Exceptions for "Models" folder in "ClarityWatchWidgetsExtension" target */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -397,6 +457,8 @@
 				44588D122EA4F6B800A657C3 /* Exceptions for "Preview Content" folder in "Clarity" target */,
 				44D6F0412E85DA9B00B5EF9E /* Exceptions for "Preview Content" folder in "ClarityWatch" target */,
 				44D6F0402E85DA9B00B5EF9E /* Exceptions for "Preview Content" folder in "Widgets" target */,
+				443255272F4F5D72003176B3 /* Exceptions for "Preview Content" folder in "ClarityAppIntentsExtension" target */,
+				443255282F4F5D72003176B3 /* Exceptions for "Preview Content" folder in "ClarityWatchWidgetsExtension" target */,
 			);
 			path = "Preview Content";
 			sourceTree = "<group>";
@@ -406,6 +468,7 @@
 			exceptions = (
 				44D6F0482E85DAA100B5EF9E /* Exceptions for "Utilities" folder in "ClarityWatch" target */,
 				44D6F0472E85DAA100B5EF9E /* Exceptions for "Utilities" folder in "Widgets" target */,
+				443255232F4F5D58003176B3 /* Exceptions for "Utilities" folder in "ClarityWatchWidgetsExtension" target */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -422,6 +485,7 @@
 				44F875FB2EE35FA70049C5A3 /* Exceptions for "Clarity" folder in "ClarityWatch" target */,
 				44F875FC2EE35FA70049C5A3 /* Exceptions for "Clarity" folder in "Widgets" target */,
 				441B7E242EEF0E4F008D76CA /* Exceptions for "Clarity" folder in "ClarityAppIntentsExtension" target */,
+				4432552E2F4F8B2C003176B3 /* Exceptions for "Clarity" folder in "ClarityWatchWidgetsExtension" target */,
 			);
 			path = Clarity;
 			sourceTree = "<group>";
@@ -433,6 +497,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4432551B2F4F5CDE003176B3 /* ObjcExceptionBridging in Frameworks */,
 				441B80322F1AAF92008D76CA /* XCGLogger in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -443,6 +508,8 @@
 			files = (
 				443254E42F4B4903003176B3 /* SwiftUI.framework in Frameworks */,
 				443254E32F4B4903003176B3 /* WidgetKit.framework in Frameworks */,
+				443255172F4F5CC9003176B3 /* ObjcExceptionBridging in Frameworks */,
+				443255192F4F5CCC003176B3 /* XCGLogger in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -450,6 +517,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4432551D2F4F5CE3003176B3 /* ObjcExceptionBridging in Frameworks */,
 				4448AD662E579266005CDDDF /* SwiftUI.framework in Frameworks */,
 				4448AD642E579266005CDDDF /* WidgetKit.framework in Frameworks */,
 				441B80302F1AAF8B008D76CA /* XCGLogger in Frameworks */,
@@ -460,6 +528,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4432551F2F4F5CE9003176B3 /* ObjcExceptionBridging in Frameworks */,
 				441B802E2F1AAF81008D76CA /* XCGLogger in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -468,6 +537,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				443255212F4F5CF2003176B3 /* ObjcExceptionBridging in Frameworks */,
 				441B802C2F1A5F55008D76CA /* XCGLogger in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -503,6 +573,7 @@
 				44D6F0262E85DA9800B5EF9E /* Models */,
 				44D6F03B2E85DA9B00B5EF9E /* Preview Content */,
 				44D6F0432E85DAA100B5EF9E /* Utilities */,
+				4432552F2F4F9075003176B3 /* Media.xcassets */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -560,6 +631,7 @@
 			name = ClarityAppIntentsExtension;
 			packageProductDependencies = (
 				441B80312F1AAF92008D76CA /* XCGLogger */,
+				4432551A2F4F5CDE003176B3 /* ObjcExceptionBridging */,
 			);
 			productName = ClarityAppIntentsExtension;
 			productReference = 441B7E042EEED7F4008D76CA /* ClarityAppIntentsExtension.appex */;
@@ -579,9 +651,12 @@
 			);
 			fileSystemSynchronizedGroups = (
 				443254E52F4B4903003176B3 /* ClarityWatchWidgets */,
+				44D6F0172E85DA9500B5EF9E /* Data */,
 			);
 			name = ClarityWatchWidgetsExtension;
 			packageProductDependencies = (
+				443255162F4F5CC9003176B3 /* ObjcExceptionBridging */,
+				443255182F4F5CCC003176B3 /* XCGLogger */,
 			);
 			productName = ClarityWatchWidgetsExtension;
 			productReference = 443254E22F4B4903003176B3 /* ClarityWatchWidgetsExtension.appex */;
@@ -605,6 +680,7 @@
 			name = Widgets;
 			packageProductDependencies = (
 				441B802F2F1AAF8B008D76CA /* XCGLogger */,
+				4432551C2F4F5CE3003176B3 /* ObjcExceptionBridging */,
 			);
 			productName = PomodoroExtensionExtension;
 			productReference = 4448AD612E579266005CDDDF /* Widgets.appex */;
@@ -631,6 +707,7 @@
 			name = ClarityWatch;
 			packageProductDependencies = (
 				441B802D2F1AAF81008D76CA /* XCGLogger */,
+				4432551E2F4F5CE9003176B3 /* ObjcExceptionBridging */,
 			);
 			productName = "WatchClarity Watch App";
 			productReference = 44D6EABD2E83176B00B5EF9E /* ClarityWatch.app */;
@@ -667,6 +744,7 @@
 			name = Clarity;
 			packageProductDependencies = (
 				441B802B2F1A5F55008D76CA /* XCGLogger */,
+				443255202F4F5CF2003176B3 /* ObjcExceptionBridging */,
 			);
 			productName = Clarity;
 			productReference = 44FB495E2E51F1EB0059CC5B /* Clarity.app */;
@@ -738,6 +816,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				443255312F4F907E003176B3 /* Media.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -759,6 +838,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				443255302F4F9075003176B3 /* Media.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1628,6 +1708,36 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 441B802A2F1A5F55008D76CA /* XCRemoteSwiftPackageReference "XCGLogger" */;
 			productName = XCGLogger;
+		};
+		443255162F4F5CC9003176B3 /* ObjcExceptionBridging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 441B802A2F1A5F55008D76CA /* XCRemoteSwiftPackageReference "XCGLogger" */;
+			productName = ObjcExceptionBridging;
+		};
+		443255182F4F5CCC003176B3 /* XCGLogger */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 441B802A2F1A5F55008D76CA /* XCRemoteSwiftPackageReference "XCGLogger" */;
+			productName = XCGLogger;
+		};
+		4432551A2F4F5CDE003176B3 /* ObjcExceptionBridging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 441B802A2F1A5F55008D76CA /* XCRemoteSwiftPackageReference "XCGLogger" */;
+			productName = ObjcExceptionBridging;
+		};
+		4432551C2F4F5CE3003176B3 /* ObjcExceptionBridging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 441B802A2F1A5F55008D76CA /* XCRemoteSwiftPackageReference "XCGLogger" */;
+			productName = ObjcExceptionBridging;
+		};
+		4432551E2F4F5CE9003176B3 /* ObjcExceptionBridging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 441B802A2F1A5F55008D76CA /* XCRemoteSwiftPackageReference "XCGLogger" */;
+			productName = ObjcExceptionBridging;
+		};
+		443255202F4F5CF2003176B3 /* ObjcExceptionBridging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 441B802A2F1A5F55008D76CA /* XCRemoteSwiftPackageReference "XCGLogger" */;
+			productName = ObjcExceptionBridging;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -11,7 +11,6 @@ import Observation
 import os
 import SwiftData
 import SwiftUI
-import XCGLogger
 
 @Model
 class ToDoTask {
@@ -43,7 +42,6 @@ class ToDoTask {
         
         if interval == .specific {
             guard let day = everySpecificDayDay else {
-                LogManager.shared.log.debug("Specific Day of the week but no day set, setting monday")
                 everySpecificDayDay = 1
                 return "Every Monday"
             }
@@ -204,12 +202,6 @@ extension ToDoTaskDTO {
         let focusData = defaults?.data(forKey: "ClarityFocusFilter")
         if let focusData {
             let base64 = focusData.base64EncodedString()
-            Logger(subsystem: "me.craigpeters.clarity", category: "FocusFilter").debug("ClarityFocusFilter (base64, length=\(base64.count)) = \(base64)")
-            if let json = String(data: focusData, encoding: .utf8) {
-                Logger(subsystem: "me.craigpeters.clarity", category: "FocusFilter").debug("ClarityFocusFilter (json) = \(json)")
-            } else {
-                Logger(subsystem: "me.craigpeters.clarity", category: "FocusFilter").debug("ClarityFocusFilter data is not valid UTF-8 JSON")
-            }
         }
         guard let focusData, let settings = try? JSONDecoder().decode(CategoryFilterSettings.self, from: focusData) else {
             return tasks
@@ -243,8 +235,6 @@ extension ToDoTask {
         let focusData = defaults?.data(forKey: "ClarityFocusFilter")
         if let focusData {
             if let json = String(data: focusData, encoding: .utf8) {
-            } else {
-                LogManager.shared.log.debug("Not valid JSON")
             }
         }
         guard let focusData, let settings = try? JSONDecoder().decode(CategoryFilterSettings.self, from: focusData) else {

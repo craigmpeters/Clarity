@@ -8,11 +8,23 @@
 import WidgetKit
 import AppIntents
 
-struct ConfigurationAppIntent: WidgetConfigurationIntent {
-    static var title: LocalizedStringResource { "Configuration" }
-    static var description: IntentDescription { "This is an example widget." }
-
-    // An example configurable parameter.
-    @Parameter(title: "Favorite Emoji", default: "😃")
-    var favoriteEmoji: String
+struct WatchDueWidgetIntent: WidgetConfigurationIntent {
+    static var title: LocalizedStringResource { "Clarity Tasks" }
+    static var description: IntentDescription { "Show what tasks are due" }
+    
+    @Parameter(title: "Date Filter", default: .all)
+    var filter: ToDoTask.TaskFilterOption
+    
+    @Parameter(title: "Category Filter", default: [])
+    var categoryFilter: [CategoryEntity]
+    
+    init() {
+        self.filter = .all
+        self.categoryFilter = []
+    }
+    
+    init(filter: ToDoTask.TaskFilterOption, categoryFilter: [CategoryEntity]) {
+        self.filter = filter
+        self.categoryFilter = categoryFilter
+    }
 }

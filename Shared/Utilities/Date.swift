@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 extension Date {
     var midnight: Date {
@@ -39,3 +40,16 @@ extension Calendar {
         return formatter.weekdaySymbols[weekdayIndex]
     }
 }
+
+extension Color {
+    static let clarityBlue =  Color(red: 0, green: 0.384, blue: 0.788) // #0062c9
+    static let clarityYellow = Color(red: 0.988, green: 0.835, blue: 0.122) // #fcd51f
+}
+
+extension ShapeStyle where Self == Color {
+    /// Clarity brand blue as a ShapeStyle-compatible color.
+    public static var clarityBlue: Color { Color.clarityBlue }
+    /// Clarity brand yellow as a ShapeStyle-compatible color.
+    public static var clarityYellow: Color { Color.clarityYellow }
+}
+
