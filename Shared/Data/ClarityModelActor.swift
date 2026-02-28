@@ -259,38 +259,14 @@ actor ClarityModelActor {
     
     func completeTask(_ id: UUID) throws {
         var completed = false
-        
-        // In-flight guard to avoid concurrent duplicate next-occurrence creation
-        if inFlightCompletions.contains(id) {
-            LogManager.shared.log.warning("completeTask: UUID \(id.uuidString) already in-flight, ignoring duplicate call")
-            return
-        }
-        inFlightCompletions.insert(id)
-        defer { inFlightCompletions.remove(id) }
-        
         LogManager.shared.log.info("Completing task with UUID \(id.uuidString)")
-        let taskUuid: UUID? = id
         let descriptor = FetchDescriptor<ToDoTask>(
             predicate: #Predicate {
-                $0.uuid == taskUuid &&
+                $0.uuid == id &&
                 !$0.completed
             }
         )
         var tasks = try modelContext.fetch(descriptor)
-        switch tasks.count {
-        case 0: do { // No tasks found
-            LogManager.shared.log.error("No tasks found to complete for UUID \(id.uuidString)")
-            return
-        }
-        case 2...: do { // Multiple Tasks to complete
-            LogManager.shared.log.error("Multiple incomplete tasks found for UUID \(id.uuidString) names \(tasks.map { $0.name ?? "No Task Name Found" }.joined(separator: ",")) ... completing all tasks")
-        }
-        default:
-            LogManager.shared.log.info("Task \(tasks.first!.name!) found")
-            let first = tasks.first!
-            let catCount = first.categories?.count ?? 0
-            LogManager.shared.log.debug("completeTask: found task uuid=\(first.uuid?.uuidString ?? "nil"), categories=\(catCount)")
-        }
         do {
             tasks = try tasks.map { task in
                 task.completed = true
