@@ -181,7 +181,12 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
         }
         LogManager.shared.log.info("Stopping Pomodoro for \(task.name) - Completing Task")
         let uuid = task.uuid
-        try? await ClarityServices.store().completeTask(uuid)
+        do {
+            try await ClarityServices.store().completeTask(uuid)
+        } catch {
+            LogManager.shared.log.error("Cannot Complete Task - \(error.localizedDescription)")
+        }
+        
         
         self.sendImmediateOrReliable(.init(kind: WCKeys.Requests.pomodoroStopped))
     }
@@ -477,12 +482,12 @@ extension ClarityWatchConnectivity {
         LogManager.shared.log.info("Recieved End Pomodoro for Task \(dto.toDoTask.name) ending Pomodoro and Completing Task")
         //TODO: Replace with intent
         await PomodoroService.shared.endPomodoro()
-        let uuid = dto.toDoTask.uuid
-        do {
-            try await ClarityServices.store().completeTask(uuid)
-        } catch {
-            LogManager.shared.log.error("Error in completing task \(dto.toDoTask.name) error: \(error)")
-        }
+//        let uuid = dto.toDoTask.uuid
+//        do {
+//            try await ClarityServices.store().completeTask(uuid)
+//        } catch {
+//            LogManager.shared.log.error("Error in completing task \(dto.toDoTask.name) error: \(error)")
+//        }
         ClarityWatchConnectivity.shared.pushSnapshot(getAllTasks())
         return Envelope(kind: WCKeys.Requests.stopPomodoro)
     }
@@ -497,6 +502,7 @@ extension ClarityWatchConnectivity {
         
         let uuid = dto.uuid
             do {
+                LogManager.shared.log.debug("Completing Task with UUID: \(uuid.uuidString)")
                 try await ClarityServices.store().completeTask(uuid)
             } catch {
                 LogManager.shared.log.error("Error Completing Task \(dto.name) error: \(error)")
