@@ -1,6 +1,7 @@
 import AppIntents
 import SwiftData
 import OSLog
+import XCGLogger
 #if canImport(WidgetKit)
 import WidgetKit
 #endif
@@ -43,6 +44,7 @@ struct CompleteTaskIntent: AppIntent {
             }
 
             let uuid = dto.uuid
+            LogManager.shared.log.debug("Completing task with ID: \(uuid)")
             try await store.completeTask(uuid)
 
             ClarityServices.reloadWidgets(kind: "ClarityWidget")

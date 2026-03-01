@@ -152,6 +152,8 @@ import XCGLogger
                     if lastCompleted?.uuid == uuid && (lastCompleted?.completedAt)! > persisted.startTime {
                         LogManager.shared.log.debug("Task already completed")
                     } else {
+                        //TODO: This could be an issue
+                        LogManager.shared.log.debug("Completing task after restoring UUID: \(uuid.uuidString)")
                         try await store.completeTask(uuid)
                     }
                 }

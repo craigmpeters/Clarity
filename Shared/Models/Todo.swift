@@ -159,7 +159,6 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
         self.pomodoroTime = pomodoroTime
         self.repeating = repeating
         self.categories = categories
-        self.completed = false
         self.recurrenceInterval = recurrenceInterval
         self.customRecurrenceDays = customRecurrenceDays
         self.everySpecificDayDay = everySpecificDayDay

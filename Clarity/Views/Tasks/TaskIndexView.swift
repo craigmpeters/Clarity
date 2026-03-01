@@ -91,8 +91,10 @@ struct TaskIndexView: View {
             print("📱 Finishing task on Phone")
             guard let store = store else { return }
             if let id = notification.userInfo?["taskID"] as? UUID {
+                LogManager.shared.log.debug("Completing Task with ID \(id)")
                 Task { try? await store.completeTask(id) }
             } else if let id = PomodoroService.shared.toDoTask?.uuid {
+                LogManager.shared.log.debug("Completing Task with ID: \(id)")
                 Task { try? await store.completeTask(id) }
             }
         }
@@ -129,6 +131,7 @@ struct TaskIndexView: View {
         let id = task.uuid
 
         Task {
+            LogManager.shared.log.debug("Completing task with ID: \(id) and name: \(task.name)")
             try? await store.completeTask(id)
         }
         
