@@ -6,8 +6,14 @@
 //
 
 import WidgetKit
-struct WatchWidgetEntry: TimelineEntry {
+struct WatchDueEntry: TimelineEntry {
     let date: Date
     let todos: [ToDoTaskDTO]
     let filter: ToDoTask.TaskFilterOption
+}
+
+struct WatchCompleteEntry: TimelineEntry {
+    let date: Date
+    let todos: [ToDoTaskDTO]
+    let filter: ToDoTask.CompletedTaskFilter
 }

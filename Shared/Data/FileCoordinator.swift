@@ -111,6 +111,12 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
         }
     }
     
+    func readTasks(With filter: ToDoTask.CompletedTaskFilter) throws -> ToDoTaskList {
+        let tasks = try readTasks()
+        return tasks
+            .filter { filter.matches($0)}
+    }
+    
     func readTasks(with filter: ToDoTask.TaskFilter) throws -> ToDoTaskList {
         let now = Date()
         let tasks = try readTasks()

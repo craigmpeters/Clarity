@@ -12,19 +12,43 @@ struct WatchDueWidgetIntent: WidgetConfigurationIntent {
     static var title: LocalizedStringResource { "Clarity Tasks" }
     static var description: IntentDescription { "Show what tasks are due" }
     
-    @Parameter(title: "Date Filter", default: .all)
+    static var parameterSummary: some ParameterSummary {
+        Summary("\(\.$filter)")
+    }
+    
+    @Parameter(title: "Date Filter", default: .overdue)
     var filter: ToDoTask.TaskFilterOption
     
     @Parameter(title: "Category Filter", default: [])
     var categoryFilter: [CategoryEntity]
     
     init() {
-        self.filter = .all
+        self.filter = .overdue
         self.categoryFilter = []
     }
     
-    init(filter: ToDoTask.TaskFilterOption, categoryFilter: [CategoryEntity]) {
+    init(_ filter: ToDoTask.TaskFilterOption, categoryFilter: [CategoryEntity]) {
         self.filter = filter
         self.categoryFilter = categoryFilter
+    }
+}
+
+struct WatchCompleteWidgetIntent: WidgetConfigurationIntent {
+    static var title: LocalizedStringResource { "Clarity Tasks" }
+    static var description: IntentDescription { "Show what tasks are complete" }
+    
+    static var parameterSummary: some ParameterSummary {
+        Summary("\(\.$dateFilter)")
+    }
+    
+    @Parameter(title: "Date Filter", default: .Today)
+    var dateFilter: ToDoTask.CompletedTaskFilter
+    
+    init() {
+        self.dateFilter = .Today
+    }
+    
+    init(_ filter: ToDoTask.CompletedTaskFilter) {
+        self.dateFilter = filter
     }
 }

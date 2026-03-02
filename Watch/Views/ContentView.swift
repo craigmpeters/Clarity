@@ -9,6 +9,7 @@ import SwiftUI
 import WatchConnectivity
 import Combine
 import XCGLogger
+import WidgetKit
 
 struct ContentView: View {
     @ObservedObject private var connectivity = ClarityWatchConnectivity.shared
@@ -54,6 +55,7 @@ struct ContentView: View {
                     Task {
                         do {
                             try WidgetFileCoordinator.shared.writeTasks(new)
+                            WidgetCenter.shared.reloadAllTimelines()
                         } catch {
                             LogManager.shared.log.error("Failed to persist tasks to App Group: \(error.localizedDescription)")
                         }

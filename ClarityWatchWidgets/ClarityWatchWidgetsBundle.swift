@@ -8,9 +8,11 @@
 import WidgetKit
 import SwiftUI
 
+
 @main
 struct ClarityWatchWidgetsBundle: WidgetBundle {
     var body: some Widget {
         WatchDueWidget()
+        WatchCompleteWidget()
     }
 }

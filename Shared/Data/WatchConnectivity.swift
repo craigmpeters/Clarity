@@ -483,12 +483,12 @@ extension ClarityWatchConnectivity {
         LogManager.shared.log.info("Recieved End Pomodoro for Task \(dto.toDoTask.name) ending Pomodoro and Completing Task")
         //TODO: Replace with intent
         await PomodoroService.shared.endPomodoro()
-        let uuid = dto.toDoTask.uuid
-        do {
-            try await ClarityServices.store().completeTask(uuid)
-        } catch {
-            LogManager.shared.log.error("Error in completing task \(dto.toDoTask.name) error: \(error)")
-        }
+//        let uuid = dto.toDoTask.uuid
+//        do {
+//            try await ClarityServices.store().completeTask(uuid)
+//        } catch {
+//            LogManager.shared.log.error("Error in completing task \(dto.toDoTask.name) error: \(error)")
+//        }
         ClarityWatchConnectivity.shared.pushSnapshot(getAllTasks())
         return Envelope(kind: WCKeys.Requests.stopPomodoro)
     }

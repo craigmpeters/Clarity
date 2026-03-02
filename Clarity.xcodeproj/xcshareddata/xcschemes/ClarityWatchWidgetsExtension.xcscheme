@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "2600"
-   version = "2.2">
+   LastUpgradeVersion = "2630"
+   wasCreatedForAppExtension = "YES"
+   version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES"
@@ -15,9 +16,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "44D6EABC2E83176B00B5EF9E"
-               BuildableName = "ClarityWatch.app"
-               BlueprintName = "ClarityWatch"
+               BlueprintIdentifier = "443254E12F4B4903003176B3"
+               BuildableName = "ClarityWatchWidgetsExtension.appex"
+               BlueprintName = "ClarityWatchWidgetsExtension"
                ReferencedContainer = "container:Clarity.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -41,20 +42,11 @@
             buildForProfiling = "YES"
             buildForArchiving = "YES"
             buildForAnalyzing = "YES">
-            <AutocreatedTestPlanReference>
-            </AutocreatedTestPlanReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "443254E12F4B4903003176B3"
-               BuildableName = "ClarityWatchWidgetsExtension.appex"
-               BlueprintName = "ClarityWatchWidgetsExtension"
+               BlueprintIdentifier = "44D6EABC2E83176B00B5EF9E"
+               BuildableName = "ClarityWatch.app"
+               BlueprintName = "ClarityWatch"
                ReferencedContainer = "container:Clarity.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -76,10 +68,18 @@
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
-      allowLocationSimulation = "YES"
-      notificationPayloadFile = "DemoApps/iOSDemo/watchOSDemo Extension/PushNotificationPayload.apns">
+      allowLocationSimulation = "NO">
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "443254E12F4B4903003176B3"
+            BuildableName = "ClarityWatchWidgetsExtension.appex"
+            BlueprintName = "ClarityWatchWidgetsExtension"
+            ReferencedContainer = "container:Clarity.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+      <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "44D6EABC2E83176B00B5EF9E"
@@ -87,7 +87,24 @@
             BlueprintName = "ClarityWatch"
             ReferencedContainer = "container:Clarity.xcodeproj">
          </BuildableReference>
-      </BuildableProductRunnable>
+      </MacroExpansion>
+      <EnvironmentVariables>
+         <EnvironmentVariable
+            key = "_XCWidgetKind"
+            value = ""
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "_XCWidgetDefaultView"
+            value = "timeline"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "_XCWidgetFamily"
+            value = "systemMedium"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+      </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -99,9 +116,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "44D6EABC2E83176B00B5EF9E"
-            BuildableName = "ClarityWatch.app"
-            BlueprintName = "ClarityWatch"
+            BlueprintIdentifier = "443254E12F4B4903003176B3"
+            BuildableName = "ClarityWatchWidgetsExtension.appex"
+            BlueprintName = "ClarityWatchWidgetsExtension"
             ReferencedContainer = "container:Clarity.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
