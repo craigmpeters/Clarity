@@ -17,6 +17,10 @@ actor ClarityModelActor {
     private let logger = LogManager.shared.log
     // Prevent concurrent completions for the same UUID within this actor
     private var inFlightCompletions: Set<UUID> = []
+
+    /// Hook for the main app to push weekly progress to the watch after a task completes.
+    /// Not set in widget/extension targets where WatchConnectivity is unavailable.
+    nonisolated(unsafe) static var onTaskCompleted: (@MainActor @Sendable () -> Void)?
     // Throttle dedup runs triggered by remote merges / write paths
     private var lastDedupRunAt: Date? = nil
     
@@ -324,6 +328,9 @@ actor ClarityModelActor {
         try modelContext.save()
         try WidgetFileCoordinator.shared.writeTasks(fetchRecentTasks())
         WidgetCenter.shared.reloadAllTimelines()
+        if let onTaskCompleted = ClarityModelActor.onTaskCompleted {
+            Task { @MainActor in onTaskCompleted() }
+        }
         try? deduplicateTasksByUUID()
     }
     

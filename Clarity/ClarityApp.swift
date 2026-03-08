@@ -187,6 +187,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         UNUserNotificationCenter.current().delegate = self
         // Migrations are triggered from ClarityApp.onAppear via modelContext
         ClarityWatchConnectivity.shared.start()
+        ClarityModelActor.onTaskCompleted = { ClarityWatchConnectivity.shared.pushWeeklyProgress() }
         _ = LogManager.shared
         // let url = LogManager.defaultLogFileURL()
         LogManager.shared.log.info("Clarity logger initialized in AppDelegate")

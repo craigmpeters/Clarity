@@ -9,6 +9,9 @@ import os
 import SwiftData
 import Compression
 import XCGLogger
+#if canImport(WidgetKit)
+import WidgetKit
+#endif
 
 
 // File payload is an array of tasks. Adjust if your schema differs.
@@ -50,6 +53,7 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
 
     private let appGroupID = "group.me.craigpeters.clarity"
     private let fileName = "ClarityWidget.json"
+    private let weeklyProgressFileName = "ClarityWeeklyProgress.json"
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Clarity", category: "WidgetFileCoordinator")
 
     private let encoder: JSONEncoder
@@ -348,10 +352,29 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
         try writeTasks(tasks)
     }
     
+    // MARK: Weekly Progress
+    private func weeklyProgressURL() -> URL? {
+        containerURL()?.appendingPathComponent(weeklyProgressFileName)
+    }
+
+    public func writeWeeklyProgress(_ progress: WeeklyProgress) throws {
+        guard let url = weeklyProgressURL() else { return }
+        let data = try encoder.encode(progress)
+        try data.write(to: url, options: .atomic)
+        notifyWidgetReload()
+    }
+
+    public func readWeeklyProgress() -> WeeklyProgress? {
+        guard let url = weeklyProgressURL(),
+              let data = try? Data(contentsOf: url) else { return nil }
+        return try? decoder.decode(WeeklyProgress.self, from: data)
+    }
+
     // MARK: Widget refresh hook
     private func notifyWidgetReload() {
-        // If you have WidgetKit imported in this target, you can uncomment:
-        // WidgetCenter.shared.reloadAllTimelines()
+        #if canImport(WidgetKit)
+        WidgetCenter.shared.reloadAllTimelines()
+        #endif
     }
 }
 

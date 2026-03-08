@@ -44,7 +44,11 @@ struct CompletedWidgetView: View {
     }
     
     var body: some View {
-        if widgetFamily == .accessoryCircular {
+        switch widgetFamily {
+        case .systemLarge, .systemMedium:
+            EmptyView()
+            
+        case .accessoryCircular:
             if entry.showWeeklyProgress {
                 Gauge(value: Double(entry.progress.completed), in: 0.0...Double(entry.progress.target)) {
                     Image(systemName: "target")
@@ -59,11 +63,17 @@ struct CompletedWidgetView: View {
             } else {
                 Text(String(entry.tasks.count))
             }
+        default:
+            EmptyView()
+        }
+        
+        if widgetFamily == .accessoryCircular {
+
 
         } else {
             
             
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .center, spacing: 6) {
                 if widgetFamily != .accessoryRectangular {
                     HStack {
                         Image("clarity-small")

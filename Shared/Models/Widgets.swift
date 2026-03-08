@@ -10,10 +10,12 @@ struct WatchDueEntry: TimelineEntry {
     let date: Date
     let todos: [ToDoTaskDTO]
     let filter: ToDoTask.TaskFilterOption
+    let progress: WeeklyProgress
 }
 
 struct WatchCompleteEntry: TimelineEntry {
     let date: Date
     let todos: [ToDoTaskDTO]
     let filter: ToDoTask.CompletedTaskFilter
+    let progress: WeeklyProgress
 }

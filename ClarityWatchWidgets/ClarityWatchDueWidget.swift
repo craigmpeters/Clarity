@@ -41,7 +41,7 @@ struct WatchDueWidgetProvider: AppIntentTimelineProvider {
     }
     
     func placeholder(in context: Context) -> WatchDueEntry {
-        WatchDueEntry(date: .now, todos: [], filter: .all)
+        WatchDueEntry(date: .now, todos: [], filter: .all, progress: getWeeklyProgress())
     }
 
     func snapshot(for configuration: WatchDueWidgetIntent, in context: Context) async -> WatchDueEntry {
@@ -55,7 +55,7 @@ struct WatchDueWidgetProvider: AppIntentTimelineProvider {
         }
         // TODO: Is this required? I am not sure it will even work.
         tasks = ToDoTaskDTO.focusFilter(in: tasks)
-        return WatchDueEntry(date: .now, todos: tasks, filter: configuration.filter)
+        return WatchDueEntry(date: .now, todos: tasks, filter: configuration.filter, progress: getWeeklyProgress())
     }
     
     func timeline(for configuration: WatchDueWidgetIntent, in context: Context) async -> Timeline<WatchDueEntry> {
@@ -77,7 +77,7 @@ struct WatchDueWidgetProvider: AppIntentTimelineProvider {
         }
         
         tasks = ToDoTaskDTO.focusFilter(in: tasks)
-        let entry = WatchDueEntry(date: .now, todos: tasks, filter: configuration.filter)
+        let entry = WatchDueEntry(date: .now, todos: tasks, filter: configuration.filter, progress: getWeeklyProgress())
         
         let cal = Calendar.current
         let now = Date()
@@ -92,6 +92,14 @@ struct WatchDueWidgetProvider: AppIntentTimelineProvider {
         let nextUpdate = min(nextMidnight, next15Minutes)
         
         return Timeline(entries: [entry], policy: .after(nextUpdate))
+    }
+    
+    private func getWeeklyProgress() -> WeeklyProgress {
+        if let progress = WidgetFileCoordinator.shared.readWeeklyProgress() {
+            return progress
+        } else {
+            return WeeklyProgress(completed: 0, target: 0, error: nil, categories: [])
+        }
     }
 }
 

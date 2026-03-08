@@ -136,12 +136,12 @@ final class PreviewData {
     
     func getPreviewWatchWidgetDueEntry() -> WatchDueEntry {
         let tasks = getToDoTasks().map { ToDoTaskDTO(from: $0 )}
-        return(WatchDueEntry(date: .now, todos: tasks, filter: .all))
+        return(WatchDueEntry(date: .now, todos: tasks, filter: .all, progress: returnPreviewWeeklyProgress()))
     }
     
     func getPreviewWatchWidgetCompleteEntry() -> WatchCompleteEntry {
         let tasks = getToDoTasks().map { ToDoTaskDTO(from: $0 )}
-        return(WatchCompleteEntry(date: .now, todos: tasks, filter: .Today))
+        return(WatchCompleteEntry(date: .now, todos: tasks, filter: .Today, progress: returnPreviewWeeklyProgress()))
     }
     
     func getPreviewCompletedTaskEntry(filter: ToDoTask.CompletedTaskFilter) -> CompletedTaskEntry {
