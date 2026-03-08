@@ -24,7 +24,7 @@ struct CompletedWidget: Widget {
             }
             .configurationDisplayName("Completed Tasks")
             .description("View Completed Task Summary")
-            .supportedFamilies([.systemSmall, .systemMedium])
+            .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular, .accessoryCircular])
     }
 }
 
@@ -34,7 +34,7 @@ struct CompletedWidgetView: View {
     @Query private var categories: [Category]
     
     private var gaugeData : Double
-    let gradient = Gradient(colors: [ .red, .yellow, .orange, .green])
+    let gradient = Gradient(colors: [ .red, .orange, .yellow, .green])
     
     init(entry: CompletedTaskEntry) {
         self.entry = entry
@@ -44,44 +44,91 @@ struct CompletedWidgetView: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Image("clarity-small")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 40, alignment: .init(horizontal: .leading, vertical: .center))
-                Text(entry.filter.localizedStringResource)
-                    .font(.title3)
-            }
-            .fixedSize()
-            .frame(alignment: .leading)
-            HStack {
-                VStack {
-                    Text(String(entry.tasks.count))
-                        .font(.largeTitle)
-                    Text("Completed Tasks")
-                        .font(.caption2)
-                    Spacer(minLength: 0)
-                }
-                if widgetFamily == .systemMedium {
-                    HStack {
-                        WidgetCategoryProgress(entry: entry, entries: 2 )
-                    }
-                    .frame(alignment: .top)
-                }
-            }
+        switch widgetFamily {
+        case .systemLarge, .systemMedium:
+            EmptyView()
+            
+        case .accessoryCircular:
             if entry.showWeeklyProgress {
-                HStack {
+                Gauge(value: Double(entry.progress.completed), in: 0.0...Double(entry.progress.target)) {
                     Image(systemName: "target")
-                        .foregroundStyle(.orange)
-                    Gauge(value: gaugeData) {
-                    }
-                    .gaugeStyle(LinearCapacityGaugeStyle())
-                    .tint(gradient)
+                } currentValueLabel: {
+                    Text(String(entry.tasks.count))
+                } minimumValueLabel: {
+                    Text(String(0))
+                } maximumValueLabel: {
+                    Text(String(entry.progress.target))
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .gaugeStyle(.accessoryCircular)
+            } else {
+                Text(String(entry.tasks.count))
             }
+        default:
+            EmptyView()
+        }
+        
+        if widgetFamily == .accessoryCircular {
 
+
+        } else {
+            
+            
+            VStack(alignment: .center, spacing: 6) {
+                if widgetFamily != .accessoryRectangular {
+                    HStack {
+                        Image("clarity-small")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 40, alignment: .init(horizontal: .leading, vertical: .center))
+                        Text(entry.filter.localizedStringResource)
+                            .font(.title3)
+                    }
+                    .fixedSize()
+                    .frame(alignment: .leading)
+                }
+                
+                HStack {
+                    if widgetFamily == .accessoryRectangular {
+                        HStack {
+                            //
+                            Image("clarity-small")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 40, alignment: .init(horizontal: .leading, vertical: .center))
+                            Spacer()
+                            Image(systemName: "checkmark.square.fill")
+                            Text(String(entry.tasks.count))
+                        }
+                    } else {
+                        VStack {
+                            Text(String(entry.tasks.count))
+                                .font(.largeTitle)
+                            Text("Completed Tasks")
+                                .font(.caption2)
+                            Spacer(minLength: 0)
+                        }
+                    }
+                    
+                    if widgetFamily == .systemMedium {
+                        HStack {
+                            WidgetCategoryProgress(entry: entry, entries: 2 )
+                        }
+                        .frame(alignment: .top)
+                    }
+                }
+                if entry.showWeeklyProgress {
+                    HStack {
+                        Image(systemName: "target")
+                            .foregroundStyle(.orange)
+                        Gauge(value: gaugeData) {
+                        }
+                        .gaugeStyle(LinearCapacityGaugeStyle())
+                        .tint(gradient)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                
+            }
         }
     }
 }
@@ -93,7 +140,19 @@ struct CompletedWidgetView: View {
     PreviewData.shared.getPreviewCompletedTaskEntry(filter: .Today)
 }
 
+#Preview("Today - Rectangular", as: .accessoryRectangular) {
+    CompletedWidget()
+} timeline: {
+    PreviewData.shared.getPreviewCompletedTaskEntry(filter: .Today)
+}
+
 #Preview("This Week", as: .systemMedium) {
+    CompletedWidget()
+} timeline: {
+    PreviewData.shared.getPreviewCompletedTaskEntry(filter: .PastWeek)
+}
+
+#Preview("This Week - Circular", as: .accessoryCircular) {
     CompletedWidget()
 } timeline: {
     PreviewData.shared.getPreviewCompletedTaskEntry(filter: .PastWeek)
@@ -102,7 +161,7 @@ struct CompletedWidgetView: View {
 #Preview("All Time", as: .systemSmall) {
     CompletedWidget()
 } timeline: {
-    PreviewData.shared.getPreviewCompletedTaskEntry(filter: .AllTime)
+    PreviewData.shared.getPreviewCompletedTaskEntry(filter: .Month)
 }
 #endif
 

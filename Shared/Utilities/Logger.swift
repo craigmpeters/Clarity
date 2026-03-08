@@ -8,6 +8,7 @@
 import os
 import Foundation
 import XCGLogger
+import Compression
 
 extension Logger {
     static var subsystem = Bundle.main.bundleIdentifier ?? "me.craigpeters.Clarity"
@@ -25,22 +26,22 @@ extension Logger {
 final class LogManager {
     static let shared = LogManager()
     let log: XCGLogger
-
+    
     private init() {
         // 1) Create the logger
         let logger = XCGLogger.default
-
+        
         // 3) Console / unified logging destination (shows in Xcode/Console.app)
         let systemDestination = AppleSystemLogDestination(identifier: "me.craigpeters.clarity.systemLog")
         systemDestination.outputLevel = .error
         
-        #if INTERNAL
+#if INTERNAL
         systemDestination.outputLevel = .debug
-        #endif
+#endif
         
-        #if DEBUG
+#if DEBUG
         systemDestination.outputLevel = .verbose
-        #endif
+#endif
         systemDestination.showLogIdentifier = false
         systemDestination.showFunctionName = true
         systemDestination.showThreadName = false
@@ -48,8 +49,8 @@ final class LogManager {
         systemDestination.showFileName = true
         systemDestination.showLineNumber = true
         systemDestination.showDate = true
-
-        #if INTERNAL
+        
+#if INTERNAL
         // 4) File destination (visible in Files app under your app’s Documents)
         let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity")
         let fileURL = (containerURL ?? LogManager.fallbackDocumentsDirectory()).appendingPathComponent("clarity.log")
@@ -70,30 +71,30 @@ final class LogManager {
         fileDestination.showDate = true
         
         logger.add(destination: fileDestination)
-        #endif
-
+#endif
+        
         // Optional: Add a formatter for consistent timestamps or JSON, etc.
         // let formatter = PrePostFixLogFormatter()
         // formatter.apply(prefix: "[MyApp] ", postfix: nil)
         // systemDestination.formatters = [formatter]
         // fileDestination.formatters = [formatter]
-
+        
         // 5) Add destinations
         logger.add(destination: systemDestination)
         
-
+        
         // 6) Start the logger
         logger.logAppDetails()
-
+        
         self.log = logger
     }
-
+    
     /// Preferred log file location in the shared App Group so extensions/widgets can access it.
     static func sharedLogFileURL() -> URL {
         let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity")
         return (containerURL ?? fallbackDocumentsDirectory()).appendingPathComponent("clarity.log")
     }
-
+    
     /// Fallback only if the App Group container is unavailable (e.g., misconfigured in development builds).
     static func fallbackDocumentsDirectory() -> URL {
         let fm = FileManager.default

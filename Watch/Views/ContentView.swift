@@ -9,6 +9,7 @@ import SwiftUI
 import WatchConnectivity
 import Combine
 import XCGLogger
+import WidgetKit
 
 struct ContentView: View {
     @ObservedObject private var connectivity = ClarityWatchConnectivity.shared
@@ -44,10 +45,26 @@ struct ContentView: View {
                     .disabled(isRefreshing)
                 }
             }
-            .onReceive(connectivity.$lastSnapshot.receive(on: DispatchQueue.main)) { new in
-                todos = new
+            .onReceive(connectivity.$lastSnapshot) { new in
+                // Update UI on main
+                todos = new.filter { !$0.completed }
+                todos.sort { $0.due < $1.due }
+                
+                // Persist to App Group for widgets (write asynchronously)
+                if !new.isEmpty {
+                    Task {
+                        do {
+                            try WidgetFileCoordinator.shared.writeTasks(new)
+                            WidgetCenter.shared.reloadAllTimelines()
+                        } catch {
+                            LogManager.shared.log.error("Failed to persist tasks to App Group: \(error.localizedDescription)")
+                        }
+                    }
+                    //]
+                }
             }
             .onReceive(connectivity.$lastSnapshot) { _ in
+                LogManager.shared.log.debug("There are \(todos.count) tasks of which \(todos.filter(\.completed).count) are completed and \(todos.filter { !$0.completed}.count) are not")
                 if isRefreshing { isRefreshing = false }
             }
             .overlay {
@@ -65,7 +82,7 @@ struct ContentView: View {
                 connectivity.start()
                 connectivity.requestListAll { result in
                     if case .success(let list) = result {
-                        DispatchQueue.main.async { todos = list }
+                        DispatchQueue.main.async { todos = list.filter { !$0.completed } }
                     }
                 }
             }
@@ -88,9 +105,7 @@ struct ContentView: View {
         guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity") else {
             LogManager.shared.log.error("Cannot create Container URL")
             return }
-        guard let logData = try? Data(contentsOf: containerURL.appendingPathComponent("clarity.log")) else {
-            LogManager.shared.log.error("Cannot read from log file clarity.txt")
-            return }
+        let logData = WidgetFileCoordinator.shared.collectlogs()
         let env = Envelope(kind: WCKeys.Requests.sendLogs, logs: logData)
                 
         if WCSession.default.activationState == .activated,
@@ -195,7 +210,9 @@ struct WatchTaskRow: View {
                 })
                 .tint(.green)
             }
-        
+            .task {
+                LogManager.shared.log.debug("\(task.name) is \(task.completed ? "completed" : "not completed")")
+            }
     }
     
     private func accentTextColor(_ due: Date) -> Color {

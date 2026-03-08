@@ -38,6 +38,7 @@ struct TaskQuery: EntityQuery, Sendable {
         var tasks : [ToDoTaskDTO] = []
         do {
             tasks = try WidgetFileCoordinator.shared.readTasks()
+            tasks = tasks.filter { !$0.completed }
         } catch {
             print("Failed to read tasks from file DB: \(error)")
         }

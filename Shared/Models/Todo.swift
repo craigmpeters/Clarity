@@ -11,7 +11,6 @@ import Observation
 import os
 import SwiftData
 import SwiftUI
-import XCGLogger
 
 @Model
 class ToDoTask {
@@ -43,7 +42,6 @@ class ToDoTask {
         
         if interval == .specific {
             guard let day = everySpecificDayDay else {
-                LogManager.shared.log.debug("Specific Day of the week but no day set, setting monday")
                 everySpecificDayDay = 1
                 return "Every Monday"
             }
@@ -148,11 +146,11 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
     var categories: [CategoryDTO]
     var uuid: UUID
     
-    init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int = 0, categories: [CategoryDTO] = [], uuid: UUID? = UUID(), complated: Bool = false, completedAt: Date? = nil) {
+    init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int = 0, categories: [CategoryDTO] = [], uuid: UUID? = UUID(), completed: Bool = false, completedAt: Date? = nil) {
         self.id = id
         self.name = name ?? ""
         self.created = Date.now
-        self.completed = complated
+        self.completed = completed
         self.completedAt = completedAt
         self.due = due
         self.pomodoro = true // No longer an option
@@ -193,7 +191,7 @@ extension ToDoTaskDTO {
             everySpecificDayDay: model.everySpecificDayDay ?? 1,
             categories: (model.categories ?? []).map(CategoryDTO.init(from:)),
             uuid: model.uuid ?? UUID(),
-            complated: model.completed,
+            completed: model.completed,
             completedAt: model.completedAt
         )
     }
@@ -204,12 +202,6 @@ extension ToDoTaskDTO {
         let focusData = defaults?.data(forKey: "ClarityFocusFilter")
         if let focusData {
             let base64 = focusData.base64EncodedString()
-            Logger(subsystem: "me.craigpeters.clarity", category: "FocusFilter").debug("ClarityFocusFilter (base64, length=\(base64.count)) = \(base64)")
-            if let json = String(data: focusData, encoding: .utf8) {
-                Logger(subsystem: "me.craigpeters.clarity", category: "FocusFilter").debug("ClarityFocusFilter (json) = \(json)")
-            } else {
-                Logger(subsystem: "me.craigpeters.clarity", category: "FocusFilter").debug("ClarityFocusFilter data is not valid UTF-8 JSON")
-            }
         }
         guard let focusData, let settings = try? JSONDecoder().decode(CategoryFilterSettings.self, from: focusData) else {
             return tasks
@@ -243,8 +235,6 @@ extension ToDoTask {
         let focusData = defaults?.data(forKey: "ClarityFocusFilter")
         if let focusData {
             if let json = String(data: focusData, encoding: .utf8) {
-            } else {
-                LogManager.shared.log.debug("Not valid JSON")
             }
         }
         guard let focusData, let settings = try? JSONDecoder().decode(CategoryFilterSettings.self, from: focusData) else {
@@ -337,13 +327,13 @@ extension ToDoTask {
     enum CompletedTaskFilter: String, AppEnum, CaseIterable {
         case Today = "Today"
         case PastWeek = "This Week"
-        case AllTime = "All Time"
+        case Month = "Previous Month"
         
         static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Filter")
         static var caseDisplayRepresentations: [CompletedTaskFilter: DisplayRepresentation] = [
             .Today: DisplayRepresentation(title: "Today"),
             .PastWeek: DisplayRepresentation(title: "This Week"),
-            .AllTime: DisplayRepresentation(title: "All Time")
+            .Month: DisplayRepresentation(title: "Previous Month")
         ]
         
         static func completedToday() -> Predicate<ToDoTaskDTO> {
@@ -383,7 +373,9 @@ extension ToDoTask {
             case .PastWeek:
                 guard let di = calendar.dateInterval(of: .weekOfYear, for: now) else { return false }
                 return (di.start ... di.end).contains(dto.completedAt ?? now)
-            case .AllTime:
+            case .Month:
+                return true
+            default:
                 return true
             }
         }
