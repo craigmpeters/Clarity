@@ -327,13 +327,13 @@ extension ToDoTask {
     enum CompletedTaskFilter: String, AppEnum, CaseIterable {
         case Today = "Today"
         case PastWeek = "This Week"
-        case Month = "Previous Month"
+        case Month = "Last Month"
         
         static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Filter")
         static var caseDisplayRepresentations: [CompletedTaskFilter: DisplayRepresentation] = [
             .Today: DisplayRepresentation(title: "Today"),
             .PastWeek: DisplayRepresentation(title: "This Week"),
-            .Month: DisplayRepresentation(title: "Previous Month")
+            .Month: DisplayRepresentation(title: "Last Month")
         ]
         
         static func completedToday() -> Predicate<ToDoTaskDTO> {

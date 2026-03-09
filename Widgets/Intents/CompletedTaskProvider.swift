@@ -24,6 +24,7 @@ struct CompletedTaskProvider: AppIntentTimelineProvider {
         do {
             tasks = try WidgetFileCoordinator.shared.readTasks()
             tasks = tasks.filter { $0.completed }
+            tasks.sort { $0.due < $1.due }
             let store = try  await ClarityServices.store()
             categories = try await store.getCategories()
             LogManager.shared.log.debug("Found \(tasks.count) completed tasks")
