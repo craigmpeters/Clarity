@@ -130,11 +130,11 @@ actor ClarityModelActor {
     func fetchRecentTasks() throws -> [ToDoTaskDTO] {
         let calendar = Calendar.current
         let now = Date()
-        let oneMonthAgo = calendar.date(byAdding: .month, value: -1, to: now) ?? now
+        let cutoff = calendar.date(byAdding: .month, value: -1, to: now) ?? now
 
-        let cutoff = oneMonthAgo
+        // Fetch all incomplete tasks + completed tasks from the last month
         let descriptor = FetchDescriptor<ToDoTask>(
-            predicate: #Predicate { $0.created > cutoff },
+            predicate: #Predicate { !$0.completed || ($0.completed && $0.completedAt! > cutoff) },
             sortBy: [SortDescriptor(\.created, order: .reverse)]
         )
 
