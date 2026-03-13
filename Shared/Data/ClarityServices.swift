@@ -132,8 +132,11 @@ enum ClarityServices {
                 }
             )
             let count = try ctx.fetch(taskDescriptor).count
+            let progress = WeeklyProgress(completed: count, target: target, error: "", categories: [])
+            
+            try? WidgetFileCoordinator.shared.writeWeeklyProgress(progress)
 
-            return WeeklyProgress(completed: count, target: target, error: "", categories: [])
+            return progress
         } catch {
             print(error.localizedDescription)
             return WeeklyProgress(completed: 0, target: 0, error: error.localizedDescription, categories: [])
