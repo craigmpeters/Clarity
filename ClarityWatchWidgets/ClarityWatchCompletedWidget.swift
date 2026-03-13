@@ -138,21 +138,16 @@ struct ClarityWatchCompleteView: View {
                         .gaugeStyle(.accessoryCircular)
                         .tint(.clarityYellow)
                     } else {
-                        Circle()
-                            .fill(.clarityBlue)
-                            .stroke(.clarityYellow, style: StrokeStyle(lineWidth: 4))
-                        VStack {
-                            Text(entry.filter.rawValue)
-                                .font(.caption)
+                        Gauge(value: Double(entry.todos.count), in: 0...10) {
+                            Image(systemName: "checkmark")
+                                .widgetAccentable()
+                        } currentValueLabel: {
                             Text(String(entry.todos.count))
-                                .font(.title)
-                                .fontWeight(.bold)
                                 .minimumScaleFactor(0.4)
-                                .lineLimit(1)
-
-                                .foregroundStyle(entry.todos.count > 0 ? .green : .primary)
+                                .widgetAccentable()
                         }
-                        .padding(8)
+                        .gaugeStyle(.accessoryCircular)
+                        .tint(entry.todos.count > 0 ? .clarityYellow : .secondary)
                     }
                 }
             }

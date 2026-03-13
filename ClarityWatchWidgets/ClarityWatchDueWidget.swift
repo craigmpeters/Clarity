@@ -143,18 +143,16 @@ struct ClarityWatchWidgetDueView : View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             
         case .accessoryCircular:
-            ZStack {
-                Circle()
-                    .fill(.clarityBlue)
-                    .stroke(.clarityYellow, style: StrokeStyle(lineWidth: 4))
+            Gauge(value: Double(min(entry.todos.count, 10)), in: 0...10) {
+                Image(systemName: entry.filter.systemImage)
+                    .widgetAccentable()
+            } currentValueLabel: {
                 Text(String(entry.todos.count))
-                    .font(.title)
-                    .fontWeight(.bold)
                     .minimumScaleFactor(0.4)
-                    .lineLimit(1)
-                    .padding(8)
+                    .widgetAccentable()
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .gaugeStyle(.accessoryCircular)
+            .tint(entry.todos.count == 0 ? .secondary : entry.todos.count <= 3 ? .green : entry.todos.count <= 7 ? .yellow : .red)
             
         case .accessoryCorner:
             Image("clarity-teeny")
