@@ -16,8 +16,6 @@ struct ClarityWidgetProvider: AppIntentTimelineProvider {
     }
     
     func snapshot(for configuration: TaskWidgetIntent, in context: Context) async -> TaskWidgetEntry {
-        // For previews, return sample data
-        //let todos = await ClarityServices.snapshotTasksAsync(filter: configuration.filter.toTaskFilter())
         var todos : [ToDoTaskDTO] = []
         do {
             todos = try WidgetFileCoordinator.shared.readTasks(with: configuration.filter.toTaskFilter())

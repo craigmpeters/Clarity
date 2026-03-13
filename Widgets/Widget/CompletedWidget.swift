@@ -116,7 +116,7 @@ struct CompletedWidgetView: View {
                         .frame(alignment: .top)
                     }
                 }
-                if entry.showWeeklyProgress {
+                if entry.showWeeklyProgress && entry.progress.target > 0 {
                     HStack {
                         Image(systemName: "target")
                             .foregroundStyle(.orange)

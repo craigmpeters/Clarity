@@ -132,13 +132,13 @@ actor ClarityModelActor {
         let now = Date()
         let cutoff = calendar.date(byAdding: .month, value: -1, to: now) ?? now
 
-        // Fetch all incomplete tasks + completed tasks from the last month
+        // Fetch all tasks then filter in Swift to avoid unsupported predicate expressions
         let descriptor = FetchDescriptor<ToDoTask>(
-            predicate: #Predicate { !$0.completed || ($0.completed && $0.completedAt! > cutoff) },
             sortBy: [SortDescriptor(\.created, order: .reverse)]
         )
 
-        let tasks = try modelContext.fetch(descriptor)
+        let allTasks = try modelContext.fetch(descriptor)
+        let tasks = allTasks.filter { !$0.completed || ($0.completedAt ?? Date.distantPast) > cutoff }
         LogManager.shared.log.debug("Found \(tasks.count) tasks of which \(tasks.filter(\.completed).count) are completed")
         return tasks.map(ToDoTaskDTO.init(from:))
     }
