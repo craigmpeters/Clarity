@@ -352,6 +352,34 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
         try writeTasks(tasks)
     }
     
+    // MARK: Snapshot (tasks + progress bundled)
+
+    /// Compresses a `WatchUserInfo` (tasks + weekly progress) into a single Data payload.
+    public func compressedSnapshot() throws -> Data {
+        let tasks = try readTasks()
+        let progress = readWeeklyProgress() ?? WeeklyProgress(completed: 0, target: 0, error: nil, categories: [])
+        let snapshot = WatchUserInfo(tasks: tasks, progress: progress)
+        let json = try encoder.encode(snapshot)
+        var compressed = Data()
+        var filter = try OutputFilter(.compress, using: .zlib) { chunk in
+            if let chunk { compressed.append(chunk) }
+        }
+        try filter.write(json)
+        try filter.finalize()
+        return compressed
+    }
+
+    /// Decompresses and decodes a `WatchUserInfo` payload produced by `compressedSnapshot()`.
+    public func decodeCompressedSnapshot(_ data: Data) throws -> WatchUserInfo {
+        var output = Data()
+        var filter = try OutputFilter(.decompress, using: .zlib) { chunk in
+            if let chunk { output.append(chunk) }
+        }
+        try filter.write(data)
+        try filter.finalize()
+        return try decoder.decode(WatchUserInfo.self, from: output)
+    }
+
     // MARK: Weekly Progress
     private func weeklyProgressURL() -> URL? {
         containerURL()?.appendingPathComponent(weeklyProgressFileName)

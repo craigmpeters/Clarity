@@ -19,3 +19,8 @@ struct WatchCompleteEntry: TimelineEntry {
     let filter: ToDoTask.CompletedTaskFilter
     let progress: WeeklyProgress
 }
+
+public struct WatchUserInfo : Codable, Sendable {
+    var tasks : [ToDoTaskDTO]
+    var progress: WeeklyProgress
+}

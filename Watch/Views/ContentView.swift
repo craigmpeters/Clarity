@@ -47,21 +47,8 @@ struct ContentView: View {
             }
             .onReceive(connectivity.$lastSnapshot) { new in
                 // Update UI on main
-                todos = new.filter { !$0.completed }
+                todos = new.tasks.filter { !$0.completed }
                 todos.sort { $0.due < $1.due }
-                
-                // Persist to App Group for widgets (write asynchronously)
-                if !new.isEmpty {
-                    Task {
-                        do {
-                            try WidgetFileCoordinator.shared.writeTasks(new)
-                            WidgetCenter.shared.reloadAllTimelines()
-                        } catch {
-                            LogManager.shared.log.error("Failed to persist tasks to App Group: \(error.localizedDescription)")
-                        }
-                    }
-                    //]
-                }
             }
             .onReceive(connectivity.$lastSnapshot) { _ in
                 LogManager.shared.log.debug("There are \(todos.count) tasks of which \(todos.filter(\.completed).count) are completed and \(todos.filter { !$0.completed}.count) are not")
@@ -82,7 +69,7 @@ struct ContentView: View {
                 connectivity.start()
                 connectivity.requestListAll { result in
                     if case .success(let list) = result {
-                        DispatchQueue.main.async { todos = list.filter { !$0.completed } }
+                        DispatchQueue.main.async { todos = list.tasks.filter { !$0.completed } }
                     }
                 }
             }
