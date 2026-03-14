@@ -87,15 +87,17 @@ struct WatchCompleteWidget: Widget {
 
 struct ClarityWatchCompleteView: View {
     @Environment(\.widgetFamily) var widgetFamily
+    @Environment(\.widgetRenderingMode) var renderingMode
     var entry: WatchCompleteEntry
     
     var body: some View {
         switch widgetFamily {
         case .accessoryCorner:
-            Image("clarity-teeny")
-                .renderingMode(.original)
+            Image(renderingMode == .fullColor ? "clarity-teeny" : "clarity-teeny-mono")
+                .renderingMode(renderingMode == .fullColor ? .original : .template)
                 .resizable()
                 .scaledToFit()
+                .widgetAccentable()
                 .widgetLabel {
                     Text("\(entry.todos.count) • \(entry.filter.rawValue)")
                 }
@@ -138,7 +140,7 @@ struct ClarityWatchCompleteView: View {
                         .gaugeStyle(.accessoryCircular)
                         .tint(.clarityYellow)
                     } else {
-                        Gauge(value: Double(entry.todos.count), in: 0...10) {
+                        Gauge(value: 10, in: 0...10) {
                             Image(systemName: "checkmark")
                                 .widgetAccentable()
                         } currentValueLabel: {
@@ -172,4 +174,10 @@ struct ClarityWatchCompleteView: View {
     WatchCompleteWidget()
 } timeline: {
     PreviewData.shared.getPreviewWatchWidgetCompleteEntry()
+}
+
+#Preview("Circular - No Target", as: .accessoryCircular) {
+    WatchCompleteWidget()
+} timeline: {
+    PreviewData.shared.getPreviewWatchWidgetCompleteNoTargetEntry()
 }

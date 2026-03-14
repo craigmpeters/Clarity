@@ -144,6 +144,11 @@ final class PreviewData {
         return(WatchCompleteEntry(date: .now, todos: tasks, filter: .Today, progress: returnPreviewWeeklyProgress()))
     }
     
+    func getPreviewWatchWidgetCompleteNoTargetEntry() -> WatchCompleteEntry {
+        let tasks = getToDoTasks().map { ToDoTaskDTO(from: $0 )}
+        return WatchCompleteEntry(date: .now, todos: tasks, filter: .PastWeek, progress: WeeklyProgress(completed: 2, target: 0, error: nil, categories: []))
+    }
+    
     func getPreviewCompletedTaskEntry(filter: ToDoTask.CompletedTaskFilter) -> CompletedTaskEntry {
         let tasks = getCompletedTasks()
         let target = returnPreviewWeeklyProgress()

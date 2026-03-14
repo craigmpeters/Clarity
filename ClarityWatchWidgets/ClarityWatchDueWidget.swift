@@ -105,6 +105,7 @@ struct WatchDueWidgetProvider: AppIntentTimelineProvider {
 
 struct ClarityWatchWidgetDueView : View {
     @Environment(\.widgetFamily) var widgetFamily
+    @Environment(\.widgetRenderingMode) var renderingMode
     var entry: WatchDueEntry
 
     var body: some View {
@@ -155,10 +156,11 @@ struct ClarityWatchWidgetDueView : View {
             .tint(entry.todos.count == 0 ? .secondary : entry.todos.count <= 3 ? .green : entry.todos.count <= 7 ? .yellow : .red)
             
         case .accessoryCorner:
-            Image("clarity-teeny")
-                .renderingMode(.original)
+            Image(renderingMode == .fullColor ? "clarity-teeny" : "clarity-teeny-mono")
+                .renderingMode(renderingMode == .fullColor ? .original : .template)
                 .resizable()
                 .scaledToFit()
+                .widgetAccentable()
                 .widgetLabel {
                     Text("\(entry.todos.count) • \(entry.filter.rawValue)")
                 }
