@@ -223,7 +223,10 @@ struct WatchTaskRow: View {
 }
 
 private struct IdentifiedPomodoro: Identifiable {
-    let id = UUID()
+    // Derive a stable ID from the pomodoro's start time so SwiftUI doesn't
+    // treat the same active pomodoro as a new item (which would cause the
+    // sheet to dismiss and re-present every time activePomodoro is republished).
+    var id: Date { dto.startTime ?? .distantPast }
     let dto: PomodoroDTO
     init(dto: PomodoroDTO) { self.dto = dto }
 }

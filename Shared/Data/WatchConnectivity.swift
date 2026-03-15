@@ -25,6 +25,11 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
     func dismissPomodoro() { activePomodoro = nil }
     #endif
 
+    /// Hash of the last data sent via transferCurrentComplicationUserInfo, to avoid redundant transfers.
+    private var lastComplicationHash: Int = 0
+    /// Debounce task for pushSnapshot to coalesce rapid successive calls.
+    private var snapshotDebounceTask: Task<Void, Never>?
+
     func start() {
         guard WCSession.isSupported() else { return }
         session.delegate = self
@@ -219,23 +224,19 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
         self.enqueueRequest(env)
     }
     
-    func pushWeeklyProgress() {
-        guard let weeklyProgress =  WidgetFileCoordinator.shared.readWeeklyProgress() else {
-            LogManager.shared.log.error("Cannot read weekly progress")
-            return
+    /// Schedules a snapshot push with a short debounce so rapid successive calls (e.g. complete
+    /// + pomodoroStop firing together) are coalesced into a single transfer.
+    func pushSnapshot() {
+        snapshotDebounceTask?.cancel()
+        snapshotDebounceTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+            self._sendSnapshot()
         }
-        #if os(iOS)
-        if self.session.isPaired && self.session.isWatchAppInstalled {
-            if self.session.isComplicationEnabled {
-                self.session.transferCurrentComplicationUserInfo([WCKeys.Requests.weeklyProgress: weeklyProgress])
-            } else {
-                self.sendImmediateOrReliable(.init(kind: WCKeys.Requests.weeklyProgress, progress: weeklyProgress))
-            }
-        }
-        #endif
     }
 
-    func pushSnapshot() {
+    private func _sendSnapshot() {
         guard self.session.activationState == .activated else { return }
         do {
             // Bundle tasks + weekly progress into a single compressed snapshot.
@@ -245,10 +246,17 @@ final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, Ob
             // Also transfer via reliable userInfo so the watch widget extension receives
             // the update even when the watch app is backgrounded or not running.
             // Use transferCurrentComplicationUserInfo when complications are enabled —
-            // it has higher priority and wakes the extension immediately.
+            // it has higher priority and wakes the extension immediately, but has a
+            // daily budget — only send when the data has actually changed.
             #if os(iOS)
             if self.session.isPaired && self.session.isWatchAppInstalled {
                 if self.session.isComplicationEnabled {
+                    let hash = data.hashValue
+                    guard hash != lastComplicationHash else {
+                        LogManager.shared.log.verbose("⌚️ Skipping complication transfer — data unchanged")
+                        return
+                    }
+                    lastComplicationHash = hash
                     self.session.transferCurrentComplicationUserInfo([WCKeys.Requests.widgetSnapshot: data])
                 } else {
                     self.session.transferUserInfo([WCKeys.Requests.widgetSnapshot: data])
@@ -624,6 +632,12 @@ extension ClarityWatchConnectivity {
     private static func ProcessPhonePomodoroStarted(_ message: [String:Any]?) async -> Envelope {
         guard let dto = decodeMessageToPomodoro(message) else {
             LogManager.shared.log.verbose("Cannot decode DTO")
+            return Envelope(kind: WCKeys.Requests.pomodoroStarted)
+        }
+        // Ignore already-expired pomodoros so a stale pomodoroStarted event
+        // delivered on launch doesn't briefly flash the sheet before dismissing.
+        if let end = dto.endTime, end <= Date() {
+            LogManager.shared.log.verbose("⌚️ Ignoring expired pomodoroStarted for task: \(dto.toDoTask.name)")
             return Envelope(kind: WCKeys.Requests.pomodoroStarted)
         }
         ClarityWatchConnectivity.shared.activePomodoro = dto
