@@ -204,27 +204,21 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         return true
     }
     
-    // Remote change logging (CloudKit merges)
+    // Remote change dedup (CloudKit merges)
     
     private static func installRemoteChangeLogger() {
-//        #if canImport(CoreData)
-//        guard !remoteLoggerInstalled else { return }
-//        remoteLoggerInstalled = true
-//        NotificationCenter.default.addObserver(forName: Notification.Name.NSPersistentStoreRemoteChange, object: nil, queue: .main) { note in
-//            let date = ISO8601DateFormatter().string(from: Date())
-//            LogManager.shared.log.info("📥 SwiftData remote change merged at \(date)")
-//            Task.detached(priority: .utility) {
-//                do {
-//                    let container = try ClarityServices.sharedContainer()
-//                    let store = await StoreRegistry.shared.store(for: container)
-//                    try await store.deduplicateTasksByUUID()
-//                } catch {
-//                    LogManager.shared.log.error("Remote merge dedup failed: \(error.localizedDescription)")
-//                }
-//            }
-//        }
-//        LogManager.shared.log.info("✅ Installed remote change logger for SwiftData (NSPersistentStoreRemoteChange)")
-//        #endif
+        NotificationCenter.default.addObserver(forName: Notification.Name.NSPersistentStoreRemoteChange, object: nil, queue: nil) { _ in
+            LogManager.shared.log.info("📥 CloudKit remote change received - running dedup")
+            Task.detached(priority: .utility) {
+                do {
+                    let store = try await ClarityServices.store()
+                    try await store.deduplicateTasksByUUID()
+                } catch {
+                    LogManager.shared.log.error("Remote merge dedup failed: \(error.localizedDescription)")
+                }
+            }
+        }
+        LogManager.shared.log.info("✅ Installed CloudKit remote change dedup observer")
     }
 
     
