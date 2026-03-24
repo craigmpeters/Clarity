@@ -6,6 +6,8 @@
 //
 
 import Foundation
+
+#if canImport(ActivityKit)
 import ActivityKit
 
 struct PomodoroAttributes: ActivityAttributes {
@@ -16,3 +18,4 @@ struct PomodoroAttributes: ActivityAttributes {
     }
     var sessionId: String
 }
+#endif

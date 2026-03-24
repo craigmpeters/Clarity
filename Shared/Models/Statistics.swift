@@ -19,9 +19,16 @@ public final class GlobalTargetSettings {
     }
 }
 
-struct WeeklyProgress {
+public struct CategoryProgress: Codable, Sendable {
+    let name: String
+    let completed: Int
+    let target: Int
+    let color: String
+}
+
+public struct WeeklyProgress: Codable, Sendable {
     let completed: Int
     let target: Int
     let error: String?
-    let categories: [(name: String, completed: Int, target: Int, color: String)]
+    let categories: [CategoryProgress]
 }

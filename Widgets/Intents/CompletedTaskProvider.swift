@@ -22,7 +22,9 @@ struct CompletedTaskProvider: AppIntentTimelineProvider {
         var tasks : [ToDoTaskDTO] = []
         var categories: [CategoryDTO] = []
         do {
-            tasks = try WidgetFileCoordinator.shared.readTasks(kind: .completed)
+            tasks = try WidgetFileCoordinator.shared.readTasks()
+            tasks = tasks.filter { $0.completed }
+            tasks.sort { $0.due < $1.due }
             let store = try  await ClarityServices.store()
             categories = try await store.getCategories()
             LogManager.shared.log.debug("Found \(tasks.count) completed tasks")
@@ -37,7 +39,8 @@ struct CompletedTaskProvider: AppIntentTimelineProvider {
         var tasks : [ToDoTaskDTO] = []
         var categories: [CategoryDTO] = []
         do {
-            tasks = try WidgetFileCoordinator.shared.readTasks(kind: .completed)
+            tasks = try WidgetFileCoordinator.shared.readTasks()
+            tasks = tasks.filter { $0.completed }
             let store = try  await ClarityServices.store()
             categories = try await store.getCategories()
             tasks = tasks.filter { configuration.completedFilter.matches($0) }

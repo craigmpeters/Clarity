@@ -62,7 +62,7 @@ final class PreviewData {
         }
     }
     
-    func getCompletedTasks(filter: ToDoTask.CompletedTaskFilter = .AllTime) -> [ToDoTask] {
+    func getCompletedTasks(filter: ToDoTask.CompletedTaskFilter = .Month) -> [ToDoTask] {
         do {
             let descriptor = FetchDescriptor<ToDoTask>(
                 predicate: #Predicate { $0.completed },
@@ -132,6 +132,21 @@ final class PreviewData {
         let option: ToDoTask.TaskFilterOption = .all
         let showWeeklyTarget = Bool.random()
         return TaskWidgetEntry(date: Date.now, todos: dtos, progress: target, filter: option, showWeeklyProgress: showWeeklyTarget)
+    }
+    
+    func getPreviewWatchWidgetDueEntry() -> WatchDueEntry {
+        let tasks = getToDoTasks().map { ToDoTaskDTO(from: $0 )}
+        return(WatchDueEntry(date: .now, todos: tasks, filter: .all, progress: returnPreviewWeeklyProgress()))
+    }
+    
+    func getPreviewWatchWidgetCompleteEntry() -> WatchCompleteEntry {
+        let tasks = getToDoTasks().map { ToDoTaskDTO(from: $0 )}
+        return(WatchCompleteEntry(date: .now, todos: tasks, filter: .Today, progress: returnPreviewWeeklyProgress()))
+    }
+    
+    func getPreviewWatchWidgetCompleteNoTargetEntry() -> WatchCompleteEntry {
+        let tasks = getToDoTasks().map { ToDoTaskDTO(from: $0 )}
+        return WatchCompleteEntry(date: .now, todos: tasks, filter: .PastWeek, progress: WeeklyProgress(completed: 2, target: 0, error: nil, categories: []))
     }
     
     func getPreviewCompletedTaskEntry(filter: ToDoTask.CompletedTaskFilter) -> CompletedTaskEntry {

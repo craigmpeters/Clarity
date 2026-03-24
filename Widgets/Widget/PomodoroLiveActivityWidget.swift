@@ -43,7 +43,7 @@ struct PomodoroLiveActivityWidget: Widget {
             }
             .padding()
             .background(Color.black.opacity(0.1))
-            .cornerRadius(12)
+            //.cornerRadius(12)
 
         } dynamicIsland: { context in
             DynamicIsland {
@@ -69,9 +69,7 @@ struct PomodoroLiveActivityWidget: Widget {
                         Image("clarity-small")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 80, height: 80)
                     }
-                    .padding(.vertical, -15.0)
                 }
 
             } compactLeading: {
