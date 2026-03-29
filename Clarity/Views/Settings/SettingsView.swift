@@ -95,9 +95,9 @@ struct SettingsView: View {
                         .foregroundColor(.secondary)
                 }
                 HStack {
-                    Image(systemName: "cup.and.saucer.fill")
+                    Image(systemName: "questionmark.circle")
                         .foregroundColor(.brown)
-                    Link("Buy me a Coffee", destination: URL(string: "https://buymeacoffee.com/craigmpeters")!)
+                    Link("Support and Licencing", destination: URL(string: "https://www.craigpeters.me/clarity")!)
                 }
             }
             // Development tools section - only shows in DEBUG builds
