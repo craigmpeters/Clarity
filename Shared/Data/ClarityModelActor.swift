@@ -320,6 +320,15 @@ actor ClarityModelActor {
         try? deduplicateTasksByUUID()
     }
     
+    func fetchLastCompletedAt(uuid: UUID) throws -> Date? {
+        let taskUuid: UUID? = uuid
+        let descriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate { $0.uuid == taskUuid && $0.completed },
+            sortBy: [SortDescriptor(\.completedAt, order: .reverse)]
+        )
+        return try modelContext.fetch(descriptor).first?.completedAt
+    }
+
     func fetchTaskByUuid(_ id: UUID) throws -> ToDoTaskDTO? {
         let taskUuid: UUID? = id
         let descriptor = FetchDescriptor<ToDoTask>(
@@ -582,7 +591,7 @@ enum AppContainer {
 
 struct TaskWidgetEntry: TimelineEntry {
     let date: Date
-    let todos: [ToDoTaskDTO]
+    var todos: [ToDoTaskDTO]
     let progress: WeeklyProgress
     let filter: ToDoTask.TaskFilterOption
     let showWeeklyProgress: Bool

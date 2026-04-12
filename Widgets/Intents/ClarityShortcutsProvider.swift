@@ -49,6 +49,11 @@ struct ClarityShortcutsProvider: AppShortcutsProvider {
             shortTitle: "Delete a Task",
             systemImageName: "trash"
         )
+        AppShortcut(
+            intent: GetTaskIntent(),
+            phrases: ["View task in \(.applicationName)"],
+            shortTitle: "View Task",
+            systemImageName: "checkmark")
 //        AppShortcut(
 //            intent: StartPomodoroIntent(),
 //            phrases: [

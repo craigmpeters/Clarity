@@ -90,9 +90,11 @@ import XCGLogger
         startLiveActivity()
         persistState()
         if let end = endTime {
+            let alarmSound = PomodoroAlarmSound.from(persistenceID: UserDefaults.pomodoroAlarmSoundID)
             let notif = NotificationContent(
                 title: "Pomodoro Finished",
-                body: "Task '\(toDoTask.name)' is done!"
+                body: "Task '\(toDoTask.name)' is done!",
+                sound: alarmSound.notificationSound
             )
             scheduleNotification(date: end, notification: notif)
         }
