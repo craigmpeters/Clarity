@@ -534,6 +534,27 @@ actor ClarityModelActor {
 
         logger.info("Dedup: groups=\(totalDuplicateGroups) deleted=\(totalDeleted)")
     }
+    
+    func getTaskHistory(for taskUuid: UUID) -> [ToDoTask] {
+        let descriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate { $0.uuid == taskUuid}
+        )
+        guard let tasks = try? modelContext.fetch(descriptor) else {
+            return []
+        }
+        return tasks
+    }
+    
+    func getTaskHistoryTimeline(for taskUuid: UUID) -> [TaskHistoryEntry] {
+        let tasks = getTaskHistory(for: taskUuid)
+        return tasks.map { task in
+            TaskHistoryEntry(
+                date: task.created,
+                uuid: task.uuid ?? taskUuid,
+                title: task.name ?? ""
+            )
+        }
+    }
 }
 
 enum ClarityModelActorFactory {
@@ -588,6 +609,13 @@ enum AppContainer {
 }
 
 // #MARK: Timeline Entries
+
+struct TaskHistoryEntry: TimelineEntry {
+    let date : Date
+    let uuid: UUID
+    let title: String
+    
+}
 
 struct TaskWidgetEntry: TimelineEntry {
     let date: Date

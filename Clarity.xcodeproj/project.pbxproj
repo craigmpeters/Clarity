@@ -365,6 +365,7 @@
 				Intents/GetTaskIntent.swift,
 				Intents/ListTasksIntent.swift,
 				Intents/StartPomodoroIntent.swift,
+				Intents/TaskHistoryWidgetIntent.swift,
 				Media.xcassets,
 				Models/CategoryEntity.swift,
 				Models/TaskDetailEntity.swift,

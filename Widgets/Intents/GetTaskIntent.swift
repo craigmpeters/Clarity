@@ -14,7 +14,7 @@ struct GetTaskIntent : AppIntent {
     static var description = IntentDescription("Get Details about a task")
     
     static var parameterSummary: some ParameterSummary {
-        Summary("Get Task Details")
+        Summary("Get \(\.$task) details in Clarity")
     }
 
     
