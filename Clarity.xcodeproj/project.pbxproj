@@ -137,7 +137,9 @@
 		441B7E1A2EEEFDA3008D76CA /* Exceptions for "Widgets" folder in "ClarityAppIntentsExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Media.xcassets,
 				Models/CategoryEntity.swift,
+				Models/TaskDetailEntity.swift,
 			);
 			target = 441B7E032EEED7F4008D76CA /* ClarityAppIntentsExtension */;
 		};
@@ -154,6 +156,8 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Category.swift,
+				PomodoroAlarmSound.swift,
+				PomodoroSoundManager.swift,
 				Statistics.swift,
 				Todo.swift,
 				Widgets.swift,
@@ -172,6 +176,7 @@
 			membershipExceptions = (
 				Media.xcassets,
 				Models/CategoryEntity.swift,
+				Models/TaskDetailEntity.swift,
 			);
 			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
 		};
@@ -185,7 +190,9 @@
 		443255072F4F3D8F003176B3 /* Exceptions for "Widgets" folder in "ClarityWatchWidgetsExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Media.xcassets,
 				Models/CategoryEntity.swift,
+				Models/TaskDetailEntity.swift,
 			);
 			target = 443254E12F4B4903003176B3 /* ClarityWatchWidgetsExtension */;
 		};
@@ -193,6 +200,8 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Category.swift,
+				PomodoroAlarmSound.swift,
+				PomodoroSoundManager.swift,
 				Statistics.swift,
 				Todo.swift,
 				Widgets.swift,
@@ -293,7 +302,9 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Category.swift,
+				PomodoroAlarmSound.swift,
 				PomodoroAttributes.swift,
+				PomodoroSoundManager.swift,
 				Statistics.swift,
 				Todo.swift,
 				Widgets.swift,
@@ -304,6 +315,8 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Category.swift,
+				PomodoroAlarmSound.swift,
+				PomodoroSoundManager.swift,
 				Statistics.swift,
 				Todo.swift,
 				Widgets.swift,
@@ -343,16 +356,19 @@
 		44F7D0F82E998D4300F520BF /* Exceptions for "Widgets" folder in "Clarity" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Intents/ClarityAppIntentsProvider.swift,
+				Intents/ClarityShortcutsProvider.swift,
 				Intents/CompletedTaskProvider.swift,
 				Intents/CompletedTaskWidgetIntent.swift,
 				Intents/CompleteTaskIntent.swift,
 				Intents/CreateTaskIntent.swift,
 				Intents/DeleteTaskIntent.swift,
+				Intents/GetTaskIntent.swift,
 				Intents/ListTasksIntent.swift,
 				Intents/StartPomodoroIntent.swift,
+				Intents/TaskHistoryWidgetIntent.swift,
 				Media.xcassets,
 				Models/CategoryEntity.swift,
+				Models/TaskDetailEntity.swift,
 				Models/TaskEntity.swift,
 				Views/WidgetCategoryProgress.swift,
 			);

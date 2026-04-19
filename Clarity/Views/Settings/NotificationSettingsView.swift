@@ -18,6 +18,12 @@ struct NotificationSettingsView: View {
         NavigationView {
             Form {
                 Section(header: Text("Notifications"), footer: footerText) {
+                        NavigationLink(destination: PomodoroSoundSettingsView()) {
+                            Image(systemName: "timer")
+                                .foregroundColor(.red)
+                            Text("Pomodoro Alarm Sound")
+                            Spacer()
+                        }
                     Toggle(isOn: Binding(
                         get: { notificationsEnabled },
                         set: { _ in }

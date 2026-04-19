@@ -67,10 +67,9 @@ struct ClarityTaskWidgetView: View {
                     }
                 }
                 
-                Spacer()
                 if widgetFamily  == .systemSmall || widgetFamily == .accessoryRectangular {
                     // Just show tasks total
-                    
+                    Spacer()
                     VStack(alignment: .leading, spacing: 4) {
                             Text("\(entry.filter.localizedStringResource) Due: \(entry.todos.count)")
                                 .font(.headline)
@@ -79,9 +78,13 @@ struct ClarityTaskWidgetView: View {
 
                     }
                 } else {
-                    ForEach(entry.todos.prefix(widgetFamily == .systemMedium ? 3 : 10), id: \.id ) { todo in
-                        TaskRowInteractive(task: todo)
+                    VStack() {
+                        ForEach(entry.todos.prefix(widgetFamily == .systemMedium ? 3 : 10), id: \.id ) { todo in
+                            TaskRowInteractive(task: todo)
+                        }
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+
                 }
                 Spacer()
                 if entry.showWeeklyProgress {
@@ -118,7 +121,7 @@ struct ClarityTaskWidgetView: View {
 #Preview("Large", as: .systemLarge) {
     DueWidget()
 } timeline: {
-    PreviewData.shared.getPreviewTaskWidgetEntry()
+    PreviewData.shared.getPreviewLimitedTasksEntry()
 }
 
 #Preview("Accessory - Rectangular", as: .accessoryRectangular) {
