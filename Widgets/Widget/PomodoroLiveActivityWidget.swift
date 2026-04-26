@@ -73,10 +73,14 @@ struct PomodoroLiveActivityWidget: Widget {
                 }
 
             } compactLeading: {
-                Image("clarity-small")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-
+                if context.isStale {
+                    Text("✅")
+                } else {
+                    Text(context.state.endTime, style: .timer)
+                        .monospacedDigit()
+                        .font(.caption2)
+                        .frame(maxWidth: .minimum(50, 50), alignment: .leading)
+                }
             } compactTrailing: {
                 if context.isStale {
                     Text("✅")
