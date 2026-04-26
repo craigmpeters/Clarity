@@ -21,6 +21,8 @@ actor ClarityModelActor {
     /// Hook for the main app to push weekly progress to the watch after a task completes.
     /// Not set in widget/extension targets where WatchConnectivity is unavailable.
     nonisolated(unsafe) static var onTaskCompleted: (@MainActor @Sendable () -> Void)?
+    /// Hook for the main app to push a snapshot to the watch after any task mutation (add/update/delete).
+    nonisolated(unsafe) static var onTaskMutated: (@MainActor @Sendable () -> Void)?
     // Throttle dedup runs triggered by remote merges / write paths
     private var lastDedupRunAt: Date? = nil
     
@@ -198,6 +200,9 @@ actor ClarityModelActor {
         try modelContext.save()
         try WidgetFileCoordinator.shared.writeTasks(fetchRecentTasks())
         WidgetCenter.shared.reloadAllTimelines()
+        if let onTaskMutated = ClarityModelActor.onTaskMutated {
+            Task { @MainActor in onTaskMutated() }
+        }
         try? deduplicateTasksByUUID()
         return ToDoTaskDTO(from: model)
     }
@@ -262,6 +267,9 @@ actor ClarityModelActor {
         try modelContext.save()
         try WidgetFileCoordinator.shared.writeTasks(fetchRecentTasks())
         WidgetCenter.shared.reloadAllTimelines()
+        if let onTaskMutated = ClarityModelActor.onTaskMutated {
+            Task { @MainActor in onTaskMutated() }
+        }
         try? deduplicateTasksByUUID()
         return ToDoTaskDTO(from: toDoTask)
     }
@@ -273,6 +281,9 @@ actor ClarityModelActor {
         }
         try WidgetFileCoordinator.shared.writeTasks(fetchRecentTasks())
         WidgetCenter.shared.reloadAllTimelines()
+        if let onTaskMutated = ClarityModelActor.onTaskMutated {
+            Task { @MainActor in onTaskMutated() }
+        }
         try? deduplicateTasksByUUID()
     }
     
