@@ -33,7 +33,9 @@ struct ClarityShortcutsProvider: AppShortcutsProvider {
         
         AppShortcut(
             intent: StartPomodoroIntent(),
-            phrases: ["Start timer in \(.applicationName)"],
+            phrases: ["Start timer in \(.applicationName)",
+                     "Start \(\.$task) timer in \(.applicationName)",
+            "Start a timer for \(\.$task) in \(.applicationName)"],
             shortTitle: "Start Timer",
             systemImageName: "timer"
         )
@@ -45,10 +47,17 @@ struct ClarityShortcutsProvider: AppShortcutsProvider {
         )
         AppShortcut(
             intent: DeleteTaskIntent(),
-            phrases: ["Delete a task in \(.applicationName)"],
+            phrases: ["Delete a task in \(.applicationName)",
+                      "Delete \(\.$task) in \(.applicationName)"],
             shortTitle: "Delete a Task",
             systemImageName: "trash"
         )
+        AppShortcut(
+            intent: GetTaskIntent(),
+            phrases: ["View task in \(.applicationName)",
+                      "Get \(\.$task) details in (\(.applicationName))"],
+            shortTitle: "View Task",
+            systemImageName: "checkmark")
 //        AppShortcut(
 //            intent: StartPomodoroIntent(),
 //            phrases: [

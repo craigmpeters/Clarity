@@ -28,6 +28,16 @@ extension UserDefaults {
         }
     }
     
+    /// The persistence ID of the selected Pomodoro alarm sound (see PomodoroAlarmSound)
+    static var pomodoroAlarmSoundID: String {
+        get {
+            UserDefaults.standard.string(forKey: "pomodoroAlarmSoundID") ?? "default"
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "pomodoroAlarmSoundID")
+        }
+    }
+
     /// Reset onboarding state (useful for testing or user-requested reset)
     static func resetOnboardingState() {
         UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")
