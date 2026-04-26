@@ -507,20 +507,13 @@
             "value" : "%lld%%"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%ld%%"
-          }
-        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld%%"
           }
         }
-      },
-      "shouldTranslate" : false
+      }
     },
     "✕" : {
       "localizations" : {
