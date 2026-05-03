@@ -1880,6 +1880,7 @@
       }
     },
     "Complete task" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3777,6 +3778,7 @@
       }
     },
     "Get ${task} details in Clarity" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
