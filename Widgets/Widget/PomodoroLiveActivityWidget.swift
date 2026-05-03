@@ -73,14 +73,9 @@ struct PomodoroLiveActivityWidget: Widget {
                 }
 
             } compactLeading: {
-                if context.isStale {
-                    Text("✅")
-                } else {
-                    Text(context.state.endTime, style: .timer)
-                        .monospacedDigit()
-                        .font(.caption2)
-                        .frame(maxWidth: .minimum(50, 50), alignment: .leading)
-                }
+                Image("clarity-small")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
             } compactTrailing: {
                 if context.isStale {
                     Text("✅")
@@ -92,9 +87,17 @@ struct PomodoroLiveActivityWidget: Widget {
                 }
 
             } minimal: {
-                Image("clarity-small")
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
+//                Image("clarity-small")
+//                    .resizable()
+//                    .aspectRatio(contentMode: .fill)
+                if context.isStale {
+                    Text("✅")
+                } else {
+                    Text(context.state.endTime, style: .timer)
+                        .monospacedDigit()
+                        .font(.caption2)
+                        .frame(maxWidth: .minimum(50, 50), alignment: .leading)
+                }
             }
         }
     }
