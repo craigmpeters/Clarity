@@ -38,6 +38,17 @@ extension UserDefaults {
         }
     }
 
+    /// Cached premium purchase state. Used as the initial value on launch before
+    /// StoreKit entitlements are verified. Always confirmed/overridden by StoreKit.
+    static var hasBoughtPremium: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: "me.craigpeters.clarity.hasBoughtPremium")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "me.craigpeters.clarity.hasBoughtPremium")
+        }
+    }
+
     /// Reset onboarding state (useful for testing or user-requested reset)
     static func resetOnboardingState() {
         UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")

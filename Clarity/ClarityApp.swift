@@ -44,6 +44,7 @@ struct ClarityApp: App {
     
     private let container = try! Containers.liveApp()
     @StateObject private var appState = AppState()
+    @State private var store = Store()
     @Environment(\.scenePhase) private var scenePhase
     
     private func populateUUIDsIfNeeded(modelContext: ModelContext, minimumBuild: String) {
@@ -80,7 +81,7 @@ struct ClarityApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView().environment(store)
                 .environmentObject(appState)
                 .modelContainer(container)
                 .onAppear {
