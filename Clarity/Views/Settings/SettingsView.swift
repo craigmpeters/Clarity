@@ -48,14 +48,6 @@ struct SettingsView: View {
                         Spacer()
                     }
                 }
-                HStack{
-                    NavigationLink(destination:
-                                    PremiumSettings()) {
-                        Image(systemName: "storefront")
-                        Text("Store")
-                        Spacer()
-                    }
-                }
             }
 
 #if INTERNAL
