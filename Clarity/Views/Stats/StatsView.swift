@@ -592,7 +592,7 @@ struct WeeklyBreakdownView: View {
             let noCategoryCount = tasksOnDate.filter { ($0.categories?.isEmpty ?? true) }.count
             if noCategoryCount > 0 {
                 categoryCount["Uncategorized", default: 0] += noCategoryCount
-                total += noCategoryCount
+                total += tasksOnDate.count
             }
             
             return DailyCompletionData(
