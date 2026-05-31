@@ -20,7 +20,15 @@ struct WatchCompleteEntry: TimelineEntry {
     let progress: WeeklyProgress
 }
 
+struct TaskProgress : TimelineEntry {
+    let date: Date
+    let task: [ToDoTaskDTO]
+}
+
+
 public struct WatchUserInfo : Codable, Sendable {
     var tasks : [ToDoTaskDTO]
     var progress: WeeklyProgress
 }
+
+

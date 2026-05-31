@@ -370,6 +370,7 @@
 				Intents/ListTasksIntent.swift,
 				Intents/StartPomodoroIntent.swift,
 				Intents/TaskHistoryWidgetIntent.swift,
+				Intents/TaskHistoryWidgetProvider.swift,
 				Media.xcassets,
 				Models/CategoryEntity.swift,
 				Models/TaskDetailEntity.swift,
@@ -502,6 +503,11 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
+		44DD8A712FB0C0F900732504 /* Views */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Views;
+			sourceTree = "<group>";
+		};
 		44FB49602E51F1EB0059CC5B /* Clarity */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -595,6 +601,7 @@
 		44D6F0142E85DA8E00B5EF9E /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				44DD8A712FB0C0F900732504 /* Views */,
 				44D6F0172E85DA9500B5EF9E /* Data */,
 				44D6F0262E85DA9800B5EF9E /* Models */,
 				44D6F03B2E85DA9B00B5EF9E /* Preview Content */,
@@ -704,6 +711,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				4448AD672E579266005CDDDF /* Widgets */,
+				44DD8A712FB0C0F900732504 /* Views */,
 			);
 			name = Widgets;
 			packageProductDependencies = (
@@ -767,6 +775,7 @@
 				44D6F0262E85DA9800B5EF9E /* Models */,
 				44D6F03B2E85DA9B00B5EF9E /* Preview Content */,
 				44D6F0432E85DAA100B5EF9E /* Utilities */,
+				44DD8A712FB0C0F900732504 /* Views */,
 				44FB49602E51F1EB0059CC5B /* Clarity */,
 			);
 			name = Clarity;
