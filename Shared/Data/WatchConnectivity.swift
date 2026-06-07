@@ -540,7 +540,8 @@ extension ClarityWatchConnectivity {
                     LogManager.shared.log.error("Task Not Found")
                     return Envelope(kind: WCKeys.Requests.startPomodoro)
                 }
-                try await PomodoroService.shared.startPomodoro(for: dto, container: ClarityServices.store().modelContainer, device: .watchOS)
+                let store = try await ClarityServices.store()
+                try await PomodoroService.shared.startPomodoro(for: dto, container: store.modelContainer, device: .watchOS)
             } catch {
                 LogManager.shared.log.error("📱 Failed to start Pomodoro: \(error) ")
             }

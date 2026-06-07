@@ -5,9 +5,9 @@ import WidgetKit
 #endif
 
 enum ClarityServices {
-    // Cache only for the EXTENSION process
-    private static var cachedExtensionContainer: ModelContainer?
-    private static var cachedStoreTask: Task<ClarityModelActor, Never>?
+    // Cache only for the EXTENSION process.
+    // nonisolated(unsafe): single-writer (extension process only), no concurrent callers.
+    nonisolated(unsafe) private static var cachedExtensionContainer: ModelContainer?
 
     // More reliable than checking bundle path
     private static var isExtension: Bool {
@@ -35,13 +35,8 @@ enum ClarityServices {
     }
 
     static func store() async throws -> ClarityModelActor {
-        if let task = cachedStoreTask { return await task.value }
         let container = try sharedContainer()
-        let task = Task.detached {
-            await ClarityModelActorFactory.makeBackground(container: container)
-        }
-        cachedStoreTask = task
-        return await task.value
+        return await StoreRegistry.shared.store(for: container)
     }
 
     // -------- Snapshots for widgets / quick reads --------
@@ -80,18 +75,6 @@ enum ClarityServices {
         }
     }
     
-    static func snapshotCompletedAsync() async -> [ToDoTaskDTO] {
-        await withUnsafeContinuation { cont in
-            Task.detached{ cont.resume(returning: snapshotCompleted())}
-        }
-    }
-
-    static func snapshotTasksAsync(filter: ToDoTask.TaskFilter = .all) async -> [ToDoTaskDTO] {
-        await withCheckedContinuation { cont in
-            Task.detached { cont.resume(returning: snapshotTasks(filter: filter)) }
-        }
-    }
-
     static func snapshotCategories() -> [CategoryDTO] {
         do {
             let container = try sharedContainer()

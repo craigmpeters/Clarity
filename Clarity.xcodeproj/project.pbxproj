@@ -141,9 +141,9 @@
 		441B7E1A2EEEFDA3008D76CA /* Exceptions for "Widgets" folder in "ClarityAppIntentsExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Entities/CategoryEntity.swift,
+				Entities/TaskDetailEntity.swift,
 				Media.xcassets,
-				Models/CategoryEntity.swift,
-				Models/TaskDetailEntity.swift,
 			);
 			target = 441B7E032EEED7F4008D76CA /* ClarityAppIntentsExtension */;
 		};
@@ -163,24 +163,18 @@
 				PomodoroAlarmSound.swift,
 				PomodoroSoundManager.swift,
 				Statistics.swift,
+				SwipeActions.swift,
 				Todo.swift,
 				Widgets.swift,
-			);
-			target = 441B7E032EEED7F4008D76CA /* ClarityAppIntentsExtension */;
-		};
-		441B7E242EEF0E4F008D76CA /* Exceptions for "Clarity" folder in "ClarityAppIntentsExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				ViewModels/SwipeActions.swift,
 			);
 			target = 441B7E032EEED7F4008D76CA /* ClarityAppIntentsExtension */;
 		};
 		441B7E262EEF27CC008D76CA /* Exceptions for "Widgets" folder in "ClarityWatch" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Entities/CategoryEntity.swift,
+				Entities/TaskDetailEntity.swift,
 				Media.xcassets,
-				Models/CategoryEntity.swift,
-				Models/TaskDetailEntity.swift,
 			);
 			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
 		};
@@ -194,9 +188,9 @@
 		443255072F4F3D8F003176B3 /* Exceptions for "Widgets" folder in "ClarityWatchWidgetsExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Entities/CategoryEntity.swift,
+				Entities/TaskDetailEntity.swift,
 				Media.xcassets,
-				Models/CategoryEntity.swift,
-				Models/TaskDetailEntity.swift,
 			);
 			target = 443254E12F4B4903003176B3 /* ClarityWatchWidgetsExtension */;
 		};
@@ -207,6 +201,7 @@
 				PomodoroAlarmSound.swift,
 				PomodoroSoundManager.swift,
 				Statistics.swift,
+				SwipeActions.swift,
 				Todo.swift,
 				Widgets.swift,
 			);
@@ -231,13 +226,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				PreviewModelActor.swift,
-			);
-			target = 443254E12F4B4903003176B3 /* ClarityWatchWidgetsExtension */;
-		};
-		4432552E2F4F8B2C003176B3 /* Exceptions for "Clarity" folder in "ClarityWatchWidgetsExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				ViewModels/SwipeActions.swift,
 			);
 			target = 443254E12F4B4903003176B3 /* ClarityWatchWidgetsExtension */;
 		};
@@ -310,6 +298,7 @@
 				PomodoroAttributes.swift,
 				PomodoroSoundManager.swift,
 				Statistics.swift,
+				SwipeActions.swift,
 				Todo.swift,
 				Widgets.swift,
 			);
@@ -322,6 +311,7 @@
 				PomodoroAlarmSound.swift,
 				PomodoroSoundManager.swift,
 				Statistics.swift,
+				SwipeActions.swift,
 				Todo.swift,
 				Widgets.swift,
 			);
@@ -360,8 +350,9 @@
 		44F7D0F82E998D4300F520BF /* Exceptions for "Widgets" folder in "Clarity" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Intents/ClarityShortcutsProvider.swift,
-				Intents/CompletedTaskProvider.swift,
+				Entities/CategoryEntity.swift,
+				Entities/TaskDetailEntity.swift,
+				Entities/TaskEntity.swift,
 				Intents/CompletedTaskWidgetIntent.swift,
 				Intents/CompleteTaskIntent.swift,
 				Intents/CreateTaskIntent.swift,
@@ -370,28 +361,13 @@
 				Intents/ListTasksIntent.swift,
 				Intents/StartPomodoroIntent.swift,
 				Intents/TaskHistoryWidgetIntent.swift,
-				Intents/TaskHistoryWidgetProvider.swift,
 				Media.xcassets,
-				Models/CategoryEntity.swift,
-				Models/TaskDetailEntity.swift,
-				Models/TaskEntity.swift,
+				Providers/ClarityShortcutsProvider.swift,
+				Providers/CompletedTaskProvider.swift,
+				Providers/TaskHistoryWidgetProvider.swift,
 				Views/WidgetCategoryProgress.swift,
 			);
 			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
-		};
-		44F875FB2EE35FA70049C5A3 /* Exceptions for "Clarity" folder in "ClarityWatch" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				ViewModels/SwipeActions.swift,
-			);
-			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
-		};
-		44F875FC2EE35FA70049C5A3 /* Exceptions for "Clarity" folder in "Widgets" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				ViewModels/SwipeActions.swift,
-			);
-			target = 4448AD602E579266005CDDDF /* Widgets */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -512,10 +488,6 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				44BCDE032E5D2E5F00B61B9C /* Exceptions for "Clarity" folder in "Clarity" target */,
-				44F875FB2EE35FA70049C5A3 /* Exceptions for "Clarity" folder in "ClarityWatch" target */,
-				44F875FC2EE35FA70049C5A3 /* Exceptions for "Clarity" folder in "Widgets" target */,
-				441B7E242EEF0E4F008D76CA /* Exceptions for "Clarity" folder in "ClarityAppIntentsExtension" target */,
-				4432552E2F4F8B2C003176B3 /* Exceptions for "Clarity" folder in "ClarityWatchWidgetsExtension" target */,
 			);
 			path = Clarity;
 			sourceTree = "<group>";
