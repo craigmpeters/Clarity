@@ -36,14 +36,14 @@ struct PomodoroLiveActivityWidget: Widget {
                                     .monospacedDigit()
                             }
                         }
-                        Image("clarity-small")
+                        Image("clarity-teeny")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                     }
                 }
 
             } compactLeading: {
-                Image("clarity-small")
+                Image("clarity-teeny")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
             } compactTrailing: {
@@ -117,7 +117,7 @@ struct PomodoroLiveActivityView: View {
                         }
                     }
                     Spacer()
-                    Image("clarity-small")
+                    Image("clarity-teeny")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 80, height: 80)
