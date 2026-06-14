@@ -53,28 +53,30 @@ struct ClarityApp: App {
         guard currentBuild >= minimumBuild, Migration.hasRun(forBuild: currentBuild) == false else { return }
         LogManager.shared.log.debug("Running Populate UUID Migration")
 
-        // Define a dynamic fetch to avoid compile-time dependency on Todo type if not imported here
-        // If you have a concrete model type like `Todo`, replace with a typed FetchDescriptor<Todo>()
-        let fetch = FetchDescriptor<ToDoTask>()
-
         var updatedCount = 0
         do {
-            // Attempt to fetch all models and filter those matching "Todo" entity name
-            // and missing a value for key "uuid"
-            let toDoTasks = try modelContext.fetch(fetch)
-            for task in toDoTasks {
-                if task.uuid == nil {
-                    task.uuid = UUID()
-                    updatedCount += 1
-                }
+            // Backfill ToDoTask.uuid
+            let tasks = try modelContext.fetch(FetchDescriptor<ToDoTask>())
+            for task in tasks where task.uuid == nil {
+                task.uuid = UUID()
+                updatedCount += 1
             }
+
+            // Backfill Category.uuid
+            let categories = try modelContext.fetch(FetchDescriptor<Category>())
+            for category in categories where category.uuid == nil {
+                category.uuid = UUID()
+                updatedCount += 1
+            }
+
             if updatedCount > 0 {
                 try modelContext.save()
+                LogManager.shared.log.debug("UUID migration: backfilled \(updatedCount) records")
             }
             Migration.markRun(forBuild: currentBuild)
         } catch {
             // If anything fails, don't mark as run so we can attempt again next launch
-            print("Migration populateUUIDsIfNeeded error: \(error)")
+            LogManager.shared.log.error("Migration populateUUIDsIfNeeded error: \(error)")
         }
     }
         

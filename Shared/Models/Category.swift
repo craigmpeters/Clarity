@@ -16,12 +16,16 @@ class Category {
     var name: String?
     var color: CategoryColor?
     var weeklyTarget: Int = 0
+    /// Stable identifier safe for use across CloudKit sync and widget/intent boundaries.
+    /// Optional for migration safety — backfilled at app launch.
+    var uuid: UUID?
     @Relationship(inverse: \ToDoTask.categories) var tasks: [ToDoTask]? = []
-    
+
     init(name: String, color: CategoryColor = .Red, weeklyTarget: Int = 0) {
         self.name = name
         self.color = color
         self.weeklyTarget = weeklyTarget
+        self.uuid = UUID()
     }
     
     // Example reusable predicate for SwiftData queries. Adjust as needed.
@@ -103,21 +107,23 @@ struct CategoryDTO: Sendable, Codable, Hashable {
     var name: String
     var color: Category.CategoryColor
     var weeklyTarget: Int
-    
-    nonisolated init(id: PersistentIdentifier?, name: String, color: Category.CategoryColor, weeklyTarget: Int) {
+    /// Stable UUID — preferred over PersistentIdentifier for cross-process use (widgets, intents).
+    var uuid: UUID?
+
+    nonisolated init(id: PersistentIdentifier?, name: String, color: Category.CategoryColor, weeklyTarget: Int, uuid: UUID? = nil) {
         self.id = id
         self.name = name
         self.color = color
         self.weeklyTarget = weeklyTarget
-        
+        self.uuid = uuid
     }
-    
+
     var encodedId: String? {
         guard let id else { return nil }
         guard let data = try? JSONEncoder().encode(id) else { return nil }
         return data.base64EncodedString()
     }
-    
+
     func decodeId(_ encodedId: String) throws -> PersistentIdentifier? {
         guard let data = Data(base64Encoded: encodedId) else {
             throw NSError(domain: "ToDo", code: 0, userInfo: nil)
@@ -128,7 +134,13 @@ struct CategoryDTO: Sendable, Codable, Hashable {
 
 extension CategoryDTO {
     nonisolated init(from model: Category) {
-        self.init(id: model.persistentModelID, name: model.name!, color: model.color ?? Category.CategoryColor.Red , weeklyTarget: model.weeklyTarget)
+        self.init(
+            id: model.persistentModelID,
+            name: model.name ?? "",
+            color: model.color ?? .Red,
+            weeklyTarget: model.weeklyTarget,
+            uuid: model.uuid
+        )
     }
 }
 

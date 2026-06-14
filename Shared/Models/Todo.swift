@@ -26,7 +26,7 @@ class ToDoTask {
     var customRecurrenceDays: Int = 1
     var everySpecificDayDay: Int?
     var uuid: UUID?
-    
+
     @Relationship var categories: [Category]? = []
     
     var recurrenceDescription: String? {
@@ -145,7 +145,6 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
     var everySpecificDayDay: Int
     var categories: [CategoryDTO]
     var uuid: UUID
-    
     nonisolated init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int = 0, categories: [CategoryDTO] = [], uuid: UUID? = UUID(), completed: Bool = false, completedAt: Date? = nil) {
         self.id = id
         self.name = name ?? ""

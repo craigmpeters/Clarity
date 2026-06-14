@@ -427,6 +427,8 @@ actor ClarityModelActor {
         let categoryCount = resolvedCategories.count
         LogManager.shared.log.debug("createNextOccurrence: base task uuid=\(task.uuid?.uuidString ?? "nil"), name=\(task.name ?? "nil"), categories=\(categoryCount), nextDue=\(nextDueDate)")
         
+        // uuid is shared across all occurrences of a recurring series — this is the existing
+        // behaviour and must not change to preserve CloudKit identity across devices.
         let newTask = ToDoTaskDTO(
             name: task.name,
             pomodoroTime: task.pomodoroTime,
@@ -548,12 +550,9 @@ actor ClarityModelActor {
     
     func getTaskHistory(for taskUuid: UUID) -> [ToDoTask] {
         let descriptor = FetchDescriptor<ToDoTask>(
-            predicate: #Predicate { $0.uuid == taskUuid}
+            predicate: #Predicate { $0.uuid == taskUuid }
         )
-        guard let tasks = try? modelContext.fetch(descriptor) else {
-            return []
-        }
-        return tasks
+        return (try? modelContext.fetch(descriptor)) ?? []
     }
     
 //    func getTaskHistoryTimeline(for taskUuid: UUID) -> [TaskHistoryEntry] {
