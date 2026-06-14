@@ -9,9 +9,9 @@ import Foundation
 import AppIntents
 
 struct CreateTaskIntent: AppIntent {
-    static var title: LocalizedStringResource = "Create Task"
-    static var description = IntentDescription("Create a new task in Clarity")
-    static var openAppWhenRun: Bool = false
+    static let title: LocalizedStringResource = "Create Task"
+    static let description = IntentDescription("Create a new task in Clarity")
+    static let openAppWhenRun: Bool = false
     
     @Parameter(title: "Task Name", requestValueDialog: "What’s the task name?")
     var taskName: String

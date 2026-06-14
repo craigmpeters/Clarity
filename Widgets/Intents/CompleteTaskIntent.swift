@@ -7,9 +7,9 @@ import WidgetKit
 #endif
 
 struct CompleteTaskIntent: AppIntent {
-    static var title: LocalizedStringResource = "Complete Task"
-    static var description = IntentDescription("Mark a task as completed")
-    static var openAppWhenRun = false
+    static let title: LocalizedStringResource = "Complete Task"
+    static let description = IntentDescription("Mark a task as completed")
+    static let openAppWhenRun = false
     private var taskUuid: String?
 
     // Change to task UUID

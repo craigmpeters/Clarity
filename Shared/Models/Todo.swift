@@ -146,7 +146,7 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
     var categories: [CategoryDTO]
     var uuid: UUID
     
-    init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int = 0, categories: [CategoryDTO] = [], uuid: UUID? = UUID(), completed: Bool = false, completedAt: Date? = nil) {
+    nonisolated init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int = 0, categories: [CategoryDTO] = [], uuid: UUID? = UUID(), completed: Bool = false, completedAt: Date? = nil) {
         self.id = id
         self.name = name ?? ""
         self.created = Date.now
@@ -178,7 +178,7 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
 }
 
 extension ToDoTaskDTO {
-    init(from model: ToDoTask) {
+    nonisolated init(from model: ToDoTask) {
         self.init(
             id: model.persistentModelID,
             name: model.name,
@@ -197,35 +197,44 @@ extension ToDoTaskDTO {
     }
     
     // TODO: Remove Duplication
-    public static func focusFilter(in tasks: [ToDoTaskDTO]) -> [ToDoTaskDTO] {
+    public nonisolated static func focusFilter(in tasks: [ToDoTaskDTO]) -> [ToDoTaskDTO] {
         let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
         let focusData = defaults?.data(forKey: "ClarityFocusFilter")
-        if let focusData {
-            let base64 = focusData.base64EncodedString()
-        }
-        guard let focusData, let settings = try? JSONDecoder().decode(CategoryFilterSettings.self, from: focusData) else {
+        guard let focusData, let settings = try? JSONDecoder().decode(_FocusFilterRaw.self, from: focusData) else {
             return tasks
         }
-        
-        let focusedNames = Set(settings.Categories.compactMap { $0.name })
-        
-        func hasAllowedCategory(_ task: ToDoTaskDTO, allowed: Set<String>, showOrHide: FilterShowOrHide) -> Bool {
-            let categoryNames = (task.categories).map { $0.name }
-            if categoryNames.isEmpty { // If show include, if hide do not include
-                switch showOrHide {
-                case .show: return true
-                case .hide: return false
-                }
-            }
+
+        let focusedNames = Set(settings.Categories)
+        let isHide = settings.showOrHide == "hide"
+
+        func hasAllowedCategory(_ task: ToDoTaskDTO, allowed: Set<String>) -> Bool {
+            let categoryNames = task.categories.map { $0.name }
+            if categoryNames.isEmpty { return !isHide }
             return categoryNames.contains { focusedNames.contains($0) }
         }
-        
-        switch settings.showOrHide {
-        case .show:
-            return tasks.filter { hasAllowedCategory($0, allowed: focusedNames, showOrHide: .show) }
-        case .hide:
-            return tasks.filter { !hasAllowedCategory($0, allowed: focusedNames, showOrHide: .hide) }
+
+        if isHide {
+            return tasks.filter { !hasAllowedCategory($0, allowed: focusedNames) }
+        } else {
+            return tasks.filter { hasAllowedCategory($0, allowed: focusedNames) }
         }
+    }
+}
+
+// Plain decode-only mirror of CategoryFilterSettings.
+// Avoids AppEntity/AppEnum isolation bleed by using only plain Swift types.
+// Explicit Decodable conformance prevents @MainActor synthesis from @Model context.
+private struct _FocusFilterRaw {
+    var Categories: [String]
+    var showOrHide: String  // raw value of FilterShowOrHide ("show" or "hide")
+}
+
+extension _FocusFilterRaw: Decodable {
+    private enum CodingKeys: String, CodingKey { case Categories, showOrHide }
+    nonisolated init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.Categories = try container.decode([String].self, forKey: .Categories)
+        self.showOrHide = try container.decode(String.self, forKey: .showOrHide)
     }
 }
 
@@ -233,38 +242,29 @@ extension ToDoTask {
     static func focusFilter(in tasks: [ToDoTask]) -> [ToDoTask] {
         let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
         let focusData = defaults?.data(forKey: "ClarityFocusFilter")
-        if let focusData {
-            if let json = String(data: focusData, encoding: .utf8) {
-            }
-        }
-        guard let focusData, let settings = try? JSONDecoder().decode(CategoryFilterSettings.self, from: focusData) else {
+        guard let focusData, let settings = try? JSONDecoder().decode(_FocusFilterRaw.self, from: focusData) else {
             return tasks
         }
 
-        let focusedNames = Set(settings.Categories.compactMap { $0.name })
+        let focusedNames = Set(settings.Categories)
+        let isHide = settings.showOrHide == "hide"
 
-        func hasAllowedCategory(_ task: ToDoTask, allowed: Set<String>, showOrHide: FilterShowOrHide) -> Bool {
-            let categoryNames = (task.categories ?? []).map { $0.name }
-            if categoryNames.isEmpty { // If show include, if hide do not include
-                switch showOrHide {
-                case .show: return true
-                case .hide: return false
-                }
-            }
-            return categoryNames.contains { focusedNames.contains($0!) }
+        func hasAllowedCategory(_ task: ToDoTask, allowed: Set<String>) -> Bool {
+            let categoryNames = (task.categories ?? []).compactMap { $0.name }
+            if categoryNames.isEmpty { return !isHide }
+            return categoryNames.contains { focusedNames.contains($0) }
         }
 
-        switch settings.showOrHide {
-        case .show:
-            return tasks.filter { hasAllowedCategory($0, allowed: focusedNames, showOrHide: .show) }
-        case .hide:
-            return tasks.filter { !hasAllowedCategory($0, allowed: focusedNames, showOrHide: .hide) }
+        if isHide {
+            return tasks.filter { !hasAllowedCategory($0, allowed: focusedNames) }
+        } else {
+            return tasks.filter { hasAllowedCategory($0, allowed: focusedNames) }
         }
     }
 }
 
 extension ToDoTask.TaskFilter {
-    func matches(task: ToDoTask, at now: Date, calendar: Calendar = .current) -> Bool {
+    nonisolated func matches(task: ToDoTask, at now: Date, calendar: Calendar = .current) -> Bool {
         switch self {
         case .all:
             return true
@@ -281,7 +281,7 @@ extension ToDoTask.TaskFilter {
         }
     }
     
-    func matches(dto: ToDoTaskDTO, at now: Date, calendar: Calendar = .current) -> Bool {
+    nonisolated func matches(dto: ToDoTaskDTO, at now: Date, calendar: Calendar = .current) -> Bool {
         switch self {
         case .all:
             return true
@@ -329,40 +329,34 @@ extension ToDoTask {
         case PastWeek = "This Week"
         case Month = "Last Month"
         
-        static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Filter")
-        static var caseDisplayRepresentations: [CompletedTaskFilter: DisplayRepresentation] = [
+        static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Filter")
+        static let caseDisplayRepresentations: [CompletedTaskFilter: DisplayRepresentation] = [
             .Today: DisplayRepresentation(title: "Today"),
             .PastWeek: DisplayRepresentation(title: "This Week"),
             .Month: DisplayRepresentation(title: "Last Month")
         ]
         
-        static func completedToday() -> Predicate<ToDoTaskDTO> {
+        static func completedToday() -> (ToDoTaskDTO) -> Bool {
             let cal = Calendar.current
             let now = Date()
             let startOfDay = cal.startOfDay(for: now)
             let endOfDay = cal.date(byAdding: DateComponents(day: 1, second: -1), to: startOfDay) ?? now
-            return #Predicate<ToDoTaskDTO> { task in
-                if let completedAt = task.completedAt {
-                    return task.completed && completedAt >= startOfDay && completedAt <= endOfDay
-                } else {
-                    return false
-                }
+            return { task in
+                guard let completedAt = task.completedAt else { return false }
+                return task.completed && completedAt >= startOfDay && completedAt <= endOfDay
             }
         }
         
-        static func completedThisWeek() -> Predicate<ToDoTaskDTO> {
+        static func completedThisWeek() -> (ToDoTaskDTO) -> Bool {
             let cal = Calendar.current
             let now = Date()
             var comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
             comps.weekday = 2 // Monday
             let weekStart = cal.date(from: comps) ?? now
             let weekEnd = cal.date(byAdding: .day, value: 7, to: weekStart) ?? now
-            return #Predicate { task in
-                if let completed = task.completedAt {
-                    return task.completed && completed >= weekStart && completed < weekEnd
-                } else {
-                    return false
-                }
+            return { task in
+                guard let completed = task.completedAt else { return false }
+                return task.completed && completed >= weekStart && completed < weekEnd
             }
         }
         
@@ -404,8 +398,8 @@ extension ToDoTask {
         case overdue = "Overdue"
         case all = "All Tasks"
         
-        static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Filter")
-        static var caseDisplayRepresentations: [TaskFilterOption: DisplayRepresentation] = [
+        static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Filter")
+        static let caseDisplayRepresentations: [TaskFilterOption: DisplayRepresentation] = [
             .today: DisplayRepresentation(title: "Today"),
             .tomorrow: DisplayRepresentation(title: "Tomorrow"),
             .thisWeek: DisplayRepresentation(title: "This Week"),
@@ -413,7 +407,7 @@ extension ToDoTask {
             .all: DisplayRepresentation(title: "All Tasks")
         ]
         
-        static var filterColor: [TaskFilterOption: Color] = [
+        static let filterColor: [TaskFilterOption: Color] = [
             .today: .green,
             .tomorrow: .blue,
             .thisWeek: .blue,

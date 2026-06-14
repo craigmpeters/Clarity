@@ -8,8 +8,8 @@
 import AppIntents
 
 struct DeleteTaskIntent: AppIntent {
-    static var title: LocalizedStringResource = "Delete a Task"
-    static var description = IntentDescription("Delete a task in Clarity")
+    static let title: LocalizedStringResource = "Delete a Task"
+    static let description = IntentDescription("Delete a task in Clarity")
     
     static var parameterSummary: some ParameterSummary {
         Summary("Delete a Task")

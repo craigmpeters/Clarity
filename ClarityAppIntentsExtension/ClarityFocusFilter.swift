@@ -12,8 +12,8 @@ import WidgetKit
 import XCGLogger
 
 struct ClarityFocusFilter: SetFocusFilterIntent {
-    static var title: LocalizedStringResource = "Set Categories"
-    static var description: IntentDescription? = "What categories are displayed during this focus mode"
+    static let title: LocalizedStringResource = "Set Categories"
+    static let description: IntentDescription? = "What categories are displayed during this focus mode"
     
     var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(title: "\(primaryText)")

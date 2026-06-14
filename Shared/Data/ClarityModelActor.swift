@@ -14,7 +14,7 @@ import XCGLogger
 @ModelActor
 actor ClarityModelActor {
     // MARK: Category Functions
-    private let logger = LogManager.shared.log
+    private var logger: XCGLogger { LogManager.shared.log }
     // Prevent concurrent completions for the same UUID within this actor
     private var inFlightCompletions: Set<UUID> = []
 
@@ -581,7 +581,7 @@ enum ClarityModelActorFactory {
 
 // Containers.swift
 enum Containers {
-    static func liveApp() throws -> ModelContainer {
+    nonisolated static func liveApp() throws -> ModelContainer {
         let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self, TaskSwipeAndTapOptions.self])
         let cfg = ModelConfiguration(
             schema: schema,
@@ -593,7 +593,7 @@ enum Containers {
         return try ModelContainer(for: schema, configurations: [cfg])
     }
 
-    static func liveExtension() throws -> ModelContainer {
+    nonisolated static func liveExtension() throws -> ModelContainer {
         let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self, TaskSwipeAndTapOptions.self])
         let cfg = ModelConfiguration(
             schema: schema,
@@ -605,7 +605,7 @@ enum Containers {
         return try ModelContainer(for: schema, configurations: [cfg])
     }
 
-    static func inMemory() throws -> ModelContainer {
+    nonisolated static func inMemory() throws -> ModelContainer {
         let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self, TaskSwipeAndTapOptions.self])
         let cfg = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, allowsSave: true)
         return try ModelContainer(for: schema, configurations: [cfg])
@@ -614,7 +614,7 @@ enum Containers {
 
 // AppContainer.swift (APP TARGET)
 enum AppContainer {
-    static let shared: ModelContainer = {
+    nonisolated static let shared: ModelContainer = {
         return try! Containers.liveApp()
     }()
 }
@@ -643,12 +643,5 @@ struct CompletedTaskEntry: TimelineEntry {
     let progress: WeeklyProgress
     let filter: ToDoTask.CompletedTaskFilter
     let showWeeklyProgress: Bool
-}
-
-public struct WatchWidgetData: Codable, Sendable {
-    public var due: Int
-    public var completed: Int
-    public var progress: Int
-    public var target: Int
 }
 

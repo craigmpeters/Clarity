@@ -14,7 +14,7 @@ enum ClarityServices {
         Bundle.main.object(forInfoDictionaryKey: "NSExtension") != nil
     }
 
-    static func sharedContainer() throws -> ModelContainer {
+    nonisolated static func sharedContainer() throws -> ModelContainer {
         let isExtension = Bundle.main.object(forInfoDictionaryKey: "NSExtension") != nil
         print("🚦 Process type:", isExtension ? "EXTENSION" : "APP")
 
@@ -30,7 +30,7 @@ enum ClarityServices {
     }
 
 
-    static func inMemoryContainer() -> ModelContainer {
+    nonisolated static func inMemoryContainer() -> ModelContainer {
         try! Containers.inMemory()
     }
 
@@ -41,7 +41,7 @@ enum ClarityServices {
 
     // -------- Snapshots for widgets / quick reads --------
     
-    static func snapshotCompleted() -> [ToDoTaskDTO] {
+    nonisolated static func snapshotCompleted() -> [ToDoTaskDTO] {
         do {
             let container = try sharedContainer()
             let ctx = ModelContext(container)
@@ -57,7 +57,7 @@ enum ClarityServices {
         }
     }
 
-    static func snapshotTasks(filter: ToDoTask.TaskFilter = .all) -> [ToDoTaskDTO] {
+    nonisolated static func snapshotTasks(filter: ToDoTask.TaskFilter = .all) -> [ToDoTaskDTO] {
         do {
             let container = try sharedContainer()         // <- was Containers.live()
             let ctx = ModelContext(container)
@@ -75,7 +75,7 @@ enum ClarityServices {
         }
     }
     
-    static func snapshotCategories() -> [CategoryDTO] {
+    nonisolated static func snapshotCategories() -> [CategoryDTO] {
         do {
             let container = try sharedContainer()
             let ctx = ModelContext(container)
@@ -84,14 +84,14 @@ enum ClarityServices {
         } catch { return [] }
     }
 
-    static func reloadWidgets(kind: String? = nil) {
+    nonisolated static func reloadWidgets(kind: String? = nil) {
         #if canImport(WidgetKit)
         if let kind { WidgetCenter.shared.reloadTimelines(ofKind: kind) }
         else { WidgetCenter.shared.reloadAllTimelines() }
         #endif
     }
 
-    static func fetchWeeklyProgress() -> WeeklyProgress {
+    nonisolated static func fetchWeeklyProgress() -> WeeklyProgress {
         do {
             let container = try sharedContainer()
             let ctx = ModelContext(container)

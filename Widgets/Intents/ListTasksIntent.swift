@@ -11,8 +11,8 @@ import AppIntents
 
 // MARK: - The Intent that lists tasks
 struct ListTasksIntent: AppIntent {
-    static var title: LocalizedStringResource = "List Tasks"
-    static var description = IntentDescription("Returns a list of your tasks")
+    static let title: LocalizedStringResource = "List Tasks"
+    static let description = IntentDescription("Returns a list of your tasks")
 
     
     @Parameter(title: "Only Repeating Tasks", default: false)

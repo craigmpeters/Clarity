@@ -19,16 +19,52 @@ public final class GlobalTargetSettings {
     }
 }
 
-public struct CategoryProgress: Codable, Sendable {
+public struct CategoryProgress: Sendable {
     let name: String
     let completed: Int
     let target: Int
     let color: String
 }
 
-public struct WeeklyProgress: Codable, Sendable {
+extension CategoryProgress: Codable {
+    enum CodingKeys: String, CodingKey { case name, completed, target, color }
+    nonisolated public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.name = try c.decode(String.self, forKey: .name)
+        self.completed = try c.decode(Int.self, forKey: .completed)
+        self.target = try c.decode(Int.self, forKey: .target)
+        self.color = try c.decode(String.self, forKey: .color)
+    }
+    nonisolated public func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(name, forKey: .name)
+        try c.encode(completed, forKey: .completed)
+        try c.encode(target, forKey: .target)
+        try c.encode(color, forKey: .color)
+    }
+}
+
+public struct WeeklyProgress: Sendable {
     let completed: Int
     let target: Int
     let error: String?
     let categories: [CategoryProgress]
+}
+
+extension WeeklyProgress: Codable {
+    enum CodingKeys: String, CodingKey { case completed, target, error, categories }
+    nonisolated public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.completed = try c.decode(Int.self, forKey: .completed)
+        self.target = try c.decode(Int.self, forKey: .target)
+        self.error = try c.decodeIfPresent(String.self, forKey: .error)
+        self.categories = try c.decode([CategoryProgress].self, forKey: .categories)
+    }
+    nonisolated public func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(completed, forKey: .completed)
+        try c.encode(target, forKey: .target)
+        try c.encodeIfPresent(error, forKey: .error)
+        try c.encode(categories, forKey: .categories)
+    }
 }

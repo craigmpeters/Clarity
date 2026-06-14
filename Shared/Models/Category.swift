@@ -104,7 +104,7 @@ struct CategoryDTO: Sendable, Codable, Hashable {
     var color: Category.CategoryColor
     var weeklyTarget: Int
     
-    init(id: PersistentIdentifier?, name: String, color: Category.CategoryColor, weeklyTarget: Int) {
+    nonisolated init(id: PersistentIdentifier?, name: String, color: Category.CategoryColor, weeklyTarget: Int) {
         self.id = id
         self.name = name
         self.color = color
@@ -127,24 +127,41 @@ struct CategoryDTO: Sendable, Codable, Hashable {
 }
 
 extension CategoryDTO {
-    init(from model: Category) {
+    nonisolated init(from model: Category) {
         self.init(id: model.persistentModelID, name: model.name!, color: model.color ?? Category.CategoryColor.Red , weeklyTarget: model.weeklyTarget)
     }
 }
 
 
-struct CategoryFilterSettings: Codable {
+struct CategoryFilterSettings {
     var Categories: [CategoryEntity]
     var showOrHide: FilterShowOrHide
+}
+
+// Explicit Codable — avoids @MainActor bleed from AppEntity synthesis
+extension CategoryFilterSettings: Codable {
+    enum CodingKeys: String, CodingKey { case Categories, showOrHide }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.Categories = try container.decode([CategoryEntity].self, forKey: .Categories)
+        self.showOrHide = try container.decode(FilterShowOrHide.self, forKey: .showOrHide)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(Categories, forKey: .Categories)
+        try container.encode(showOrHide, forKey: .showOrHide)
+    }
 }
 
 enum FilterShowOrHide: String, Codable, AppEnum {
     case show
     case hide
 
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Show or Hide Categories"
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Show or Hide Categories"
 
-    static var caseDisplayRepresentations: [FilterShowOrHide: DisplayRepresentation] = [
+    static let caseDisplayRepresentations: [FilterShowOrHide: DisplayRepresentation] = [
         .show: "Show",
         .hide: "Hide"
     ]

@@ -15,7 +15,6 @@
 		443254E32F4B4903003176B3 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4448AD632E579266005CDDDF /* WidgetKit.framework */; };
 		443254E42F4B4903003176B3 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4448AD652E579266005CDDDF /* SwiftUI.framework */; };
 		443254F32F4B4904003176B3 /* ClarityWatchWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 443254E22F4B4903003176B3 /* ClarityWatchWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		443254FB2F4B5784003176B3 /* WatchCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 443254FA2F4B577B003176B3 /* WatchCache.swift */; };
 		443255172F4F5CC9003176B3 /* ObjcExceptionBridging in Frameworks */ = {isa = PBXBuildFile; productRef = 443255162F4F5CC9003176B3 /* ObjcExceptionBridging */; };
 		443255192F4F5CCC003176B3 /* XCGLogger in Frameworks */ = {isa = PBXBuildFile; productRef = 443255182F4F5CCC003176B3 /* XCGLogger */; };
 		4432551B2F4F5CDE003176B3 /* ObjcExceptionBridging in Frameworks */ = {isa = PBXBuildFile; productRef = 4432551A2F4F5CDE003176B3 /* ObjcExceptionBridging */; };
@@ -115,7 +114,6 @@
 /* Begin PBXFileReference section */
 		441B7E042EEED7F4008D76CA /* ClarityAppIntentsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = ClarityAppIntentsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		443254E22F4B4903003176B3 /* ClarityWatchWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ClarityWatchWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		443254FA2F4B577B003176B3 /* WatchCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchCache.swift; sourceTree = "<group>"; };
 		4432552F2F4F9075003176B3 /* Media.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Media.xcassets; sourceTree = "<group>"; };
 		4448AD612E579266005CDDDF /* Widgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = Widgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		4448AD632E579266005CDDDF /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
@@ -360,6 +358,7 @@
 				Intents/GetTaskIntent.swift,
 				Intents/ListTasksIntent.swift,
 				Intents/StartPomodoroIntent.swift,
+				Intents/StopPomodoroIntent.swift,
 				Intents/TaskHistoryWidgetIntent.swift,
 				Media.xcassets,
 				Providers/ClarityShortcutsProvider.swift,
@@ -561,7 +560,6 @@
 		44D6F0132E85DA5F00B5EF9E /* Watch */ = {
 			isa = PBXGroup;
 			children = (
-				443254FA2F4B577B003176B3 /* WatchCache.swift */,
 				44D6F1E02E89871C00B5EF9E /* Views */,
 				44D6EAD62E83177400B5EF9E /* UI Tests */,
 				44D6EACC2E83177400B5EF9E /* Tests */,
@@ -901,7 +899,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				443254FB2F4B5784003176B3 /* WatchCache.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

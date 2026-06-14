@@ -531,20 +531,31 @@ extension ClarityWatchConnectivity {
     }
     
     private static func ProcessWatchPomodoroStart(_ message: [String:Any]?) async -> Envelope {
-        // Get the Task ID
-        // TODO: Change Watch to send DTO
-        if let uuid = decodeMessagetoUUID(message) {
-            do {
-                guard let dto = try? WidgetFileCoordinator.shared.readTaskByUuid(uuid) else {
-                //guard let dto = try? await ClarityServices.store().fetchTaskById(id) else {
-                    LogManager.shared.log.error("Task Not Found")
-                    return Envelope(kind: WCKeys.Requests.startPomodoro)
-                }
-                let store = try await ClarityServices.store()
-                try await PomodoroService.shared.startPomodoro(for: dto, container: store.modelContainer, device: .watchOS)
-            } catch {
-                LogManager.shared.log.error("📱 Failed to start Pomodoro: \(error) ")
-            }
+        guard let uuid = decodeMessagetoUUID(message) else {
+            LogManager.shared.log.error("📱 ProcessWatchPomodoroStart: could not decode UUID from message")
+            return Envelope(kind: WCKeys.Requests.startPomodoro)
+        }
+
+        // Always write the pending task ID to App Group defaults so ClarityApp picks it up
+        // on next foreground and starts the Live Activity in the foreground process.
+        // Activity.request() is silently ignored when the app is backgrounded.
+        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
+        defaults?.set(uuid.uuidString, forKey: "pendingStartTimerTaskId")
+        LogManager.shared.log.debug("📱 ProcessWatchPomodoroStart: wrote pendingStartTimerTaskId=\(uuid.uuidString)")
+
+        // Fast path: if the app is already active, start immediately.
+        guard let dto = try? WidgetFileCoordinator.shared.readTaskByUuid(uuid) else {
+            LogManager.shared.log.error("📱 ProcessWatchPomodoroStart: task not found — will start on next foreground")
+            return Envelope(kind: WCKeys.Requests.startPomodoro)
+        }
+        do {
+            let store = try await ClarityServices.store()
+            try await PomodoroService.shared.startPomodoro(for: dto, container: store.modelContainer, device: .watchOS)
+            // Clear the pending key since we started successfully inline.
+            defaults?.removeObject(forKey: "pendingStartTimerTaskId")
+            LogManager.shared.log.debug("📱 ProcessWatchPomodoroStart: started inline successfully")
+        } catch {
+            LogManager.shared.log.error("📱 ProcessWatchPomodoroStart: inline start failed (\(error)) — will start on next foreground")
         }
         return Envelope(kind: WCKeys.Requests.startPomodoro)
     }

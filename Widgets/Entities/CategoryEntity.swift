@@ -10,9 +10,9 @@ import AppIntents
 
 // MARK: - AppIntents Entity for Category
 
-struct CategoryEntity: AppEntity, Identifiable, Sendable, Codable {
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Category"
-    static var defaultQuery = CategoryQuery()
+struct CategoryEntity: AppEntity, Identifiable, Sendable {
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Category"
+    static let defaultQuery = CategoryQuery()
 
     // Use String identifiers to align with repository expectations
     var id: String { name }
@@ -21,8 +21,21 @@ struct CategoryEntity: AppEntity, Identifiable, Sendable, Codable {
     var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(title: "\(name)")
     }
-    
-    static var query = CategoryQuery()
+}
+
+// Explicit Codable conformance — avoids @MainActor isolation bleed from AppEntity synthesis
+extension CategoryEntity: Codable {
+    enum CodingKeys: String, CodingKey { case name }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.name = try container.decode(String.self, forKey: .name)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(name, forKey: .name)
+    }
 }
 
 struct CategoryQuery: EntityQuery, Sendable {
@@ -46,7 +59,7 @@ struct CategoryQuery: EntityQuery, Sendable {
 }
 
 private extension Sequence where Element: Hashable {
-    func unique() -> [Element] {
+    nonisolated func unique() -> [Element] {
         var set = Set<Element>()
         return self.filter { set.insert($0).inserted }
     }
