@@ -50,7 +50,7 @@ final class HealthKitService {
         }
         var metadata: [String: Any] = [:]
         if let taskName, !taskName.isEmpty {
-            metadata["ClarityTaskName"] = taskName
+            metadata["Habit Name"] = taskName
         }
         let sample = HKStateOfMind(
             date: date,

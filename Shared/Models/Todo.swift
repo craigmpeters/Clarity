@@ -26,6 +26,7 @@ class ToDoTask {
     var customRecurrenceDays: Int = 1
     var everySpecificDayDay: Int?
     var uuid: UUID?
+    var completionMoodValence: Double?
 
     @Relationship var categories: [Category]? = []
     
@@ -145,7 +146,8 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
     var everySpecificDayDay: Int
     var categories: [CategoryDTO]
     var uuid: UUID
-    nonisolated init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int = 0, categories: [CategoryDTO] = [], uuid: UUID? = UUID(), completed: Bool = false, completedAt: Date? = nil) {
+    var completionMoodValence: Double?
+    nonisolated init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int = 0, categories: [CategoryDTO] = [], uuid: UUID? = UUID(), completed: Bool = false, completedAt: Date? = nil, completionMoodValence: Double? = nil) {
         self.id = id
         self.name = name ?? ""
         self.created = Date.now
@@ -160,6 +162,7 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
         self.customRecurrenceDays = customRecurrenceDays
         self.everySpecificDayDay = everySpecificDayDay
         self.uuid = uuid ?? UUID()
+        self.completionMoodValence = completionMoodValence
     }
     
 //    var encodedId: String? {
@@ -191,7 +194,8 @@ extension ToDoTaskDTO {
             categories: (model.categories ?? []).map(CategoryDTO.init(from:)),
             uuid: model.uuid ?? UUID(),
             completed: model.completed,
-            completedAt: model.completedAt
+            completedAt: model.completedAt,
+            completionMoodValence: model.completionMoodValence
         )
     }
     

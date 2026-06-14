@@ -58,8 +58,10 @@ import XCGLogger
     struct CompletedSession: Codable, Identifiable {
         let id: UUID
         let taskName: String
+        let taskUUID: UUID?
         let startTime: Date
         let endTime: Date   // actual end (may be early)
+        var moodLogged: Bool = false
     }
 
     @Published var recentSessions: [CompletedSession] = []
@@ -85,6 +87,34 @@ import XCGLogger
         case watchOS
     }
     
+    // MARK: Preview Support
+
+#if DEBUG
+    /// Creates a `PomodoroService` with a running timer pre-seeded for SwiftUI previews.
+    /// Bypasses Live Activities, notifications, and persistence entirely.
+    @MainActor
+    static func makePreview(taskName: String = "SwiftUI documentation reading",
+                            totalMinutes: Int = 25,
+                            elapsedMinutes: Int = 10) -> PomodoroService {
+        let svc = PomodoroService()
+        let totalSeconds = TimeInterval(totalMinutes * 60)
+        let elapsed = TimeInterval(elapsedMinutes * 60)
+        let now = Date()
+        svc.toDoTask = ToDoTaskDTO(
+            name: taskName,
+            pomodoroTime: totalSeconds,
+            due: now,
+            completed: false
+        )
+        svc.startTime = now.addingTimeInterval(-elapsed)
+        svc.endTime   = now.addingTimeInterval(totalSeconds - elapsed)
+        svc.remainingTime = totalSeconds - elapsed
+        svc.progress  = elapsed / totalSeconds
+        svc.isActive  = true
+        return svc
+    }
+#endif
+
     // MARK: Public Functions
     
     @MainActor
@@ -141,7 +171,7 @@ import XCGLogger
         clearPersistedState()
 
         // Record the completed session for the history list
-        recordCompletedSession(taskName: sessionTaskName, startTime: sessionStart, endTime: sessionEnd)
+        recordCompletedSession(taskName: sessionTaskName, taskUUID: toDoTask?.uuid, startTime: sessionStart, endTime: sessionEnd)
 
         // Post a single completion notification
         NotificationCenter.default.post(name: .pomodoroCompleted, object: nil)
@@ -378,12 +408,21 @@ import XCGLogger
 
     // MARK: - Session History
 
+    /// Marks the session with the given id as having its mood logged, then persists.
+    @MainActor
+    func markMoodLogged(for sessionID: UUID) {
+        guard let index = recentSessions.firstIndex(where: { $0.id == sessionID }) else { return }
+        recentSessions[index].moodLogged = true
+        saveSessionHistory()
+    }
+
     /// Appends a newly completed session and persists the updated list.
     @MainActor
-    func recordCompletedSession(taskName: String, startTime: Date, endTime: Date) {
+    func recordCompletedSession(taskName: String, taskUUID: UUID?, startTime: Date, endTime: Date) {
         let session = CompletedSession(
             id: UUID(),
             taskName: taskName,
+            taskUUID: taskUUID,
             startTime: startTime,
             endTime: endTime
         )

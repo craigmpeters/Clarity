@@ -331,6 +331,18 @@ actor ClarityModelActor {
         try? deduplicateTasksByUUID()
     }
     
+    /// Records the mood valence on the most recently completed task with the given UUID.
+    func recordMood(valence: Double, taskUUID: UUID) throws {
+        let uuid: UUID? = taskUUID
+        let descriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate { $0.uuid == uuid && $0.completed },
+            sortBy: [SortDescriptor(\.completedAt, order: .reverse)]
+        )
+        guard let task = try modelContext.fetch(descriptor).first else { return }
+        task.completionMoodValence = valence
+        try modelContext.save()
+    }
+
     func fetchLastCompletedAt(uuid: UUID) throws -> Date? {
         let taskUuid: UUID? = uuid
         let descriptor = FetchDescriptor<ToDoTask>(

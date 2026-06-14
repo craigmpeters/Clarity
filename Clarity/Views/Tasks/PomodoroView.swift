@@ -29,10 +29,14 @@ private let moodOptions: [MoodOption] = [
 
 struct PomodoroView: View {
     @Environment(\.modelContext) private var context
-    @StateObject private var service: PomodoroService = .shared
+    @StateObject private var service: PomodoroService
     @EnvironmentObject var appState: AppState
 
-    // Mood sheet state — set when a session finishes
+    init(previewService: PomodoroService? = nil) {
+        _service = StateObject(wrappedValue: previewService ?? .shared)
+    }
+
+    // Mood sheet state — set when a session finishes or when the user taps the row button
     @State private var pendingMoodSession: PomodoroService.CompletedSession? = nil
     @State private var showingMoodSheet = false
 
@@ -47,7 +51,10 @@ struct PomodoroView: View {
                     }
 
                     if !service.recentSessions.isEmpty {
-                        RecentSessionsList(sessions: service.recentSessions)
+                        RecentSessionsList(sessions: service.recentSessions) { session in
+                            pendingMoodSession = session
+                            showingMoodSheet = true
+                        }
                     }
                 }
                 .padding()
@@ -57,9 +64,17 @@ struct PomodoroView: View {
         }
         .sheet(isPresented: $showingMoodSheet) {
             if let session = pendingMoodSession {
-                MoodPickerSheet(session: session) {
+                MoodPickerSheet(session: session, onDismiss: {
                     pendingMoodSession = nil
-                }
+                }, onMoodSaved: { valence in
+                    service.markMoodLogged(for: session.id)
+                    if let taskUUID = session.taskUUID {
+                        let store = ClarityModelActor(modelContainer: context.container)
+                        Task {
+                            try? await store.recordMood(valence: valence, taskUUID: taskUUID)
+                        }
+                    }
+                })
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .pomodoroCompleted)) { _ in
@@ -163,6 +178,7 @@ private struct IdleCard: View {
 
 private struct RecentSessionsList: View {
     let sessions: [PomodoroService.CompletedSession]
+    let onLogMood: (PomodoroService.CompletedSession) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -172,7 +188,7 @@ private struct RecentSessionsList: View {
 
             VStack(spacing: 0) {
                 ForEach(sessions) { session in
-                    SessionRow(session: session)
+                    SessionRow(session: session, onLogMood: onLogMood)
                     if session.id != sessions.last?.id {
                         Divider().padding(.leading)
                     }
@@ -186,6 +202,7 @@ private struct RecentSessionsList: View {
 
 private struct SessionRow: View {
     let session: PomodoroService.CompletedSession
+    let onLogMood: (PomodoroService.CompletedSession) -> Void
 
     private var duration: String {
         let secs = Int(session.endTime.timeIntervalSince(session.startTime))
@@ -212,6 +229,17 @@ private struct SessionRow: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
+            if !session.moodLogged {
+                Button {
+                    onLogMood(session)
+                } label: {
+                    Image(systemName: "brain.head.profile")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 4)
+            }
             Text(timeAgo)
                 .font(.caption)
                 .foregroundStyle(.tertiary)
@@ -226,6 +254,7 @@ private struct SessionRow: View {
 struct MoodPickerSheet: View {
     let session: PomodoroService.CompletedSession
     let onDismiss: () -> Void
+    var onMoodSaved: ((Double) -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var selectedMood: MoodOption? = nil
@@ -255,9 +284,10 @@ struct MoodPickerSheet: View {
                     ForEach(moodOptions) { mood in
                         MoodButton(
                             mood: mood,
-                            isSelected: selectedMood?.id == mood.id
+                            isSelected: selectedMood?.id == mood.id,
+                            isSaving: isSaving
                         ) {
-                            selectedMood = mood
+                            selectMood(mood)
                         }
                     }
                 }
@@ -265,37 +295,12 @@ struct MoodPickerSheet: View {
 
                 Spacer()
 
-                VStack(spacing: 12) {
-                    if UserDefaults.healthKitEnabled {
-                        Button {
-                            saveAndDismiss()
-                        } label: {
-                            HStack(spacing: 8) {
-                                if isSaving {
-                                    ProgressView()
-                                        .tint(.white)
-                                } else {
-                                    Image(systemName: "heart.fill")
-                                    Text("Save to Health")
-                                }
-                            }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(selectedMood != nil ? Color.accentColor : Color.secondary.opacity(0.3))
-                            .foregroundStyle(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 25))
-                        }
-                        .disabled(selectedMood == nil || isSaving)
-                    }
-
-                    Button("Skip") {
-                        onDismiss()
-                        dismiss()
-                    }
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                Button("Skip") {
+                    onDismiss()
+                    dismiss()
                 }
-                .padding(.horizontal)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
                 .padding(.bottom)
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -312,17 +317,24 @@ struct MoodPickerSheet: View {
         .presentationDragIndicator(.visible)
     }
 
-    private func saveAndDismiss() {
-        guard let mood = selectedMood else { return }
-        isSaving = true
-        Task {
-            await HealthKitService.shared.logStateOfMind(
-                label: mood.label,
-                valence: mood.valence,
-                date: session.endTime,
-                taskName: session.taskName
-            )
-            isSaving = false
+    private func selectMood(_ mood: MoodOption) {
+        guard !isSaving else { return }
+        selectedMood = mood
+        if UserDefaults.healthKitEnabled {
+            isSaving = true
+            Task {
+                await HealthKitService.shared.logStateOfMind(
+                    label: mood.label,
+                    valence: mood.valence,
+                    date: session.endTime,
+                    taskName: session.taskName
+                )
+                isSaving = false
+                onMoodSaved?(mood.valence)
+                onDismiss()
+                dismiss()
+            }
+        } else {
             onDismiss()
             dismiss()
         }
@@ -332,13 +344,21 @@ struct MoodPickerSheet: View {
 private struct MoodButton: View {
     let mood: MoodOption
     let isSelected: Bool
+    var isSaving: Bool = false
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             VStack(spacing: 6) {
-                Text(mood.emoji)
-                    .font(.system(size: 32))
+                ZStack {
+                    Text(mood.emoji)
+                        .font(.system(size: 32))
+                        .opacity(isSelected && isSaving ? 0 : 1)
+                    if isSelected && isSaving {
+                        ProgressView()
+                            .frame(width: 32, height: 32)
+                    }
+                }
                 Text(mood.title)
                     .font(.caption)
                     .fontWeight(isSelected ? .semibold : .regular)
@@ -354,15 +374,38 @@ private struct MoodButton: View {
             )
         }
         .buttonStyle(.plain)
+        .disabled(isSaving)
     }
 }
 
 // MARK: - Preview
 
 #if DEBUG
-#Preview {
+#Preview("Idle") {
     PomodoroView()
         .modelContainer(PreviewData.shared.previewContainer)
         .environmentObject(AppState())
+}
+
+#Preview("Active Timer") {
+    let service = PomodoroService.makePreview(
+        taskName: "SwiftUI documentation reading",
+        totalMinutes: 25,
+        elapsedMinutes: 10
+    )
+    PomodoroView(previewService: service)
+        .modelContainer(PreviewData.shared.previewContainer)
+        .environmentObject(AppState())
+}
+
+#Preview("Mood Picker") {
+    let session = PomodoroService.CompletedSession(
+        id: UUID(),
+        taskName: "SwiftUI documentation reading",
+        taskUUID: nil,
+        startTime: Date().addingTimeInterval(-25 * 60),
+        endTime: Date()
+    )
+    MoodPickerSheet(session: session) {}
 }
 #endif
