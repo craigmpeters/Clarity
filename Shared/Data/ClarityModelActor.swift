@@ -444,34 +444,16 @@ actor ClarityModelActor {
     }
     
     func fetchWeeklyProgress() throws -> WeeklyProgress {
-        let globalDescriptor = FetchDescriptor<GlobalTargetSettings>()
-        let globalSettings = try modelContext.fetch(globalDescriptor).first
-        let globalTarget = globalSettings?.weeklyGlobalTarget ?? 0
-        
-        // Get current week start (Monday)
-        let calendar = Calendar.current
-        let now = Date()
-        var components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
-        
-        // TODO: Have the start day configurable
-        components.weekday = 2 // Monday
-        let weekStart = calendar.date(from: components) ?? now
-        
-        let taskDescriptor = FetchDescriptor<ToDoTask>(
-            predicate: #Predicate {
-                $0.completedAt != nil &&
-                    $0.completedAt! > weekStart
-            }
-        )
-        let tasks = try modelContext.fetch(taskDescriptor)
-        
-        let completedCount = tasks.count
+        let globalTarget = (try? modelContext.fetch(FetchDescriptor<GlobalTargetSettings>()))?.first?.weeklyGlobalTarget ?? 0
+        let categories = (try? modelContext.fetch(FetchDescriptor<Category>()))?.map(CategoryDTO.init(from:)) ?? []
+        let completedDTOs = (try? modelContext.fetch(
+            FetchDescriptor<ToDoTask>(predicate: #Predicate { $0.completed })
+        ))?.map(ToDoTaskDTO.init(from:)) ?? []
 
-        return WeeklyProgress(
-            completed: completedCount,
-            target: globalTarget,
-            error: "",
-            categories: []
+        return StatisticsCalculator.weeklyProgress(
+            completedTasks: completedDTOs,
+            categories: categories,
+            globalTarget: globalTarget
         )
     }
     

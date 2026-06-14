@@ -96,29 +96,19 @@ enum ClarityServices {
             let container = try sharedContainer()
             let ctx = ModelContext(container)
 
-            let global = try ctx.fetch(FetchDescriptor<GlobalTargetSettings>()).first
-            let target = global?.weeklyGlobalTarget ?? 0
+            let globalTarget = (try? ctx.fetch(FetchDescriptor<GlobalTargetSettings>()))?.first?.weeklyGlobalTarget ?? 0
+            let categories = (try? ctx.fetch(FetchDescriptor<Category>()))?.map(CategoryDTO.init(from:)) ?? []
+            let completedDTOs = (try? ctx.fetch(
+                FetchDescriptor<ToDoTask>(predicate: #Predicate { $0.completed })
+            ))?.map(ToDoTaskDTO.init(from:)) ?? []
 
-            let cal = Calendar.current
-            let now = Date()
-            var comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
-            comps.weekday = 2 // Monday
-            let weekStart = cal.date(from: comps) ?? now
-
-            let taskDescriptor = FetchDescriptor<ToDoTask>(
-                predicate: #Predicate { task in
-                    if let completed = task.completedAt {
-                        return completed > weekStart
-                    } else {
-                        return false
-                    }
-                }
+            let progress = StatisticsCalculator.weeklyProgress(
+                completedTasks: completedDTOs,
+                categories: categories,
+                globalTarget: globalTarget
             )
-            let count = try ctx.fetch(taskDescriptor).count
-            let progress = WeeklyProgress(completed: count, target: target, error: "", categories: [])
-            
-            try? WidgetFileCoordinator.shared.writeWeeklyProgress(progress)
 
+            try? WidgetFileCoordinator.shared.writeWeeklyProgress(progress)
             return progress
         } catch {
             print(error.localizedDescription)
