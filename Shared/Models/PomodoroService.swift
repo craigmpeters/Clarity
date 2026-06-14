@@ -54,7 +54,18 @@ import XCGLogger
         return 1.0 - (remainingTime / total)
     }
     
+    /// A single completed Pomodoro session, stored for display in the history list.
+    struct CompletedSession: Codable, Identifiable {
+        let id: UUID
+        let taskName: String
+        let startTime: Date
+        let endTime: Date   // actual end (may be early)
+    }
+
+    @Published var recentSessions: [CompletedSession] = []
+
     private let pomodoroPersistKey = "activePomodoroState"
+    private let sessionHistoryKey = "completedPomodoroSessions"
     private let appGroupID = "group.me.craigpeters.clarity"
     
     private struct PersistedPomodoro: Codable {
@@ -112,6 +123,11 @@ import XCGLogger
             return
         }
 
+        // Capture session details before clearing state
+        let sessionTaskName = toDoTask?.name ?? "Unknown Task"
+        let sessionStart = startTime ?? Date()
+        let sessionEnd = Date()
+
         // Mark inactive and clean up timer/activity/notification
         isActive = false
 
@@ -123,7 +139,10 @@ import XCGLogger
         stopLiveActivity()
         cancelNotification()
         clearPersistedState()
-        
+
+        // Record the completed session for the history list
+        recordCompletedSession(taskName: sessionTaskName, startTime: sessionStart, endTime: sessionEnd)
+
         // Post a single completion notification
         NotificationCenter.default.post(name: .pomodoroCompleted, object: nil)
         if startedDevice == .watchOS {
@@ -139,6 +158,7 @@ import XCGLogger
     
     @MainActor
     func restoreIfNeeded(container: ModelContainer, device: DeviceType) async {
+        loadSessionHistory()
         guard let data = appGroupDefaults()?.data(forKey: pomodoroPersistKey) else {
             LogManager.shared.log.debug("No Pomodoro state to restore")
             return
@@ -151,10 +171,11 @@ import XCGLogger
                 let store = ClarityModelActor(modelContainer: container)
                 let lastCompleted = await store.fetchLastCompletedTask()
                 if let uuid = persisted.taskUUID {
-                    if lastCompleted?.uuid == uuid && (lastCompleted?.completedAt)! > persisted.startTime {
+                    let alreadyCompleted = lastCompleted?.uuid == uuid
+                        && (lastCompleted?.completedAt ?? .distantPast) > persisted.startTime
+                    if alreadyCompleted {
                         LogManager.shared.log.debug("Task already completed")
                     } else {
-                        //TODO: This could be an issue
                         LogManager.shared.log.debug("Completing task after restoring UUID: \(uuid.uuidString)")
                         try await store.completeTask(uuid)
                     }
@@ -353,6 +374,42 @@ import XCGLogger
     private func clearPersistedState() {
         appGroupDefaults()?.removeObject(forKey: pomodoroPersistKey)
         LogManager.shared.log.debug("Cleared persisted pomodoro")
+    }
+
+    // MARK: - Session History
+
+    /// Appends a newly completed session and persists the updated list.
+    @MainActor
+    func recordCompletedSession(taskName: String, startTime: Date, endTime: Date) {
+        let session = CompletedSession(
+            id: UUID(),
+            taskName: taskName,
+            startTime: startTime,
+            endTime: endTime
+        )
+        recentSessions.insert(session, at: 0)
+        pruneOldSessions()
+        saveSessionHistory()
+    }
+
+    /// Loads the session history from app-group storage, pruning entries older than 12 hours.
+    @MainActor
+    func loadSessionHistory() {
+        guard let data = appGroupDefaults()?.data(forKey: sessionHistoryKey),
+              let sessions = try? JSONDecoder().decode([CompletedSession].self, from: data)
+        else { return }
+        let cutoff = Date().addingTimeInterval(-12 * 3600)
+        recentSessions = sessions.filter { $0.endTime >= cutoff }
+    }
+
+    private func pruneOldSessions() {
+        let cutoff = Date().addingTimeInterval(-12 * 3600)
+        recentSessions = recentSessions.filter { $0.endTime >= cutoff }
+    }
+
+    private func saveSessionHistory() {
+        guard let data = try? JSONEncoder().encode(recentSessions) else { return }
+        appGroupDefaults()?.set(data, forKey: sessionHistoryKey)
     }
 
 }

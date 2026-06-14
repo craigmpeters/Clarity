@@ -8,7 +8,6 @@ struct TaskIndexView: View {
     @Environment(\.modelContext) private var context
     
     @Binding var selectedTask: ToDoTaskDTO?
-    @Binding var showingPomodoro: Bool
     
     @State private var showingTaskForm = false
     @State private var taskToEdit: ToDoTaskDTO?
@@ -198,11 +197,9 @@ struct TaskIndexView: View {
 
 #if DEBUG
 #Preview {
-    @Previewable @State var showingPomodoro = false
     @Previewable @State var selectedTask: ToDoTaskDTO? = nil
     TaskIndexView(
-        selectedTask: .constant(selectedTask),
-        showingPomodoro: .constant(showingPomodoro)
+        selectedTask: .constant(selectedTask)
     )
     .modelContainer(PreviewData.shared.previewContainer)
 }

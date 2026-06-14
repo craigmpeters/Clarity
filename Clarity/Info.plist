@@ -27,6 +27,10 @@
 	<string>$(LOG_VIEWER_ENABLED)</string>
 	<key>NSFoundationModelsUsageDescription</key>
 	<string>This app uses AI to help split complex tasks into manageable subtasks.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Clarity reads your state of mind logs to show how completing tasks affected your mood.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Clarity logs how completing a Pomodoro session made you feel so you can track your emotional wellbeing over time.</string>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>IntentIntent</string>
