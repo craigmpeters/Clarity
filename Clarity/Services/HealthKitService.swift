@@ -42,21 +42,27 @@ final class HealthKitService {
     ///   - label: The emotion label selected by the user.
     ///   - valence: Score from -1.0 (very negative) to +1.0 (very positive).
     ///   - date: When the Pomodoro ended (defaults to now).
-    func logStateOfMind(label: HKStateOfMind.Label, valence: Double, date: Date = Date()) async {
+    ///   - taskName: The name of the task associated with this Pomodoro session.
+    func logStateOfMind(label: HKStateOfMind.Label, valence: Double, date: Date = Date(), taskName: String? = nil) async {
         guard isAvailable, isAuthorized else {
             LogManager.shared.log.debug("HealthKit not available or not authorized — skipping state-of-mind log")
             return
+        }
+        var metadata: [String: Any] = [:]
+        if let taskName, !taskName.isEmpty {
+            metadata["ClarityTaskName"] = taskName
         }
         let sample = HKStateOfMind(
             date: date,
             kind: .momentaryEmotion,
             valence: valence,
             labels: [label],
-            associations: [.tasks]
+            associations: [.tasks],
+            metadata: metadata.isEmpty ? nil : metadata
         )
         do {
             try await store.save(sample)
-            LogManager.shared.log.debug("Saved HKStateOfMind sample: \(label) valence=\(valence)")
+            LogManager.shared.log.debug("Saved HKStateOfMind sample: \(label) valence=\(valence) task=\(taskName ?? "none")")
         } catch {
             LogManager.shared.log.error("Failed to save HKStateOfMind: \(error.localizedDescription)")
         }

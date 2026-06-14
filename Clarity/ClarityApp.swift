@@ -18,6 +18,7 @@ import Combine
 final class AppState: ObservableObject {
     @Published var showingPomodoro: Bool = false
     @Published var pomodoroUuid: UUID?
+    @Published var selectedTab: Int = 0
 }
 
 @main
@@ -169,6 +170,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency UNUserNotifi
             .sink { [weak self] _ in
                 DispatchQueue.main.async {
                     self?.appState?.showingPomodoro = true
+                    self?.appState?.selectedTab = 1
                     print("⏰ Pomodoro Started - iOS AppDelegate")
                 }
             }

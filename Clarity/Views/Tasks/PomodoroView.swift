@@ -319,7 +319,8 @@ struct MoodPickerSheet: View {
             await HealthKitService.shared.logStateOfMind(
                 label: mood.label,
                 valence: mood.valence,
-                date: session.endTime
+                date: session.endTime,
+                taskName: session.taskName
             )
             isSaving = false
             onDismiss()

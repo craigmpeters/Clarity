@@ -137,12 +137,13 @@ struct TaskIndexView: View {
     }
     
     private func startTimer(for task: ToDoTaskDTO) {
+        guard !PomodoroService.shared.isActive else {
+            LogManager.shared.log.debug("Pomodoro already active, ignoring start request for \(task.name)")
+            return
+        }
         LogManager.shared.log.debug("Starting Pomodoro for \(task.name)")
         selectedTask = task
-        withAnimation(.easeInOut(duration: 0.3)) {
-            // showingPomodoro = true
-            PomodoroService.shared.startPomodoro(for: task, container: context.container, device: .iPhone)
-        }
+        PomodoroService.shared.startPomodoro(for: task, container: context.container, device: .iPhone)
     }
     
     private func requestNotificationPermission() async {

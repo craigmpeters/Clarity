@@ -5,13 +5,14 @@ import SwiftUI
 struct ContentView: View {
     @Environment(\.modelContext) private var context
     @EnvironmentObject var appState: AppState
+    @StateObject private var pomodoroService: PomodoroService = .shared
     @State private var selectedTask: ToDoTaskDTO? = nil
     @State private var showingFirstRun = !UserDefaults.hasCompletedOnboarding
 
     @State private var store: ClarityModelActor? = nil
 
     var body: some View {
-        TabView {
+        TabView(selection: $appState.selectedTab) {
             NavigationStack {
                 TaskIndexView(
                     selectedTask: $selectedTask
@@ -22,12 +23,15 @@ struct ContentView: View {
                 Image(systemName: "list.bullet")
                 Text("Tasks")
             }
+            .tag(0)
 
             PomodoroView()
                 .tabItem {
                     Image(systemName: "timer")
                     Text("Focus")
                 }
+                .tag(1)
+                .badge(pomodoroService.isActive ? 1 : 0)
 
             NavigationStack {
                 StatsView()
@@ -37,6 +41,7 @@ struct ContentView: View {
                 Image(systemName: "chart.bar")
                 Text("Stats")
             }
+            .tag(2)
 
             NavigationStack {
                 SettingsView()
@@ -46,6 +51,7 @@ struct ContentView: View {
                 Image(systemName: "gear")
                 Text("Settings")
             }
+            .tag(3)
         }
         .sheet(isPresented: $showingFirstRun) {
             FirstRunView()
