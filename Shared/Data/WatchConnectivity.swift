@@ -8,764 +8,75 @@
 import Foundation
 import WatchConnectivity
 import Combine
-import SwiftData
-import os
 import XCGLogger
 
-@MainActor
-final class ClarityWatchConnectivity: NSObject, @MainActor WCSessionDelegate, ObservableObject {
-    static let shared = ClarityWatchConnectivity()
-    private let session = WCSession.default
-    private let jsonEncoder = JSONEncoder()
-    private let jsonDecoder = JSONDecoder()
+// MARK: - Message Keys
 
-    @Published private(set) var lastSnapshot: WatchUserInfo = .init(tasks: [], progress: .init(completed: 0, target: 0, error: nil, categories: []))
-    #if os(watchOS)
-    @Published var activePomodoro: PomodoroDTO?
-    func dismissPomodoro() { activePomodoro = nil }
-    #endif
+public enum WCKeys: Sendable {
+    public static nonisolated let request = "request"
+    public static nonisolated let payload = "payload"
 
-    /// Hash of the last data sent via transferCurrentComplicationUserInfo, to avoid redundant transfers.
-    private var lastComplicationHash: Int = 0
-    /// Debounce task for pushSnapshot to coalesce rapid successive calls.
-    private var snapshotDebounceTask: Task<Void, Never>?
-
-    func start() {
-        guard WCSession.isSupported() else { return }
-        session.delegate = self
-        #if os(iOS)
-        LogManager.shared.log.verbose("[iOS] ⌚️ Creating Watch Session")
-        #elseif os(watchOS)
-        LogManager.shared.log.verbose("[watchOS] ⌚️ Creating Watch Session")
-        #else
-        LogManager.shared.log.verbose("⌚️ Creating Watch Session")
-        #endif
-        session.activate()
-        #if os(iOS)
-        // Initial state diagnostics for iOS
-        LogManager.shared.log.verbose("[iOS] ⌚️ isPaired=\(self.session.isPaired) isWatchAppInstalled=\(self.session.isWatchAppInstalled) isReachable=\(self.session.isReachable)")
-        #endif
-    }
-
-    // MARK: - Requests (phone<->watch both implement these)
-
-    func requestListAll(preferReliable: Bool = false, reply: @escaping (Result<WatchUserInfo, Error>) -> Void) {
-        LogManager.shared.log.verbose("⌚️ Requesting Watch Data (preferReliable=\(preferReliable))")
-        let msg: [String: Any] = [WCKeys.request: WCKeys.Requests.listAll]
-
-        // If session isn't activated, just queue reliable and return snapshot
-        guard self.session.activationState == .activated else {
-            LogManager.shared.log.verbose("⌚️ Session not activated; queue reliable listAll and return snapshot")
-            self.enqueueRequest(.init(kind: WCKeys.Requests.listAll))
-            reply(.success(self.lastSnapshot))
-            return
-        }
-
-        // Caller prefers reliable, but we'll still attempt immediate when reachable and fall back to reliable
-        if preferReliable {
-            LogManager.shared.log.verbose("⌚️ preferReliable=true but reachable path will be attempted; will fall back to reliable on timeout/failure")
-        }
-
-        // Reachable path with extended timeout and reliable fallback
-        if self.session.isReachable {
-            // Setup a timeout work item to fall back to reliable
-            let timeoutSeconds: TimeInterval = 6.0
-            var completed = false
-            let timeout = DispatchWorkItem { [weak self] in
-                guard let self = self, !completed else { return }
-                completed = true
-                LogManager.shared.log.verbose("⌚️ Immediate listAll timed out after \(timeoutSeconds)s → queue reliable and return snapshot")
-                self.enqueueRequest(.init(kind: WCKeys.Requests.listAll))
-                reply(.success(self.lastSnapshot))
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + timeoutSeconds, execute: timeout)
-
-            self.session.sendMessage(msg, replyHandler: { dict in
-                guard !completed else { return }
-                do {
-                    if let data = dict[WCKeys.payload] as? Data {
-                        let env = try self.jsonDecoder.decode(Envelope.self, from: data)
-                        completed = true
-                        timeout.cancel()
-                        // Hop to main before mutating @Published property and calling @MainActor methods
-                        DispatchQueue.main.async {
-                            if let todos = env.todos {
-                                self.lastSnapshot.tasks = todos
-                                self.pushSnapshot()
-                            }
-                            reply(.success(self.lastSnapshot))
-                        }
-                    } else {
-                        completed = true
-                        timeout.cancel()
-                        LogManager.shared.log.verbose("⚠️ Immediate listAll missing payload; queue reliable and return snapshot")
-                        DispatchQueue.main.async {
-                            self.enqueueRequest(.init(kind: WCKeys.Requests.listAll))
-                            reply(.success(self.lastSnapshot))
-                        }
-                    }
-                } catch {
-                    // If decode fails, queue reliable request and fall back to snapshot
-                    completed = true
-                    timeout.cancel()
-                    LogManager.shared.log.verbose("⚠️ Immediate listAll decode failed, queued reliable fallback: \(error)")
-                    DispatchQueue.main.async {
-                        self.enqueueRequest(.init(kind: WCKeys.Requests.listAll))
-                        reply(.success(self.lastSnapshot))
-                    }
-                }
-            }, errorHandler: { error in
-                guard !completed else { return }
-                completed = true
-                timeout.cancel()
-                LogManager.shared.log.verbose("⌚️ sendMessage failed, queued listAll via transferUserInfo: \(error)")
-                DispatchQueue.main.async {
-                    self.enqueueRequest(.init(kind: WCKeys.Requests.listAll))
-                    reply(.success(self.lastSnapshot))
-                }
-            })
-        } else {
-            LogManager.shared.log.verbose("⌚️ Session not reachable; queue reliable listAll and return snapshot")
-            // Queue a reliable request so counterpart can respond later
-            self.enqueueRequest(.init(kind: WCKeys.Requests.listAll))
-            // Fallback to cached snapshot
-            reply(.success(self.lastSnapshot))
-        }
-    }
-
-    /// Try to send immediately if reachable; fall back to reliable transfer if not or on failure.
-    private func sendImmediateOrReliable(_ env: Envelope) {
-        guard self.session.activationState == .activated else {
-            LogManager.shared.log.verbose("⌚️ sendImmediateOrReliable aborted: session not activated; falling back to queue")
-            self.enqueueRequest(env)
-            return
-        }
-        guard let data = try? self.jsonEncoder.encode(env) else {
-            LogManager.shared.log.verbose("⌚️ sendImmediateOrReliable aborted: encode failed for \(env.kind)")
-            return
-        }
-
-        let message: [String: Any] = [WCKeys.request: env.kind, WCKeys.payload: data]
-
-        if self.session.isReachable {
-            LogManager.shared.log.verbose("⌚️ Attempting immediate send(kind:\(env.kind)) …")
-            self.session.sendMessage(message, replyHandler: { reply in
-                #if DEBUG
-                if JSONSerialization.isValidJSONObject(reply),
-                   let data = try? JSONSerialization.data(withJSONObject: reply, options: [.prettyPrinted]),
-                   let json = String(data: data, encoding: .utf8) {
-                    LogManager.shared.log.verbose("📬 Immediate reply for \(env.kind):\n\(json)")
-                } else {
-                    LogManager.shared.log.verbose("📬 Immediate reply for \(env.kind): \(reply)")
-                }
-                #endif
-            }, errorHandler: { error in
-                LogManager.shared.log.verbose("⚠️ Immediate send(kind:\(env.kind)) failed → falling back to reliable: \(error)")
-                self.session.transferUserInfo([WCKeys.payload: data])
-            })
-        } else {
-            LogManager.shared.log.verbose("⌚️ Not reachable; queueing reliable transfer(kind:\(env.kind))")
-            self.session.transferUserInfo([WCKeys.payload: data])
-        }
-    }
-
-    func sendCreate(_ dto: ToDoTaskDTO) {
-        self.sendImmediateOrReliable(.init(kind: WCKeys.Requests.create, todo: dto))
-    }
-    
-    func sendLogs(_ data: Data) {
-        LogManager.shared.log.debug("Sending Watch Log Data")
-        self.sendImmediateOrReliable(.init(kind: WCKeys.Requests.sendLogs, logs: data))
-    }
-
-    func sendComplete(todotaskid: String) {
-        LogManager.shared.log.verbose("Complete Toggled with ID")
-        self.sendImmediateOrReliable(.init(kind: WCKeys.Requests.complete, todotaskid: todotaskid))
-    }
-    
-    func sendPomodoroStart(todotaskid: String) {
-        self.sendImmediateOrReliable(.init(kind: WCKeys.Requests.startPomodoro, todotaskid: todotaskid))
-    }
-    
-    func sendPomodoroStopped(_ dto: ToDoTaskDTO? = nil) async {
-        guard let task = dto else {
-            self.sendImmediateOrReliable(.init(kind: WCKeys.Requests.pomodoroStopped))
-            return
-        }
-        LogManager.shared.log.info("Stopping Pomodoro for \(task.name) - Completing Task")
-        let uuid = task.uuid
-        do {
-            try await ClarityServices.store().completeTask(uuid)
-        } catch {
-            LogManager.shared.log.error("Cannot Complete Task - \(error.localizedDescription)")
-        }
-        
-        
-        self.sendImmediateOrReliable(.init(kind: WCKeys.Requests.pomodoroStopped))
-    }
-    
-    func sendPomodoroStarted(_ dto: PomodoroDTO) {
-        self.sendImmediateOrReliable(.init(kind: WCKeys.Requests.pomodoroStarted, pomodoro: dto))
-    }
-    
-    // Watch to Phone to stop the Pomodoro
-    func sendPomodoroStop(pomodoro: PomodoroDTO) {
-        self.sendImmediateOrReliable(.init(kind: WCKeys.Requests.stopPomodoro, pomodoro: pomodoro))
-    }
-
-    func sendDelete(id: String) {
-        self.sendImmediateOrReliable(.init(kind: WCKeys.Requests.delete, todotaskid: id))
-    }
-
-    /// Sends a reliable ping over transferUserInfo to test the background/reliable channel.
-    /// Use this when `isReachable` is false or to validate delivery while the counterpart is suspended.
-    func sendReliablePing() {
-        let env = Envelope(kind: "ping")
-        self.enqueueRequest(env)
-    }
-    
-    /// Schedules a snapshot push with a short debounce so rapid successive calls (e.g. complete
-    /// + pomodoroStop firing together) are coalesced into a single transfer.
-    func pushSnapshot() {
-        snapshotDebounceTask?.cancel()
-        snapshotDebounceTask = Task { @MainActor [weak self] in
-            guard let self else { return }
-            try? await Task.sleep(for: .milliseconds(500))
-            guard !Task.isCancelled else { return }
-            self._sendSnapshot()
-        }
-    }
-
-    private func _sendSnapshot() {
-        guard self.session.activationState == .activated else { return }
-        do {
-            // Bundle tasks + weekly progress into a single compressed snapshot.
-            let data = try WidgetFileCoordinator.shared.compressedSnapshot()
-            // Update application context for when the watch app is in the foreground.
-            try self.session.updateApplicationContext([WCKeys.payload: data])
-            // Also transfer via reliable userInfo so the watch widget extension receives
-            // the update even when the watch app is backgrounded or not running.
-            // Use transferCurrentComplicationUserInfo when complications are enabled —
-            // it has higher priority and wakes the extension immediately, but has a
-            // daily budget — only send when the data has actually changed.
-            #if os(iOS)
-            if self.session.isPaired && self.session.isWatchAppInstalled {
-                if self.session.isComplicationEnabled {
-                    let hash = data.hashValue
-                    guard hash != lastComplicationHash else {
-                        LogManager.shared.log.verbose("⌚️ Skipping complication transfer — data unchanged")
-                        return
-                    }
-                    lastComplicationHash = hash
-                    self.session.transferCurrentComplicationUserInfo([WCKeys.Requests.widgetSnapshot: data])
-                } else {
-                    self.session.transferUserInfo([WCKeys.Requests.widgetSnapshot: data])
-                }
-            }
-            #endif
-        } catch {
-            LogManager.shared.log.error("❌ Failed to push snapshot: \(error)")
-        }
-    }
-
-    private func enqueueRequest(_ env: Envelope) {
-        guard self.session.activationState == .activated else {
-            LogManager.shared.log.error("⌚️ enqueueRequest aborted: session not activated"); return
-        }
-        guard let data = try? self.jsonEncoder.encode(env) else {
-            LogManager.shared.log.error("⌚️ enqueueRequest aborted: encode failed for \(env.kind)"); return
-        }
-        LogManager.shared.log.verbose("⌚️ enqueue transferUserInfo(kind:\(env.kind)) queued; reachable=\(self.session.isReachable)")
-        self.session.transferUserInfo([WCKeys.payload: data])
-    }
-
-    private func sendReliable(_ env: Envelope) {
-        guard self.session.activationState == .activated else {
-            LogManager.shared.log.error("⌚️ sendReliable aborted: session not activated"); return
-        }
-        guard let data = try? self.jsonEncoder.encode(env) else {
-            LogManager.shared.log.error("⌚️ sendReliable aborted: encode failed for \(env.kind)"); return
-        }
-        LogManager.shared.log.verbose("⌚️ outstanding transfers (pre-queue): \(self.session.outstandingUserInfoTransfers.count)")
-        #if DEBUG
-        if let jsonString = String(data: data, encoding: .utf8) {
-            LogManager.shared.log.verbose("📮 sendReliable payload JSON:\n\(jsonString)")
-        }
-        #endif
-        LogManager.shared.log.verbose("⌚️ transferUserInfo(kind:\(env.kind)) queued; reachable=\(self.session.isReachable)")
-        self.session.transferUserInfo([WCKeys.payload: data])
-        LogManager.shared.log.verbose("⌚️ outstanding transfers (post-queue): \(self.session.outstandingUserInfoTransfers.count)")
-        LogManager.shared.log.verbose("⌚️ outstanding transfers: \(self.session.outstandingUserInfoTransfers.count)")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-            LogManager.shared.log.verbose("⌚️ outstanding transfers (5s later): \(self.session.outstandingUserInfoTransfers.count)")
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
-            LogManager.shared.log.verbose("⌚️ outstanding transfers (15s later): \(self.session.outstandingUserInfoTransfers.count)")
-        }
-    }
-
-
-    // MARK: - WCSessionDelegate
-
-    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
-        LogManager.shared.log.verbose("⌚️ activationDidCompleteWith state=\(activationState.rawValue) error=\(String(describing: error))")
-        #if os(watchOS)
-        // When the watch session activates, immediately request the latest tasks
-        if activationState == .activated {
-            self.requestListAll(preferReliable: false) { result in
-                switch result {
-                case .success(let todos):
-                    DispatchQueue.main.async {
-                        LogManager.shared.log.verbose("⌚️ Watch pulled \(todos.tasks.count) tasks after activation")
-                        self.lastSnapshot = todos
-                    }
-                case .failure(let err):
-                    LogManager.shared.log.verbose("⚠️ listAll after activation failed: \(err)")
-                }
-            }
-        }
-        #endif
-    }
-
-    #if os(iOS)
-    func sessionDidBecomeInactive(_ session: WCSession) {}
-    func sessionDidDeactivate(_ session: WCSession) {
-        session.activate()
-//        Task { @MainActor in
-//            ClarityWatchConnectivity.shared.pushSnapshot(ClarityWatchConnectivity.getAllTasks())
-//        }
-    }
-    
-    func sessionWatchStateDidChange(_ session: WCSession) {
-        // This fires when pairing status, installed state, or complication enabled changes
-        LogManager.shared.log.verbose("[iOS] ⌚️ sessionWatchStateDidChange → isPaired=\(session.isPaired) isWatchAppInstalled=\(session.isWatchAppInstalled) isComplicationEnabled=\(session.isComplicationEnabled)")
-        LogManager.shared.log.verbose("[iOS] ⌚️ reachable=\(session.isReachable) activationState=\(session.activationState.rawValue)")
-    }
-    #endif
-
-    // Incoming immediate request
-    func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
-        
-        Task { @MainActor in
-            #if DEBUG
-            if JSONSerialization.isValidJSONObject(message),
-               let data = try? JSONSerialization.data(withJSONObject: message, options: [.prettyPrinted]),
-               let jsonString = String(data: data, encoding: .utf8) {
-                LogManager.shared.log.verbose("📥 didReceiveMessage full JSON:\n\(jsonString)")
-            } else {
-                LogManager.shared.log.verbose("📥 didReceiveMessage raw message: \(message)")
-            }
-            #endif
-            
-            let kind = message[WCKeys.request] as? String
-            let result = await Self.process(kind: kind, message: message)
-            let data = try? self.jsonEncoder.encode(result)
-            replyHandler([WCKeys.payload: data as Any])
-        }
-    }
-
-    // Incoming reliable events
-    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any] = [:]) {
-        LogManager.shared.log.verbose("📨 received userInfo raw keys: \(Array(userInfo.keys))")
-
-        // Widget snapshot pushed from iOS — write directly to shared file and reload watch widgets.
-        #if os(watchOS)
-        if let snapshotData = userInfo[WCKeys.Requests.widgetSnapshot] as? Data {
-            LogManager.shared.log.verbose("📦 widgetSnapshot received (\(snapshotData.count) bytes) — writing to shared file")
-            do {
-                let snapshot = try WidgetFileCoordinator.shared.decodeCompressedSnapshot(snapshotData)
-                try WidgetFileCoordinator.shared.writeTasks(snapshot.tasks)
-                try WidgetFileCoordinator.shared.writeWeeklyProgress(snapshot.progress)
-                DispatchQueue.main.async { self.lastSnapshot = snapshot }
-                LogManager.shared.log.verbose("✅ widgetSnapshot applied: \(snapshot.tasks.count) tasks, progress \(snapshot.progress.completed)/\(snapshot.progress.target)")
-            } catch {
-                LogManager.shared.log.error("❌ Failed to apply widgetSnapshot: \(error)")
-            }
-            return
-        }
-        #endif
-
-        if let payloadData = userInfo[WCKeys.payload] as? Data {
-            LogManager.shared.log.verbose("📦 userInfo payload bytes: \(payloadData.count)")
-            if let env = try? self.jsonDecoder.decode(Envelope.self, from: payloadData),
-               let pretty = try? JSONEncoder().encode(env),
-               let json = String(data: pretty, encoding: .utf8) {
-                LogManager.shared.log.verbose("📦 userInfo decoded Envelope JSON:\n\(json)")
-            }
-        }
-        guard let data = userInfo[WCKeys.payload] as? Data else {
-            LogManager.shared.log.error("❌ userInfo missing payload under key \(WCKeys.payload)")
-            return
-        }
-        guard let env = try? self.jsonDecoder.decode(Envelope.self, from: data) else {
-            LogManager.shared.log.error("❌ Failed to decode Envelope from userInfo (\(data.count) bytes)")
-            return
-        }
-        LogManager.shared.log.verbose("📨 …. kind=\(env.kind)")
-        Task {
-            await Self.applyEvent(env)
-            LogManager.shared.log.verbose("✅ Applied event kind=\(env.kind)")
-        } // implemented per-platform
-    }
-
-    // Snapshot push from counterpart
-    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String : Any]) {
-        guard let data = applicationContext[WCKeys.payload] as? Data else { return }
-        do {
-            let snapshot = try WidgetFileCoordinator.shared.decodeCompressedSnapshot(data)
-            DispatchQueue.main.async { self.lastSnapshot = snapshot }
-            // Write to the shared app group file so watch widget extensions can read it,
-            // and reload widget timelines so complications update immediately.
-            #if os(watchOS)
-            try WidgetFileCoordinator.shared.writeTasks(snapshot.tasks)
-            try WidgetFileCoordinator.shared.writeWeeklyProgress(snapshot.progress)
-            #endif
-        }
-        catch {
-            LogManager.shared.log.error("Could not decompress application context: \(error.localizedDescription)")
-            return
-        }
-    }
-}
-// MARK: Processing Responses
-extension ClarityWatchConnectivity {
-    static func process(kind: String?, message: [String: Any]?) async -> Envelope {
-        guard let kind else { return .init(kind: "error") }
-        #if DEBUG
-        LogManager.shared.log.verbose("🧭 process received kind=\(kind)")
-        #endif
-        #if os(iOS)
-        switch kind {
-        case WCKeys.Requests.listAll:
-            return await processWatchListAllRequest(message)
-        case WCKeys.Requests.create: // Not Implimented
-            return Envelope(kind: WCKeys.Requests.complete)
-        case WCKeys.Requests.delete: // Not Implimented
-            return Envelope(kind:WCKeys.Requests.delete)
-        case WCKeys.Requests.complete:
-            return await processWatchCompleteRequest(message)
-        case WCKeys.Requests.startPomodoro:
-            // Pomodoro Started on Watch
-            return await ProcessWatchPomodoroStart(message)
-        case WCKeys.Requests.stopPomodoro:
-            // Pomodoro Stopped on Watch
-            return await ProcessWatchPomodoroStop(message)
-        case WCKeys.Requests.pomodoroStopped:
-            return await ProcessWatchPomodoroStopped(message)
-        case WCKeys.Requests.sendLogs:
-            return await ProcessSendLogs(message)
-        case WCKeys.Requests.widgetData:
-            return await ProcessSendWWatchWidgetData(message)
-        default:
-            LogManager.shared.log.error("Invalid Request Type: \(kind)")
-            return Envelope(kind: "error")
-        }
-        
-        #endif
-        #if os(watchOS)
-        switch kind {
-        case WCKeys.Requests.pomodoroStarted:
-            return await ProcessPhonePomodoroStarted(message)
-        case WCKeys.Requests.pomodoroStopped:
-            return await ProcessPhonePomodoroStopped(message)
-        case WCKeys.Requests.weeklyProgress:
-            return await ProcessPhoneWeeklyProgress(message)
-        default:
-            LogManager.shared.log.verbose("Not proessing request type on watch: \(kind)")
-            return Envelope(kind: "error")
-        }
-        #endif
-
-    }
-
-    static func applyEvent(_ env: Envelope) async {
-        // Wrap the Envelope into a message-like dictionary so we can reuse process(kind:message:)
-        var message: [String: Any] = [WCKeys.request: env.kind]
-        if let data = try? JSONEncoder().encode(env) {
-            message[WCKeys.payload] = data
-        }
-        _ = await process(kind: env.kind, message: message)
-    }
-    
-    // MARK: iOS Process Functions
-    #if os(iOS)
-    
-    
-    
-    private static func getAllTasks() -> [ToDoTaskDTO] {
-        //TODO: Need to add a filter at some point, until then getting all
-        var todos: [ToDoTaskDTO] = []
-        do {
-            todos = try WidgetFileCoordinator.shared.readTasks()
-            todos = ToDoTaskDTO.focusFilter(in: todos)
-        } catch {
-            LogManager.shared.log.error("📱 Could not fetch tasks from WidgetFileCoordinator \(error.localizedDescription)")
-        }
-        return todos
-    }
-    
-    private static func ProcessSendWWatchWidgetData(_ message: [String: Any]?) async -> Envelope {
-        
-        let data = WatchWidgetData(due: 1, completed: 2, progress: 1, target: 3)
-        return Envelope(kind: WCKeys.Requests.widgetData, data: data)
-    }
-    
-    private static func processWatchListAllRequest(_ message: [String: Any]?) async -> Envelope {
-        let todos = getAllTasks()
-        ClarityWatchConnectivity.shared.pushSnapshot()
-        return Envelope(kind: WCKeys.Requests.listAll, todos: todos)
-    }
-    
-    private static func processWatchCompleteRequest(_ message: [String:Any]?) async -> Envelope {
-        if let uuid = decodeMessagetoUUID(message) {
-            do {
-                try await ClarityServices.store().completeTask(uuid)
-            } catch {
-                LogManager.shared.log.error("Could not complete task \(error.localizedDescription)")
-            }
-        } else {
-            LogManager.shared.log.error("Could not decode message to UUID. Failed to complete Task")
-        }
-        ClarityWatchConnectivity.shared.pushSnapshot()
-        return Envelope(kind: WCKeys.Requests.complete)
-    }
-    
-    private static func ProcessWatchPomodoroStart(_ message: [String:Any]?) async -> Envelope {
-        guard let uuid = decodeMessagetoUUID(message) else {
-            LogManager.shared.log.error("📱 ProcessWatchPomodoroStart: could not decode UUID from message")
-            return Envelope(kind: WCKeys.Requests.startPomodoro)
-        }
-
-        // Always write the pending task ID to App Group defaults so ClarityApp picks it up
-        // on next foreground and starts the Live Activity in the foreground process.
-        // Activity.request() is silently ignored when the app is backgrounded.
-        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
-        defaults?.set(uuid.uuidString, forKey: "pendingStartTimerTaskId")
-        LogManager.shared.log.debug("📱 ProcessWatchPomodoroStart: wrote pendingStartTimerTaskId=\(uuid.uuidString)")
-
-        // Fast path: if the app is already active, start immediately.
-        guard let dto = try? WidgetFileCoordinator.shared.readTaskByUuid(uuid) else {
-            LogManager.shared.log.error("📱 ProcessWatchPomodoroStart: task not found — will start on next foreground")
-            return Envelope(kind: WCKeys.Requests.startPomodoro)
-        }
-        do {
-            let store = try await ClarityServices.store()
-            try await PomodoroService.shared.startPomodoro(for: dto, container: store.modelContainer, device: .watchOS)
-            // Clear the pending key since we started successfully inline.
-            defaults?.removeObject(forKey: "pendingStartTimerTaskId")
-            LogManager.shared.log.debug("📱 ProcessWatchPomodoroStart: started inline successfully")
-        } catch {
-            LogManager.shared.log.error("📱 ProcessWatchPomodoroStart: inline start failed (\(error)) — will start on next foreground")
-        }
-        return Envelope(kind: WCKeys.Requests.startPomodoro)
-    }
-    
-    private static func ProcessWatchPomodoroStop(_ message: [String:Any]?) async -> Envelope {
-        guard let dto = decodeMessageToPomodoro(message) else {
-            LogManager.shared.log.error("Error in decoding Pomodoro from message")
-            return Envelope(kind: WCKeys.Requests.stopPomodoro)
-        }
-        LogManager.shared.log.info("Recieved End Pomodoro for Task \(dto.toDoTask.name) ending Pomodoro and Completing Task")
-        //TODO: Replace with intent
-        await PomodoroService.shared.endPomodoro()
-//        let uuid = dto.toDoTask.uuid
-//        do {
-//            try await ClarityServices.store().completeTask(uuid)
-//        } catch {
-//            LogManager.shared.log.error("Error in completing task \(dto.toDoTask.name) error: \(error)")
-//        }
-        ClarityWatchConnectivity.shared.pushSnapshot()
-        return Envelope(kind: WCKeys.Requests.stopPomodoro)
-    }
-    
-    private static func ProcessWatchPomodoroStopped(_ message: [String:Any]?) async -> Envelope {
-        // If a ToDoTaskDTO is provided, attempt to complete the task on iOS
-        guard let dto = decodeMessageToToDoTask(message) else {
-            LogManager.shared.log.error("Error in decoding ToDoTask from message")
-            return Envelope(kind: WCKeys.Requests.pomodoroStopped)
-        }
-        LogManager.shared.log.info("Recieved A Stopped Pomodoro for Task \(dto.name)")
-        
-        let uuid = dto.uuid
-            do {
-                LogManager.shared.log.debug("Completing Task with UUID: \(uuid.uuidString)")
-                try await ClarityServices.store().completeTask(uuid)
-            } catch {
-                LogManager.shared.log.error("Error Completing Task \(dto.name) error: \(error)")
-            }
-        return Envelope(kind: WCKeys.Requests.pomodoroStopped)
-    }
-    
-    private static func ProcessSendLogs(_ message: [String:Any]?) async -> Envelope {
-        
-        guard let data = decodeMessageToData(message) else {
-            LogManager.shared.log.error("Error in decoding Data from message")
-            return Envelope(kind: WCKeys.Requests.sendLogs)
-        }
-    
-        LogManager.shared.log.debug("Recieved a watch log")
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd_HHmmss"
-        let filename = "watch_logs_\(dateFormatter.string(from: Date())).log"
-        do {
-            try WidgetFileCoordinator.shared.writeLogFile(fileName: filename, data: data)
-        } catch {
-            LogManager.shared.log.error("Could not write watch logs: \(error.localizedDescription)")
-        }
-        
-        // Persist a copy with a timestamped filename in the app group for retrieval
-        
-        return Envelope(kind: WCKeys.Requests.sendLogs)
-    }
-    
-    #endif
-    
-    // MARK: WatchOS Process Functions
-    #if os(watchOS)
-    
-    private static func ProcessPhoneWeeklyProgress(_ message: [String:Any]?) async -> Envelope {
-        guard let progress = decodeMessageToWeeklyProgress(message) else {
-            LogManager.shared.log.verbose("Cannot decode Weekly Progress")
-            return Envelope(kind: WCKeys.Requests.weeklyProgress)
-        }
-
-        // Persist to app group so watch widgets can read it
-        try? WidgetFileCoordinator.shared.writeWeeklyProgress(progress)
-
-        // Publish on main actor so the watch app can observe it
-        await MainActor.run {
-            ClarityWatchConnectivity.shared.lastSnapshot.progress = progress
-        }
-
-        LogManager.shared.log.verbose("⌚️ Weekly progress received: \(progress.completed)/\(progress.target)")
-        return Envelope(kind: WCKeys.Requests.weeklyProgress)
-    }
-    
-    private static func ProcessPhonePomodoroStarted(_ message: [String:Any]?) async -> Envelope {
-        guard let dto = decodeMessageToPomodoro(message) else {
-            LogManager.shared.log.verbose("Cannot decode DTO")
-            return Envelope(kind: WCKeys.Requests.pomodoroStarted)
-        }
-        // Ignore already-expired pomodoros so a stale pomodoroStarted event
-        // delivered on launch doesn't briefly flash the sheet before dismissing.
-        if let end = dto.endTime, end <= Date() {
-            LogManager.shared.log.verbose("⌚️ Ignoring expired pomodoroStarted for task: \(dto.toDoTask.name)")
-            return Envelope(kind: WCKeys.Requests.pomodoroStarted)
-        }
-        ClarityWatchConnectivity.shared.activePomodoro = dto
-        LogManager.shared.log.verbose("⌚️ Received pomodoroStarted with DTO for task: \(dto.toDoTask.name)")
-        return Envelope(kind: WCKeys.Requests.pomodoroStarted)
-    }
-    
-    private static func ProcessPhonePomodoroStopped(_ message: [String:Any]?) async -> Envelope {
-        LogManager.shared.log.verbose("⌚️ Dismissing Pomodoro")
-        ClarityWatchConnectivity.shared.activePomodoro = nil
-        
-        // After stopping, request a fresh snapshot from the phone
-        ClarityWatchConnectivity.shared.requestListAll(preferReliable: false) { result in
-            switch result {
-            case .success(let todos):
-                DispatchQueue.main.async {
-                    LogManager.shared.log.verbose("⌚️ Watch requested snapshot after pomodoroStopped: \(todos.tasks.count) tasks")
-                    ClarityWatchConnectivity.shared.lastSnapshot = todos
-                }
-            case .failure(let error):
-                LogManager.shared.log.verbose("⚠️ Watch failed to request snapshot after pomodoroStopped: \(error)")
-            }
-        }
-        return Envelope(kind: WCKeys.Requests.pomodoroStopped)
-    }
-    
-    #endif
-    
-    // MARK: Helper Functions
-    
-    private static func decodeMessageToWeeklyProgress(_ message: [String:Any]?) -> WeeklyProgress? {
-        var progress: WeeklyProgress?
-        if let msg = message, let data = msg[WCKeys.payload] as? Data,
-           let env = try? JSONDecoder().decode(Envelope.self, from: data) {
-            progress = env.weeklyProgress
-        }
-        return progress
-    }
-    
-    private static func decodeMessageToData(_ message: [String:Any]?) -> Data? {
-        var encodedData: Data?
-        if let msg = message, let data = msg[WCKeys.payload] as? Data,
-           let env = try? JSONDecoder().decode(Envelope.self, from: data) {
-            encodedData = env.logs
-        }
-        return encodedData
-    }
-    
-    private static func decodeMessageToToDoTask(_ message: [String:Any]?) -> ToDoTaskDTO? {
-        var encodedDto: ToDoTaskDTO?
-        if let msg = message, let data = msg[WCKeys.payload] as? Data,
-           let env = try? JSONDecoder().decode(Envelope.self, from: data) {
-            encodedDto = env.todo
-        }
-        return encodedDto
-    }
-    
-    private static func decodeMessagetoUUID(_ message: [String:Any]?) -> UUID? {
-        var encodedUuid: UUID?
-        if let msg = message, let data = msg[WCKeys.payload] as? Data,
-           let env = try? JSONDecoder().decode(Envelope.self, from: data) {
-            encodedUuid = UUID(uuidString: env.todotaskid!)
-        }
-        return encodedUuid
-    }
-    
-    private static func decodeMessageToPomodoro(_ message: [String:Any]?) -> PomodoroDTO? {
-        
-        // get PomodoroDTO
-        var encodedDto: PomodoroDTO?
-        if let msg = message, let data = msg[WCKeys.payload] as? Data,
-           let env = try? JSONDecoder().decode(Envelope.self, from: data) {
-            encodedDto = env.pomodoro
-        }
-        return encodedDto
-    }
-    
-}
-
-public enum WCKeys {
-    public static let request = "request"
-    public static let payload = "payload"
-    
-    public enum Requests {
-        public static let listAll = "listAll"
-        public static let complete  = "complete"
-        public static let create  = "create"
-        public static let delete  = "delete"
-        public static let startPomodoro = "startPomodoro"
-        public static let stopPomodoro = "stopPomodoro"
-        public static let pomodoroStarted = "pomodoroStarted"
-        public static let pomodoroStopped = "pomodoroStopped"
-        public static let sendLogs = "sendLogs"
-        public static let widgetData = "widgetData"
-        public static let weeklyProgress = "weeklyProgress"
-        public static let widgetSnapshot = "widgetSnapshot"
+    public enum Requests: Sendable {
+        public static nonisolated let listAll        = "listAll"
+        public static nonisolated let complete       = "complete"
+        public static nonisolated let create         = "create"
+        public static nonisolated let delete         = "delete"
+        public static nonisolated let startPomodoro  = "startPomodoro"
+        public static nonisolated let stopPomodoro   = "stopPomodoro"
+        public static nonisolated let pomodoroStarted = "pomodoroStarted"
+        public static nonisolated let pomodoroStopped = "pomodoroStopped"
+        public static nonisolated let sendLogs       = "sendLogs"
+        public static nonisolated let widgetData     = "widgetData"
+        public static nonisolated let weeklyProgress = "weeklyProgress"
+        public static nonisolated let widgetSnapshot = "widgetSnapshot"
     }
 }
 
-public struct PomodoroDTO: Codable, Sendable {
-    var startTime: Date?
-    var endTime: Date?
-    var toDoTask: ToDoTaskDTO
+// MARK: - Transfer Types
+
+public struct PomodoroDTO: Sendable {
+    public var startTime: Date?
+    public var endTime: Date?
+    public var toDoTask: ToDoTaskDTO
 }
 
-public struct Envelope: Codable, Sendable {
+extension PomodoroDTO: Codable {
+    enum CodingKeys: String, CodingKey { case startTime, endTime, toDoTask }
+    nonisolated public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.startTime = try c.decodeIfPresent(Date.self, forKey: .startTime)
+        self.endTime = try c.decodeIfPresent(Date.self, forKey: .endTime)
+        self.toDoTask = try c.decode(ToDoTaskDTO.self, forKey: .toDoTask)
+    }
+    nonisolated public func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encodeIfPresent(startTime, forKey: .startTime)
+        try c.encodeIfPresent(endTime, forKey: .endTime)
+        try c.encode(toDoTask, forKey: .toDoTask)
+    }
+}
+
+/// Generic envelope used for all watch message payloads.
+public struct Envelope: Sendable {
     public let kind: String
-    public let todos: [ToDoTaskDTO]?       // for list/snapshot
-    public let todo: ToDoTaskDTO?          // for single op
+    public let todos: [ToDoTaskDTO]?
+    public let todo: ToDoTaskDTO?
     public let todotaskid: String?
     public let pomodoro: PomodoroDTO?
     public let logs: Data?
     public let widgetData: WatchWidgetData?
     public let weeklyProgress: WeeklyProgress?
 
-    public init(kind: String, todos: [ToDoTaskDTO]? = nil, todo: ToDoTaskDTO? = nil, todotaskid : String? = nil, pomodoro: PomodoroDTO? = nil, logs: Data? = nil, data: WatchWidgetData? = nil, progress: WeeklyProgress? = nil) {
+    public init(
+        kind: String,
+        todos: [ToDoTaskDTO]? = nil,
+        todo: ToDoTaskDTO? = nil,
+        todotaskid: String? = nil,
+        pomodoro: PomodoroDTO? = nil,
+        logs: Data? = nil,
+        data: WatchWidgetData? = nil,
+        progress: WeeklyProgress? = nil
+    ) {
         self.kind = kind
         self.todos = todos
         self.todo = todo
@@ -777,33 +88,422 @@ public struct Envelope: Codable, Sendable {
     }
 }
 
+extension Envelope: Codable {
+    enum CodingKeys: String, CodingKey {
+        case kind, todos, todo, todotaskid, pomodoro, logs, widgetData, weeklyProgress
+    }
 
-extension ClarityWatchConnectivity {
-    
-    func sessionReachabilityDidChange(_ session: WCSession) {
-        LogManager.shared.log.verbose("⌚️ Reachability changed → \(session.isReachable)")
-        LogManager.shared.log.verbose("⌚️ activationState=\(session.activationState.rawValue)")
+    nonisolated public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.kind = try c.decode(String.self, forKey: .kind)
+        self.todos = try c.decodeIfPresent([ToDoTaskDTO].self, forKey: .todos)
+        self.todo = try c.decodeIfPresent(ToDoTaskDTO.self, forKey: .todo)
+        self.todotaskid = try c.decodeIfPresent(String.self, forKey: .todotaskid)
+        self.pomodoro = try c.decodeIfPresent(PomodoroDTO.self, forKey: .pomodoro)
+        self.logs = try c.decodeIfPresent(Data.self, forKey: .logs)
+        self.widgetData = try c.decodeIfPresent(WatchWidgetData.self, forKey: .widgetData)
+        self.weeklyProgress = try c.decodeIfPresent(WeeklyProgress.self, forKey: .weeklyProgress)
+    }
 
-        // Only pull new data when the phone becomes reachable
-        guard session.isReachable else { return }
+    nonisolated public func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(kind, forKey: .kind)
+        try c.encodeIfPresent(todos, forKey: .todos)
+        try c.encodeIfPresent(todo, forKey: .todo)
+        try c.encodeIfPresent(todotaskid, forKey: .todotaskid)
+        try c.encodeIfPresent(pomodoro, forKey: .pomodoro)
+        try c.encodeIfPresent(logs, forKey: .logs)
+        try c.encodeIfPresent(widgetData, forKey: .widgetData)
+        try c.encodeIfPresent(weeklyProgress, forKey: .weeklyProgress)
+    }
+}
 
-        self.requestListAll(preferReliable: false) { result in
-            if case let .success(todos) = result {
-                DispatchQueue.main.async {
-                    LogManager.shared.log.verbose("⌚️ Watch pulled \(todos.tasks.count) tasks from phone")
-                    self.lastSnapshot = todos
-                }
+// MARK: - Connectivity Service
+
+/// Manages Watch ↔ iPhone communication.
+///
+/// The class is `@MainActor` so that `@Published` properties can be observed
+/// directly by SwiftUI views. All `WCSessionDelegate` callbacks are `nonisolated`
+/// and hop back to the main actor for any state mutations.
+@MainActor
+final class ClarityWatchConnectivity: NSObject, ObservableObject {
+
+    static let shared = ClarityWatchConnectivity()
+
+    // MARK: Published State
+
+    @Published private(set) var lastSnapshot: WatchUserInfo = .init(
+        tasks: [],
+        progress: .init(completed: 0, target: 0, error: nil, categories: [])
+    )
+
+    #if os(watchOS)
+    @Published var activePomodoro: PomodoroDTO?
+    func dismissPomodoro() { activePomodoro = nil }
+    #endif
+
+    // MARK: Private
+
+    private let session = WCSession.default
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
+
+    /// Debounce task for `pushSnapshot` to coalesce rapid calls.
+    private var snapshotDebounceTask: Task<Void, Never>?
+
+    /// Hash of the last data sent via `transferCurrentComplicationUserInfo`.
+    private var lastComplicationHash: Int = 0
+
+    private override init() {
+        super.init()
+    }
+
+    // MARK: - Setup
+
+    func start() {
+        guard WCSession.isSupported() else { return }
+        session.delegate = self
+        session.activate()
+        LogManager.shared.log.verbose("⌚️ WCSession activating")
+    }
+
+    // MARK: - iOS → Watch: Snapshot Push
+
+    /// Pushes the current task/progress snapshot to the watch, debounced 500 ms.
+    func pushSnapshot() {
+        snapshotDebounceTask?.cancel()
+        snapshotDebounceTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled, let self else { return }
+            self._sendSnapshot()
+        }
+    }
+
+    @MainActor
+    private func _sendSnapshot() {
+        guard session.activationState == .activated else { return }
+        do {
+            let data = try WidgetFileCoordinator.shared.compressedSnapshot()
+            try session.updateApplicationContext([WCKeys.payload: data])
+            #if os(iOS)
+            guard session.isPaired, session.isWatchAppInstalled else { return }
+            if session.isComplicationEnabled {
+                let hash = data.hashValue
+                guard hash != lastComplicationHash else { return }
+                lastComplicationHash = hash
+                session.transferCurrentComplicationUserInfo([WCKeys.Requests.widgetSnapshot: data])
             } else {
-                let message: String
-                switch result {
-                case .success(let todos):
-                    message = "success with \(todos.tasks.count) tasks"
-                case .failure(let error):
-                    message = "error: \(error.localizedDescription)"
+                session.transferUserInfo([WCKeys.Requests.widgetSnapshot: data])
+            }
+            #endif
+        } catch {
+            LogManager.shared.log.error("❌ pushSnapshot failed: \(error)")
+        }
+    }
+
+    // MARK: - Watch → iPhone: Commands
+
+    /// Sends a task-complete command. Uses immediate path when reachable, reliable fallback otherwise.
+    func sendComplete(todotaskid: String) {
+        sendReliable(Envelope(kind: WCKeys.Requests.complete, todotaskid: todotaskid))
+    }
+
+    /// Sends a pomodoro-start command.
+    func sendPomodoroStart(todotaskid: String) {
+        sendReliable(Envelope(kind: WCKeys.Requests.startPomodoro, todotaskid: todotaskid))
+    }
+
+    /// Sends log data to the phone.
+    func sendLogs(_ data: Data) {
+        sendReliable(Envelope(kind: WCKeys.Requests.sendLogs, logs: data))
+    }
+
+    /// Notifies the watch that a pomodoro has started (iOS → watch).
+    func sendPomodoroStarted(_ dto: PomodoroDTO) {
+        sendReliable(Envelope(kind: WCKeys.Requests.pomodoroStarted, pomodoro: dto))
+    }
+
+    /// Notifies the watch that the current pomodoro has stopped (iOS → watch).
+    func sendPomodoroStopped(_ task: ToDoTaskDTO? = nil) {
+        sendReliable(Envelope(kind: WCKeys.Requests.pomodoroStopped, todo: task))
+    }
+
+    // MARK: - Watch: Request Fresh List
+
+    /// Requests the full task list from the phone.
+    /// Calls `completion` with the latest snapshot (either live or cached).
+    func requestListAll(preferReliable: Bool = false, completion: @escaping (Result<WatchUserInfo, Error>) -> Void) {
+        guard session.activationState == .activated else {
+            sendReliable(Envelope(kind: WCKeys.Requests.listAll))
+            completion(.success(lastSnapshot))
+            return
+        }
+
+        if !preferReliable, session.isReachable {
+            let msg: [String: Any] = [WCKeys.request: WCKeys.Requests.listAll]
+            session.sendMessage(msg, replyHandler: { [weak self] reply in
+                guard let self else { return }
+                Task { @MainActor in
+                    if let data = reply[WCKeys.payload] as? Data,
+                       let env = try? self.decoder.decode(Envelope.self, from: data),
+                       let todos = env.todos {
+                        self.lastSnapshot.tasks = todos
+                    }
+                    completion(.success(self.lastSnapshot))
                 }
-                LogManager.shared.log.verbose("⌚️ Watch failed to pull list from phone: \(message)")
+            }, errorHandler: { [weak self] _ in
+                guard let self else { return }
+                Task { @MainActor in
+                    self.sendReliable(Envelope(kind: WCKeys.Requests.listAll))
+                    completion(.success(self.lastSnapshot))
+                }
+            })
+        } else {
+            sendReliable(Envelope(kind: WCKeys.Requests.listAll))
+            completion(.success(lastSnapshot))
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func sendReliable(_ envelope: Envelope) {
+        guard session.activationState == .activated,
+              let data = try? encoder.encode(envelope) else { return }
+        session.transferUserInfo([WCKeys.payload: data])
+    }
+}
+
+// MARK: - WCSessionDelegate
+
+extension ClarityWatchConnectivity: WCSessionDelegate {
+
+    nonisolated func session(
+        _ session: WCSession,
+        activationDidCompleteWith activationState: WCSessionActivationState,
+        error: (any Error)?
+    ) {
+        LogManager.shared.log.verbose("⌚️ activationDidCompleteWith state=\(activationState.rawValue)")
+        #if os(watchOS)
+        guard activationState == .activated else { return }
+        Task { @MainActor [weak self] in
+            self?.requestListAll { _ in }
+        }
+        #endif
+    }
+
+    #if os(iOS)
+    nonisolated func sessionDidBecomeInactive(_ session: WCSession) {}
+
+    nonisolated func sessionDidDeactivate(_ session: WCSession) {
+        session.activate()
+    }
+
+    nonisolated func sessionWatchStateDidChange(_ session: WCSession) {
+        LogManager.shared.log.verbose("⌚️ watchStateDidChange isPaired=\(session.isPaired)")
+    }
+    #endif
+
+    nonisolated func sessionReachabilityDidChange(_ session: WCSession) {
+        guard session.isReachable else { return }
+        Task { @MainActor [weak self] in
+            self?.requestListAll { _ in }
+        }
+    }
+
+    /// Handles immediate messages (reachable path).
+    nonisolated func session(
+        _ session: WCSession,
+        didReceiveMessage message: [String: Any],
+        replyHandler: @escaping ([String: Any]) -> Void
+    ) {
+        let envelope = (message[WCKeys.payload] as? Data)
+            .flatMap { try? JSONDecoder().decode(Envelope.self, from: $0) }
+
+        // replyHandler is a non-Sendable Obj-C closure; nonisolated(unsafe) is the accepted
+        // workaround for bridging legacy callbacks that are safe to call from any thread.
+        nonisolated(unsafe) let sendableReply = replyHandler
+
+        Task { @MainActor [weak self] in
+            guard let self, let envelope else { sendableReply([:]); return }
+            let response = await self.process(envelope: envelope)
+            if let data = try? self.encoder.encode(response) {
+                sendableReply([WCKeys.payload: data])
+            } else {
+                sendableReply([:])
             }
         }
     }
+
+    /// Handles reliable background transfers.
+    nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
+        // Extract Data values before crossing into MainActor — [String: Any] is not Sendable.
+        #if os(watchOS)
+        let snapshotData = userInfo[WCKeys.Requests.widgetSnapshot] as? Data
+        #endif
+        let payloadData = userInfo[WCKeys.payload] as? Data
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+
+            #if os(watchOS)
+            if let data = snapshotData {
+                do {
+                    let snapshot = try WidgetFileCoordinator.shared.decodeCompressedSnapshot(data)
+                    try WidgetFileCoordinator.shared.writeTasks(snapshot.tasks)
+                    try WidgetFileCoordinator.shared.writeWeeklyProgress(snapshot.progress)
+                    self.lastSnapshot = snapshot
+                } catch {
+                    LogManager.shared.log.error("❌ Failed to apply widgetSnapshot: \(error)")
+                }
+                return
+            }
+            #endif
+
+            guard let data = payloadData,
+                  let envelope = try? self.decoder.decode(Envelope.self, from: data) else { return }
+            _ = await self.process(envelope: envelope)
+        }
+    }
+
+    /// Handles application context updates (sent via `updateApplicationContext`).
+    nonisolated func session(
+        _ session: WCSession,
+        didReceiveApplicationContext applicationContext: [String: Any]
+    ) {
+        guard let data = applicationContext[WCKeys.payload] as? Data else { return }
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                let snapshot = try WidgetFileCoordinator.shared.decodeCompressedSnapshot(data)
+                self.lastSnapshot = snapshot
+                #if os(watchOS)
+                try WidgetFileCoordinator.shared.writeTasks(snapshot.tasks)
+                try WidgetFileCoordinator.shared.writeWeeklyProgress(snapshot.progress)
+                #endif
+            } catch {
+                LogManager.shared.log.error("❌ Failed to apply applicationContext: \(error)")
+            }
+        }
+    }
+}
+
+// MARK: - Message Processing
+
+extension ClarityWatchConnectivity {
+
+    /// Decodes an envelope from a raw message dict and dispatches it.
+    @MainActor
+    private func process(message: [String: Any]) async -> Envelope {
+        guard let data = message[WCKeys.payload] as? Data,
+              let envelope = try? decoder.decode(Envelope.self, from: data) else {
+            return Envelope(kind: "error")
+        }
+        return await process(envelope: envelope)
+    }
+
+    /// Dispatches a decoded envelope to the appropriate platform handler.
+    @MainActor
+    private func process(envelope: Envelope) async -> Envelope {
+        #if os(iOS)
+        return await processiOS(envelope)
+        #elseif os(watchOS)
+        return processWatchOS(envelope)
+        #else
+        return Envelope(kind: "error")
+        #endif
+    }
+
+    // MARK: iOS Handlers
+
+    #if os(iOS)
+    @MainActor
+    private func processiOS(_ envelope: Envelope) async -> Envelope {
+        switch envelope.kind {
+
+        case WCKeys.Requests.listAll:
+            pushSnapshot()
+            let tasks = (try? WidgetFileCoordinator.shared.readTasks()) ?? []
+            return Envelope(kind: WCKeys.Requests.listAll, todos: tasks)
+
+        case WCKeys.Requests.complete:
+            if let idString = envelope.todotaskid, let uuid = UUID(uuidString: idString) {
+                do {
+                    try await ClarityServices.store().completeTask(uuid)
+                } catch {
+                    LogManager.shared.log.error("⌚️ complete task failed: \(error)")
+                }
+                pushSnapshot()
+            }
+            return Envelope(kind: WCKeys.Requests.complete)
+
+        case WCKeys.Requests.startPomodoro:
+            if let idString = envelope.todotaskid, let uuid = UUID(uuidString: idString) {
+                // Write pending key so the app picks it up when it foregrounds.
+                let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
+                defaults?.set(uuid.uuidString, forKey: "pendingStartTimerTaskId")
+                // Attempt inline start if the app is already active.
+                if let dto = try? WidgetFileCoordinator.shared.readTaskByUuid(uuid) {
+                    do {
+                        let store = try await ClarityServices.store()
+                        PomodoroService.shared.startPomodoro(for: dto, container: store.modelContainer, device: .watchOS)
+                        defaults?.removeObject(forKey: "pendingStartTimerTaskId")
+                    } catch {
+                        LogManager.shared.log.error("⌚️ inline pomodoro start failed: \(error)")
+                    }
+                }
+            }
+            return Envelope(kind: WCKeys.Requests.startPomodoro)
+
+        case WCKeys.Requests.sendLogs:
+            if let logData = envelope.logs {
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyy-MM-dd_HHmmss"
+                let filename = "watch_logs_\(formatter.string(from: Date())).log"
+                try? WidgetFileCoordinator.shared.writeLogFile(fileName: filename, data: logData)
+            }
+            return Envelope(kind: WCKeys.Requests.sendLogs)
+
+        default:
+            LogManager.shared.log.verbose("⌚️ iOS: unhandled kind=\(envelope.kind)")
+            return Envelope(kind: "error")
+        }
+    }
+    #endif
+
+    // MARK: watchOS Handlers
+
+    #if os(watchOS)
+    @MainActor
+    private func processWatchOS(_ envelope: Envelope) -> Envelope {
+        switch envelope.kind {
+
+        case WCKeys.Requests.pomodoroStarted:
+            if let dto = envelope.pomodoro {
+                // Ignore already-expired pomodoros to avoid flashing the sheet on launch.
+                if let end = dto.endTime, end <= Date() { break }
+                activePomodoro = dto
+            }
+            return Envelope(kind: WCKeys.Requests.pomodoroStarted)
+
+        case WCKeys.Requests.pomodoroStopped:
+            activePomodoro = nil
+            requestListAll { _ in }
+            return Envelope(kind: WCKeys.Requests.pomodoroStopped)
+
+        case WCKeys.Requests.weeklyProgress:
+            if let progress = envelope.weeklyProgress {
+                try? WidgetFileCoordinator.shared.writeWeeklyProgress(progress)
+                lastSnapshot.progress = progress
+            }
+            return Envelope(kind: WCKeys.Requests.weeklyProgress)
+
+        default:
+            LogManager.shared.log.verbose("⌚️ watchOS: unhandled kind=\(envelope.kind)")
+            return Envelope(kind: "error")
+        }
+
+        return Envelope(kind: envelope.kind)
+    }
+    #endif
 }
 
