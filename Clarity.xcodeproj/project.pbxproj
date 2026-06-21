@@ -361,6 +361,7 @@
 				Intents/DeleteTaskIntent.swift,
 				Intents/GetTaskIntent.swift,
 				Intents/ListTasksIntent.swift,
+				Intents/LogMoodIntent.swift,
 				Intents/StartPomodoroIntent.swift,
 				Intents/StopPomodoroIntent.swift,
 				Intents/TaskHistoryWidgetIntent.swift,

@@ -62,6 +62,7 @@ import XCGLogger
         let startTime: Date
         let endTime: Date   // actual end (may be early)
         var moodLogged: Bool = false
+        var moodEmoji: String? = nil
     }
 
     @Published var recentSessions: [CompletedSession] = []
@@ -158,6 +159,9 @@ import XCGLogger
         let sessionStart = startTime ?? Date()
         let sessionEnd = Date()
 
+        // Determine if the timer ran out naturally (vs. manual early stop)
+        let completedNaturally = remainingTime <= 0
+
         // Mark inactive and clean up timer/activity/notification
         isActive = false
 
@@ -166,7 +170,7 @@ import XCGLogger
         }
         timer = nil
 
-        stopLiveActivity()
+        stopLiveActivity(naturally: completedNaturally)
         cancelNotification()
         clearPersistedState()
 
@@ -283,7 +287,7 @@ import XCGLogger
         }
     }
     
-    private func stopLiveActivity() {
+    private func stopLiveActivity(naturally: Bool = false) {
         let all = Activity<PomodoroAttributes>.activities
         LogManager.shared.log.debug("Stopping Live Activities. There are \(all.count) Live Activities")
 
@@ -298,12 +302,21 @@ import XCGLogger
                 LogManager.shared.log.debug("Attempting to stop activity with state: \(activity.activityState)")
 
                 do {
-                    await activity.end(
-                        ActivityContent(state: activity.content.state, staleDate: nil),
-                        dismissalPolicy: .immediate
-                    )
+                    if naturally {
+                        // Leave the activity visible (stale) so the user can tap a mood button.
+                        // Use .after to auto-dismiss after 5 minutes if no mood is tapped.
+                        await activity.end(
+                            ActivityContent(state: activity.content.state, staleDate: Date()),
+                            dismissalPolicy: .after(Date().addingTimeInterval(5 * 60))
+                        )
+                    } else {
+                        await activity.end(
+                            ActivityContent(state: activity.content.state, staleDate: nil),
+                            dismissalPolicy: .immediate
+                        )
+                    }
                     endedAny = true
-                    LogManager.shared.log.debug("Stopped Live Activity")
+                    LogManager.shared.log.debug("Stopped Live Activity (naturally: \(naturally))")
                 } catch {
                     LogManager.shared.log.error("Failed to end Live Activity: \(error.localizedDescription)")
                 }
@@ -410,9 +423,10 @@ import XCGLogger
 
     /// Marks the session with the given id as having its mood logged, then persists.
     @MainActor
-    func markMoodLogged(for sessionID: UUID) {
+    func markMoodLogged(for sessionID: UUID, emoji: String) {
         guard let index = recentSessions.firstIndex(where: { $0.id == sessionID }) else { return }
         recentSessions[index].moodLogged = true
+        recentSessions[index].moodEmoji = emoji
         saveSessionHistory()
     }
 

@@ -42,11 +42,15 @@ struct PomodoroLiveActivityWidget: Widget {
                     }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    Button(intent: StopPomodoroIntent()) {
-                        Label("Stop & Complete", systemImage: "stop.fill")
-                            .frame(maxWidth: .infinity)
+                    if context.isStale {
+                        MoodButtonRow()
+                    } else {
+                        Button(intent: StopPomodoroIntent()) {
+                            Label("Stop & Complete", systemImage: "stop.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .tint(.red)
                     }
-                    .tint(.red)
                 }
             } compactLeading: {
                 Image("clarity-teeny")
@@ -128,14 +132,37 @@ struct PomodoroLiveActivityView: View {
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 80, height: 80)
                 }
-                Button(intent: StopPomodoroIntent()) {
-                    Label("Stop", systemImage: "stop.fill")
-                        .frame(maxWidth: .infinity)
+                if context.isStale {
+                    MoodButtonRow()
+                } else {
+                    Button(intent: StopPomodoroIntent()) {
+                        Label("Stop", systemImage: "stop.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .tint(.red)
                 }
-                .tint(.red)
             }
             .padding()
             .background(Color.black.opacity(0.1))
+        }
+    }
+}
+
+// MARK: - Mood button row
+
+private struct MoodButtonRow: View {
+    private let moods: [PomodoroMood] = [.excited, .happy, .calm, .stressed, .discouraged]
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(moods, id: \.rawValue) { mood in
+                Button(intent: LogMoodIntent(mood: mood)) {
+                    Text(mood.emoji)
+                        .font(.title2)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 }

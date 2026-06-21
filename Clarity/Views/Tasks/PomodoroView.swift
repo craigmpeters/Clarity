@@ -15,13 +15,9 @@ private struct MoodOption: Identifiable {
 
 private let moodOptions: [MoodOption] = [
     MoodOption(label: .excited,    emoji: "🤩", title: "Excited",    valence:  0.9),
-    MoodOption(label: .proud,      emoji: "😤", title: "Proud",      valence:  0.8),
     MoodOption(label: .happy,      emoji: "😄", title: "Happy",      valence:  0.7),
-    MoodOption(label: .satisfied,  emoji: "😌", title: "Satisfied",  valence:  0.5),
     MoodOption(label: .calm,       emoji: "😶", title: "Calm",       valence:  0.3),
-    MoodOption(label: .relieved,   emoji: "😮‍💨", title: "Relieved",   valence:  0.4),
     MoodOption(label: .stressed,   emoji: "😓", title: "Stressed",   valence: -0.4),
-    MoodOption(label: .anxious,    emoji: "😰", title: "Anxious",    valence: -0.5),
     MoodOption(label: .discouraged,emoji: "😞", title: "Discouraged",valence: -0.7),
 ]
 
@@ -66,8 +62,8 @@ struct PomodoroView: View {
             if let session = pendingMoodSession {
                 MoodPickerSheet(session: session, onDismiss: {
                     pendingMoodSession = nil
-                }, onMoodSaved: { valence in
-                    service.markMoodLogged(for: session.id)
+                }, onMoodSaved: { valence, emoji in
+                    service.markMoodLogged(for: session.id, emoji: emoji)
                     if let taskUUID = session.taskUUID {
                         let store = ClarityModelActor(modelContainer: context.container)
                         Task {
@@ -229,7 +225,12 @@ private struct SessionRow: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            if !session.moodLogged {
+            if let emoji = session.moodEmoji {
+                Text(emoji)
+                    .font(.system(size: 20))
+                    .grayscale(1)
+                    .opacity(0.5)
+            } else {
                 Button {
                     onLogMood(session)
                 } label: {
@@ -238,11 +239,7 @@ private struct SessionRow: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .padding(.trailing, 4)
             }
-            Text(timeAgo)
-                .font(.caption)
-                .foregroundStyle(.tertiary)
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
@@ -254,13 +251,15 @@ private struct SessionRow: View {
 struct MoodPickerSheet: View {
     let session: PomodoroService.CompletedSession
     let onDismiss: () -> Void
-    var onMoodSaved: ((Double) -> Void)? = nil
+    var onMoodSaved: ((Double, String) -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var selectedMood: MoodOption? = nil
     @State private var isSaving = false
 
     private let columns = [
+        GridItem(.flexible()),
+        GridItem(.flexible()),
         GridItem(.flexible()),
         GridItem(.flexible()),
         GridItem(.flexible()),
@@ -330,7 +329,7 @@ struct MoodPickerSheet: View {
                     taskName: session.taskName
                 )
                 isSaving = false
-                onMoodSaved?(mood.valence)
+                onMoodSaved?(mood.valence, mood.emoji)
                 onDismiss()
                 dismiss()
             }
