@@ -92,7 +92,6 @@ struct ClarityApp: App {
                 .onAppear {
                     appDelegate.appState = appState
                     populateUUIDsIfNeeded(modelContext: container.mainContext, minimumBuild: "1.3.0")
-                    companion.trigger(.appLaunch)
                     Task { @MainActor in
                         await PomodoroService.shared.restoreIfNeeded(container: container, device: .iPhone)
                         if PomodoroService.shared.isActive {
@@ -185,18 +184,18 @@ class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency UNUserNotifi
     // Remote change dedup (CloudKit merges)
     
     private static func installRemoteChangeLogger() {
-        NotificationCenter.default.addObserver(forName: Notification.Name.NSPersistentStoreRemoteChange, object: nil, queue: nil) { _ in
-            LogManager.shared.log.info("📥 CloudKit remote change received - running dedup")
-            Task.detached(priority: .utility) {
-                do {
-                    let store = try await ClarityServices.store()
-                    try await store.deduplicateTasksByUUID()
-                } catch {
-                    LogManager.shared.log.error("Remote merge dedup failed: \(error.localizedDescription)")
-                }
-            }
-        }
-        LogManager.shared.log.info("✅ Installed CloudKit remote change dedup observer")
+//        NotificationCenter.default.addObserver(forName: Notification.Name.NSPersistentStoreRemoteChange, object: nil, queue: nil) { _ in
+//            LogManager.shared.log.info("📥 CloudKit remote change received - running dedup")
+//            Task.detached(priority: .utility) {
+//                do {
+//                    let store = try await ClarityServices.store()
+//                    try await store.deduplicateTasksByUUID()
+//                } catch {
+//                    LogManager.shared.log.error("Remote merge dedup failed: \(error.localizedDescription)")
+//                }
+//            }
+//        }
+//        LogManager.shared.log.info("✅ Installed CloudKit remote change dedup observer")
     }
 
     

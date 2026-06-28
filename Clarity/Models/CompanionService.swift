@@ -284,7 +284,7 @@ final class CompanionService {
             log.debug("trigger: companion disabled, skipping \(String(describing: event))")
             return
         }
-        // Re-check in case the model finished downloading since launch
+        // Re-check in case the model finished downloading since it was last checked
         checkModelAvailability()
         log.info("trigger: \(String(describing: event)) — model availability: \(String(describing: self.modelAvailability))")
 
@@ -303,7 +303,9 @@ final class CompanionService {
 
     /// Send a free-form message directly from the user to the otter.
     func chat(_ userMessage: String) {
-        guard companionEnabled, !userMessage.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        guard companionEnabled,
+              !isGenerating,
+              !userMessage.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         checkModelAvailability()
         log.info("chat: user message — \"\(userMessage)\" — model availability: \(String(describing: self.modelAvailability))")
 
@@ -362,9 +364,14 @@ final class CompanionService {
                 isVisible = true
             }
         } catch {
-            log.error("generateChatResponse: generation failed — \(error)")
+            if isModelCatalogError(error) {
+                log.warning("generateChatResponse: model catalog unavailable — marking modelNotReady")
+                modelAvailability = .modelNotReady
+            } else {
+                log.error("generateChatResponse: generation failed — \(error)")
+            }
             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                currentMessage = CompanionMessage(text: "Oops, I lost my train of thought! Try again?", emotion: .idle)
+                currentMessage = CompanionMessage(text: "I hear you! Keep going — you've got this.", emotion: .encouraging)
                 isVisible = true
             }
         }
@@ -410,8 +417,12 @@ final class CompanionService {
                 isVisible = true
             }
         } catch {
-            log.error("generateResponse: generation failed — \(error)")
-            // Fall back to a static message rather than showing an error
+            if isModelCatalogError(error) {
+                log.warning("generateResponse: model catalog unavailable — marking modelNotReady")
+                modelAvailability = .modelNotReady
+            } else {
+                log.error("generateResponse: generation failed — \(error)")
+            }
             showFallback(for: event)
         }
 
@@ -483,6 +494,28 @@ final class CompanionService {
 
         let text = textLines.joined(separator: " ")
         return (text.isEmpty ? raw : text, emotion)
+    }
+
+    // MARK: - Error classification
+
+    /// Returns true for the "model catalog not downloaded" error Apple surfaces as a
+    /// generic GenerationError Code=-1 wrapping ModelManagerError Code=1026, as well
+    /// as the typed .assetsUnavailable case.
+    private func isModelCatalogError(_ error: Error) -> Bool {
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            if let genError = error as? LanguageModelSession.GenerationError,
+               case .assetsUnavailable = genError {
+                return true
+            }
+        }
+        #endif
+        // Simulator / early-download case: wrapped as generic Code=-1
+        let ns = error as NSError
+        if ns.domain == "FoundationModels.LanguageModelSession.GenerationError", ns.code == -1 {
+            return true
+        }
+        return false
     }
 
     // MARK: - Fallback (no LLM)

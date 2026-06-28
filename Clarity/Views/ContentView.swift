@@ -78,9 +78,14 @@ struct ContentView: View {
                 store = bg
                 companion.setStore(bg)
                 await companion.loadContext(from: bg)
+                // Fire appLaunch only after context is ready, so Otto has task data
+                companion.trigger(.appLaunch)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            // Guard against the notification that fires immediately on first launch
+            // (store will be nil then; the .task block handles that case)
+            guard store != nil else { return }
             Task { await companion.refreshContext() }
         }
         .overlay {

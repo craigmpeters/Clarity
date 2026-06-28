@@ -16,6 +16,8 @@ struct CompanionOverlayView: View {
     @State private var isDragging = false
     @State private var autoDismissTask: Task<Void, Never>? = nil
     @State private var showingChat = false
+    
+    @State private var companionEnabled = UserDefaults.companionEnabled
 
     private let bubbleSize: CGFloat = 72
     private let expandedOtterSize: CGFloat = 90
@@ -23,7 +25,7 @@ struct CompanionOverlayView: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .bottomTrailing) {
-                if companion.isVisible, let message = companion.currentMessage {
+                if companion.isVisible && companionEnabled, let message = companion.currentMessage {
                     expandedCard(message: message, geo: geo)
                         .transition(.asymmetric(
                             insertion: .scale(scale: 0.6, anchor: .bottomTrailing).combined(with: .opacity),
