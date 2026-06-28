@@ -5,6 +5,7 @@ import SwiftUI
 struct ContentView: View {
     @Environment(\.modelContext) private var context
     @EnvironmentObject var appState: AppState
+    @Environment(CompanionService.self) private var companion
     @StateObject private var pomodoroService: PomodoroService = .shared
     @State private var selectedTask: ToDoTaskDTO? = nil
     @State private var showingFirstRun = !UserDefaults.hasCompletedOnboarding
@@ -75,7 +76,16 @@ struct ContentView: View {
             if store == nil {
                 let bg = await ClarityModelActorFactory.makeBackground(container: context.container)
                 store = bg
+                companion.setStore(bg)
+                await companion.loadContext(from: bg)
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            Task { await companion.refreshContext() }
+        }
+        .overlay {
+            CompanionOverlayView(companion: companion)
+                .ignoresSafeArea()
         }
     }
 }
@@ -85,6 +95,7 @@ struct ContentView: View {
     ContentView()
         .modelContainer(PreviewData.shared.previewContainer)
         .environmentObject(AppState())
+        .environment(CompanionService.shared)
  }
 
 #endif

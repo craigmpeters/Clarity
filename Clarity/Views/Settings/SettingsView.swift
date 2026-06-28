@@ -56,6 +56,17 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Companion") {
+                NavigationLink(destination: CompanionSettingsView()) {
+                    HStack {
+                        Image(systemName: "otter")
+                            .foregroundColor(.brown)
+                        Text("Otto the Otter")
+                    }
+                }
+                .foregroundColor(.primary)
+            }
+
             // TODO: Version 1.1 Stuff
             Section("General") {
                 HStack {

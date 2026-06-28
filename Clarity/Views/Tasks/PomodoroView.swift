@@ -27,6 +27,7 @@ struct PomodoroView: View {
     @Environment(\.modelContext) private var context
     @StateObject private var service: PomodoroService
     @EnvironmentObject var appState: AppState
+    @Environment(CompanionService.self) private var companion
 
     init(previewService: PomodoroService? = nil) {
         _service = StateObject(wrappedValue: previewService ?? .shared)
@@ -64,6 +65,7 @@ struct PomodoroView: View {
                     pendingMoodSession = nil
                 }, onMoodSaved: { valence, emoji in
                     service.markMoodLogged(for: session.id, emoji: emoji)
+                    companion.trigger(.moodSelected(valence: valence, taskName: session.taskName))
                     if let taskUUID = session.taskUUID {
                         let store = ClarityModelActor(modelContainer: context.container)
                         Task {
@@ -76,6 +78,10 @@ struct PomodoroView: View {
         .onReceive(NotificationCenter.default.publisher(for: .pomodoroCompleted)) { _ in
             // Surface the mood sheet for the most recently completed session
             if let latest = service.recentSessions.first {
+                Task {
+                    await companion.refreshContext()
+                    companion.trigger(.pomodoroCompleted(taskName: latest.taskName))
+                }
                 pendingMoodSession = latest
                 showingMoodSheet = true
             }

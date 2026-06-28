@@ -45,6 +45,7 @@ struct ClarityApp: App {
     
     private let container = try! Containers.liveApp()
     @StateObject private var appState = AppState()
+    private var companion = CompanionService.shared
     @State private var store = Store()
     @Environment(\.scenePhase) private var scenePhase
     
@@ -86,10 +87,12 @@ struct ClarityApp: App {
         WindowGroup {
             ContentView().environment(store)
                 .environmentObject(appState)
+                .environment(companion)
                 .modelContainer(container)
                 .onAppear {
                     appDelegate.appState = appState
                     populateUUIDsIfNeeded(modelContext: container.mainContext, minimumBuild: "1.3.0")
+                    companion.trigger(.appLaunch)
                     Task { @MainActor in
                         await PomodoroService.shared.restoreIfNeeded(container: container, device: .iPhone)
                         if PomodoroService.shared.isActive {

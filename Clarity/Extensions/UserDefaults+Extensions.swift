@@ -59,6 +59,30 @@ extension UserDefaults {
         }
     }
 
+    /// Whether the otter companion is enabled.
+    static var companionEnabled: Bool {
+        get {
+            // Default to true on first launch
+            if UserDefaults.standard.object(forKey: "me.craigpeters.clarity.companionEnabled") == nil {
+                return true
+            }
+            return UserDefaults.standard.bool(forKey: "me.craigpeters.clarity.companionEnabled")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "me.craigpeters.clarity.companionEnabled")
+        }
+    }
+
+    /// The display name for the otter companion.
+    static var companionName: String {
+        get {
+            UserDefaults.standard.string(forKey: "me.craigpeters.clarity.companionName") ?? "Otto"
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "me.craigpeters.clarity.companionName")
+        }
+    }
+
     /// Reset onboarding state (useful for testing or user-requested reset)
     static func resetOnboardingState() {
         UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")

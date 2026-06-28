@@ -41,6 +41,9 @@ struct StatsView: View {
     @State private var selectedTimeframe: StatsTimeframe = .last7Days
     @State private var selectedCategory: Category? = nil
     @Environment(\.modelContext) private var modelContext
+    @Environment(CompanionService.self) private var companion
+    // Track last-seen streak to only fire companion once per milestone
+    @State private var lastReportedStreak: Int = 0
 
     @State private var isPresentingShareSheet = false
     @State private var shareItems: [Any]? = nil
@@ -157,6 +160,42 @@ struct StatsView: View {
             categoryFilter: selectedCategory?.name,
             categories: categoryDTOs
         )
+        checkCompanionTriggers(completedDTOs: completedDTOs)
+    }
+
+    private func checkCompanionTriggers(completedDTOs: [ToDoTaskDTO]) {
+        let streak = summary.streak.current
+
+        // Fire for notable streak milestones (3, 7, 14, 30, ...)
+        let milestones = [3, 7, 14, 21, 30, 60, 90, 180, 365]
+        if milestones.contains(streak), streak != lastReportedStreak {
+            lastReportedStreak = streak
+            companion.trigger(.streakMilestone(days: streak))
+            return
+        }
+
+        // Detect low average mood from recent completions
+        let recentMoods = completedDTOs
+            .compactMap { $0.completionMoodValence }
+            .suffix(10)
+        if recentMoods.count >= 3 {
+            let avg = recentMoods.reduce(0, +) / Double(recentMoods.count)
+            if avg < -0.3 {
+                companion.trigger(.lowMoodDetected(averageValence: avg))
+                return
+            }
+        }
+
+        // Habit nudge when there's enough data but no streak trigger
+        if streak == 0, !completedDTOs.isEmpty {
+            let categoryNames = Array(Set(completedDTOs.flatMap { $0.categories.map(\.name) })).sorted()
+            if !categoryNames.isEmpty {
+                companion.trigger(.habitSuggestion(
+                    categories: categoryNames,
+                    completedCount: completedDTOs.count
+                ))
+            }
+        }
     }
 
     private func exportStats() {

@@ -17,6 +17,7 @@ struct TaskRowView: View {
     let onStartTimer: () -> Void
     
     @Environment(\.modelContext) private var context
+    @Environment(CompanionService.self) private var companion
     @State private var showingDeleteAlert = false
     @State private var isDismissing = false
     @Query private var taskSwipeAndTapOptions: [TaskSwipeAndTapOptions]
@@ -162,6 +163,8 @@ struct TaskRowView: View {
     func performActionOption(_ action: SwipeAction) {
         switch action {
         case .complete:
+            Task { await companion.refreshContext() }
+            companion.trigger(.taskCompleted(taskName: task.name ?? "task"))
             onComplete()
         case .delete:
             showingDeleteAlert = true
@@ -223,6 +226,7 @@ func dateAccentBackgroundColor(_ due: Date) -> Color {
             onStartTimer: { print("Timer Started") }
         )
         .modelContainer(PreviewData.shared.previewContainer)
+        .environment(CompanionService.shared)
     }
     .padding(30)
 }
@@ -237,6 +241,7 @@ func dateAccentBackgroundColor(_ due: Date) -> Color {
             onStartTimer: { print("Timer Started") }
         )
         .modelContainer(PreviewData.shared.previewContainer)
+        .environment(CompanionService.shared)
     }
     .padding(30)
 }
@@ -251,6 +256,7 @@ func dateAccentBackgroundColor(_ due: Date) -> Color {
             onStartTimer: { print("Timer Started") }
         )
         .modelContainer(PreviewData.shared.previewContainer)
+        .environment(CompanionService.shared)
     }
     .padding(30)
 }
