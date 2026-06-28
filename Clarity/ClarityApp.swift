@@ -44,6 +44,7 @@ struct ClarityApp: App {
     
     private let container = try! Containers.liveApp()
     @StateObject private var appState = AppState()
+    @State private var store = Store()
     @Environment(\.scenePhase) private var scenePhase
     
     private func populateUUIDsIfNeeded(modelContext: ModelContext, minimumBuild: String) {
@@ -80,7 +81,7 @@ struct ClarityApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView().environment(store)
                 .environmentObject(appState)
                 .modelContainer(container)
                 .onAppear {
@@ -208,18 +209,18 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     // Remote change dedup (CloudKit merges)
     
     private static func installRemoteChangeLogger() {
-        NotificationCenter.default.addObserver(forName: Notification.Name.NSPersistentStoreRemoteChange, object: nil, queue: nil) { _ in
-            LogManager.shared.log.info("📥 CloudKit remote change received - running dedup")
-            Task.detached(priority: .utility) {
-                do {
-                    let store = try await ClarityServices.store()
-                    try await store.deduplicateTasksByUUID()
-                } catch {
-                    LogManager.shared.log.error("Remote merge dedup failed: \(error.localizedDescription)")
-                }
-            }
-        }
-        LogManager.shared.log.info("✅ Installed CloudKit remote change dedup observer")
+//        NotificationCenter.default.addObserver(forName: Notification.Name.NSPersistentStoreRemoteChange, object: nil, queue: nil) { _ in
+//            LogManager.shared.log.info("📥 CloudKit remote change received - running dedup")
+//            Task.detached(priority: .utility) {
+//                do {
+//                    let store = try await ClarityServices.store()
+//                    try await store.deduplicateTasksByUUID()
+//                } catch {
+//                    LogManager.shared.log.error("Remote merge dedup failed: \(error.localizedDescription)")
+//                }
+//            }
+//        }
+//        LogManager.shared.log.info("✅ Installed CloudKit remote change dedup observer")
     }
 
     

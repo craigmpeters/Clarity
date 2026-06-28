@@ -577,14 +577,12 @@ struct WeeklyBreakdownView: View {
         
         return dailyCount.map { (date, categories) in
             var categoryCount: [String: Int] = [:]
-            var total = 0
             for category in categories {
                 if let name = category.name, !name.isEmpty {
                     categoryCount[name, default: 0] += 1
                 } else {
                     categoryCount["Uncategorized", default: 0] += 1
                 }
-                total += 1
             }
             
             // Count tasks on this date that had no categories at all
@@ -592,8 +590,10 @@ struct WeeklyBreakdownView: View {
             let noCategoryCount = tasksOnDate.filter { ($0.categories?.isEmpty ?? true) }.count
             if noCategoryCount > 0 {
                 categoryCount["Uncategorized", default: 0] += noCategoryCount
-                total += noCategoryCount
             }
+            
+            // totalCount = number of tasks completed that day, not category assignments
+            let total = tasksOnDate.count
             
             return DailyCompletionData(
                 date: date,

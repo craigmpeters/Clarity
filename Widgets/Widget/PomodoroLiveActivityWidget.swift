@@ -14,37 +14,7 @@ import WidgetKit
 struct PomodoroLiveActivityWidget: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: PomodoroAttributes.self) { context in
-            // Lock screen/banner UI
-            VStack(spacing: 8) {
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text(context.state.taskName.isEmpty ? "Pomodoro" : context.state.taskName)
-                            .font(.headline)
-                            .lineLimit(1)
-                        // Native countdown timer - no updates needed!
-                        if context.isStale {
-                            Text("Timer Finished!")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .monospacedDigit()
-                        } else {
-                            Text(context.state.endTime, style: .timer)
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .monospacedDigit()
-                        }
-                    }
-                    Spacer()
-                    Image("clarity-small")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 80, height: 80)
-                }
-            }
-            .padding()
-            .background(Color.black.opacity(0.1))
-            //.cornerRadius(12)
-
+            PomodoroLiveActivityView(context: context)
         } dynamicIsland: { context in
             DynamicIsland {
                 // Minimal expanded region - just the timer
@@ -66,14 +36,14 @@ struct PomodoroLiveActivityWidget: Widget {
                                     .monospacedDigit()
                             }
                         }
-                        Image("clarity-small")
+                        Image("clarity-teeny")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                     }
                 }
 
             } compactLeading: {
-                Image("clarity-small")
+                Image("clarity-teeny")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
             } compactTrailing: {
@@ -87,9 +57,6 @@ struct PomodoroLiveActivityWidget: Widget {
                 }
 
             } minimal: {
-//                Image("clarity-small")
-//                    .resizable()
-//                    .aspectRatio(contentMode: .fill)
                 if context.isStale {
                     Text("✅")
                 } else {
@@ -99,6 +66,65 @@ struct PomodoroLiveActivityWidget: Widget {
                         .frame(maxWidth: .minimum(50, 50), alignment: .leading)
                 }
             }
+        }
+        .supplementalActivityFamilies([.small, .medium])
+    }
+}
+
+// MARK: - Live Activity Content View
+
+struct PomodoroLiveActivityView: View {
+    @Environment(\.activityFamily) var activityFamily
+    let context: ActivityViewContext<PomodoroAttributes>
+
+    var body: some View {
+        switch activityFamily {
+        case .small:
+            // watchOS Smart Stack — no image, just text
+            VStack(spacing: 4) {
+                Text(context.state.taskName.isEmpty ? "Pomodoro" : context.state.taskName)
+                    .font(.caption2)
+                    .lineLimit(1)
+                if context.isStale {
+                    Text("Timer Finished!")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                } else {
+                    Text(context.state.endTime, style: .timer)
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .monospacedDigit()
+                }
+            }
+        default:
+            // Lock screen / banner UI
+            VStack(spacing: 8) {
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text(context.state.taskName.isEmpty ? "Pomodoro" : context.state.taskName)
+                            .font(.headline)
+                            .lineLimit(1)
+                        if context.isStale {
+                            Text("Timer Finished!")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .monospacedDigit()
+                        } else {
+                            Text(context.state.endTime, style: .timer)
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .monospacedDigit()
+                        }
+                    }
+                    Spacer()
+                    Image("clarity-teeny")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 80, height: 80)
+                }
+            }
+            .padding()
+            .background(Color.black.opacity(0.1))
         }
     }
 }

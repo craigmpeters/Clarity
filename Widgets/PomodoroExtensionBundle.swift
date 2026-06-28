@@ -14,5 +14,6 @@ struct PomodoroExtensionBundle: WidgetBundle {
         PomodoroLiveActivityWidget()
         DueWidget()
         CompletedWidget()
+        TaskHistoryWidget()
     }
 }

@@ -28,6 +28,8 @@
 		4448AD662E579266005CDDDF /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4448AD652E579266005CDDDF /* SwiftUI.framework */; };
 		4448AD752E579268005CDDDF /* Widgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4448AD612E579266005CDDDF /* Widgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		44D6EADD2E83177400B5EF9E /* ClarityWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 44D6EABD2E83176B00B5EF9E /* ClarityWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		44DD88E32F9E5CF400732504 /* Media.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4432552F2F4F9075003176B3 /* Media.xcassets */; };
+		44DD8A6E2FA8BB9C00732504 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 44DD8A6D2FA8BB9C00732504 /* StoreKit.framework */; };
 		44E0DD912F57776C003A7BC6 /* Media.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4432552F2F4F9075003176B3 /* Media.xcassets */; };
 		44F7CE602E8B2FA300F520BF /* DataRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F7CE5F2E8B2FA300F520BF /* DataRepository.swift */; };
 /* End PBXBuildFile section */
@@ -121,6 +123,8 @@
 		44D6EABD2E83176B00B5EF9E /* ClarityWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClarityWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		44D6F0492E85DDDF00B5EF9E /* ClarityWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ClarityWatch.entitlements; sourceTree = "<group>"; };
 		44D6F04A2E85DE1500B5EF9E /* ClarityWatch-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "ClarityWatch-Info.plist"; sourceTree = "<group>"; };
+		44DD88E22F9E5C7400732504 /* bump-version.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = "bump-version.sh"; sourceTree = "<group>"; };
+		44DD8A6D2FA8BB9C00732504 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		44E0DD902F562849003A7BC6 /* ClarityWatchWidgetsExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ClarityWatchWidgetsExtension.entitlements; sourceTree = "<group>"; };
 		44F7CE5F2E8B2FA300F520BF /* DataRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataRepository.swift; sourceTree = "<group>"; };
 		44FB495E2E51F1EB0059CC5B /* Clarity.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Clarity.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -366,6 +370,7 @@
 				Intents/ListTasksIntent.swift,
 				Intents/StartPomodoroIntent.swift,
 				Intents/TaskHistoryWidgetIntent.swift,
+				Intents/TaskHistoryWidgetProvider.swift,
 				Media.xcassets,
 				Models/CategoryEntity.swift,
 				Models/TaskDetailEntity.swift,
@@ -498,6 +503,11 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
+		44DD8A712FB0C0F900732504 /* Views */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Views;
+			sourceTree = "<group>";
+		};
 		44FB49602E51F1EB0059CC5B /* Clarity */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -557,6 +567,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				44DD8A6E2FA8BB9C00732504 /* StoreKit.framework in Frameworks */,
 				443255212F4F5CF2003176B3 /* ObjcExceptionBridging in Frameworks */,
 				441B802C2F1A5F55008D76CA /* XCGLogger in Frameworks */,
 			);
@@ -568,6 +579,7 @@
 		4448AD622E579266005CDDDF /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				44DD8A6D2FA8BB9C00732504 /* StoreKit.framework */,
 				4448AD632E579266005CDDDF /* WidgetKit.framework */,
 				4448AD652E579266005CDDDF /* SwiftUI.framework */,
 			);
@@ -589,6 +601,7 @@
 		44D6F0142E85DA8E00B5EF9E /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				44DD8A712FB0C0F900732504 /* Views */,
 				44D6F0172E85DA9500B5EF9E /* Data */,
 				44D6F0262E85DA9800B5EF9E /* Models */,
 				44D6F03B2E85DA9B00B5EF9E /* Preview Content */,
@@ -601,6 +614,7 @@
 		44FB49552E51F1EB0059CC5B = {
 			isa = PBXGroup;
 			children = (
+				44DD88E22F9E5C7400732504 /* bump-version.sh */,
 				44E0DD902F562849003A7BC6 /* ClarityWatchWidgetsExtension.entitlements */,
 				44588D1E2EA924AC00A657C3 /* Icons */,
 				44D6F04A2E85DE1500B5EF9E /* ClarityWatch-Info.plist */,
@@ -697,6 +711,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				4448AD672E579266005CDDDF /* Widgets */,
+				44DD8A712FB0C0F900732504 /* Views */,
 			);
 			name = Widgets;
 			packageProductDependencies = (
@@ -760,6 +775,7 @@
 				44D6F0262E85DA9800B5EF9E /* Models */,
 				44D6F03B2E85DA9B00B5EF9E /* Preview Content */,
 				44D6F0432E85DAA100B5EF9E /* Utilities */,
+				44DD8A712FB0C0F900732504 /* Views */,
 				44FB49602E51F1EB0059CC5B /* Clarity */,
 			);
 			name = Clarity;
@@ -845,6 +861,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				44DD88E32F9E5CF400732504 /* Media.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -966,7 +983,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.8.0;
+				MARKETING_VERSION = 1.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.ClarityAppIntentsExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -995,7 +1012,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.8.0;
+				MARKETING_VERSION = 1.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.ClarityAppIntentsExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1098,7 +1115,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.8.0;
+				MARKETING_VERSION = 1.9.0;
 				OTHER_SWIFT_FLAGS = "-D INTERNAL";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1128,7 +1145,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.8.0;
+				MARKETING_VERSION = 1.9.0;
 				OTHER_SWIFT_FLAGS = "";
 				"OTHER_SWIFT_FLAGS[arch=*]" = "-D INTERNAL";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.watchkitapp;
@@ -1164,7 +1181,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.8.0;
+				MARKETING_VERSION = 1.9.0;
 				OTHER_SWIFT_FLAGS = "-D INTERNAL";
 				"OTHER_SWIFT_FLAGS[arch=*]" = "";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.PomodoroExtension;
@@ -1192,7 +1209,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.8.0;
+				MARKETING_VERSION = 1.9.0;
 				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.ClarityAppIntentsExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1224,7 +1241,7 @@
 					"@executable_path/../../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MARKETING_VERSION = 1.8.0;
+				MARKETING_VERSION = 1.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.watchkitapp.ClarityWatchWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1257,7 +1274,7 @@
 					"@executable_path/../../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MARKETING_VERSION = 1.8.0;
+				MARKETING_VERSION = 1.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.watchkitapp.ClarityWatchWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1290,7 +1307,7 @@
 					"@executable_path/../../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MARKETING_VERSION = 1.8.0;
+				MARKETING_VERSION = 1.9.0;
 				OTHER_SWIFT_FLAGS = "-D INTERNAL";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.watchkitapp.ClarityWatchWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1324,7 +1341,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.8.0;
+				MARKETING_VERSION = 1.9.0;
 				OTHER_SWIFT_FLAGS = "-D INTERNAL";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.PomodoroExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1353,7 +1370,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.8.0;
+				MARKETING_VERSION = 1.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.PomodoroExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1383,7 +1400,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.8.0;
+				MARKETING_VERSION = 1.9.0;
 				"OTHER_SWIFT_FLAGS[arch=*]" = "-D INTERNAL";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1420,7 +1437,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.8.0;
+				MARKETING_VERSION = 1.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1592,7 +1609,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.8.0;
+				MARKETING_VERSION = 1.9.0;
 				OTHER_SWIFT_FLAGS = "-D INTERNAL";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1629,7 +1646,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.8.0;
+				MARKETING_VERSION = 1.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

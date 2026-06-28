@@ -155,6 +155,43 @@ final class PreviewData {
         return WatchCompleteEntry(date: .now, todos: tasks, filter: .PastWeek, progress: WeeklyProgress(completed: 2, target: 0, error: nil, categories: []))
     }
     
+    /// Scattered completions across the last 60 days for heatmap widget previews.
+    var sampleHeatmapTasks: [ToDoTaskDTO] {
+        let now = Date()
+        let calendar = Calendar.current
+        let samples: [(daysAgo: Int, secondsLate: TimeInterval, recurrence: ToDoTask.RecurrenceInterval?)] = [
+            (0,  0,           .daily),
+            (0,  3600,        .daily),
+            (1,  0,           .weekly),
+            (2,  12 * 3600,   .daily),
+            (4,  3.5 * 86400, .weekly),
+            (5,  86400,       .daily),
+            (7,  7 * 86400,   .weekly),
+            (10, -3600,       nil),
+            (12, 3 * 86400,   nil),
+            (20, 0,           .monthly),
+            (25, 5 * 86400,   .weekly),
+            (30, 0,           .daily),
+            (35, 86400,       .daily),
+            (40, 0,           .weekly),
+            (50, 0,           .daily),
+            (55, 0,           .daily),
+            (58, 12 * 3600,   .daily),
+            (59, 0,           .daily),
+        ]
+        return samples.map { s in
+            let due = calendar.date(byAdding: .day, value: -s.daysAgo, to: now) ?? now
+            return ToDoTaskDTO(
+                name: "Morning run",
+                repeating: s.recurrence != nil,
+                recurrenceInterval: s.recurrence,
+                due: due,
+                completed: true,
+                completedAt: due.addingTimeInterval(s.secondsLate)
+            )
+        }
+    }
+
     func getPreviewCompletedTaskEntry(filter: ToDoTask.CompletedTaskFilter) -> CompletedTaskEntry {
         let tasks = getCompletedTasks()
         let target = returnPreviewWeeklyProgress()

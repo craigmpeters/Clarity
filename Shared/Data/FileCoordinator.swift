@@ -140,6 +140,15 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
         }
     }
     
+    public func readTaskHistory(id: UUID) throws -> [ToDoTaskDTO]? {
+        do {
+            return try readTasks().filter { $0.uuid == id }
+        } catch {
+            LogManager.shared.log.error("Cannot find task:  \(error.localizedDescription)")
+            return nil
+        }
+    }
+    
     public func readTaskByUuid(_ id: UUID) throws -> ToDoTaskDTO? {
         do {
             let tasks = ToDoTaskDTO.focusFilter(in: try readTasks())

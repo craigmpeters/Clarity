@@ -556,16 +556,16 @@ actor ClarityModelActor {
         return tasks
     }
     
-    func getTaskHistoryTimeline(for taskUuid: UUID) -> [TaskHistoryEntry] {
-        let tasks = getTaskHistory(for: taskUuid)
-        return tasks.map { task in
-            TaskHistoryEntry(
-                date: task.created,
-                uuid: task.uuid ?? taskUuid,
-                title: task.name ?? ""
-            )
-        }
-    }
+//    func getTaskHistoryTimeline(for taskUuid: UUID) -> [TaskHistoryEntry] {
+//        let tasks = getTaskHistory(for: taskUuid)
+//        return tasks.map { task in
+//            TaskHistoryEntry(
+//                date: task.created,
+//                uuid: task.uuid ?? taskUuid,
+//                title: task.name ?? ""
+//            )
+//        }
+//    }
 }
 
 enum ClarityModelActorFactory {
@@ -624,7 +624,7 @@ enum AppContainer {
 struct TaskHistoryEntry: TimelineEntry {
     let date : Date
     let uuid: UUID
-    let title: String
+    let tasks: [ToDoTaskDTO]
     
 }
 
