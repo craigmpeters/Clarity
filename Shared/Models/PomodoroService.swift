@@ -5,7 +5,7 @@
 //  Created by Craig Peters on 11/10/2025.
 //
 
-import ActivityKit
+@preconcurrency import ActivityKit
 import Combine
 import Foundation
 import SwiftData

@@ -83,7 +83,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "44D6EABC2E83176B00B5EF9E"
             BuildableName = "ClarityWatch.app"
-            BlueprintName = "ClarityWatch"
             ReferencedContainer = "container:Clarity.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -100,7 +99,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "44D6EABC2E83176B00B5EF9E"
             BuildableName = "ClarityWatch.app"
-            BlueprintName = "ClarityWatch"
             ReferencedContainer = "container:Clarity.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

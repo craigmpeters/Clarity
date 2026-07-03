@@ -75,7 +75,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "443254E12F4B4903003176B3"
             BuildableName = "ClarityWatchWidgetsExtension.appex"
-            BlueprintName = "ClarityWatchWidgetsExtension"
             ReferencedContainer = "container:Clarity.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -118,7 +117,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "443254E12F4B4903003176B3"
             BuildableName = "ClarityWatchWidgetsExtension.appex"
-            BlueprintName = "ClarityWatchWidgetsExtension"
             ReferencedContainer = "container:Clarity.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
