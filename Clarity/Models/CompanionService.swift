@@ -63,13 +63,32 @@ enum CompanionTrigger: Sendable {
 struct CompanionMessage: Sendable {
     let text: String
     let emotion: CompanionEmotion
+    var suggestedTask: CompanionTaskContext.TaskSummary? = nil
 }
+
+// MARK: - Guided generation output
+
+#if canImport(FoundationModels)
+@available(iOS 26.0, *)
+@Generable(description: "A companion message from the otter")
+struct CompanionOutput {
+    @Guide(description: "One or two warm, conversational sentences. No markdown or special formatting.")
+    var text: String
+
+    @Guide(description: "The emotional tone. Must be exactly one of: idle, happy, encouraging, loving, caring, determined")
+    var emotion: String
+
+    @Guide(description: "If your message suggests the user work on a specific task, provide its exact name here. Otherwise leave this empty.")
+    var suggestedTaskName: String
+}
+#endif
 
 // MARK: - Task context snapshot
 
 /// A compact, Sendable snapshot of the user's task data passed to the LLM as context.
 struct CompanionTaskContext: Sendable {
     struct TaskSummary: Sendable {
+        let uuid: UUID
         let name: String
         let dueDate: Date
         let pomodoroMinutes: Int
@@ -147,10 +166,10 @@ final class CompanionService {
     var isVisible: Bool = false
     var isGenerating: Bool = false
     var modelAvailability: CompanionModelAvailability = .unsupported
+    var startTaskRequest: UUID? = nil
 
-    // Rolling history: keep last 4 exchanges to stay within context budget
-    private var history: [(prompt: String, response: String)] = []
-    private let maxHistoryEntries = 4
+    // Opaque storage for LanguageModelSession (iOS 26+ only)
+    private var _session: Any? = nil
 
     // Live task context — updated by call sites before triggering
     private var taskContext: CompanionTaskContext = .empty
@@ -234,6 +253,7 @@ final class CompanionService {
                 .map { task -> CompanionTaskContext.TaskSummary in
                     let prev = completionByName[task.name]
                     return CompanionTaskContext.TaskSummary(
+                        uuid: task.uuid,
                         name: task.name,
                         dueDate: task.due,
                         pomodoroMinutes: Int(task.pomodoroTime / 60),
@@ -248,6 +268,7 @@ final class CompanionService {
                 .prefix(5)
                 .map { task in
                     CompanionTaskContext.TaskSummary(
+                        uuid: task.uuid,
                         name: task.name,
                         dueDate: task.due,
                         pomodoroMinutes: Int(task.pomodoroTime / 60),
@@ -263,10 +284,40 @@ final class CompanionService {
                 loadedAt: now
             )
             log.debug("loadContext: context built — \(self.taskContext.dueTasks.count) due, \(self.taskContext.recentlyCompleted.count) recent")
+
+            // Invalidate the session so the next request picks up fresh instructions
+            #if canImport(FoundationModels)
+            if #available(iOS 26.0, *) {
+                _session = nil
+                log.debug("loadContext: session invalidated for fresh instructions")
+            }
+            #endif
         } catch {
             log.error("loadContext: failed to fetch tasks — \(error)")
         }
     }
+
+    // MARK: - Session management
+
+    #if canImport(FoundationModels)
+    @available(iOS 26.0, *)
+    private var session: LanguageModelSession? {
+        get { _session as? LanguageModelSession }
+        set { _session = newValue }
+    }
+
+    /// Returns the current session, creating one lazily with up-to-date instructions.
+    @available(iOS 26.0, *)
+    private func currentSession() -> LanguageModelSession {
+        if let existing = session { return existing }
+        let instructions = buildInstructions()
+        log.debug("currentSession: creating new session")
+        log.debug("currentSession: instructions —\n\(instructions)")
+        let newSession = LanguageModelSession(instructions: instructions)
+        session = newSession
+        return newSession
+    }
+    #endif
 
     // MARK: - Public trigger entry point
 
@@ -284,13 +335,12 @@ final class CompanionService {
             log.debug("trigger: companion disabled, skipping \(String(describing: event))")
             return
         }
-        // Re-check in case the model finished downloading since it was last checked
         checkModelAvailability()
-        log.info("trigger: \(String(describing: event)) — model availability: \(String(describing: self.modelAvailability))")
+        log.info("trigger: \(String(describing: event)) — model availability: \(String(describing: modelAvailability))")
 
         #if canImport(FoundationModels)
         if #available(iOS 26.0, *), modelAvailability.isAvailable {
-            Task { await generateResponse(for: event) }
+            Task { await generate(prompt: buildPrompt(for: event), fallbackEvent: event) }
         } else {
             log.debug("trigger: model unavailable, using fallback")
             showFallback(for: event)
@@ -307,126 +357,115 @@ final class CompanionService {
               !isGenerating,
               !userMessage.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         checkModelAvailability()
-        log.info("chat: user message — \"\(userMessage)\" — model availability: \(String(describing: self.modelAvailability))")
+        log.info("chat: user message — \"\(userMessage)\" — model availability: \(String(describing: modelAvailability))")
 
         #if canImport(FoundationModels)
         if #available(iOS 26.0, *), modelAvailability.isAvailable {
-            Task { await generateChatResponse(userMessage: userMessage) }
+            Task { await generate(prompt: userMessage, fallbackEvent: nil) }
         } else {
             log.debug("chat: model unavailable, using fallback")
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                currentMessage = CompanionMessage(text: "I hear you! Keep going — you've got this.", emotion: .encouraging)
-                isVisible = true
-            }
+            showChatFallback()
         }
         #else
         log.debug("chat: FoundationModels not importable, using fallback")
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-            currentMessage = CompanionMessage(text: "I hear you! Keep going — you've got this.", emotion: .encouraging)
-            isVisible = true
-        }
+        showChatFallback()
         #endif
     }
 
     // MARK: - Generation
 
     #if canImport(FoundationModels)
+    /// Single generation path for both trigger events and free-form chat.
+    /// Pass `fallbackEvent` for trigger-sourced calls so the right fallback message is shown on error.
     @available(iOS 26.0, *)
-    private func generateChatResponse(userMessage: String) async {
+    private func generate(prompt: String, fallbackEvent: CompanionTrigger?) async {
         isGenerating = true
+        defer { isGenerating = false }
 
-        let systemInstructions = buildInstructions()
-        log.debug("generateChatResponse: instructions —\n\(systemInstructions)")
-
-        var transcript = ""
-        for entry in history {
-            transcript += "User: \(entry.prompt)\nOtter: \(entry.response)\n"
-        }
-        let fullPrompt = transcript.isEmpty
-            ? userMessage
-            : "\(transcript)User: \(userMessage)\nOtter:"
-
-        log.info("generateChatResponse: sending prompt —\n\(fullPrompt)")
+        log.info("generate: prompt — \"\(prompt)\"")
 
         do {
-            let session = LanguageModelSession(instructions: systemInstructions)
-            let response = try await session.respond(to: fullPrompt)
-            let raw = response.content
-            log.info("generateChatResponse: raw response — \"\(raw)\"")
-            let (text, emotion) = parseResponse(raw)
-            log.debug("generateChatResponse: parsed text=\"\(text)\" emotion=\(emotion.rawValue)")
+            let response = try await currentSession().respond(to: prompt, generating: CompanionOutput.self)
+            show(response.content)
+        } catch let genError as LanguageModelSession.GenerationError {
+            switch genError {
+            case .assetsUnavailable:
+                log.warning("generate: assets unavailable — marking modelNotReady")
+                modelAvailability = .modelNotReady
+                session = nil
+                showErrorFallback()
 
-            if history.count >= maxHistoryEntries { history.removeFirst() }
-            history.append((prompt: userMessage, response: raw))
+            case .exceededContextWindowSize:
+                // Reset to a fresh session and retry once — conversation history is small enough
+                // that losing it is acceptable compared to silently failing.
+                log.warning("generate: context window exceeded — resetting session and retrying")
+                session = nil
+                do {
+                    let response = try await currentSession().respond(to: prompt, generating: CompanionOutput.self)
+                    show(response.content)
+                } catch {
+                    log.error("generate: retry after context reset failed — \(error)")
+                    showErrorFallback()
+                }
 
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                currentMessage = CompanionMessage(text: text, emotion: emotion)
-                isVisible = true
+            case .guardrailViolation:
+                // Guardrail still possible even with guided generation — save feedback for Apple.
+                log.warning("generate: guardrail triggered unexpectedly — saving feedback")
+                let feedbackData = session?.logFeedbackAttachment(
+                    sentiment: .negative,
+                    issues: [
+                        LanguageModelFeedback.Issue(
+                            category: .triggeredGuardrailUnexpectedly,
+                            explanation: "Guardrail triggered on a benign productivity companion prompt"
+                        )
+                    ]
+                )
+                saveFeedback(feedbackData)
+                showErrorFallback()
+
+            case .refusal(let refusal, _):
+                let explanation = (try? await refusal.explanation)?.content
+                log.warning("generate: model refused — \(explanation ?? "no explanation provided")")
+                showErrorFallback()
+
+            default:
+                log.error("generate: generation error — \(genError)")
+                showErrorFallback()
             }
         } catch {
+            // Handles the simulator / early-download case where the error arrives as a generic NSError
             if isModelCatalogError(error) {
-                log.warning("generateChatResponse: model catalog unavailable — marking modelNotReady")
+                log.warning("generate: model catalog unavailable — marking modelNotReady")
                 modelAvailability = .modelNotReady
+                session = nil
             } else {
-                log.error("generateChatResponse: generation failed — \(error)")
+                log.error("generate: failed — \(error)")
             }
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                currentMessage = CompanionMessage(text: "I hear you! Keep going — you've got this.", emotion: .encouraging)
-                isVisible = true
-            }
+            showErrorFallback()
         }
-
-        isGenerating = false
     }
 
     @available(iOS 26.0, *)
-    private func generateResponse(for event: CompanionTrigger) async {
-        isGenerating = true
+    private func saveFeedback(_ data: Data?) {
+        guard let data else { return }
+        let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let file = dir.appendingPathComponent("companion-feedback-\(Date().timeIntervalSince1970).jsonl")
+        try? data.write(to: file)
+        log.info("saveFeedback: written to \(file.path)")
+    }
 
-        let systemInstructions = buildInstructions()
-        log.debug("generateResponse: instructions —\n\(systemInstructions)")
-
-        let prompt = buildPrompt(for: event)
-
-        // Build session with rolling history for continuity
-        var transcript = ""
-        for entry in history {
-            transcript += "User: \(entry.prompt)\nOtter: \(entry.response)\n"
+    @available(iOS 26.0, *)
+    private func show(_ output: CompanionOutput) {
+        let text = output.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let emotion = CompanionEmotion(rawValue: output.emotion) ?? .happy
+        let suggested = taskContext.dueTasks.first {
+            $0.name.localizedCaseInsensitiveCompare(output.suggestedTaskName) == .orderedSame
         }
-
-        let fullPrompt = transcript.isEmpty ? prompt : "\(transcript)User: \(prompt)\nOtter:"
-        log.info("generateResponse: sending prompt —\n\(fullPrompt)")
-
-        do {
-            let session = LanguageModelSession(instructions: systemInstructions)
-            let response = try await session.respond(to: fullPrompt)
-            let raw = response.content
-            log.info("generateResponse: raw response — \"\(raw)\"")
-
-            let (text, emotion) = parseResponse(raw)
-            log.debug("generateResponse: parsed text=\"\(text)\" emotion=\(emotion.rawValue)")
-
-            // Trim history then append
-            if history.count >= maxHistoryEntries {
-                history.removeFirst()
-            }
-            history.append((prompt: prompt, response: raw))
-
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                currentMessage = CompanionMessage(text: text, emotion: emotion)
-                isVisible = true
-            }
-        } catch {
-            if isModelCatalogError(error) {
-                log.warning("generateResponse: model catalog unavailable — marking modelNotReady")
-                modelAvailability = .modelNotReady
-            } else {
-                log.error("generateResponse: generation failed — \(error)")
-            }
-            showFallback(for: event)
+        log.debug("generate: text=\"\(text)\" emotion=\(emotion.rawValue) suggestedTask=\(suggested?.name ?? "none")")
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+            currentMessage = CompanionMessage(text: text.isEmpty ? output.text : text, emotion: emotion, suggestedTask: suggested)
+            isVisible = true
         }
-
-        isGenerating = false
     }
     #endif
 
@@ -438,12 +477,12 @@ final class CompanionService {
             You are \(companionName), a friendly and encouraging otter companion in a productivity app called Clarity. \
             You help users build habits, celebrate their wins, and support them emotionally. \
             Keep responses SHORT — one or two sentences maximum. Be warm, playful, and positive. \
-            Never use markdown or special formatting. Use plain conversational language. \
-            Always end with an emotion tag on a new line in the format: EMOTION:<emotion> \
-            Valid emotions are: idle, happy, encouraging, loving, caring, determined
+            Never use markdown or special formatting. Use plain conversational language.
 
             Here is the user's current task data. Use this to give specific, personal responses:
             \(contextBlock)
+
+            When suggesting a task, prefer ones that are overdue or due soonest AND have a short focus time. Provide its exact name in suggestedTaskName.
             """
     }
 
@@ -475,27 +514,6 @@ final class CompanionService {
         }
     }
 
-    // MARK: - Response parsing
-
-    private func parseResponse(_ raw: String) -> (text: String, emotion: CompanionEmotion) {
-        let lines = raw.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }
-
-        var emotion = CompanionEmotion.happy
-        var textLines: [String] = []
-
-        for line in lines {
-            if line.uppercased().hasPrefix("EMOTION:") {
-                let tag = line.dropFirst("EMOTION:".count).trimmingCharacters(in: .whitespaces).lowercased()
-                emotion = CompanionEmotion(rawValue: tag) ?? .happy
-            } else if !line.isEmpty {
-                textLines.append(line)
-            }
-        }
-
-        let text = textLines.joined(separator: " ")
-        return (text.isEmpty ? raw : text, emotion)
-    }
-
     // MARK: - Error classification
 
     /// Returns true for the "model catalog not downloaded" error Apple surfaces as a
@@ -519,6 +537,42 @@ final class CompanionService {
     }
 
     // MARK: - Fallback (no LLM)
+
+    /// Used when generation fails mid-request. Apologises and nudges the user toward their most overdue task.
+    private func showErrorFallback() {
+        let message: CompanionMessage
+        if let overdue = taskContext.dueTasks.first {
+            message = CompanionMessage(
+                text: "Sorry, I lost my train of thought there! How about tackling \"\(overdue.name)\"? It's been waiting the longest.",
+                emotion: .caring,
+                suggestedTask: overdue
+            )
+        } else {
+            message = CompanionMessage(
+                text: "Sorry, I'm having a little trouble right now. But you've got this — keep going!",
+                emotion: .caring
+            )
+        }
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+            currentMessage = message
+            isVisible = true
+        }
+    }
+
+    private func showFallbackOrChat(for event: CompanionTrigger?) {
+        if let event {
+            showFallback(for: event)
+        } else {
+            showChatFallback()
+        }
+    }
+
+    private func showChatFallback() {
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+            currentMessage = CompanionMessage(text: "I hear you! Keep going — you've got this.", emotion: .encouraging)
+            isVisible = true
+        }
+    }
 
     private func showFallback(for event: CompanionTrigger) {
         let message: CompanionMessage
@@ -549,6 +603,13 @@ final class CompanionService {
         }
     }
 
+    // MARK: - Task action
+
+    func requestStartTask(_ uuid: UUID) {
+        startTaskRequest = uuid
+        currentMessage?.suggestedTask = nil
+    }
+
     // MARK: - Dismiss
 
     func dismiss() {
@@ -558,6 +619,11 @@ final class CompanionService {
     }
 
     func clearHistory() {
-        history = []
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            session = nil
+            log.debug("clearHistory: session reset")
+        }
+        #endif
     }
 }

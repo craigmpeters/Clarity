@@ -88,6 +88,15 @@ struct ContentView: View {
             guard store != nil else { return }
             Task { await companion.refreshContext() }
         }
+        .onChange(of: companion.startTaskRequest) { _, uuid in
+            guard let uuid, let store else { return }
+            companion.startTaskRequest = nil
+            Task {
+                guard let task = try? await store.fetchTaskByUuid(uuid) else { return }
+                PomodoroService.shared.startPomodoro(for: task, container: context.container, device: .iPhone)
+                appState.selectedTab = 1
+            }
+        }
         .overlay {
             CompanionOverlayView(companion: companion)
                 .ignoresSafeArea()

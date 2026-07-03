@@ -254,6 +254,21 @@ struct CompanionChatSheet: View {
 
                 Spacer()
 
+                if let task = companion.currentMessage?.suggestedTask {
+                    Button {
+                        companion.requestStartTask(task.uuid)
+                    } label: {
+                        Label("Start \"\(task.name)\"", systemImage: "timer")
+                            .font(.subheadline.weight(.medium))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 14))
+                            .foregroundStyle(.white)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
+                }
+
                 if companion.modelAvailability.isAvailable {
                     // Input bar
                     HStack(spacing: 10) {
