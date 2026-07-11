@@ -51,30 +51,10 @@ struct CompanionOverlayView: View {
     @ViewBuilder
     private func idleBubble(geo: GeometryProxy) -> some View {
         let position = bubblePosition(in: geo)
-        ZStack {
-            CompanionSpriteView(emotion: .idle, size: bubbleSize)
-            // Subtle "thinking" indicator when generating
-            if companion.isGenerating {
-                VStack {
-                    HStack {
-                        Spacer()
-                        Circle()
-                            .fill(Color.accentColor)
-                            .frame(width: 14, height: 14)
-                            .overlay(
-                                Circle().stroke(Color.white, lineWidth: 2)
-                            )
-                    }
-                    Spacer()
-                }
-            }
-        }
-        .background(
-            Circle()
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+        CompanionFaceView(
+            emotion: companion.isGenerating ? .thinking : .idle,
+            size: bubbleSize
         )
-        .clipShape(Circle())
         .offset(dragOffset)
         .position(x: position.x, y: position.y)
         .gesture(
@@ -121,7 +101,7 @@ struct CompanionOverlayView: View {
                 if !isRightSide {
                     replyButton
                 }
-                CompanionSpriteView(emotion: message.emotion, size: expandedOtterSize)
+                CompanionFaceView(emotion: message.emotion, size: expandedOtterSize)
                     .frame(width: expandedOtterSize, height: expandedOtterSize)
                 if isRightSide {
                     replyButton
@@ -229,7 +209,7 @@ struct CompanionChatSheet: View {
             VStack(spacing: 0) {
                 // Otter header
                 VStack(spacing: 8) {
-                    CompanionSpriteView(
+                    CompanionFaceView(
                         emotion: companion.currentMessage?.emotion ?? .idle,
                         size: 80
                     )

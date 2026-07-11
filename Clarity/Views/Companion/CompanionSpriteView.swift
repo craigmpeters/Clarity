@@ -16,6 +16,7 @@ struct CompanionSpriteView: View {
     private var assetName: String {
         switch emotion {
         case .idle:        return "otter_idle"
+        case .thinking:    return "otter_thinking"
         case .happy:       return "otter_happy"
         case .encouraging: return "otter_encouraging"
         case .loving:      return "otter_loving"
@@ -44,17 +45,34 @@ struct CompanionSpriteView: View {
     }
 }
 
+// MARK: - Face (sprite + white circle + black border)
+
+struct CompanionFaceView: View {
+    let emotion: CompanionEmotion
+    let size: CGFloat
+
+    var body: some View {
+        CompanionSpriteView(emotion: emotion, size: size)
+            .background(Circle().fill(.white))
+            .clipShape(Circle())
+            .overlay(Circle().stroke(Color.black, lineWidth: 2))
+    }
+}
+
 #Preview {
     VStack(spacing: 24) {
         HStack(spacing: 16) {
-            CompanionSpriteView(emotion: .idle, size: 80)
-            CompanionSpriteView(emotion: .happy, size: 80)
-            CompanionSpriteView(emotion: .encouraging, size: 80)
+            CompanionFaceView(emotion: .idle, size: 80)
+            CompanionFaceView(emotion: .thinking, size: 80)
+            CompanionFaceView(emotion: .happy, size: 80)
         }
         HStack(spacing: 16) {
-            CompanionSpriteView(emotion: .loving, size: 80)
-            CompanionSpriteView(emotion: .caring, size: 80)
-            CompanionSpriteView(emotion: .determined, size: 80)
+            CompanionFaceView(emotion: .encouraging, size: 80)
+            CompanionFaceView(emotion: .loving, size: 80)
+            CompanionFaceView(emotion: .caring, size: 80)
+        }
+        HStack(spacing: 16) {
+            CompanionFaceView(emotion: .determined, size: 80)
         }
     }
     .padding()

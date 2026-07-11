@@ -39,6 +39,7 @@ enum CompanionModelAvailability: Sendable, Equatable {
 
 enum CompanionEmotion: String, Sendable {
     case idle
+    case thinking
     case happy
     case encouraging
     case loving
@@ -482,7 +483,7 @@ final class CompanionService {
             Here is the user's current task data. Use this to give specific, personal responses:
             \(contextBlock)
 
-            When suggesting a task, prefer ones that are overdue or due soonest AND have a short focus time. Provide its exact name in suggestedTaskName.
+            When suggesting a task, only pick from the UPCOMING TASKS list above — never from RECENTLY COMPLETED. Prefer tasks that are overdue or due soonest AND have a short focus time. Provide its exact name in suggestedTaskName.
             """
     }
 
@@ -603,27 +604,24 @@ final class CompanionService {
         }
     }
 
-    // MARK: - Task action
+    // MARK: - Reset
 
-    func requestStartTask(_ uuid: UUID) {
-        startTaskRequest = uuid
-        currentMessage?.suggestedTask = nil
+    func clearHistory() {
+        _session = nil
+        currentMessage = nil
+        isVisible = false
+        log.info("clearHistory: session and message cleared")
     }
 
     // MARK: - Dismiss
 
     func dismiss() {
-        withAnimation(.easeOut(duration: 0.25)) {
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
             isVisible = false
         }
     }
 
-    func clearHistory() {
-        #if canImport(FoundationModels)
-        if #available(iOS 26.0, *) {
-            session = nil
-            log.debug("clearHistory: session reset")
-        }
-        #endif
+    func requestStartTask(_ uuid: UUID) {
+        startTaskRequest = uuid
     }
 }

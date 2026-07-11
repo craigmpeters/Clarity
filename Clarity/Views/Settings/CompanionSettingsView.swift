@@ -15,7 +15,7 @@ struct CompanionSettingsView: View {
                 HStack {
                     Spacer()
                     VStack(spacing: 8) {
-                        CompanionSpriteView(
+                        CompanionFaceView(
                             emotion: companionEnabled ? .happy : .idle,
                             size: 100
                         )
@@ -48,8 +48,8 @@ struct CompanionSettingsView: View {
                         TextField("Companion Name", text: $companionName)
                             .autocorrectionDisabled()
                     }
-                    .onChange(of: companionName) { _, value in
-                        UserDefaults.companionName = value.isEmpty ? "Otto" : value
+                    .onChange(of: companionName) {
+                        UserDefaults.companionName = companionName.isEmpty ? "Otto" : companionName
                         companion.clearHistory()
                     }
                 }
