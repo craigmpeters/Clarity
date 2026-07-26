@@ -983,7 +983,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.9.0;
+				MARKETING_VERSION = 1.9.1;
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.ClarityAppIntentsExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1012,7 +1012,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.9.0;
+				MARKETING_VERSION = 1.9.1;
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.ClarityAppIntentsExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1115,7 +1115,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.9.0;
+				MARKETING_VERSION = 1.9.1;
 				OTHER_SWIFT_FLAGS = "-D INTERNAL";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1145,7 +1145,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.9.0;
+				MARKETING_VERSION = 1.9.1;
 				OTHER_SWIFT_FLAGS = "";
 				"OTHER_SWIFT_FLAGS[arch=*]" = "-D INTERNAL";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.watchkitapp;
@@ -1181,7 +1181,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.9.0;
+				MARKETING_VERSION = 1.9.1;
 				OTHER_SWIFT_FLAGS = "-D INTERNAL";
 				"OTHER_SWIFT_FLAGS[arch=*]" = "";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.PomodoroExtension;
@@ -1209,7 +1209,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.9.0;
+				MARKETING_VERSION = 1.9.1;
 				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.ClarityAppIntentsExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1241,7 +1241,7 @@
 					"@executable_path/../../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MARKETING_VERSION = 1.9.0;
+				MARKETING_VERSION = 1.9.1;
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.watchkitapp.ClarityWatchWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1274,7 +1274,7 @@
 					"@executable_path/../../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MARKETING_VERSION = 1.9.0;
+				MARKETING_VERSION = 1.9.1;
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.watchkitapp.ClarityWatchWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1307,7 +1307,7 @@
 					"@executable_path/../../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MARKETING_VERSION = 1.9.0;
+				MARKETING_VERSION = 1.9.1;
 				OTHER_SWIFT_FLAGS = "-D INTERNAL";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.watchkitapp.ClarityWatchWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1341,7 +1341,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.9.0;
+				MARKETING_VERSION = 1.9.1;
 				OTHER_SWIFT_FLAGS = "-D INTERNAL";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.PomodoroExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1370,7 +1370,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.9.0;
+				MARKETING_VERSION = 1.9.1;
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.PomodoroExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1400,7 +1400,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.9.0;
+				MARKETING_VERSION = 1.9.1;
 				"OTHER_SWIFT_FLAGS[arch=*]" = "-D INTERNAL";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1437,7 +1437,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.9.0;
+				MARKETING_VERSION = 1.9.1;
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1609,7 +1609,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.9.0;
+				MARKETING_VERSION = 1.9.1;
 				OTHER_SWIFT_FLAGS = "-D INTERNAL";
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1646,7 +1646,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.9.0;
+				MARKETING_VERSION = 1.9.1;
 				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.Clarity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
