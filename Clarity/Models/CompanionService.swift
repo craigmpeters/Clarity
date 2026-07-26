@@ -1,5 +1,5 @@
 // CompanionService.swift
-// On-device AI companion (otter) using Foundation Models
+// On-device AI companion using Foundation Models
 
 import SwiftUI
 #if canImport(FoundationModels)
@@ -7,6 +7,24 @@ import FoundationModels
 #endif
 
 private nonisolated(unsafe) let log = LogManager.shared.log
+
+// MARK: - Companion Personality Protocol
+
+protocol CompanionPersonality: Sendable {
+    var id: String { get }
+    var displayName: String { get }
+    var defaultCompanionName: String { get }
+    var requiresPremium: Bool { get }
+    var assetPrefix: String { get }
+    var fallbackEmoji: String { get }
+    var supportedEmotions: [CompanionEmotion] { get }
+
+    func systemInstructions(name: String, contextBlock: String) -> String
+    func prompt(for trigger: CompanionTrigger) -> String
+    func fallbackMessage(for trigger: CompanionTrigger) -> CompanionMessage
+    var chatFallback: CompanionMessage { get }
+    func errorFallback(overdueTask: CompanionTaskContext.TaskSummary?) -> CompanionMessage
+}
 
 // MARK: - Model availability
 
@@ -24,13 +42,13 @@ enum CompanionModelAvailability: Sendable, Equatable {
         case .available:
             return ""
         case .deviceNotEligible:
-            return "This device doesn't support Apple Intelligence. \(UserDefaults.standard.string(forKey: "me.craigpeters.clarity.companionName") ?? "Otto") will use preset responses instead."
+            return "This device doesn't support Apple Intelligence. Your companion will use preset responses instead."
         case .appleIntelligenceNotEnabled:
             return "Apple Intelligence is turned off. Enable it in Settings → Apple Intelligence & Siri to unlock personalised responses."
         case .modelNotReady:
-            return "The Apple Intelligence model is still downloading. \(UserDefaults.standard.string(forKey: "me.craigpeters.clarity.companionName") ?? "Otto") will use preset responses until it's ready."
+            return "The Apple Intelligence model is still downloading. Your companion will use preset responses until it's ready."
         case .unsupported:
-            return "Apple Intelligence requires iOS 26 or later. \(UserDefaults.standard.string(forKey: "me.craigpeters.clarity.companionName") ?? "Otto") will use preset responses instead."
+            return "Apple Intelligence requires iOS 26 or later. Your companion will use preset responses instead."
         }
     }
 }
@@ -45,6 +63,7 @@ enum CompanionEmotion: String, Sendable {
     case loving
     case caring
     case determined
+    case silly
 }
 
 // MARK: - Trigger
@@ -71,12 +90,12 @@ struct CompanionMessage: Sendable {
 
 #if canImport(FoundationModels)
 @available(iOS 26.0, *)
-@Generable(description: "A companion message from the otter")
+@Generable(description: "A companion message")
 struct CompanionOutput {
     @Guide(description: "One or two warm, conversational sentences. No markdown or special formatting.")
     var text: String
 
-    @Guide(description: "The emotional tone. Must be exactly one of: idle, happy, encouraging, loving, caring, determined")
+    @Guide(description: "The emotional tone as a single word. Use one of the valid emotion values listed in the system instructions.")
     var emotion: String
 
     @Guide(description: "If your message suggests the user work on a specific task, provide its exact name here. Otherwise leave this empty.")
@@ -163,11 +182,18 @@ final class CompanionService {
 
     static let shared = CompanionService()
 
+    /// All available companion personalities. Add new ones here.
+    static let allPersonalities: [any CompanionPersonality] = [
+        OttoPersonality(),
+        GoosePersonality()
+    ]
+
     var currentMessage: CompanionMessage? = nil
     var isVisible: Bool = false
     var isGenerating: Bool = false
     var modelAvailability: CompanionModelAvailability = .unsupported
     var startTaskRequest: UUID? = nil
+    private(set) var personality: any CompanionPersonality
 
     // Opaque storage for LanguageModelSession (iOS 26+ only)
     private var _session: Any? = nil
@@ -178,7 +204,15 @@ final class CompanionService {
     // Retained store reference so chat sheet can refresh context without prop-drilling
     private var modelStore: ClarityModelActor? = nil
 
+    /// The resolved display name — UserDefaults value, or the personality's default if unset.
+    var displayName: String {
+        let stored = UserDefaults.companionName
+        return stored.isEmpty ? personality.defaultCompanionName : stored
+    }
+
     private init() {
+        let savedID = UserDefaults.companionPersonalityID
+        personality = CompanionService.allPersonalities.first { $0.id == savedID } ?? OttoPersonality()
         checkModelAvailability()
     }
 
@@ -210,6 +244,16 @@ final class CompanionService {
         modelAvailability = .unsupported
         log.warning("checkModelAvailability: FoundationModels not importable")
         #endif
+    }
+
+    // MARK: - Personality selection
+
+    func selectPersonality(_ new: any CompanionPersonality) {
+        personality = new
+        UserDefaults.companionPersonalityID = new.id
+        UserDefaults.companionName = new.defaultCompanionName
+        _session = nil
+        log.info("selectPersonality: switched to \(new.id)")
     }
 
     // MARK: - Store registration
@@ -311,7 +355,9 @@ final class CompanionService {
     @available(iOS 26.0, *)
     private func currentSession() -> LanguageModelSession {
         if let existing = session { return existing }
-        let instructions = buildInstructions()
+        let base = personality.systemInstructions(name: displayName, contextBlock: taskContext.instructionsBlock)
+        let emotionList = personality.supportedEmotions.map(\.rawValue).joined(separator: ", ")
+        let instructions = base + "\n\nValid emotion values: \(emotionList)"
         log.debug("currentSession: creating new session")
         log.debug("currentSession: instructions —\n\(instructions)")
         let newSession = LanguageModelSession(instructions: instructions)
@@ -327,10 +373,6 @@ final class CompanionService {
         return UserDefaults.standard.bool(forKey: "me.craigpeters.clarity.companionEnabled")
     }
 
-    private var companionName: String {
-        UserDefaults.standard.string(forKey: "me.craigpeters.clarity.companionName") ?? "Otto"
-    }
-
     func trigger(_ event: CompanionTrigger) {
         guard companionEnabled else {
             log.debug("trigger: companion disabled, skipping \(String(describing: event))")
@@ -341,7 +383,7 @@ final class CompanionService {
 
         #if canImport(FoundationModels)
         if #available(iOS 26.0, *), modelAvailability.isAvailable {
-            Task { await generate(prompt: buildPrompt(for: event), fallbackEvent: event) }
+            Task { await generate(prompt: personality.prompt(for: event), fallbackEvent: event) }
         } else {
             log.debug("trigger: model unavailable, using fallback")
             showFallback(for: event)
@@ -352,7 +394,7 @@ final class CompanionService {
         #endif
     }
 
-    /// Send a free-form message directly from the user to the otter.
+    /// Send a free-form message directly from the user to the companion.
     func chat(_ userMessage: String) {
         guard companionEnabled,
               !isGenerating,
@@ -377,7 +419,6 @@ final class CompanionService {
 
     #if canImport(FoundationModels)
     /// Single generation path for both trigger events and free-form chat.
-    /// Pass `fallbackEvent` for trigger-sourced calls so the right fallback message is shown on error.
     @available(iOS 26.0, *)
     private func generate(prompt: String, fallbackEvent: CompanionTrigger?) async {
         isGenerating = true
@@ -397,8 +438,7 @@ final class CompanionService {
                 showErrorFallback()
 
             case .exceededContextWindowSize:
-                // Reset to a fresh session and retry once — conversation history is small enough
-                // that losing it is acceptable compared to silently failing.
+                // Reset to a fresh session and retry once
                 log.warning("generate: context window exceeded — resetting session and retrying")
                 session = nil
                 do {
@@ -410,7 +450,6 @@ final class CompanionService {
                 }
 
             case .guardrailViolation:
-                // Guardrail still possible even with guided generation — save feedback for Apple.
                 log.warning("generate: guardrail triggered unexpectedly — saving feedback")
                 let feedbackData = session?.logFeedbackAttachment(
                     sentiment: .negative,
@@ -434,7 +473,6 @@ final class CompanionService {
                 showErrorFallback()
             }
         } catch {
-            // Handles the simulator / early-download case where the error arrives as a generic NSError
             if isModelCatalogError(error) {
                 log.warning("generate: model catalog unavailable — marking modelNotReady")
                 modelAvailability = .modelNotReady
@@ -458,7 +496,9 @@ final class CompanionService {
     @available(iOS 26.0, *)
     private func show(_ output: CompanionOutput) {
         let text = output.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let emotion = CompanionEmotion(rawValue: output.emotion) ?? .happy
+        let emotion = CompanionEmotion(rawValue: output.emotion)
+            ?? personality.supportedEmotions.first
+            ?? .happy
         let suggested = taskContext.dueTasks.first {
             $0.name.localizedCaseInsensitiveCompare(output.suggestedTaskName) == .orderedSame
         }
@@ -469,51 +509,6 @@ final class CompanionService {
         }
     }
     #endif
-
-    // MARK: - Instructions builder
-
-    private func buildInstructions() -> String {
-        let contextBlock = taskContext.instructionsBlock
-        return """
-            You are \(companionName), a friendly and encouraging otter companion in a productivity app called Clarity. \
-            You help users build habits, celebrate their wins, and support them emotionally. \
-            Keep responses SHORT — one or two sentences maximum. Be warm, playful, and positive. \
-            Never use markdown or special formatting. Use plain conversational language.
-
-            Here is the user's current task data. Use this to give specific, personal responses:
-            \(contextBlock)
-
-            When suggesting a task, only pick from the UPCOMING TASKS list above — never from RECENTLY COMPLETED. Prefer tasks that are overdue or due soonest AND have a short focus time. Provide its exact name in suggestedTaskName.
-            """
-    }
-
-    // MARK: - Prompt construction
-
-    private func buildPrompt(for event: CompanionTrigger) -> String {
-        switch event {
-        case .appLaunch:
-            return "The user just opened Clarity. Give them a brief, encouraging greeting to start their day."
-        case .taskCompleted(let taskName):
-            return "The user just completed the task: \"\(taskName)\". Celebrate with them briefly."
-        case .moodSelected(let valence, let taskName):
-            if valence >= 0.5 {
-                return "After completing \"\(taskName)\", the user said they felt great (valence \(String(format: "%.1f", valence))). Respond positively."
-            } else if valence >= 0 {
-                return "After completing \"\(taskName)\", the user said they felt okay (valence \(String(format: "%.1f", valence))). Acknowledge neutrally and encourage."
-            } else {
-                return "After completing \"\(taskName)\", the user said they didn't feel good (valence \(String(format: "%.1f", valence))). Respond with empathy and gentle support."
-            }
-        case .pomodoroCompleted(let taskName):
-            return "The user just finished a focus session on \"\(taskName)\". Congratulate them warmly."
-        case .streakMilestone(let days):
-            return "The user hit a \(days)-day streak! Give them an enthusiastic celebration."
-        case .lowMoodDetected(let avg):
-            return "The user's recent mood scores have been low (average \(String(format: "%.1f", avg))). Offer gentle encouragement and care."
-        case .habitSuggestion(let categories, let completedCount):
-            let catList = categories.prefix(3).joined(separator: ", ")
-            return "The user has completed \(completedCount) tasks recently in categories: \(catList). Suggest they keep up the momentum and perhaps start a related habit today."
-        }
-    }
 
     // MARK: - Error classification
 
@@ -529,7 +524,6 @@ final class CompanionService {
             }
         }
         #endif
-        // Simulator / early-download case: wrapped as generic Code=-1
         let ns = error as NSError
         if ns.domain == "FoundationModels.LanguageModelSession.GenerationError", ns.code == -1 {
             return true
@@ -539,65 +533,23 @@ final class CompanionService {
 
     // MARK: - Fallback (no LLM)
 
-    /// Used when generation fails mid-request. Apologises and nudges the user toward their most overdue task.
     private func showErrorFallback() {
-        let message: CompanionMessage
-        if let overdue = taskContext.dueTasks.first {
-            message = CompanionMessage(
-                text: "Sorry, I lost my train of thought there! How about tackling \"\(overdue.name)\"? It's been waiting the longest.",
-                emotion: .caring,
-                suggestedTask: overdue
-            )
-        } else {
-            message = CompanionMessage(
-                text: "Sorry, I'm having a little trouble right now. But you've got this — keep going!",
-                emotion: .caring
-            )
-        }
+        let message = personality.errorFallback(overdueTask: taskContext.dueTasks.first)
         withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
             currentMessage = message
             isVisible = true
         }
     }
 
-    private func showFallbackOrChat(for event: CompanionTrigger?) {
-        if let event {
-            showFallback(for: event)
-        } else {
-            showChatFallback()
-        }
-    }
-
     private func showChatFallback() {
         withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-            currentMessage = CompanionMessage(text: "I hear you! Keep going — you've got this.", emotion: .encouraging)
+            currentMessage = personality.chatFallback
             isVisible = true
         }
     }
 
     private func showFallback(for event: CompanionTrigger) {
-        let message: CompanionMessage
-        switch event {
-        case .appLaunch:
-            message = CompanionMessage(text: "Ready to make today count?", emotion: .encouraging)
-        case .taskCompleted:
-            message = CompanionMessage(text: "Nice work! Keep the momentum going!", emotion: .happy)
-        case .moodSelected(let valence, _):
-            if valence >= 0 {
-                message = CompanionMessage(text: "Great attitude — every session counts!", emotion: .loving)
-            } else {
-                message = CompanionMessage(text: "It's okay to have tough days. I'm proud of you for showing up.", emotion: .caring)
-            }
-        case .pomodoroCompleted:
-            message = CompanionMessage(text: "Another focus session done! You're on a roll.", emotion: .happy)
-        case .streakMilestone(let days):
-            message = CompanionMessage(text: "\(days) days in a row — that's dedication!", emotion: .encouraging)
-        case .lowMoodDetected:
-            message = CompanionMessage(text: "Tough times don't last. You've got this.", emotion: .caring)
-        case .habitSuggestion:
-            message = CompanionMessage(text: "You're building great habits. Keep it up!", emotion: .determined)
-        }
-
+        let message = personality.fallbackMessage(for: event)
         withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
             currentMessage = message
             isVisible = true

@@ -1,8 +1,8 @@
 // CompanionSpriteView.swift
-// Displays the otter companion for a given emotion.
+// Displays the companion sprite for a given emotion.
 //
-// To replace the placeholder with a real image, add a PNG to companion.xcassets
-// using the asset name for the emotion (see `assetName` below) and it will be
+// To add a real image, add a PNG to companion.xcassets using the name
+// "\(assetPrefix)_\(emotion.rawValue)" (e.g. "otter_idle") and it will be
 // picked up automatically. The image should be square and at least 256×256 px.
 
 import SwiftUI
@@ -10,19 +10,11 @@ import SwiftUI
 struct CompanionSpriteView: View {
     let emotion: CompanionEmotion
     let size: CGFloat
+    var assetPrefix: String = "otter"
+    var fallbackEmoji: String = "🦦"
 
-    // MARK: - Asset name per emotion
-    // Add a matching image to companion.xcassets to replace the emoji placeholder.
     private var assetName: String {
-        switch emotion {
-        case .idle:        return "otter_idle"
-        case .thinking:    return "otter_thinking"
-        case .happy:       return "otter_happy"
-        case .encouraging: return "otter_encouraging"
-        case .loving:      return "otter_loving"
-        case .caring:      return "otter_caring"
-        case .determined:  return "otter_determined"
-        }
+        "\(assetPrefix)_\(emotion.rawValue)"
     }
 
     var body: some View {
@@ -37,7 +29,7 @@ struct CompanionSpriteView: View {
             ZStack {
                 Circle()
                     .fill(Color.brown.opacity(0.15))
-                Text("🦦")
+                Text(fallbackEmoji)
                     .font(.system(size: size * 0.6))
             }
             .frame(width: size, height: size)
@@ -50,9 +42,11 @@ struct CompanionSpriteView: View {
 struct CompanionFaceView: View {
     let emotion: CompanionEmotion
     let size: CGFloat
+    var assetPrefix: String = "otter"
+    var fallbackEmoji: String = "🦦"
 
     var body: some View {
-        CompanionSpriteView(emotion: emotion, size: size)
+        CompanionSpriteView(emotion: emotion, size: size, assetPrefix: assetPrefix, fallbackEmoji: fallbackEmoji)
             .background(Circle().fill(.white))
             .clipShape(Circle())
             .overlay(Circle().stroke(Color.black, lineWidth: 2))

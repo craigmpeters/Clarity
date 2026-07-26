@@ -61,7 +61,7 @@ struct SettingsView: View {
                     HStack {
                         Image(systemName: "otter")
                             .foregroundColor(.brown)
-                        Text("Otto the Otter")
+                        Text("Choose a Companion")
                     }
                 }
                 .foregroundColor(.primary)

@@ -245,7 +245,7 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
         let json = try encoder.encode(tasks)
         // Compress using OutputFilter (.compress) with zlib settings
         var compressed = Data()
-        var filter = try OutputFilter(.compress, using: .zlib) { chunk in
+        let filter = try OutputFilter(.compress, using: .zlib) { chunk in
             if let chunk { compressed.append(chunk) }
         }
         try filter.write(json)
@@ -258,7 +258,7 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
     /// - Returns: Decoded list of tasks
     public nonisolated func decodeCompressedData(_ data: Data) throws -> ToDoTaskList {
         var output = Data()
-        var filter = try OutputFilter(.decompress, using: .zlib) { chunk in
+        let filter = try OutputFilter(.decompress, using: .zlib) { chunk in
             if let chunk { output.append(chunk) }
         }
         try filter.write(data)
@@ -323,7 +323,7 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
         
         nonisolated private func zipData(with data: [Data]) throws -> Data {
             var compressed = Data()
-            var filter = try OutputFilter(.compress, using: .zlib) { chunk in
+            let filter = try OutputFilter(.compress, using: .zlib) { chunk in
                 if let chunk { compressed.append(chunk) }
             }
             // Concatenate all data parts into a single buffer. Alternatively, we could stream them one by one.
@@ -336,7 +336,7 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
         /// Decompresses zlib-compressed data produced by `zipData(with:)`.
     nonisolated private func unzipData(_ compressed: Data) throws -> Data {
         var output = Data()
-        var filter = try OutputFilter(.decompress, using: .zlib) { chunk in
+        let filter = try OutputFilter(.decompress, using: .zlib) { chunk in
             if let chunk { output.append(chunk) }
         }
         try filter.write(compressed)
@@ -360,7 +360,7 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
         let snapshot = WatchUserInfo(tasks: tasks, progress: progress)
         let json = try encoder.encode(snapshot)
         var compressed = Data()
-        var filter = try OutputFilter(.compress, using: .zlib) { chunk in
+        let filter = try OutputFilter(.compress, using: .zlib) { chunk in
             if let chunk { compressed.append(chunk) }
         }
         try filter.write(json)

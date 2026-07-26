@@ -1,5 +1,5 @@
 // CompanionView.swift
-// Floating otter companion overlay — appears across all tabs
+// Floating companion overlay — appears across all tabs
 
 import SwiftUI
 
@@ -53,7 +53,9 @@ struct CompanionOverlayView: View {
         let position = bubblePosition(in: geo)
         CompanionFaceView(
             emotion: companion.isGenerating ? .thinking : .idle,
-            size: bubbleSize
+            size: bubbleSize,
+            assetPrefix: companion.personality.assetPrefix,
+            fallbackEmoji: companion.personality.fallbackEmoji
         )
         .offset(dragOffset)
         .position(x: position.x, y: position.y)
@@ -101,8 +103,13 @@ struct CompanionOverlayView: View {
                 if !isRightSide {
                     replyButton
                 }
-                CompanionFaceView(emotion: message.emotion, size: expandedOtterSize)
-                    .frame(width: expandedOtterSize, height: expandedOtterSize)
+                CompanionFaceView(
+                    emotion: message.emotion,
+                    size: expandedOtterSize,
+                    assetPrefix: companion.personality.assetPrefix,
+                    fallbackEmoji: companion.personality.fallbackEmoji
+                )
+                .frame(width: expandedOtterSize, height: expandedOtterSize)
                 if isRightSide {
                     replyButton
                 }
@@ -207,11 +214,13 @@ struct CompanionChatSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Otter header
+                // Companion header
                 VStack(spacing: 8) {
                     CompanionFaceView(
                         emotion: companion.currentMessage?.emotion ?? .idle,
-                        size: 80
+                        size: 80,
+                        assetPrefix: companion.personality.assetPrefix,
+                        fallbackEmoji: companion.personality.fallbackEmoji
                     )
                     if let message = companion.currentMessage {
                         Text(message.text)
@@ -252,7 +261,7 @@ struct CompanionChatSheet: View {
                 if companion.modelAvailability.isAvailable {
                     // Input bar
                     HStack(spacing: 10) {
-                        TextField("Say something to \(UserDefaults.standard.string(forKey: "me.craigpeters.clarity.companionName") ?? "Otto")…", text: $inputText, axis: .vertical)
+                        TextField("Say something to \(companion.displayName)…", text: $inputText, axis: .vertical)
                             .lineLimit(1...4)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
@@ -293,7 +302,7 @@ struct CompanionChatSheet: View {
                     .padding(.vertical, 16)
                 }
             }
-            .navigationTitle(UserDefaults.standard.string(forKey: "me.craigpeters.clarity.companionName") ?? "Otto")
+            .navigationTitle(companion.displayName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

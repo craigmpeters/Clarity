@@ -2,8 +2,6 @@
 //  UserDefaults+Extensions.swift
 //  Clarity
 //
-//  Created by AI Assistant on 07/09/2025.
-//
 
 import Foundation
 
@@ -59,7 +57,7 @@ extension UserDefaults {
         }
     }
 
-    /// Whether the otter companion is enabled.
+    /// Whether the companion is enabled.
     static var companionEnabled: Bool {
         get {
             // Default to true on first launch
@@ -73,13 +71,23 @@ extension UserDefaults {
         }
     }
 
-    /// The display name for the otter companion.
+    /// The display name for the companion. Empty string means use the personality's default.
     static var companionName: String {
         get {
-            UserDefaults.standard.string(forKey: "me.craigpeters.clarity.companionName") ?? "Otto"
+            UserDefaults.standard.string(forKey: "me.craigpeters.clarity.companionName") ?? ""
         }
         set {
             UserDefaults.standard.set(newValue, forKey: "me.craigpeters.clarity.companionName")
+        }
+    }
+
+    /// The ID of the selected companion personality (see CompanionPersonality.id).
+    static var companionPersonalityID: String {
+        get {
+            UserDefaults.standard.string(forKey: "me.craigpeters.clarity.companionPersonalityID") ?? "otto"
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "me.craigpeters.clarity.companionPersonalityID")
         }
     }
 

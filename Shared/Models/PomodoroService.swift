@@ -182,11 +182,11 @@ import XCGLogger
         if startedDevice == .watchOS {
             if let task = toDoTask {
                 LogManager.shared.log.debug("Sending Pomodoro Stopped with Task")
-                await ClarityWatchConnectivity.shared.sendPomodoroStopped(task)
+                ClarityWatchConnectivity.shared.sendPomodoroStopped(task)
             }
         } else {
             LogManager.shared.log.debug("Sending Pomodoro Stopped without Task")
-            await ClarityWatchConnectivity.shared.sendPomodoroStopped()
+            ClarityWatchConnectivity.shared.sendPomodoroStopped()
         }
     }
     
