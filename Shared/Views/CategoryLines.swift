@@ -21,9 +21,9 @@ struct CategoryLines: View {
     }
 }
 
-#Preview {
-    CategoryLines(
-        categories: PreviewData.shared.getCategories()
-    )
-    .modelContainer(PreviewData.shared.previewContainer)
-}
+//#Preview {
+//    CategoryLines(
+//        categories: PreviewData.shared.getCategories()
+//    )
+//    .modelContainer(PreviewData.shared.previewContainer)
+//}
