@@ -17,31 +17,41 @@ struct PomodoroLiveActivityWidget: Widget {
             PomodoroLiveActivityView(context: context)
         } dynamicIsland: { context in
             DynamicIsland {
-                // Minimal expanded region - just the timer
                 DynamicIslandExpandedRegion(.center) {
                     HStack {
                         VStack(alignment: .leading) {
                             Text(context.state.taskName)
-                                .font(.subheadline) // Smaller than .headline
+                                .font(.subheadline)
                                 .lineLimit(1)
                             if context.isStale {
                                 Text("Timer Finished!")
-                                    .font(.title3) // Smaller than .title2
+                                    .font(.title3)
                                     .fontWeight(.semibold)
                                     .monospacedDigit()
                             } else {
                                 Text(context.state.endTime, style: .timer)
-                                    .font(.title3) // Smaller than .title2
+                                    .font(.title3)
                                     .fontWeight(.semibold)
                                     .monospacedDigit()
                             }
                         }
+                        Spacer()
                         Image("clarity-teeny")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                     }
                 }
-
+                DynamicIslandExpandedRegion(.bottom) {
+                    if context.isStale {
+                        MoodButtonRow()
+                    } else {
+                        Button(intent: StopPomodoroIntent()) {
+                            Label("Stop & Complete", systemImage: "stop.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .tint(.red)
+                    }
+                }
             } compactLeading: {
                 Image("clarity-teeny")
                     .resizable()
@@ -122,9 +132,37 @@ struct PomodoroLiveActivityView: View {
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 80, height: 80)
                 }
+                if context.isStale {
+                    MoodButtonRow()
+                } else {
+                    Button(intent: StopPomodoroIntent()) {
+                        Label("Stop", systemImage: "stop.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .tint(.red)
+                }
             }
             .padding()
             .background(Color.black.opacity(0.1))
+        }
+    }
+}
+
+// MARK: - Mood button row
+
+private struct MoodButtonRow: View {
+    private let moods: [PomodoroMood] = [.excited, .happy, .calm, .stressed, .discouraged]
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(moods, id: \.rawValue) { mood in
+                Button(intent: LogMoodIntent(mood: mood)) {
+                    Text(mood.emoji)
+                        .font(.title2)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 }

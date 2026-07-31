@@ -5,7 +5,7 @@
 //  Created by Craig Peters on 11/10/2025.
 //
 
-import ActivityKit
+@preconcurrency import ActivityKit
 import Combine
 import Foundation
 import SwiftData
@@ -54,7 +54,21 @@ import XCGLogger
         return 1.0 - (remainingTime / total)
     }
     
+    /// A single completed Pomodoro session, stored for display in the history list.
+    struct CompletedSession: Codable, Identifiable {
+        let id: UUID
+        let taskName: String
+        let taskUUID: UUID?
+        let startTime: Date
+        let endTime: Date   // actual end (may be early)
+        var moodLogged: Bool = false
+        var moodEmoji: String? = nil
+    }
+
+    @Published var recentSessions: [CompletedSession] = []
+
     private let pomodoroPersistKey = "activePomodoroState"
+    private let sessionHistoryKey = "completedPomodoroSessions"
     private let appGroupID = "group.me.craigpeters.clarity"
     
     private struct PersistedPomodoro: Codable {
@@ -74,6 +88,34 @@ import XCGLogger
         case watchOS
     }
     
+    // MARK: Preview Support
+
+#if DEBUG
+    /// Creates a `PomodoroService` with a running timer pre-seeded for SwiftUI previews.
+    /// Bypasses Live Activities, notifications, and persistence entirely.
+    @MainActor
+    static func makePreview(taskName: String = "SwiftUI documentation reading",
+                            totalMinutes: Int = 25,
+                            elapsedMinutes: Int = 10) -> PomodoroService {
+        let svc = PomodoroService()
+        let totalSeconds = TimeInterval(totalMinutes * 60)
+        let elapsed = TimeInterval(elapsedMinutes * 60)
+        let now = Date()
+        svc.toDoTask = ToDoTaskDTO(
+            name: taskName,
+            pomodoroTime: totalSeconds,
+            due: now,
+            completed: false
+        )
+        svc.startTime = now.addingTimeInterval(-elapsed)
+        svc.endTime   = now.addingTimeInterval(totalSeconds - elapsed)
+        svc.remainingTime = totalSeconds - elapsed
+        svc.progress  = elapsed / totalSeconds
+        svc.isActive  = true
+        return svc
+    }
+#endif
+
     // MARK: Public Functions
     
     @MainActor
@@ -112,6 +154,14 @@ import XCGLogger
             return
         }
 
+        // Capture session details before clearing state
+        let sessionTaskName = toDoTask?.name ?? "Unknown Task"
+        let sessionStart = startTime ?? Date()
+        let sessionEnd = Date()
+
+        // Determine if the timer ran out naturally (vs. manual early stop)
+        let completedNaturally = remainingTime <= 0
+
         // Mark inactive and clean up timer/activity/notification
         isActive = false
 
@@ -120,25 +170,29 @@ import XCGLogger
         }
         timer = nil
 
-        stopLiveActivity()
+        stopLiveActivity(naturally: completedNaturally)
         cancelNotification()
         clearPersistedState()
-        
+
+        // Record the completed session for the history list
+        recordCompletedSession(taskName: sessionTaskName, taskUUID: toDoTask?.uuid, startTime: sessionStart, endTime: sessionEnd)
+
         // Post a single completion notification
         NotificationCenter.default.post(name: .pomodoroCompleted, object: nil)
         if startedDevice == .watchOS {
             if let task = toDoTask {
                 LogManager.shared.log.debug("Sending Pomodoro Stopped with Task")
-                await ClarityWatchConnectivity.shared.sendPomodoroStopped(task)
+                ClarityWatchConnectivity.shared.sendPomodoroStopped(task)
             }
         } else {
             LogManager.shared.log.debug("Sending Pomodoro Stopped without Task")
-            await ClarityWatchConnectivity.shared.sendPomodoroStopped()
+            ClarityWatchConnectivity.shared.sendPomodoroStopped()
         }
     }
     
     @MainActor
     func restoreIfNeeded(container: ModelContainer, device: DeviceType) async {
+        loadSessionHistory()
         guard let data = appGroupDefaults()?.data(forKey: pomodoroPersistKey) else {
             LogManager.shared.log.debug("No Pomodoro state to restore")
             return
@@ -151,10 +205,11 @@ import XCGLogger
                 let store = ClarityModelActor(modelContainer: container)
                 let lastCompleted = await store.fetchLastCompletedTask()
                 if let uuid = persisted.taskUUID {
-                    if lastCompleted?.uuid == uuid && (lastCompleted?.completedAt)! > persisted.startTime {
+                    let alreadyCompleted = lastCompleted?.uuid == uuid
+                        && (lastCompleted?.completedAt ?? .distantPast) > persisted.startTime
+                    if alreadyCompleted {
                         LogManager.shared.log.debug("Task already completed")
                     } else {
-                        //TODO: This could be an issue
                         LogManager.shared.log.debug("Completing task after restoring UUID: \(uuid.uuidString)")
                         try await store.completeTask(uuid)
                     }
@@ -232,7 +287,7 @@ import XCGLogger
         }
     }
     
-    private func stopLiveActivity() {
+    private func stopLiveActivity(naturally: Bool = false) {
         let all = Activity<PomodoroAttributes>.activities
         LogManager.shared.log.debug("Stopping Live Activities. There are \(all.count) Live Activities")
 
@@ -247,12 +302,21 @@ import XCGLogger
                 LogManager.shared.log.debug("Attempting to stop activity with state: \(activity.activityState)")
 
                 do {
-                    await activity.end(
-                        ActivityContent(state: activity.content.state, staleDate: nil),
-                        dismissalPolicy: .immediate
-                    )
+                    if naturally {
+                        // Leave the activity visible (stale) so the user can tap a mood button.
+                        // Use .after to auto-dismiss after 5 minutes if no mood is tapped.
+                        await activity.end(
+                            ActivityContent(state: activity.content.state, staleDate: Date()),
+                            dismissalPolicy: .after(Date().addingTimeInterval(5 * 60))
+                        )
+                    } else {
+                        await activity.end(
+                            ActivityContent(state: activity.content.state, staleDate: nil),
+                            dismissalPolicy: .immediate
+                        )
+                    }
                     endedAny = true
-                    LogManager.shared.log.debug("Stopped Live Activity")
+                    LogManager.shared.log.debug("Stopped Live Activity (naturally: \(naturally))")
                 } catch {
                     LogManager.shared.log.error("Failed to end Live Activity: \(error.localizedDescription)")
                 }
@@ -353,6 +417,52 @@ import XCGLogger
     private func clearPersistedState() {
         appGroupDefaults()?.removeObject(forKey: pomodoroPersistKey)
         LogManager.shared.log.debug("Cleared persisted pomodoro")
+    }
+
+    // MARK: - Session History
+
+    /// Marks the session with the given id as having its mood logged, then persists.
+    @MainActor
+    func markMoodLogged(for sessionID: UUID, emoji: String) {
+        guard let index = recentSessions.firstIndex(where: { $0.id == sessionID }) else { return }
+        recentSessions[index].moodLogged = true
+        recentSessions[index].moodEmoji = emoji
+        saveSessionHistory()
+    }
+
+    /// Appends a newly completed session and persists the updated list.
+    @MainActor
+    func recordCompletedSession(taskName: String, taskUUID: UUID?, startTime: Date, endTime: Date) {
+        let session = CompletedSession(
+            id: UUID(),
+            taskName: taskName,
+            taskUUID: taskUUID,
+            startTime: startTime,
+            endTime: endTime
+        )
+        recentSessions.insert(session, at: 0)
+        pruneOldSessions()
+        saveSessionHistory()
+    }
+
+    /// Loads the session history from app-group storage, pruning entries older than 12 hours.
+    @MainActor
+    func loadSessionHistory() {
+        guard let data = appGroupDefaults()?.data(forKey: sessionHistoryKey),
+              let sessions = try? JSONDecoder().decode([CompletedSession].self, from: data)
+        else { return }
+        let cutoff = Date().addingTimeInterval(-12 * 3600)
+        recentSessions = sessions.filter { $0.endTime >= cutoff }
+    }
+
+    private func pruneOldSessions() {
+        let cutoff = Date().addingTimeInterval(-12 * 3600)
+        recentSessions = recentSessions.filter { $0.endTime >= cutoff }
+    }
+
+    private func saveSessionHistory() {
+        guard let data = try? JSONEncoder().encode(recentSessions) else { return }
+        appGroupDefaults()?.set(data, forKey: sessionHistoryKey)
     }
 
 }

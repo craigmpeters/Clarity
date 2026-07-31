@@ -8,7 +8,6 @@ struct TaskIndexView: View {
     @Environment(\.modelContext) private var context
     
     @Binding var selectedTask: ToDoTaskDTO?
-    @Binding var showingPomodoro: Bool
     
     @State private var showingTaskForm = false
     @State private var taskToEdit: ToDoTaskDTO?
@@ -138,12 +137,13 @@ struct TaskIndexView: View {
     }
     
     private func startTimer(for task: ToDoTaskDTO) {
+        guard !PomodoroService.shared.isActive else {
+            LogManager.shared.log.debug("Pomodoro already active, ignoring start request for \(task.name)")
+            return
+        }
         LogManager.shared.log.debug("Starting Pomodoro for \(task.name)")
         selectedTask = task
-        withAnimation(.easeInOut(duration: 0.3)) {
-            // showingPomodoro = true
-            PomodoroService.shared.startPomodoro(for: task, container: context.container, device: .iPhone)
-        }
+        PomodoroService.shared.startPomodoro(for: task, container: context.container, device: .iPhone)
     }
     
     private func requestNotificationPermission() async {
@@ -198,11 +198,9 @@ struct TaskIndexView: View {
 
 #if DEBUG
 #Preview {
-    @Previewable @State var showingPomodoro = false
     @Previewable @State var selectedTask: ToDoTaskDTO? = nil
     TaskIndexView(
-        selectedTask: .constant(selectedTask),
-        showingPomodoro: .constant(showingPomodoro)
+        selectedTask: .constant(selectedTask)
     )
     .modelContainer(PreviewData.shared.previewContainer)
 }

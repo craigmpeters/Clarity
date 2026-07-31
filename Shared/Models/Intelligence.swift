@@ -19,6 +19,7 @@ struct SplitTaskSuggestion: Identifiable {
 
 // MARK: - AI Task Splitter Service
 @available(iOS 26.0, *)
+@MainActor
 class TaskSplitterService: ObservableObject {
     @Published var isProcessing = false
     @Published var suggestions: [SplitTaskSuggestion] = []
@@ -26,10 +27,8 @@ class TaskSplitterService: ObservableObject {
     
     
     func splitTask(_ taskName: String) async {
-        await MainActor.run {
-            self.isProcessing = true
-            self.error = nil
-        }
+        isProcessing = true
+        self.error = nil
         
         do {
             // Create the prompt for task splitting
@@ -56,17 +55,11 @@ class TaskSplitterService: ObservableObject {
             )
             
             // Parse the response into suggestions
-            let parsedSuggestions = parseResponse(response.content, taskName: taskName)
-            
-            await MainActor.run {
-                self.suggestions = parsedSuggestions
-                self.isProcessing = false
-            }
+            suggestions = parseResponse(response.content, taskName: taskName)
+            isProcessing = false
         } catch {
-            await MainActor.run {
-                self.error = "Failed to generate suggestions: \(error.localizedDescription)"
-                self.isProcessing = false
-            }
+            self.error = "Failed to generate suggestions: \(error.localizedDescription)"
+            isProcessing = false
         }
     }
     
@@ -107,6 +100,7 @@ class TaskSplitterService: ObservableObject {
 
 // MARK: Pomodoro Suggestion Service
 @available(iOS 26, *)
+@MainActor
 class PomodoroSuggestionService: ObservableObject {
     @Published var isProcessing = false
     @Published var suggestedInterval: TimeInterval = 0
@@ -114,10 +108,8 @@ class PomodoroSuggestionService: ObservableObject {
     
     @available(iOS 26, *)
     func suggestTime(for task: String) async {
-        await MainActor.run {
-            self.isProcessing = true
-            self.error = nil
-        }
+        isProcessing = true
+        self.error = nil
         
         do {
             let prompt = """
@@ -140,17 +132,13 @@ class PomodoroSuggestionService: ObservableObject {
             LogManager.shared.log.info("Apple Intelligence Response: \(response.content) for \(task)")
             
             let minutes = Int(response.content)
-            await MainActor.run {
-                self.suggestedInterval = TimeInterval((minutes ?? 25) * 60)
-                self.isProcessing = false
-            }
+            suggestedInterval = TimeInterval((minutes ?? 25) * 60)
+            isProcessing = false
             
         } catch {
             LogManager.shared.log.error("Cannot Generate Suggested Pomodoro: \(error)")
-            await MainActor.run {
-                self.error = "Failed to generate suggestions: \(error.localizedDescription)"
-                self.isProcessing = false
-            }
+            self.error = "Failed to generate suggestions: \(error.localizedDescription)"
+            isProcessing = false
         }
     }
 }

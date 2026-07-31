@@ -1,9 +1,11 @@
+import HealthKit
 import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @State private var showingCategoryManagement = false
+    @State private var healthKitEnabled = UserDefaults.healthKitEnabled
 #if INTERNAL
     @State private var showingShareSheet = false
     @State private var shareItems: [URL] = []
@@ -17,6 +19,49 @@ struct SettingsView: View {
                         Image(systemName: "tag")
                             .foregroundColor(.blue)
                         Text("Manage Categories & Targets")
+                    }
+                }
+                .foregroundColor(.primary)
+            }
+
+            Section("Health") {
+                if HKHealthStore.isHealthDataAvailable() {
+                    Toggle(isOn: $healthKitEnabled) {
+                        HStack {
+                            Image(systemName: "heart.fill")
+                                .foregroundColor(.pink)
+                            Text("Log Mood After Focus")
+                        }
+                    }
+                    .onChange(of: healthKitEnabled) { _, enabled in
+                        UserDefaults.healthKitEnabled = enabled
+                        if enabled {
+                            Task {
+                                await HealthKitService.shared.requestAuthorization()
+                            }
+                        }
+                    }
+                    if healthKitEnabled {
+                        Text("After each Pomodoro, you'll be asked how the session made you feel. Responses are saved to the Health app as State of Mind entries.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    HStack {
+                        Image(systemName: "heart.slash")
+                            .foregroundColor(.secondary)
+                        Text("Health is not available on this device")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Section("Companion") {
+                NavigationLink(destination: CompanionSettingsView()) {
+                    HStack {
+                        Image(systemName: "otter")
+                            .foregroundColor(.brown)
+                        Text("Choose a Companion")
                     }
                 }
                 .foregroundColor(.primary)

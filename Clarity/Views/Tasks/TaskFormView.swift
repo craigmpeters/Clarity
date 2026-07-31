@@ -81,13 +81,7 @@ struct TaskFormView: View {
             Form {
                 Section("Task Details") {
                     TextField("Task name", text: $toDoTask.name)
-                        .textFieldStyle(.roundedBorder)
-                }
-                if #available(iOS 26.0, *) {
-                    aiSplitterSection
-                }
-                
-                Section("Task Settings") {
+                        .textFieldStyle(.automatic)
                     HStack {
                         Image(systemName: "timer")
                             .foregroundStyle(.orange)
@@ -225,6 +219,9 @@ struct TaskFormView: View {
                     }
                     
                     CategorySelectionView(selectedCategories: $selectedCategories)
+                }
+                if #available(iOS 26.0, *) {
+                    aiSplitterSection
                 }
             }
             .navigationTitle(isEditing ? "Edit Task" : "Add Task")

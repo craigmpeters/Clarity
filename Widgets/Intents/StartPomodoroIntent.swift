@@ -11,9 +11,9 @@ import SwiftData
 import XCGLogger
 
 struct StartPomodoroIntent: AppIntent {
-    static var title: LocalizedStringResource = "Start Timer"
-    static var description = IntentDescription("Start a timer for a task")
-    static var openAppWhenRun: Bool = true // Foreground the app; navigation handled by intent-driven routing
+    static let title: LocalizedStringResource = "Start Timer"
+    static let description = IntentDescription("Start a timer for a task")
+    static let openAppWhenRun: Bool = true // Foreground the app; navigation handled by intent-driven routing
     private var taskUuid: String?
 
     @Parameter(title: "Task")
@@ -57,7 +57,7 @@ struct StartPomodoroIntent: AppIntent {
 
 // Simple intent to open the app
 struct OpenAppIntent: AppIntent {
-    static var title: LocalizedStringResource = "Open Clarity"
+    static let title: LocalizedStringResource = "Open Clarity"
     
     func perform() async throws -> some IntentResult {
         LogManager.shared.log.debug("OpenAppIntent Launched")

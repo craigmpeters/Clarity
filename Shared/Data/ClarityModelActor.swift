@@ -14,7 +14,7 @@ import XCGLogger
 @ModelActor
 actor ClarityModelActor {
     // MARK: Category Functions
-    private let logger = LogManager.shared.log
+    private var logger: XCGLogger { LogManager.shared.log }
     // Prevent concurrent completions for the same UUID within this actor
     private var inFlightCompletions: Set<UUID> = []
 
@@ -331,6 +331,18 @@ actor ClarityModelActor {
         try? deduplicateTasksByUUID()
     }
     
+    /// Records the mood valence on the most recently completed task with the given UUID.
+    func recordMood(valence: Double, taskUUID: UUID) throws {
+        let uuid: UUID? = taskUUID
+        let descriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate { $0.uuid == uuid && $0.completed },
+            sortBy: [SortDescriptor(\.completedAt, order: .reverse)]
+        )
+        guard let task = try modelContext.fetch(descriptor).first else { return }
+        task.completionMoodValence = valence
+        try modelContext.save()
+    }
+
     func fetchLastCompletedAt(uuid: UUID) throws -> Date? {
         let taskUuid: UUID? = uuid
         let descriptor = FetchDescriptor<ToDoTask>(
@@ -427,6 +439,8 @@ actor ClarityModelActor {
         let categoryCount = resolvedCategories.count
         LogManager.shared.log.debug("createNextOccurrence: base task uuid=\(task.uuid?.uuidString ?? "nil"), name=\(task.name ?? "nil"), categories=\(categoryCount), nextDue=\(nextDueDate)")
         
+        // uuid is shared across all occurrences of a recurring series — this is the existing
+        // behaviour and must not change to preserve CloudKit identity across devices.
         let newTask = ToDoTaskDTO(
             name: task.name,
             pomodoroTime: task.pomodoroTime,
@@ -442,34 +456,16 @@ actor ClarityModelActor {
     }
     
     func fetchWeeklyProgress() throws -> WeeklyProgress {
-        let globalDescriptor = FetchDescriptor<GlobalTargetSettings>()
-        let globalSettings = try modelContext.fetch(globalDescriptor).first
-        let globalTarget = globalSettings?.weeklyGlobalTarget ?? 0
-        
-        // Get current week start (Monday)
-        let calendar = Calendar.current
-        let now = Date()
-        var components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
-        
-        // TODO: Have the start day configurable
-        components.weekday = 2 // Monday
-        let weekStart = calendar.date(from: components) ?? now
-        
-        let taskDescriptor = FetchDescriptor<ToDoTask>(
-            predicate: #Predicate {
-                $0.completedAt != nil &&
-                    $0.completedAt! > weekStart
-            }
-        )
-        let tasks = try modelContext.fetch(taskDescriptor)
-        
-        let completedCount = tasks.count
+        let globalTarget = (try? modelContext.fetch(FetchDescriptor<GlobalTargetSettings>()))?.first?.weeklyGlobalTarget ?? 0
+        let categories = (try? modelContext.fetch(FetchDescriptor<Category>()))?.map(CategoryDTO.init(from:)) ?? []
+        let completedDTOs = (try? modelContext.fetch(
+            FetchDescriptor<ToDoTask>(predicate: #Predicate { $0.completed })
+        ))?.map(ToDoTaskDTO.init(from:)) ?? []
 
-        return WeeklyProgress(
-            completed: completedCount,
-            target: globalTarget,
-            error: "",
-            categories: []
+        return StatisticsCalculator.weeklyProgress(
+            completedTasks: completedDTOs,
+            categories: categories,
+            globalTarget: globalTarget
         )
     }
     
@@ -548,12 +544,9 @@ actor ClarityModelActor {
     
     func getTaskHistory(for taskUuid: UUID) -> [ToDoTask] {
         let descriptor = FetchDescriptor<ToDoTask>(
-            predicate: #Predicate { $0.uuid == taskUuid}
+            predicate: #Predicate { $0.uuid == taskUuid }
         )
-        guard let tasks = try? modelContext.fetch(descriptor) else {
-            return []
-        }
-        return tasks
+        return (try? modelContext.fetch(descriptor)) ?? []
     }
     
 //    func getTaskHistoryTimeline(for taskUuid: UUID) -> [TaskHistoryEntry] {
@@ -581,7 +574,7 @@ enum ClarityModelActorFactory {
 
 // Containers.swift
 enum Containers {
-    static func liveApp() throws -> ModelContainer {
+    nonisolated static func liveApp() throws -> ModelContainer {
         let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self, TaskSwipeAndTapOptions.self])
         let cfg = ModelConfiguration(
             schema: schema,
@@ -593,7 +586,7 @@ enum Containers {
         return try ModelContainer(for: schema, configurations: [cfg])
     }
 
-    static func liveExtension() throws -> ModelContainer {
+    nonisolated static func liveExtension() throws -> ModelContainer {
         let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self, TaskSwipeAndTapOptions.self])
         let cfg = ModelConfiguration(
             schema: schema,
@@ -605,7 +598,7 @@ enum Containers {
         return try ModelContainer(for: schema, configurations: [cfg])
     }
 
-    static func inMemory() throws -> ModelContainer {
+    nonisolated static func inMemory() throws -> ModelContainer {
         let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self, TaskSwipeAndTapOptions.self])
         let cfg = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, allowsSave: true)
         return try ModelContainer(for: schema, configurations: [cfg])
@@ -614,7 +607,7 @@ enum Containers {
 
 // AppContainer.swift (APP TARGET)
 enum AppContainer {
-    static let shared: ModelContainer = {
+    nonisolated static let shared: ModelContainer = {
         return try! Containers.liveApp()
     }()
 }
@@ -643,12 +636,5 @@ struct CompletedTaskEntry: TimelineEntry {
     let progress: WeeklyProgress
     let filter: ToDoTask.CompletedTaskFilter
     let showWeeklyProgress: Bool
-}
-
-public struct WatchWidgetData: Codable, Sendable {
-    public var due: Int
-    public var completed: Int
-    public var progress: Int
-    public var target: Int
 }
 

@@ -10,8 +10,8 @@ import AppIntents
 
 struct GetTaskIntent : AppIntent {
     
-    static var title: LocalizedStringResource = "Get Task Details"
-    static var description = IntentDescription("Get Details about a task")
+    static let title: LocalizedStringResource = "Get Task Details"
+    static let description = IntentDescription("Get Details about a task")
     
     static var parameterSummary: some ParameterSummary {
         Summary("Get \(\.$task) details in Clarity")

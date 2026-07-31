@@ -9,7 +9,7 @@ import AppIntents
 import Foundation
 
 struct TaskDetailEntity: TransientAppEntity {
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Task Detail"
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Task Detail"
 
     var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(title: "\(name)")

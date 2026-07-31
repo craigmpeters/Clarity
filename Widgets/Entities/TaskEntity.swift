@@ -10,8 +10,8 @@ import SwiftUI
 
 
 struct TaskEntity: AppEntity, Identifiable, Sendable {
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Task"
-    static var defaultQuery = TaskQuery()
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Task"
+    static let defaultQuery = TaskQuery()
 
     var id: String
     var name: String
@@ -21,7 +21,6 @@ struct TaskEntity: AppEntity, Identifiable, Sendable {
     var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(title: "\(name)")
     }
-    static var query = TaskQuery()
 }
 
 struct TaskQuery: EntityQuery, Sendable {

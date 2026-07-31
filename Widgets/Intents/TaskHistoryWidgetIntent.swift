@@ -9,8 +9,8 @@ import AppIntents
 
 
 struct TaskHistoryWidgetIntent: WidgetConfigurationIntent {
-    static var title: LocalizedStringResource = "Habit History"
-    static var description = IntentDescription("Displays a habit and its completion history.")
+    static let title: LocalizedStringResource = "Habit History"
+    static let description = IntentDescription("Displays a habit and its completion history.")
     
     @Parameter(title: "Task")
     var task: TaskEntity?

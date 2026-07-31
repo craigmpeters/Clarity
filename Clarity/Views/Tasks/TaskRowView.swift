@@ -17,6 +17,7 @@ struct TaskRowView: View {
     let onStartTimer: () -> Void
     
     @Environment(\.modelContext) private var context
+    @Environment(CompanionService.self) private var companion
     @State private var showingDeleteAlert = false
     @State private var isDismissing = false
     @Query private var taskSwipeAndTapOptions: [TaskSwipeAndTapOptions]
@@ -47,44 +48,49 @@ struct TaskRowView: View {
                 RoundedRectangle(cornerRadius: 10)
                     .fill(dateAccentBackgroundColor(task.due))
             )
+            VStack(alignment: .leading, spacing: 2) {
+                CategoryLines(categories: task.categories ?? [])
+                    .frame(width:20, height: 48)
+            }
+            
             VStack(alignment: .leading, spacing: 6) {
                 Text(task.name ?? "")
                     .font(.headline)
                     .lineLimit(2)
                 
-                HStack(spacing: 6) {
-                    if task.categories?.count ?? 0 >= 3 {
-                        ForEach(task.categories!) { category in
-                            ZStack {
-                                Circle()
-                                    .fill(category.color?.SwiftUIColor ?? .gray)
-                                    .frame(width: 25, height: 25)
-                                Text(String(category.name!.first!))
-                                    .textCase(.uppercase)
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundStyle(.black)
-                                        .blendMode(.colorBurn)
-                            }
-                            .clipShape(Circle())
-                        }
-                    } else {
-                        ForEach(task.categories!) { category in
-                            Text(category.name!)
-                                .font(.caption2)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 2)
-                                .background(
-                                    Capsule().fill(category.color?.SwiftUIColor ?? .gray.opacity(0.2))
-                                )
-                                .foregroundStyle(category.color!.contrastingTextColor)
-                        }
-                    }
-                    Spacer()
-                    HStack(spacing: 8) {
-                        RecurrenceIndicatorBadge(task: task)
-                        TimerIndicatorBadge(task: task)
-                    }
-                }
+//                HStack(spacing: 6) {
+//                    if task.categories?.count ?? 0 >= 3 {
+//                        ForEach(task.categories!) { category in
+//                            ZStack {
+//                                Circle()
+//                                    .fill(category.color?.SwiftUIColor ?? .gray)
+//                                    .frame(width: 25, height: 25)
+//                                Text(String(category.name!.first!))
+//                                    .textCase(.uppercase)
+//                                    .font(.system(size: 10, weight: .bold))
+//                                    .foregroundStyle(.black)
+//                                        .blendMode(.colorBurn)
+//                            }
+//                            .clipShape(Circle())
+//                        }
+//                    } else {
+//                        ForEach(task.categories!) { category in
+//                            Text(category.name!)
+//                                .font(.caption2)
+//                                .padding(.horizontal, 8)
+//                                .padding(.vertical, 2)
+//                                .background(
+//                                    Capsule().fill(category.color?.SwiftUIColor ?? .gray.opacity(0.2))
+//                                )
+//                                .foregroundStyle(category.color!.contrastingTextColor)
+//                        }
+//                    }
+//                    Spacer()
+//                    HStack(spacing: 8) {
+//                        RecurrenceIndicatorBadge(task: task)
+//                        TimerIndicatorBadge(task: task)
+//                    }
+//                }
             }
             .padding(.vertical, 8)
             .contentShape(Rectangle())
@@ -162,6 +168,8 @@ struct TaskRowView: View {
     func performActionOption(_ action: SwipeAction) {
         switch action {
         case .complete:
+            Task { await companion.refreshContext() }
+            companion.trigger(.taskCompleted(taskName: task.name ?? "task"))
             onComplete()
         case .delete:
             showingDeleteAlert = true
@@ -223,6 +231,7 @@ func dateAccentBackgroundColor(_ due: Date) -> Color {
             onStartTimer: { print("Timer Started") }
         )
         .modelContainer(PreviewData.shared.previewContainer)
+        .environment(CompanionService.shared)
     }
     .padding(30)
 }
@@ -237,6 +246,7 @@ func dateAccentBackgroundColor(_ due: Date) -> Color {
             onStartTimer: { print("Timer Started") }
         )
         .modelContainer(PreviewData.shared.previewContainer)
+        .environment(CompanionService.shared)
     }
     .padding(30)
 }
@@ -251,6 +261,7 @@ func dateAccentBackgroundColor(_ due: Date) -> Color {
             onStartTimer: { print("Timer Started") }
         )
         .modelContainer(PreviewData.shared.previewContainer)
+        .environment(CompanionService.shared)
     }
     .padding(30)
 }
