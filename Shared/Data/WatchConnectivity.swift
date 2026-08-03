@@ -19,6 +19,7 @@ public enum WCKeys: Sendable {
     public enum Requests: Sendable {
         public static nonisolated let listAll        = "listAll"
         public static nonisolated let complete       = "complete"
+        public static nonisolated let uncomplete     = "uncomplete"
         public static nonisolated let create         = "create"
         public static nonisolated let delete         = "delete"
         public static nonisolated let startPomodoro  = "startPomodoro"
@@ -206,6 +207,11 @@ final class ClarityWatchConnectivity: NSObject, ObservableObject {
     /// Sends a task-complete command. Uses immediate path when reachable, reliable fallback otherwise.
     func sendComplete(todotaskid: String) {
         sendReliable(Envelope(kind: WCKeys.Requests.complete, todotaskid: todotaskid))
+    }
+    
+    /// Sends a task-uncomplete command (undo completion).
+    func sendUncomplete(todotaskid: String) {
+        sendReliable(Envelope(kind: WCKeys.Requests.uncomplete, todotaskid: todotaskid))
     }
 
     /// Sends a pomodoro-start command.
@@ -435,6 +441,17 @@ extension ClarityWatchConnectivity {
                 pushSnapshot()
             }
             return Envelope(kind: WCKeys.Requests.complete)
+        
+        case WCKeys.Requests.uncomplete:
+            if let idString = envelope.todotaskid, let uuid = UUID(uuidString: idString) {
+                do {
+                    try await ClarityServices.store().uncompleteTask(uuid)
+                } catch {
+                    LogManager.shared.log.error("⌚️ uncomplete task failed: \(error)")
+                }
+                pushSnapshot()
+            }
+            return Envelope(kind: WCKeys.Requests.uncomplete)
 
         case WCKeys.Requests.startPomodoro:
             if let idString = envelope.todotaskid, let uuid = UUID(uuidString: idString) {

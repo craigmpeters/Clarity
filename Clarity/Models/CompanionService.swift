@@ -71,6 +71,7 @@ enum CompanionEmotion: String, Sendable {
 enum CompanionTrigger: Sendable {
     case appLaunch
     case taskCompleted(taskName: String)
+    case taskUncompleted(taskName: String)
     case moodSelected(valence: Double, taskName: String)
     case pomodoroCompleted(taskName: String)
     case streakMilestone(days: Int)

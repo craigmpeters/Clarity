@@ -36,6 +36,10 @@ struct PomodoroView: View {
     // Mood sheet state — set when a session finishes or when the user taps the row button
     @State private var pendingMoodSession: PomodoroService.CompletedSession? = nil
     @State private var showingMoodSheet = false
+    
+    // Toast for undo functionality
+    @State private var showToast = false
+    @State private var lastCompletedTaskUUID: UUID? = nil
 
     var body: some View {
         NavigationStack {
@@ -53,6 +57,8 @@ struct PomodoroView: View {
                             showingMoodSheet = true
                         }
                     }
+                    
+                    RecentlyCompletedSection(modelContext: context)
                 }
                 .padding()
             }
@@ -82,8 +88,44 @@ struct PomodoroView: View {
                     await companion.refreshContext()
                     companion.trigger(.pomodoroCompleted(taskName: latest.taskName))
                 }
+                
+                // Show undo toast if task was completed
+                if let taskUUID = latest.taskUUID {
+                    lastCompletedTaskUUID = taskUUID
+                    showToast = true
+                }
+                
                 pendingMoodSession = latest
                 showingMoodSheet = true
+            }
+        }
+        .toast(
+            isPresented: $showToast,
+            message: "Task completed",
+            actionLabel: "Undo",
+            action: {
+                if let uuid = lastCompletedTaskUUID {
+                    uncompleteTask(uuid)
+                }
+            }
+        )
+    }
+    
+    private func uncompleteTask(_ uuid: UUID) {
+        let store = ClarityModelActor(modelContainer: context.container)
+        Task {
+            do {
+                let dto = try await store.fetchTaskByUuid(uuid)
+                try await store.uncompleteTask(uuid)
+                LogManager.shared.log.info("Successfully uncompleted task \(uuid.uuidString)")
+                
+                // Trigger companion reaction
+                if let taskName = dto?.name {
+                    await companion.refreshContext()
+                    companion.trigger(.taskUncompleted(taskName: taskName))
+                }
+            } catch {
+                LogManager.shared.log.error("Failed to uncomplete task: \(error.localizedDescription)")
             }
         }
     }
@@ -380,6 +422,151 @@ private struct MoodButton: View {
         }
         .buttonStyle(.plain)
         .disabled(isSaving)
+    }
+}
+
+// MARK: - Recently Completed Section
+
+private struct RecentlyCompletedSection: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(CompanionService.self) private var companion
+    @State private var recentlyCompleted: [ToDoTaskDTO] = []
+    
+    init(modelContext: ModelContext) {
+        _modelContext = Environment(\.modelContext)
+    }
+    
+    var body: some View {
+        Group {
+            if !recentlyCompleted.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Recently Completed")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    
+                    VStack(spacing: 0) {
+                        ForEach(recentlyCompleted, id: \.uuid) { task in
+                            RecentlyCompletedRow(task: task, modelContext: modelContext, companion: companion)
+                            if task.uuid != recentlyCompleted.last?.uuid {
+                                Divider().padding(.leading)
+                            }
+                        }
+                    }
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+            }
+        }
+        .onAppear {
+            LogManager.shared.log.debug("📋 RecentlyCompletedSection onAppear fired!")
+            loadRecentlyCompleted()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .pomodoroCompleted)) { _ in
+            // Refresh when a task is completed via Pomodoro
+            LogManager.shared.log.debug("📋 Received pomodoroCompleted notification")
+            Task {
+                try? await Task.sleep(nanoseconds: 500_000_000) // Wait 0.5s for completion to save
+                loadRecentlyCompleted()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("taskUncompleted"))) { _ in
+            // Refresh when a task is uncompleted
+            LogManager.shared.log.debug("📋 Received taskUncompleted notification")
+            loadRecentlyCompleted()
+        }
+    }
+    
+    private func loadRecentlyCompleted() {
+        let store = ClarityModelActor(modelContainer: modelContext.container)
+        Task {
+            do {
+                let tasks = try await store.fetchRecentlyCompleted(minutes: 10)
+                LogManager.shared.log.debug("📋 Loaded \(tasks.count) recently completed tasks")
+                await MainActor.run {
+                    recentlyCompleted = tasks
+                }
+            } catch {
+                LogManager.shared.log.error("Failed to load recently completed: \(error.localizedDescription)")
+            }
+        }
+    }
+}
+
+private struct RecentlyCompletedRow: View {
+    let task: ToDoTaskDTO
+    let modelContext: ModelContext
+    let companion: CompanionService
+    
+    private var timeAgo: String {
+        guard let completedAt = task.completedAt else { return "" }
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: completedAt, relativeTo: Date())
+    }
+    
+    private var duration: String? {
+        guard let startedAt = task.startedAt,
+              let completedAt = task.completedAt else { return nil }
+        let seconds = Int(completedAt.timeIntervalSince(startedAt))
+        let m = seconds / 60
+        let s = seconds % 60
+        return s == 0 ? "\(m)m" : "\(m)m \(s)s"
+    }
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(task.name)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+                HStack(spacing: 4) {
+                    if let duration = duration {
+                        Text(duration)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text("•")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(timeAgo)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            Button {
+                uncompleteTask()
+            } label: {
+                Image(systemName: "arrow.uturn.backward.circle")
+                    .font(.system(size: 20))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+    }
+    
+    private func uncompleteTask() {
+        let store = ClarityModelActor(modelContainer: modelContext.container)
+        Task {
+            do {
+                try await store.uncompleteTask(task.uuid)
+                LogManager.shared.log.info("Uncompleted task \(task.uuid.uuidString)")
+                
+                // Trigger companion reaction
+                await companion.refreshContext()
+                companion.trigger(.taskUncompleted(taskName: task.name))
+                
+                // Post notification to refresh the recently completed list
+                await MainActor.run {
+                    NotificationCenter.default.post(name: Notification.Name("taskUncompleted"), object: nil)
+                }
+            } catch {
+                LogManager.shared.log.error("Failed to uncomplete: \(error.localizedDescription)")
+            }
+        }
     }
 }
 

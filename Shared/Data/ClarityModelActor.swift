@@ -129,6 +129,27 @@ actor ClarityModelActor {
         }
     }
     
+    func fetchRecentlyCompleted(minutes: Int = 10) throws -> [ToDoTaskDTO] {
+        let cutoff = Date().addingTimeInterval(-TimeInterval(minutes * 60))
+        LogManager.shared.log.debug("📋 Fetching tasks completed after \(cutoff.ISO8601Format())")
+        
+        let descriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate { $0.completed },
+            sortBy: [SortDescriptor(\.completedAt, order: .reverse)]
+        )
+        
+        let allCompleted = try modelContext.fetch(descriptor)
+        LogManager.shared.log.debug("📋 Found \(allCompleted.count) total completed tasks")
+        
+        // Filter in Swift to avoid complex predicate expressions
+        let recentTasks = allCompleted.filter { task in
+            guard let completedAt = task.completedAt else { return false }
+            return completedAt > cutoff
+        }
+        LogManager.shared.log.debug("📋 \(recentTasks.count) tasks completed in last \(minutes) minutes")
+        return recentTasks.map(ToDoTaskDTO.init(from:))
+    }
+    
     func fetchRecentTasks() throws -> [ToDoTaskDTO] {
         let calendar = Calendar.current
         let now = Date()
@@ -287,7 +308,7 @@ actor ClarityModelActor {
         try? deduplicateTasksByUUID()
     }
     
-    func completeTask(_ id: UUID) throws {
+    func completeTask(_ id: UUID, startedAt: Date? = nil) throws {
         guard !inFlightCompletions.contains(id) else {
             LogManager.shared.log.info("completeTask: skipping duplicate in-flight completion for UUID \(id.uuidString)")
             return
@@ -308,6 +329,7 @@ actor ClarityModelActor {
             tasks = try tasks.map { task in
                 task.completed = true
                 task.completedAt = Date.now
+                task.startedAt = startedAt
                 if task.repeating! && !completed {
                     if let nextDTO = createNextOccurrence(task.id) {
                         LogManager.shared.log.debug("completeTask: creating next occurrence for uuid=\(task.uuid?.uuidString ?? "nil"), dtoCategoryCount=\(nextDTO.categories.count)")
@@ -329,6 +351,39 @@ actor ClarityModelActor {
             Task { @MainActor in onTaskCompleted() }
         }
         try? deduplicateTasksByUUID()
+    }
+    
+    /// Marks a task as not completed, reverting completion state
+    func uncompleteTask(_ id: UUID) throws {
+        LogManager.shared.log.info("Uncompleting task with UUID \(id.uuidString)")
+        let descriptor = FetchDescriptor<ToDoTask>(
+            predicate: #Predicate {
+                $0.uuid == id &&
+                $0.completed
+            },
+            sortBy: [SortDescriptor(\.completedAt, order: .reverse)]
+        )
+        
+        // Get the most recently completed task with this UUID
+        guard let task = try modelContext.fetch(descriptor).first else {
+            LogManager.shared.log.warning("uncompleteTask: no completed task found for UUID \(id.uuidString)")
+            return
+        }
+        
+        task.completed = false
+        task.completedAt = nil
+        task.startedAt = nil
+        task.completionMoodValence = nil
+        
+        try modelContext.save()
+        try WidgetFileCoordinator.shared.writeTasks(fetchRecentTasks())
+        WidgetCenter.shared.reloadAllTimelines()
+        if let onTaskMutated = ClarityModelActor.onTaskMutated {
+            Task { @MainActor in onTaskMutated() }
+        }
+        try? deduplicateTasksByUUID()
+        
+        LogManager.shared.log.info("Task uncompleted: \(id.uuidString)")
     }
     
     /// Records the mood valence on the most recently completed task with the given UUID.

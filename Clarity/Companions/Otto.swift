@@ -32,6 +32,8 @@ struct OttoPersonality: CompanionPersonality {
             return "The user just opened Clarity. Give them a brief, encouraging greeting to start their day."
         case .taskCompleted(let taskName):
             return "The user just completed the task: \"\(taskName)\". Celebrate with them briefly."
+        case .taskUncompleted(let taskName):
+            return "The user just undid the completion of \"\(taskName)\". Reassure them lovingly that mistakes happen and it's okay to adjust — you're proud of them for staying organized."
         case .moodSelected(let valence, let taskName):
             if valence >= 0.5 {
                 return "After completing \"\(taskName)\", the user said they felt great (valence \(String(format: "%.1f", valence))). Respond positively."
@@ -58,6 +60,8 @@ struct OttoPersonality: CompanionPersonality {
             return CompanionMessage(text: "Ready to make today count?", emotion: .encouraging)
         case .taskCompleted:
             return CompanionMessage(text: "Nice work! Keep the momentum going!", emotion: .happy)
+        case .taskUncompleted:
+            return CompanionMessage(text: "Oops! No worries — mistakes happen. I'm proud you're staying on top of things.", emotion: .loving)
         case .moodSelected(let valence, _):
             if valence >= 0 {
                 return CompanionMessage(text: "Great attitude — every session counts!", emotion: .loving)

@@ -22,6 +22,7 @@ class ToDoTask {
     var repeating: Bool?
     var completed: Bool = false
     var completedAt: Date?
+    var startedAt: Date?
     var recurrenceInterval: RecurrenceInterval?
     var customRecurrenceDays: Int = 1
     var everySpecificDayDay: Int?
@@ -52,7 +53,7 @@ class ToDoTask {
         return interval.displayName
     }
     
-    init(name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int? = nil, categories: [Category] = [], uuid: UUID? = UUID(), completed: Bool = false, completedAt: Date? = nil) {
+    init(name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int? = nil, categories: [Category] = [], uuid: UUID? = UUID(), completed: Bool = false, completedAt: Date? = nil, startedAt: Date? = nil) {
         self.name = name ?? ""
         self.created = Date.now
         self.due = due
@@ -67,6 +68,7 @@ class ToDoTask {
         self.uuid = uuid
         self.completed = completed
         self.completedAt = completedAt
+        self.startedAt = startedAt
     }
     
     enum RecurrenceInterval: String, CaseIterable, Codable {
@@ -141,13 +143,14 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
     var repeating: Bool
     var completed: Bool
     var completedAt: Date?
+    var startedAt: Date?
     var recurrenceInterval: ToDoTask.RecurrenceInterval?
     var customRecurrenceDays: Int
     var everySpecificDayDay: Int
     var categories: [CategoryDTO]
     var uuid: UUID
     var completionMoodValence: Double?
-    nonisolated init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int = 0, categories: [CategoryDTO] = [], uuid: UUID? = UUID(), completed: Bool = false, completedAt: Date? = nil, completionMoodValence: Double? = nil) {
+    nonisolated init(id: PersistentIdentifier? = nil, name: String?, pomodoro: Bool = true, pomodoroTime: TimeInterval = 25 * 60, repeating: Bool = false, recurrenceInterval: ToDoTask.RecurrenceInterval? = nil, customRecurrenceDays: Int = 1, due: Date = Date(), everySpecificDayDay: Int = 0, categories: [CategoryDTO] = [], uuid: UUID? = UUID(), completed: Bool = false, completedAt: Date? = nil, startedAt: Date? = nil, completionMoodValence: Double? = nil) {
         self.id = id
         self.name = name ?? ""
         self.created = Date.now
@@ -162,6 +165,7 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
         self.customRecurrenceDays = customRecurrenceDays
         self.everySpecificDayDay = everySpecificDayDay
         self.uuid = uuid ?? UUID()
+        self.startedAt = startedAt
         self.completionMoodValence = completionMoodValence
     }
     
@@ -195,6 +199,7 @@ extension ToDoTaskDTO {
             uuid: model.uuid ?? UUID(),
             completed: model.completed,
             completedAt: model.completedAt,
+            startedAt: model.startedAt,
             completionMoodValence: model.completionMoodValence
         )
     }

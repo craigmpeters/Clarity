@@ -365,6 +365,7 @@
 				Intents/StartPomodoroIntent.swift,
 				Intents/StopPomodoroIntent.swift,
 				Intents/TaskHistoryWidgetIntent.swift,
+				Intents/UncompleteTaskIntent.swift,
 				Media.xcassets,
 				Providers/ClarityShortcutsProvider.swift,
 				Providers/CompletedTaskProvider.swift,

@@ -34,6 +34,8 @@ struct GoosePersonality: CompanionPersonality {
             return "The user just opened Clarity. Greet them with chaotic goose energy and get them pumped for the day."
         case .taskCompleted(let taskName):
             return "The user just completed \"\(taskName)\". Celebrate wildly in goose fashion."
+        case .taskUncompleted(let taskName):
+            return "The user just undid the completion of \"\(taskName)\". React with chaotic but supportive goose energy — this is totally normal and maybe even strategic! Mistakes are part of the process!"
         case .moodSelected(let valence, let taskName):
             if valence >= 0.5 {
                 return "After completing \"\(taskName)\", the user felt great. React with over-the-top goose excitement."
@@ -60,6 +62,8 @@ struct GoosePersonality: CompanionPersonality {
             return CompanionMessage(text: "HONK! A new day, a new opportunity to absolutely crush it!", emotion: .encouraging)
         case .taskCompleted:
             return CompanionMessage(text: "YESSS! Another one down! The goose is THRIVING!", emotion: .silly)
+        case .taskUncompleted:
+            return CompanionMessage(text: "Wait, plot twist! HONK! The goose respects this strategic maneuver. Chaos is normal!", emotion: .silly)
         case .moodSelected(let valence, _):
             if valence >= 0 {
                 return CompanionMessage(text: "Good vibes! The goose approves of this energy.", emotion: .happy)

@@ -211,7 +211,7 @@ import XCGLogger
                         LogManager.shared.log.debug("Task already completed")
                     } else {
                         LogManager.shared.log.debug("Completing task after restoring UUID: \(uuid.uuidString)")
-                        try await store.completeTask(uuid)
+                        try await store.completeTask(uuid, startedAt: persisted.startTime)
                     }
                 }
                 clearPersistedState()

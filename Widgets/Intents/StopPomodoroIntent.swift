@@ -16,13 +16,13 @@ struct StopPomodoroIntent: AppIntent {
         let appGroup = "group.me.craigpeters.clarity"
         let persistKey = "activePomodoroState"
 
-        // Decode persisted session to get the task UUID
+        // Decode persisted session to get the task UUID and started time
         let defaults = UserDefaults(suiteName: appGroup)
-        let taskUUID: UUID? = {
+        let (taskUUID, taskStartedAt): (UUID?, Date?) = {
             guard let data = defaults?.data(forKey: persistKey),
                   let persisted = try? JSONDecoder().decode(PersistedPomodoro.self, from: data)
-            else { return nil }
-            return persisted.taskUUID
+            else { return (nil, nil) }
+            return (persisted.taskUUID, persisted.startTime)
         }()
 
         // End all active Live Activities
@@ -36,12 +36,17 @@ struct StopPomodoroIntent: AppIntent {
         // Clear the persisted session so the app doesn't try to restore it
         defaults?.removeObject(forKey: persistKey)
 
-        // Complete the task
+        // Complete the task with started time
         if let uuid = taskUUID {
             do {
                 let store = try await ClarityServices.store()
-                try await store.completeTask(uuid)
-                LogManager.shared.log.debug("StopPomodoroIntent: completed task \(uuid.uuidString)")
+                try await store.completeTask(uuid, startedAt: taskStartedAt)
+                if let started = taskStartedAt {
+                    let elapsed = Date().timeIntervalSince(started)
+                    LogManager.shared.log.debug("StopPomodoroIntent: completed task \(uuid.uuidString) (elapsed: \(elapsed)s)")
+                } else {
+                    LogManager.shared.log.debug("StopPomodoroIntent: completed task \(uuid.uuidString)")
+                }
             } catch {
                 LogManager.shared.log.error("StopPomodoroIntent: failed to complete task \(error)")
             }
