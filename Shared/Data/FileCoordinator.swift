@@ -47,6 +47,7 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
     private let appGroupID = "group.me.craigpeters.clarity"
     private let fileName = "ClarityWidget.json"
     private let weeklyProgressFileName = "ClarityWeeklyProgress.json"
+    private let categoriesFileName = "ClarityCategories.json"
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Clarity", category: "WidgetFileCoordinator")
 
     private let encoder: JSONEncoder
@@ -395,6 +396,24 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
         guard let url = weeklyProgressURL(),
               let data = try? Data(contentsOf: url) else { return nil }
         return try? decoder.decode(WeeklyProgress.self, from: data)
+    }
+
+    // MARK: Categories
+
+    nonisolated private func categoriesURL() -> URL? {
+        containerURL()?.appendingPathComponent(categoriesFileName)
+    }
+
+    nonisolated func writeCategories(_ categories: [CategoryDTO]) throws {
+        guard let url = categoriesURL() else { return }
+        let data = try encoder.encode(categories)
+        try data.write(to: url, options: .atomic)
+    }
+
+    nonisolated func readCategories() -> [CategoryDTO] {
+        guard let url = categoriesURL(),
+              let data = try? Data(contentsOf: url) else { return [] }
+        return (try? decoder.decode([CategoryDTO].self, from: data)) ?? []
     }
 
     // MARK: Widget refresh hook

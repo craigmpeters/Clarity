@@ -7,6 +7,7 @@
 
 import AppIntents
 import SwiftUI
+import XCGLogger
 
 
 struct TaskEntity: AppEntity, Identifiable, Sendable {
@@ -39,7 +40,7 @@ struct TaskQuery: EntityQuery, Sendable {
             tasks = try WidgetFileCoordinator.shared.readTasks()
             tasks = tasks.filter { !$0.completed }
         } catch {
-            print("Failed to read tasks from file DB: \(error)")
+            LogManager.shared.log.error("Failed to read tasks from file DB: \(error)")
         }
         return tasks.map { TaskEntity(id: $0.uuid.uuidString, name: $0.name, date: $0.due, repeating: $0.repeating) }
 

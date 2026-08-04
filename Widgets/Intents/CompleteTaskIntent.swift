@@ -50,7 +50,7 @@ struct CompleteTaskIntent: AppIntent {
             ClarityServices.reloadWidgets(kind: "ClarityWidget")
             return .result(dialog: "Task completed")
         } catch {
-            os_log("CompleteTaskIntent error: %{public}@", String(describing: error))
+            LogManager.shared.log.error("CompleteTaskIntent error: \(error)")
             return .result(dialog: "Couldn’t complete the task.")
         }
     }

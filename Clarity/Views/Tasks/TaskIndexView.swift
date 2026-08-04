@@ -22,6 +22,7 @@ struct TaskIndexView: View {
     
     private var filteredTasks: [ToDoTask] {
         let tasks = ToDoTask.focusFilter(in: allTasks)
+        
 
         // 4) Now filter tasks based on due date, allowed categories, and selectedCategory (if any)
         let filtered = tasks.filter { task in

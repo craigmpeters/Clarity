@@ -214,6 +214,8 @@ extension ToDoTaskDTO {
 
         let focusedNames = Set(settings.Categories)
         let isHide = settings.showOrHide == "hide"
+        let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "me.craigpeters.Clarity", category: "Focus Filter")
+        logger.debug("Focus filter active: mode=\(settings.showOrHide), categories=\(settings.Categories)")
 
         func hasAllowedCategory(_ task: ToDoTaskDTO, allowed: Set<String>) -> Bool {
             let categoryNames = task.categories.map { $0.name }
@@ -239,9 +241,20 @@ private struct _FocusFilterRaw {
 
 extension _FocusFilterRaw: Decodable {
     private enum CodingKeys: String, CodingKey { case Categories, showOrHide }
+    private struct CategoryNameEntry: Decodable {
+        var name: String
+    }
     nonisolated init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.Categories = try container.decode([String].self, forKey: .Categories)
+        // The focus filter encodes categories as CategoryEntity objects (id + name),
+        // so decode the objects and extract the names. Support legacy [String] too.
+        if let categoryEntries = try? container.decode([CategoryNameEntry].self, forKey: .Categories) {
+            self.Categories = categoryEntries.map { $0.name }
+        } else if let legacyNames = try? container.decode([String].self, forKey: .Categories) {
+            self.Categories = legacyNames
+        } else {
+            self.Categories = []
+        }
         self.showOrHide = try container.decode(String.self, forKey: .showOrHide)
     }
 }
@@ -256,6 +269,8 @@ extension ToDoTask {
 
         let focusedNames = Set(settings.Categories)
         let isHide = settings.showOrHide == "hide"
+        let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "me.craigpeters.Clarity", category: "Focus Filter")
+        logger.debug("Focus filter active: mode=\(settings.showOrHide), categories=\(settings.Categories)")
 
         func hasAllowedCategory(_ task: ToDoTask, allowed: Set<String>) -> Bool {
             let categoryNames = (task.categories ?? []).compactMap { $0.name }

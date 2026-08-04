@@ -48,7 +48,7 @@ struct UncompleteTaskIntent: AppIntent {
             ClarityServices.reloadWidgets(kind: "ClarityWidget")
             return .result(dialog: "Task marked as incomplete")
         } catch {
-            os_log("UncompleteTaskIntent error: %{public}@", String(describing: error))
+            LogManager.shared.log.error("UncompleteTaskIntent error: \(error)")
             return .result(dialog: "Couldn't uncomplete the task.")
         }
     }

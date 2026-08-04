@@ -9,6 +9,7 @@ import WidgetKit
 import SwiftUI
 import SwiftData
 import AppIntents
+import XCGLogger
 
 struct CompletedWidget: Widget {
     let kind: String = "CompletedWidget"
@@ -38,9 +39,9 @@ struct CompletedWidgetView: View {
     
     init(entry: CompletedTaskEntry) {
         self.entry = entry
-        print("Completed: \(entry.progress.completed) Target: \(entry.progress.target) ")
+        LogManager.shared.log.debug("Completed: \(entry.progress.completed) Target: \(entry.progress.target)")
         gaugeData = Double(entry.progress.completed) / Double(entry.progress.target)
-        print("GaugeData: \(gaugeData)")
+        LogManager.shared.log.debug("GaugeData: \(gaugeData)")
     }
     
     var body: some View {

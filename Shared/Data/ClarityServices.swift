@@ -84,6 +84,11 @@ enum ClarityServices {
         } catch { return [] }
     }
 
+    nonisolated static func writeCategorySnapshot() {
+        let categories = snapshotCategories()
+        try? WidgetFileCoordinator.shared.writeCategories(categories)
+    }
+
     nonisolated static func reloadWidgets(kind: String? = nil) {
         #if canImport(WidgetKit)
         if let kind { WidgetCenter.shared.reloadTimelines(ofKind: kind) }

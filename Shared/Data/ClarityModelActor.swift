@@ -36,6 +36,7 @@ actor ClarityModelActor {
         )
         modelContext.insert(category)
         try modelContext.save()
+        try WidgetFileCoordinator.shared.writeCategories(getCategories())
         WidgetCenter.shared.reloadTimelines(ofKind: "TodoWidget")
         return CategoryDTO(from: category)
     }
@@ -51,6 +52,7 @@ actor ClarityModelActor {
         model.color = dto.color
         model.weeklyTarget = dto.weeklyTarget
         try modelContext.save()
+        try WidgetFileCoordinator.shared.writeCategories(getCategories())
         WidgetCenter.shared.reloadAllTimelines()
         return CategoryDTO(from: model)
     }
@@ -60,6 +62,7 @@ actor ClarityModelActor {
             modelContext.delete(model)
             try modelContext.save()
         }
+        try WidgetFileCoordinator.shared.writeCategories(getCategories())
         WidgetCenter.shared.reloadAllTimelines()
     }
     

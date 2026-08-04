@@ -92,6 +92,10 @@ struct ClarityApp: App {
                 .onAppear {
                     appDelegate.appState = appState
                     populateUUIDsIfNeeded(modelContext: container.mainContext, minimumBuild: "1.3.0")
+                    // Prime the shared category snapshot so widgets / App Intents can read
+                    // categories without spinning up a SwiftData container.
+                    let categories = ClarityServices.snapshotCategories()
+                    try? WidgetFileCoordinator.shared.writeCategories(categories)
                     Task { @MainActor in
                         await PomodoroService.shared.restoreIfNeeded(container: container, device: .iPhone)
                         if PomodoroService.shared.isActive {
@@ -117,6 +121,8 @@ struct ClarityApp: App {
                 }
                 .onChange(of: scenePhase) { _, newPhase in
                     guard newPhase == .active else { return }
+                    // Keep the App Group category snapshot fresh for widgets / intents.
+                    ClarityServices.writeCategorySnapshot()
                     if let id = consumePendingStartTimerTaskId() {
                         LogManager.shared.log.debug("Starting Pomodero (.onChange Active) for \(id.uuidString)")
                         appState.pomodoroUuid = id

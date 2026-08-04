@@ -8,6 +8,7 @@
 import AppIntents
 import WidgetKit
 import SwiftUI
+import XCGLogger
 
 struct ClarityWidgetProvider: AppIntentTimelineProvider {
     
@@ -22,7 +23,7 @@ struct ClarityWidgetProvider: AppIntentTimelineProvider {
             todos = todos.filter { !$0.completed }
             todos.sort { $0.due < $1.due }
         } catch {
-            print("Failed to read tasks from file DB: \(error)")
+            LogManager.shared.log.error("Failed to read tasks from file DB: \(error)")
         }
         todos = ToDoTaskDTO.focusFilter(in: todos)
         let progress = ClarityServices.fetchWeeklyProgress()
@@ -37,7 +38,7 @@ struct ClarityWidgetProvider: AppIntentTimelineProvider {
             todos = todos.filter { !$0.completed }
             todos.sort { $0.due < $1.due }
         } catch {
-            print("Failed to read tasks from file DB: \(error)")
+            LogManager.shared.log.error("Failed to read tasks from file DB: \(error)")
         }
         
         let selectedCategories: [CategoryEntity] = configuration.categoryFilter
