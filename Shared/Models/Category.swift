@@ -16,15 +16,18 @@ class Category {
     var name: String?
     var color: CategoryColor?
     var weeklyTarget: Int = 0
+    /// SF Symbol name used to represent this category visually. Optional.
+    var iconName: String?
     /// Stable identifier safe for use across CloudKit sync and widget/intent boundaries.
     /// Optional for migration safety — backfilled at app launch.
     var uuid: UUID?
     @Relationship(inverse: \ToDoTask.categories) var tasks: [ToDoTask]? = []
 
-    init(name: String, color: CategoryColor = .Red, weeklyTarget: Int = 0) {
+    init(name: String, color: CategoryColor = .Red, weeklyTarget: Int = 0, iconName: String? = nil) {
         self.name = name
         self.color = color
         self.weeklyTarget = weeklyTarget
+        self.iconName = iconName
         self.uuid = UUID()
     }
     
@@ -107,14 +110,16 @@ struct CategoryDTO: Sendable, Codable, Hashable {
     var name: String
     var color: Category.CategoryColor
     var weeklyTarget: Int
+    var iconName: String?
     /// Stable UUID — preferred over PersistentIdentifier for cross-process use (widgets, intents).
     var uuid: UUID?
 
-    nonisolated init(id: PersistentIdentifier?, name: String, color: Category.CategoryColor, weeklyTarget: Int, uuid: UUID? = nil) {
+    nonisolated init(id: PersistentIdentifier?, name: String, color: Category.CategoryColor, weeklyTarget: Int, iconName: String? = nil, uuid: UUID? = nil) {
         self.id = id
         self.name = name
         self.color = color
         self.weeklyTarget = weeklyTarget
+        self.iconName = iconName
         self.uuid = uuid
     }
 
@@ -139,6 +144,7 @@ extension CategoryDTO {
             name: model.name ?? "",
             color: model.color ?? .Red,
             weeklyTarget: model.weeklyTarget,
+            iconName: model.iconName,
             uuid: model.uuid
         )
     }

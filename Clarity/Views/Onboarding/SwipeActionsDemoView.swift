@@ -142,7 +142,7 @@ struct InteractiveTaskDemo: View {
         repeating: true,
         recurrenceInterval: .daily,
         everySpecificDayDay: nil,
-        categories: [Category(name: "Work", color: .Blue, weeklyTarget: 8)].compactMap { $0 }
+        categories: [Category(name: "Work", color: .Blue, weeklyTarget: 8, iconName: "briefcase.fill")].compactMap { $0 }
     )
     
     @State private var offset: CGFloat = 0
@@ -207,11 +207,17 @@ struct InteractiveTaskDemo: View {
                                             Circle()
                                                 .fill(category.color?.SwiftUIColor ?? .gray)
                                                 .frame(width: 25, height: 25)
-                                            Text(String(category.name!.first!))
-                                                .textCase(.uppercase)
-                                                .font(.system(size: 10, weight: .bold))
-                                                .foregroundStyle(.black)
-                                                .blendMode(.colorBurn)
+                                            if let iconName = category.iconName, !iconName.isEmpty {
+                                                CategoryIcon.image(for: iconName)
+                                                    .frame(width: 14, height: 14)
+                                                    .foregroundStyle(.white)
+                                            } else {
+                                                Text(String(category.name!.first!))
+                                                    .textCase(.uppercase)
+                                                    .font(.system(size: 10, weight: .bold))
+                                                    .foregroundStyle(.black)
+                                                    .blendMode(.colorBurn)
+                                            }
                                         }
                                         .clipShape(Circle())
                                     }

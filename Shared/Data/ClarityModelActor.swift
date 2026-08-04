@@ -32,7 +32,8 @@ actor ClarityModelActor {
         let category = Category(
             name: dto.name,
             color: dto.color,
-            weeklyTarget: dto.weeklyTarget
+            weeklyTarget: dto.weeklyTarget,
+            iconName: dto.iconName
         )
         modelContext.insert(category)
         try modelContext.save()
@@ -51,6 +52,7 @@ actor ClarityModelActor {
         model.name = dto.name
         model.color = dto.color
         model.weeklyTarget = dto.weeklyTarget
+        model.iconName = dto.iconName
         try modelContext.save()
         try WidgetFileCoordinator.shared.writeCategories(getCategories())
         WidgetCenter.shared.reloadAllTimelines()

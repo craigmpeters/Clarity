@@ -76,9 +76,15 @@ struct SuggestionRow: View {
                             HStack(spacing: 6) {
                                 ForEach(applyGlobalCategories ? globalCategories : suggestion.selectedCategories, id: \.id) { category in
                                     HStack(spacing: 4) {
-                                        Circle()
-                                            .fill(category.color.SwiftUIColor)
-                                            .frame(width: 8, height: 8)
+                                        if let iconName = category.iconName, !iconName.isEmpty {
+                                            CategoryIcon.image(for: iconName)
+                                                .frame(width: 8, height: 8)
+                                                .foregroundStyle(category.color.SwiftUIColor)
+                                        } else {
+                                            Circle()
+                                                .fill(category.color.SwiftUIColor)
+                                                .frame(width: 8, height: 8)
+                                        }
                                         Text(category.name)
                                             .font(.caption2)
                                     }

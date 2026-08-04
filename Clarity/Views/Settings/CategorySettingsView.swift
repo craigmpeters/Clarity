@@ -147,9 +147,15 @@ struct CategoryTargetRow: View {
             // Tappable category info
             Button(action: onEdit) {
                 HStack(spacing: 8) {
-                    Circle()
-                        .fill(category.color!.SwiftUIColor)
-                        .frame(width: 16, height: 16)
+                    if let iconName = category.iconName, !iconName.isEmpty {
+                        CategoryIcon.image(for: iconName)
+                            .frame(width: 16, height: 16)
+                            .foregroundStyle(category.color!.SwiftUIColor)
+                    } else {
+                        Circle()
+                            .fill(category.color!.SwiftUIColor)
+                            .frame(width: 16, height: 16)
+                    }
                     
                     Text(category.name!)
                         .fontWeight(.medium)
@@ -213,12 +219,14 @@ struct EditCategoryView: View {
     @State private var name: String
     @State private var selectedColor: Category.CategoryColor
     @State private var weeklyTarget: Int
+    @State private var selectedIcon: String?
     
     init(category: Category) {
         self.category = category
         self._name = State(initialValue: category.name ?? "")
         self._selectedColor = State(initialValue: category.color ?? Category.CategoryColor.Blue)
         self._weeklyTarget = State(initialValue: category.weeklyTarget)
+        self._selectedIcon = State(initialValue: category.iconName)
     }
     
     var body: some View {
@@ -278,11 +286,22 @@ struct EditCategoryView: View {
                     .padding(.vertical, 8)
                 }
                 
+                Section("Icon") {
+                    CategoryIconPicker(selectedIcon: $selectedIcon)
+                        .frame(minHeight: 260)
+                }
+                
                 Section("Preview") {
                     HStack {
-                        Circle()
-                            .fill(selectedColor.SwiftUIColor)
-                            .frame(width: 20, height: 20)
+                        if let iconName = selectedIcon, !iconName.isEmpty {
+                            CategoryIcon.image(for: iconName)
+                                .frame(width: 20, height: 20)
+                                .foregroundStyle(selectedColor.SwiftUIColor)
+                        } else {
+                            Circle()
+                                .fill(selectedColor.SwiftUIColor)
+                                .frame(width: 20, height: 20)
+                        }
                         Text(name.isEmpty ? "Category Name" : name)
                             .foregroundColor(name.isEmpty ? .secondary : .primary)
                         Spacer()
@@ -319,6 +338,7 @@ struct EditCategoryView: View {
         category.name = name
         category.color = selectedColor
         category.weeklyTarget = weeklyTarget
+        category.iconName = selectedIcon
         
         do {
             try modelContext.save()

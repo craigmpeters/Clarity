@@ -71,9 +71,15 @@ struct FilterMenuView: View {
                     ForEach(filteredCategories, id: \.id) { category in
                         Button(action: { selectedCategory = category }) {
                             HStack {
-                                Circle()
-                                    .fill((category.color?.SwiftUIColor) ?? .gray)
-                                    .frame(width: 12, height: 12)
+                                if let iconName = category.iconName, !iconName.isEmpty {
+                                    CategoryIcon.image(for: iconName)
+                                        .frame(width: 12, height: 12)
+                                        .foregroundStyle((category.color?.SwiftUIColor) ?? .gray)
+                                } else {
+                                    Circle()
+                                        .fill((category.color?.SwiftUIColor) ?? .gray)
+                                        .frame(width: 12, height: 12)
+                                }
                                 Text(category.name ?? "Unnamed")
                                 if selectedCategory?.name == category.name {
                                     Image(systemName: "checkmark")

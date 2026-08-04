@@ -249,9 +249,15 @@ struct CategoryProgressRow: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 HStack(spacing: 6) {
-                    Circle()
-                        .fill(category.color!.SwiftUIColor)
-                        .frame(width: 12, height: 12)
+                    if let iconName = category.iconName, !iconName.isEmpty {
+                        CategoryIcon.image(for: iconName)
+                            .frame(width: 12, height: 12)
+                            .foregroundStyle(category.color!.SwiftUIColor)
+                    } else {
+                        Circle()
+                            .fill(category.color!.SwiftUIColor)
+                            .frame(width: 12, height: 12)
+                    }
                     
                     Text(category.name!)
                         .font(.subheadline)

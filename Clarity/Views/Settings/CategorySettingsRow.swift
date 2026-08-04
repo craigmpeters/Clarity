@@ -15,9 +15,15 @@ struct CategorySettingsRow: View {
     
     var body: some View {
         HStack {
-            Circle()
-                .fill(category.color!.SwiftUIColor)
-                .frame(width: 20, height: 20)
+            if let iconName = category.iconName, !iconName.isEmpty {
+                CategoryIcon.image(for: iconName)
+                    .frame(width: 20, height: 20)
+                    .foregroundStyle(category.color!.SwiftUIColor)
+            } else {
+                Circle()
+                    .fill(category.color!.SwiftUIColor)
+                    .frame(width: 20, height: 20)
+            }
             
             Text(category.name!)
             
