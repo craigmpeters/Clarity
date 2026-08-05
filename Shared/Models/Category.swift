@@ -105,7 +105,7 @@ class Category {
     }
 }
 
-struct CategoryDTO: Sendable, Codable, Hashable {
+struct CategoryDTO: Sendable, Hashable {
     var id: PersistentIdentifier?
     var name: String
     var color: Category.CategoryColor
@@ -134,6 +134,41 @@ struct CategoryDTO: Sendable, Codable, Hashable {
             throw NSError(domain: "ToDo", code: 0, userInfo: nil)
         }
         return try JSONDecoder().decode(PersistentIdentifier.self, from: data)
+    }
+}
+
+extension Category: Hashable {
+    static func == (lhs: Category, rhs: Category) -> Bool {
+        lhs.uuid == rhs.uuid
+    }
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(uuid)
+    }
+}
+
+extension CategoryDTO: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case id, name, color, weeklyTarget, iconName, uuid
+    }
+
+    nonisolated init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try c.decodeIfPresent(PersistentIdentifier.self, forKey: .id)
+        self.name = try c.decode(String.self, forKey: .name)
+        self.color = try c.decode(Category.CategoryColor.self, forKey: .color)
+        self.weeklyTarget = try c.decodeIfPresent(Int.self, forKey: .weeklyTarget) ?? 0
+        self.iconName = try c.decodeIfPresent(String.self, forKey: .iconName)
+        self.uuid = try c.decodeIfPresent(UUID.self, forKey: .uuid)
+    }
+
+    nonisolated func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encodeIfPresent(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(color, forKey: .color)
+        try c.encode(weeklyTarget, forKey: .weeklyTarget)
+        try c.encodeIfPresent(iconName, forKey: .iconName)
+        try c.encodeIfPresent(uuid, forKey: .uuid)
     }
 }
 

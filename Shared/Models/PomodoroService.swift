@@ -141,10 +141,6 @@ import XCGLogger
             scheduleNotification(date: end, notification: notif)
         }
         NotificationCenter.default.post(name: .pomodoroStarted, object: nil)
-        let dto = PomodoroDTO(
-            startTime: startTime, endTime: endTime, toDoTask: toDoTask
-        )
-        ClarityWatchConnectivity.shared.sendPomodoroStarted(dto)
     }
     
     func endPomodoro() async {
@@ -177,17 +173,9 @@ import XCGLogger
         // Record the completed session for the history list
         recordCompletedSession(taskName: sessionTaskName, taskUUID: toDoTask?.uuid, startTime: sessionStart, endTime: sessionEnd)
 
-        // Post a single completion notification
+        // Post a single completion notification. The phone coordinator observes this
+        // and sends the corresponding PhoneEvent to the watch.
         NotificationCenter.default.post(name: .pomodoroCompleted, object: nil)
-        if startedDevice == .watchOS {
-            if let task = toDoTask {
-                LogManager.shared.log.debug("Sending Pomodoro Stopped with Task")
-                ClarityWatchConnectivity.shared.sendPomodoroStopped(task)
-            }
-        } else {
-            LogManager.shared.log.debug("Sending Pomodoro Stopped without Task")
-            ClarityWatchConnectivity.shared.sendPomodoroStopped()
-        }
     }
     
     @MainActor

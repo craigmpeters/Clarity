@@ -5,27 +5,27 @@ import WidgetKit
 #endif
 
 enum ClarityServices {
-    // Cache only for the EXTENSION process.
-    // nonisolated(unsafe): single-writer (extension process only), no concurrent callers.
+    // Cache only for extension and watch app processes.
+    // nonisolated(unsafe): single-writer (no concurrent callers).
     nonisolated(unsafe) private static var cachedExtensionContainer: ModelContainer?
-
-    // More reliable than checking bundle path
-    private static var isExtension: Bool {
-        Bundle.main.object(forInfoDictionaryKey: "NSExtension") != nil
-    }
 
     nonisolated static func sharedContainer() throws -> ModelContainer {
         let isExtension = Bundle.main.object(forInfoDictionaryKey: "NSExtension") != nil
-        print("🚦 Process type:", isExtension ? "EXTENSION" : "APP")
+#if os(watchOS)
+        let isWatchApp = true
+#else
+        let isWatchApp = false
+#endif
+        print("🚦 Process type:", isExtension ? "EXTENSION" : (isWatchApp ? "WATCH_APP" : "APP"))
 
-        if isExtension {
+        if isExtension || isWatchApp {
             if let c = cachedExtensionContainer { return c }
-            print("🏗️ Creating NON-CloudKit container (EXT)")
-            let c = try Containers.liveExtension()          // cloudKitDatabase: nil
+            print("🏗️ Creating NON-CloudKit container (EXT/WATCH)")
+            let c = try Containers.liveExtension()
             cachedExtensionContainer = c
             return c
         } else {
-            return AppContainer.shared                     // single CloudKit container in app
+            return AppContainer.shared
         }
     }
 

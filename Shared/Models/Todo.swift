@@ -133,7 +133,7 @@ class ToDoTask {
     }
 }
 
-public struct ToDoTaskDTO: Sendable, Codable, Hashable {
+public struct ToDoTaskDTO: Sendable, Hashable {
     var id: PersistentIdentifier?
     var name: String
     var created: Date
@@ -181,6 +181,52 @@ public struct ToDoTaskDTO: Sendable, Codable, Hashable {
 //        }
 //        return try JSONDecoder().decode(UUID.self, from: data)
 //    }
+}
+
+extension ToDoTaskDTO: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case id, name, created, due, pomodoro, pomodoroTime, repeating, completed, completedAt, startedAt, recurrenceInterval, customRecurrenceDays, everySpecificDayDay, categories, uuid, completionMoodValence
+    }
+
+    public nonisolated init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try c.decodeIfPresent(PersistentIdentifier.self, forKey: .id)
+        self.name = try c.decode(String.self, forKey: .name)
+        self.created = try c.decodeIfPresent(Date.self, forKey: .created) ?? Date()
+        self.due = try c.decode(Date.self, forKey: .due)
+        self.pomodoro = try c.decodeIfPresent(Bool.self, forKey: .pomodoro) ?? true
+        self.pomodoroTime = try c.decodeIfPresent(TimeInterval.self, forKey: .pomodoroTime) ?? 25 * 60
+        self.repeating = try c.decodeIfPresent(Bool.self, forKey: .repeating) ?? false
+        self.completed = try c.decodeIfPresent(Bool.self, forKey: .completed) ?? false
+        self.completedAt = try c.decodeIfPresent(Date.self, forKey: .completedAt)
+        self.startedAt = try c.decodeIfPresent(Date.self, forKey: .startedAt)
+        self.recurrenceInterval = try c.decodeIfPresent(ToDoTask.RecurrenceInterval.self, forKey: .recurrenceInterval)
+        self.customRecurrenceDays = try c.decodeIfPresent(Int.self, forKey: .customRecurrenceDays) ?? 1
+        self.everySpecificDayDay = try c.decodeIfPresent(Int.self, forKey: .everySpecificDayDay) ?? 0
+        self.categories = try c.decodeIfPresent([CategoryDTO].self, forKey: .categories) ?? []
+        self.uuid = try c.decodeIfPresent(UUID.self, forKey: .uuid) ?? UUID()
+        self.completionMoodValence = try c.decodeIfPresent(Double.self, forKey: .completionMoodValence)
+    }
+
+    public nonisolated func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encodeIfPresent(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(created, forKey: .created)
+        try c.encode(due, forKey: .due)
+        try c.encode(pomodoro, forKey: .pomodoro)
+        try c.encode(pomodoroTime, forKey: .pomodoroTime)
+        try c.encode(repeating, forKey: .repeating)
+        try c.encode(completed, forKey: .completed)
+        try c.encodeIfPresent(completedAt, forKey: .completedAt)
+        try c.encodeIfPresent(startedAt, forKey: .startedAt)
+        try c.encodeIfPresent(recurrenceInterval, forKey: .recurrenceInterval)
+        try c.encode(customRecurrenceDays, forKey: .customRecurrenceDays)
+        try c.encode(everySpecificDayDay, forKey: .everySpecificDayDay)
+        try c.encode(categories, forKey: .categories)
+        try c.encode(uuid, forKey: .uuid)
+        try c.encodeIfPresent(completionMoodValence, forKey: .completionMoodValence)
+    }
 }
 
 extension ToDoTaskDTO {

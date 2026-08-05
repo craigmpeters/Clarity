@@ -167,9 +167,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency UNUserNotifi
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
         // Migrations are triggered from ClarityApp.onAppear via modelContext
-        ClarityWatchConnectivity.shared.start()
-        ClarityModelActor.onTaskCompleted = { ClarityWatchConnectivity.shared.pushSnapshot() }
-        ClarityModelActor.onTaskMutated = { ClarityWatchConnectivity.shared.pushSnapshot() }
+        PhoneConnectivityCoordinator.shared.start()
+        ClarityModelActor.onTaskCompleted = { PhoneConnectivityCoordinator.shared.broadcastSnapshot() }
+        ClarityModelActor.onTaskMutated = { PhoneConnectivityCoordinator.shared.broadcastSnapshot() }
         _ = LogManager.shared
         // let url = LogManager.defaultLogFileURL()
         LogManager.shared.log.info("Clarity logger initialized in AppDelegate")
