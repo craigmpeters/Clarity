@@ -205,7 +205,7 @@ struct CategoryCompactIcon: View {
             if let iconName = category.iconName, !iconName.isEmpty {
                 CategoryIcon.image(for: iconName)
                     .frame(width: 14, height: 14)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(category.color?.contrastingTextColor ?? .primary)
             } else if let first = category.name?.first {
                 Text(String(first))
                     .textCase(.uppercase)
