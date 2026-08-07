@@ -98,6 +98,7 @@ struct ClarityApp: App {
                     try? WidgetFileCoordinator.shared.writeCategories(categories)
                     Task { @MainActor in
                         await PomodoroService.shared.restoreIfNeeded(container: container, device: .iPhone)
+                        PomodoroService.shared.syncIfStoppedExternally()
                         if PomodoroService.shared.isActive {
                             appState.showingPomodoro = true
                         }
@@ -123,6 +124,8 @@ struct ClarityApp: App {
                     guard newPhase == .active else { return }
                     // Keep the App Group category snapshot fresh for widgets / intents.
                     ClarityServices.writeCategorySnapshot()
+                    // Sync any Pomodoro state that was changed by a widget / Live Activity intent.
+                    PomodoroService.shared.syncIfStoppedExternally()
                     if let id = consumePendingStartTimerTaskId() {
                         LogManager.shared.log.debug("Starting Pomodero (.onChange Active) for \(id.uuidString)")
                         appState.pomodoroUuid = id

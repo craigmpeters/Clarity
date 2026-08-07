@@ -16,7 +16,7 @@ import XCGLogger
 @MainActor final class PomodoroService: ObservableObject {
     static let shared = PomodoroService()
     
-    var isActive: Bool = false
+    @Published var isActive: Bool = false
     var toDoTask: ToDoTaskDTO?
     var startedDevice: DeviceType = .iPhone
     @Published var endTime: Date?
@@ -69,6 +69,7 @@ import XCGLogger
 
     private let pomodoroPersistKey = "activePomodoroState"
     private let sessionHistoryKey = "completedPomodoroSessions"
+    private let externalStopFlagKey = "pomodoroWasStoppedExternally"
     private let appGroupID = "group.me.craigpeters.clarity"
     
     private struct PersistedPomodoro: Codable {
@@ -405,6 +406,38 @@ import XCGLogger
     private func clearPersistedState() {
         appGroupDefaults()?.removeObject(forKey: pomodoroPersistKey)
         LogManager.shared.log.debug("Cleared persisted pomodoro")
+    }
+
+    /// Loads any session history recorded by the widget extension and, if the service still
+    /// believes a timer is active, resets it so the UI matches the externally-stopped state.
+    @MainActor
+    func syncIfStoppedExternally() {
+        guard appGroupDefaults()?.bool(forKey: externalStopFlagKey) == true else { return }
+        appGroupDefaults()?.removeObject(forKey: externalStopFlagKey)
+        LogManager.shared.log.debug("PomodoroService: external stop flag detected")
+
+        if isActive {
+            timer?.invalidate()
+            timer = nil
+            isActive = false
+            cancelNotification()
+            clearPersistedState()
+            activity = nil
+            toDoTask = nil
+            startTime = nil
+            endTime = nil
+            remainingTime = 0
+            progress = 0
+            loadSessionHistory()
+            NotificationCenter.default.post(name: .pomodoroCompleted, object: nil)
+            LogManager.shared.log.debug("PomodoroService: reset after external stop (was active)")
+        } else {
+            loadSessionHistory()
+            // The session was completed by the Live Activity intent while the app process
+            // was not active; surface the mood sheet so the user can log how it went.
+            NotificationCenter.default.post(name: .pomodoroCompleted, object: nil)
+            LogManager.shared.log.debug("PomodoroService: loaded history and posted completion after external stop")
+        }
     }
 
     // MARK: - Session History

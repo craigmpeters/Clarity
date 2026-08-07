@@ -333,7 +333,11 @@ actor ClarityModelActor {
         do {
             tasks = try tasks.map { task in
                 task.completed = true
-                task.completedAt = Date.now
+                if let startedAt = startedAt, startedAt + task.pomodoroTime < Date.now {
+                    task.completedAt = startedAt + task.pomodoroTime
+                } else {
+                    task.completedAt = Date.now
+                }
                 task.startedAt = startedAt
                 if task.repeating! && !completed {
                     if let nextDTO = createNextOccurrence(task.id) {

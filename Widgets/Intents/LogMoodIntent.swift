@@ -58,7 +58,7 @@ struct LogMoodIntent: LiveActivityIntent {
         self.mood = mood
     }
 
-    func perform() async throws -> some IntentResult {
+    func perform() async throws -> some IntentResult & OpensIntent {
         let appGroup = "group.me.craigpeters.clarity"
         let sessionHistoryKey = "completedPomodoroSessions"
         let defaults = UserDefaults(suiteName: appGroup)
