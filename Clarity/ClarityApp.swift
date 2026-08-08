@@ -173,6 +173,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency UNUserNotifi
         PhoneConnectivityCoordinator.shared.start()
         ClarityModelActor.onTaskCompleted = { PhoneConnectivityCoordinator.shared.broadcastSnapshot() }
         ClarityModelActor.onTaskMutated = { PhoneConnectivityCoordinator.shared.broadcastSnapshot() }
+        ClarityModelActor.onHabitMutated = { PhoneConnectivityCoordinator.shared.broadcastSnapshot() }
         _ = LogManager.shared
         // let url = LogManager.defaultLogFileURL()
         LogManager.shared.log.info("Clarity logger initialized in AppDelegate")
@@ -181,7 +182,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency UNUserNotifi
             .sink { [weak self] _ in
                 DispatchQueue.main.async {
                     self?.appState?.showingPomodoro = true
-                    self?.appState?.selectedTab = 1
+                    self?.appState?.selectedTab = 2
                     print("⏰ Pomodoro Started - iOS AppDelegate")
                 }
             }

@@ -37,6 +37,7 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
 
     func buildSnapshot() async -> Snapshot {
         let tasks = (try? WidgetFileCoordinator.shared.readTasks()) ?? []
+        let habits = WidgetFileCoordinator.shared.readHabits()
         let progress = WidgetFileCoordinator.shared.readWeeklyProgress() ?? WeeklyProgress(completed: 0, target: 0, error: nil, categories: [])
         let active: PomodoroDTO? = {
             guard PomodoroService.shared.isActive else { return nil }
@@ -46,10 +47,29 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
                 toDoTask: PomodoroService.shared.toDoTask ?? tasks.first ?? ToDoTaskDTO(name: nil, uuid: UUID(), completed: false)
             )
         }()
-        return Snapshot(revision: revision, tasks: tasks, progress: progress, activePomodoro: active)
+        let occurrences = await buildHabitOccurrences(habits: habits)
+        return Snapshot(revision: revision, tasks: tasks, habits: habits, habitOccurrences: occurrences, progress: progress, activePomodoro: active)
     }
 
-    // MARK: Inbound handling
+    private func buildHabitOccurrences(habits: [HabitDTO]) async -> [UUID: HabitOccurrenceDTO] {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: Date())
+        let store = try? await ClarityServices.store()
+        var result: [UUID: HabitOccurrenceDTO] = [:]
+        for habit in habits {
+            guard let store = store else { continue }
+            let history = (try? await store.fetchHabitHistory(habit.uuid, from: startOfDay, to: Date())) ?? []
+            if let today = history.first(where: { calendar.isDate($0.periodStart, inSameDayAs: Date()) }) {
+                result[habit.uuid] = today
+            }
+        }
+        return result
+    }
+
+    func transferHabitArtwork(filename: String, for habitUUID: UUID) {
+        guard let url = WidgetFileCoordinator.shared.habitArtworkURL(filename: filename) else { return }
+        ConnectivityTransport.shared.transferHabitArtwork(fileURL: url, habitUUID: habitUUID)
+    }
 
     private func handle(_ msg: WireMessage) async {
         switch msg {
@@ -90,6 +110,12 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
         case .requestSnapshot:
             // No-op: reply handled in the transport via SnapshotBuilder.
             break
+        case .logHabitProgress(let uuid, let amount):
+            do {
+                try await ClarityServices.store().logHabitProgress(uuid, amount: amount)
+            } catch {
+                LogManager.shared.log.error("⌚️ log habit progress failed: \(error)")
+            }
         }
         broadcastSnapshot()
     }

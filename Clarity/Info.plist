@@ -26,7 +26,7 @@
 	<key>LOG_VIEWER_ENABLED</key>
 	<string>$(LOG_VIEWER_ENABLED)</string>
 	<key>NSFoundationModelsUsageDescription</key>
-	<string>This app uses AI to help split complex tasks into manageable subtasks.</string>
+	<string>This app uses AI to help split tasks, suggest habit configurations, and generate optional habit artwork.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Clarity reads your state of mind logs to show how completing tasks affected your mood.</string>
 	<key>NSHealthUpdateUsageDescription</key>

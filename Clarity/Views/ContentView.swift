@@ -26,12 +26,22 @@ struct ContentView: View {
             }
             .tag(0)
 
+            NavigationStack {
+                HabitsIndexView()
+                    .navigationTitle("Habits")
+            }
+            .tabItem {
+                Image(systemName: "checklist.checked")
+                Text("Habits")
+            }
+            .tag(1)
+
             PomodoroView()
                 .tabItem {
                     Image(systemName: "timer")
                     Text("Focus")
                 }
-                .tag(1)
+                .tag(2)
                 .badge(pomodoroService.isActive ? 1 : 0)
 
             NavigationStack {
@@ -42,7 +52,7 @@ struct ContentView: View {
                 Image(systemName: "chart.bar")
                 Text("Stats")
             }
-            .tag(2)
+            .tag(3)
 
             NavigationStack {
                 SettingsView()
@@ -52,7 +62,7 @@ struct ContentView: View {
                 Image(systemName: "gear")
                 Text("Settings")
             }
-            .tag(3)
+            .tag(4)
         }
         .sheet(isPresented: $showingFirstRun) {
             FirstRunView()
@@ -94,7 +104,7 @@ struct ContentView: View {
             Task {
                 guard let task = try? await store.fetchTaskByUuid(uuid) else { return }
                 PomodoroService.shared.startPomodoro(for: task, container: context.container, device: .iPhone)
-                appState.selectedTab = 1
+                appState.selectedTab = 2
             }
         }
         .overlay {

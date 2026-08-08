@@ -58,6 +58,15 @@ struct ClarityShortcutsProvider: AppShortcutsProvider {
                       "Get \(\.$task) details in (\(.applicationName))"],
             shortTitle: "View Task",
             systemImageName: "checkmark")
+        AppShortcut(
+            intent: LogHabitProgressIntent(),
+            phrases: [
+                "Log progress on \(.applicationName)",
+                "Log progress on a habit in \(.applicationName)"
+            ],
+            shortTitle: "Log Habit Progress",
+            systemImageName: "checklist.checked"
+        )
 //        AppShortcut(
 //            intent: StartPomodoroIntent(),
 //            phrases: [

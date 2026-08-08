@@ -28,6 +28,7 @@ import CryptoKit
     func activate()
     func updateApplicationContext(_ context: [String: Any]) throws
     func transferUserInfo(_ userInfo: [String: Any]) -> WCSessionUserInfoTransfer
+    func transferFile(_ file: URL, metadata: [String: Any]?) -> WCSessionFileTransfer
     #if os(iOS)
     func transferCurrentComplicationUserInfo(_ userInfo: [String: Any]) -> WCSessionUserInfoTransfer
     #endif
@@ -36,7 +37,11 @@ import CryptoKit
                          errorHandler: ((Error) -> Void)?)
 }
 
-extension WCSession: WCSessionProtocol {}
+extension WCSession: WCSessionProtocol {
+    func transferFile(_ file: URL, metadata: [String : Any]?) -> WCSessionFileTransfer {
+        WCSession.default.transferFile(file, metadata: metadata)
+    }
+}
 
 // MARK: - Snapshot builder
 
@@ -104,6 +109,11 @@ final class ConnectivityTransport: NSObject {
     func pushState(_ snapshot: Snapshot) async throws {
         let data = try makeEncoder().encode(WireMessage.snapshot(snapshot))
         try session.updateApplicationContext(["payload": data])
+    }
+
+    func transferHabitArtwork(fileURL: URL, habitUUID: UUID) {
+        guard session.activationState == .activated else { return }
+        _ = session.transferFile(fileURL, metadata: ["habitArtwork": habitUUID.uuidString])
     }
 
     func pushComplicationIfNeeded(_ snapshot: Snapshot) async throws {
@@ -194,6 +204,21 @@ extension ConnectivityTransport: WCSessionDelegate {
         LogManager.shared.log.verbose("[ConnectivityTransport] activationDidCompleteWith state=\(state.rawValue), error=\(String(describing: error))")
         Task { @MainActor [weak self] in
             self?.flushOutboundIfActivated()
+        }
+    }
+
+    nonisolated func session(_ s: WCSession, didReceive file: WCSessionFile) {
+        guard let metadata = file.metadata,
+              let uuidString = metadata["habitArtwork"] as? String else { return }
+        let filename = "\(uuidString).png"
+        guard let destination = WidgetFileCoordinator.shared.habitArtworkURL(filename: filename) else { return }
+        do {
+            if FileManager.default.fileExists(atPath: destination.path) {
+                try FileManager.default.removeItem(at: destination)
+            }
+            try FileManager.default.copyItem(at: file.fileURL, to: destination)
+        } catch {
+            LogManager.shared.log.error("[ConnectivityTransport] failed to copy habit artwork: \(error)")
         }
     }
 

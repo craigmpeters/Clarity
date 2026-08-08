@@ -17,6 +17,8 @@ final class WatchSnapshotStore {
     private(set) var snapshot: Snapshot = Snapshot(
         revision: 0,
         tasks: [],
+        habits: [],
+        habitOccurrences: [:],
         progress: WeeklyProgress(completed: 0, target: 0, error: nil, categories: []),
         activePomodoro: nil
     )
@@ -63,6 +65,7 @@ final class WatchSnapshotStore {
 
     private func persistSnapshot(_ s: Snapshot) {
         try? WidgetFileCoordinator.shared.writeTasks(s.tasks)
+        try? WidgetFileCoordinator.shared.writeHabits(s.habits)
         try? WidgetFileCoordinator.shared.writeWeeklyProgress(s.progress)
     }
 
@@ -71,6 +74,10 @@ final class WatchSnapshotStore {
     }
 
     // MARK: UI intents
+
+    func logHabitProgress(_ habit: HabitDTO, amount: Double? = nil) {
+        Task { try? await ConnectivityTransport.shared.send(.logHabitProgress(habit.uuid, amount: amount)) }
+    }
 
     func complete(_ task: ToDoTaskDTO) {
         optimisticallyCompleted.insert(task.uuid)
@@ -94,6 +101,10 @@ final class WatchSnapshotStore {
         Task { try? await ConnectivityTransport.shared.send(.sendLogs(data)) }
     }
 
+    func occurrence(for habitUUID: UUID) -> HabitOccurrenceDTO? {
+        snapshot.habitOccurrences[habitUUID]
+    }
+
     func requestInitialSnapshot() async {
         do {
             let snap = try await ConnectivityTransport.shared.fetchSnapshot()
@@ -101,8 +112,9 @@ final class WatchSnapshotStore {
         } catch {
             LogManager.shared.log.debug("[WatchSnapshotStore] fetchSnapshot failed: \(error). Falling back to cached snapshot.")
             let tasks = (try? WidgetFileCoordinator.shared.readTasks()) ?? []
+            let habits = WidgetFileCoordinator.shared.readHabits()
             let progress = WidgetFileCoordinator.shared.readWeeklyProgress() ?? WeeklyProgress(completed: 0, target: 0, error: nil, categories: [])
-            snapshot = Snapshot(revision: 0, tasks: tasks, progress: progress, activePomodoro: nil)
+            snapshot = Snapshot(revision: 0, tasks: tasks, habits: habits, habitOccurrences: [:], progress: progress, activePomodoro: nil)
         }
     }
 }

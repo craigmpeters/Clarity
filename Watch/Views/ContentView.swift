@@ -13,20 +13,26 @@ import WidgetKit
 struct ContentView: View {
     @State private var store = WatchSnapshotStore.shared
     @State private var isRefreshing = false
+    @State private var selectedTab = 0
 
     var body: some View {
         NavigationStack {
-            List {
-                ForEach(currentTasks, id: \.id) { task in
-                    WatchTaskRow(
-                        task: task,
-                        onComplete: { store.complete(task) },
-                        onStartTimer: { store.startPomodoro(task) }
-                    )
-                }
+            TabView(selection: $selectedTab) {
+                taskList
+                    .tag(0)
+                WatchHabitsView()
+                    .tag(1)
             }
-            .navigationTitle("Tasks")
+            .tabViewStyle(.verticalPage)
+            .navigationTitle(selectedTab == 0 ? "Tasks" : "Habits")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        selectedTab = selectedTab == 0 ? 1 : 0
+                    } label: {
+                        Image(systemName: selectedTab == 0 ? "checklist" : "list.bullet")
+                    }
+                }
                 #if INTERNAL
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
@@ -55,10 +61,22 @@ struct ContentView: View {
                 await store.requestInitialSnapshot()
                 LogManager.shared.log.debug("[WATCH] ContentView.task: done")
             }
-            .overlay {
-                if currentTasks.isEmpty {
-                    ContentUnavailableView("No Tasks", systemImage: "tray", description: Text("Tap Refresh"))
-                }
+        }
+    }
+
+    private var taskList: some View {
+        List {
+            ForEach(currentTasks, id: \.id) { task in
+                WatchTaskRow(
+                    task: task,
+                    onComplete: { store.complete(task) },
+                    onStartTimer: { store.startPomodoro(task) }
+                )
+            }
+        }
+        .overlay {
+            if currentTasks.isEmpty {
+                ContentUnavailableView("No Tasks", systemImage: "tray", description: Text("Tap Refresh"))
             }
         }
     }
@@ -89,6 +107,7 @@ struct ContentView: View {
         }
     }
 }
+
 
 struct WatchTaskRow: View {
     let task: ToDoTaskDTO

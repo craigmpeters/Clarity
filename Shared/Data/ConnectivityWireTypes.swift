@@ -16,6 +16,7 @@ enum WatchCommand: Sendable {
     case stopPomodoro
     case requestSnapshot
     case sendLogs(Data)
+    case logHabitProgress(UUID, amount: Double?)
 }
 
 nonisolated extension WatchCommand: Codable {}
@@ -34,11 +35,38 @@ nonisolated extension PhoneEvent: Codable {}
 struct Snapshot: Sendable {
     var revision: Int
     var tasks: [ToDoTaskDTO]
+    var habits: [HabitDTO]
+    var habitOccurrences: [UUID: HabitOccurrenceDTO]
     var progress: WeeklyProgress
     var activePomodoro: PomodoroDTO?
 }
 
-nonisolated extension Snapshot: Codable {}
+extension Snapshot: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case revision, tasks, habits, habitOccurrences, progress, activePomodoro
+    }
+
+    nonisolated init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.revision = try c.decode(Int.self, forKey: .revision)
+        self.tasks = try c.decode([ToDoTaskDTO].self, forKey: .tasks)
+        self.habits = try c.decodeIfPresent([HabitDTO].self, forKey: .habits) ?? []
+        let occurrencesArray = try c.decodeIfPresent([HabitOccurrenceDTO].self, forKey: .habitOccurrences) ?? []
+        self.habitOccurrences = Dictionary(uniqueKeysWithValues: occurrencesArray.map { ($0.habitUUID, $0) })
+        self.progress = try c.decode(WeeklyProgress.self, forKey: .progress)
+        self.activePomodoro = try c.decodeIfPresent(PomodoroDTO.self, forKey: .activePomodoro)
+    }
+
+    nonisolated func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(revision, forKey: .revision)
+        try c.encode(tasks, forKey: .tasks)
+        try c.encode(habits, forKey: .habits)
+        try c.encode(Array(habitOccurrences.values), forKey: .habitOccurrences)
+        try c.encode(progress, forKey: .progress)
+        try c.encodeIfPresent(activePomodoro, forKey: .activePomodoro)
+    }
+}
 
 // MARK: - Complication projection
 

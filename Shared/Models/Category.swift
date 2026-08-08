@@ -22,6 +22,7 @@ class Category {
     /// Optional for migration safety — backfilled at app launch.
     var uuid: UUID?
     @Relationship(inverse: \ToDoTask.categories) var tasks: [ToDoTask]? = []
+    @Relationship(inverse: \Habit.categories) var habits: [Habit]? = []
 
     init(name: String, color: CategoryColor = .Red, weeklyTarget: Int = 0, iconName: String? = nil) {
         self.name = name

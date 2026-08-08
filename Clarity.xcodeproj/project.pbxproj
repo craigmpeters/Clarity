@@ -55,6 +55,13 @@
 			remoteGlobalIDString = 4448AD602E579266005CDDDF;
 			remoteInfo = PomodoroExtensionExtension;
 		};
+		4457190E30276FA400BE9967 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 44FB49562E51F1EB0059CC5B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 44FB495D2E51F1EB0059CC5B;
+			remoteInfo = Clarity;
+		};
 		44D6EADB2E83177400B5EF9E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 44FB49562E51F1EB0059CC5B /* Project object */;
@@ -118,6 +125,7 @@
 		4448AD612E579266005CDDDF /* Widgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = Widgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		4448AD632E579266005CDDDF /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		4448AD652E579266005CDDDF /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		4457190A30276FA400BE9967 /* ClarityTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClarityTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		44D6EABD2E83176B00B5EF9E /* ClarityWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClarityWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		44D6F0492E85DDDF00B5EF9E /* ClarityWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ClarityWatch.entitlements; sourceTree = "<group>"; };
 		44D6F04A2E85DE1500B5EF9E /* ClarityWatch-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "ClarityWatch-Info.plist"; sourceTree = "<group>"; };
@@ -140,6 +148,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Entities/CategoryEntity.swift,
+				Entities/HabitEntity.swift,
 				Entities/TaskDetailEntity.swift,
 				Media.xcassets,
 			);
@@ -158,6 +167,13 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Category.swift,
+				Habit.swift,
+				HabitArtService.swift,
+				HabitConfig.swift,
+				HabitDTO.swift,
+				HabitFormatter.swift,
+				HabitStreakCalculator.swift,
+				HabitSuggestionService.swift,
 				PomodoroAlarmSound.swift,
 				PomodoroSoundManager.swift,
 				Statistics.swift,
@@ -172,6 +188,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Entities/CategoryEntity.swift,
+				Entities/HabitEntity.swift,
 				Entities/TaskDetailEntity.swift,
 				Media.xcassets,
 			);
@@ -188,6 +205,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Entities/CategoryEntity.swift,
+				Entities/HabitEntity.swift,
 				Entities/TaskDetailEntity.swift,
 				Media.xcassets,
 			);
@@ -197,6 +215,13 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Category.swift,
+				Habit.swift,
+				HabitArtService.swift,
+				HabitConfig.swift,
+				HabitDTO.swift,
+				HabitFormatter.swift,
+				HabitStreakCalculator.swift,
+				HabitSuggestionService.swift,
 				PomodoroAlarmSound.swift,
 				PomodoroSoundManager.swift,
 				Statistics.swift,
@@ -295,6 +320,13 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Category.swift,
+				Habit.swift,
+				HabitArtService.swift,
+				HabitConfig.swift,
+				HabitDTO.swift,
+				HabitFormatter.swift,
+				HabitStreakCalculator.swift,
+				HabitSuggestionService.swift,
 				PomodoroAlarmSound.swift,
 				PomodoroAttributes.swift,
 				PomodoroSoundManager.swift,
@@ -310,6 +342,13 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Category.swift,
+				Habit.swift,
+				HabitArtService.swift,
+				HabitConfig.swift,
+				HabitDTO.swift,
+				HabitFormatter.swift,
+				HabitStreakCalculator.swift,
+				HabitSuggestionService.swift,
 				PomodoroAlarmSound.swift,
 				PomodoroSoundManager.swift,
 				Statistics.swift,
@@ -354,6 +393,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Entities/CategoryEntity.swift,
+				Entities/HabitEntity.swift,
 				Entities/TaskDetailEntity.swift,
 				Entities/TaskEntity.swift,
 				Intents/CompletedTaskWidgetIntent.swift,
@@ -362,6 +402,7 @@
 				Intents/DeleteTaskIntent.swift,
 				Intents/GetTaskIntent.swift,
 				Intents/ListTasksIntent.swift,
+				Intents/LogHabitProgressIntent.swift,
 				Intents/LogMoodIntent.swift,
 				Intents/StartPomodoroIntent.swift,
 				Intents/StopPomodoroIntent.swift,
@@ -404,6 +445,11 @@
 				443255072F4F3D8F003176B3 /* Exceptions for "Widgets" folder in "ClarityWatchWidgetsExtension" target */,
 			);
 			path = Widgets;
+			sourceTree = "<group>";
+		};
+		4457190B30276FA400BE9967 /* ClarityTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ClarityTests;
 			sourceTree = "<group>";
 		};
 		44588D1E2EA924AC00A657C3 /* Icons */ = {
@@ -532,6 +578,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		4457190730276FA400BE9967 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		44D6EABA2E83176B00B5EF9E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -602,6 +655,7 @@
 				44D6F0132E85DA5F00B5EF9E /* Watch */,
 				441B7E052EEED7F4008D76CA /* ClarityAppIntentsExtension */,
 				443254E52F4B4903003176B3 /* ClarityWatchWidgets */,
+				4457190B30276FA400BE9967 /* ClarityTests */,
 				4448AD622E579266005CDDDF /* Frameworks */,
 				44FB495F2E51F1EB0059CC5B /* Products */,
 				44F7CE5F2E8B2FA300F520BF /* DataRepository.swift */,
@@ -617,6 +671,7 @@
 				44D6EABD2E83176B00B5EF9E /* ClarityWatch.app */,
 				441B7E042EEED7F4008D76CA /* ClarityAppIntentsExtension.appex */,
 				443254E22F4B4903003176B3 /* ClarityWatchWidgetsExtension.appex */,
+				4457190A30276FA400BE9967 /* ClarityTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -699,6 +754,29 @@
 			productReference = 4448AD612E579266005CDDDF /* Widgets.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		4457190930276FA400BE9967 /* ClarityTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4457191030276FA400BE9967 /* Build configuration list for PBXNativeTarget "ClarityTests" */;
+			buildPhases = (
+				4457190630276FA400BE9967 /* Sources */,
+				4457190730276FA400BE9967 /* Frameworks */,
+				4457190830276FA400BE9967 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4457190F30276FA400BE9967 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4457190B30276FA400BE9967 /* ClarityTests */,
+			);
+			name = ClarityTests;
+			packageProductDependencies = (
+			);
+			productName = ClarityTests;
+			productReference = 4457190A30276FA400BE9967 /* ClarityTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		44D6EABC2E83176B00B5EF9E /* ClarityWatch */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 44D6EADE2E83177400B5EF9E /* Build configuration list for PBXNativeTarget "ClarityWatch" */;
@@ -771,7 +849,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2620;
+				LastSwiftUpdateCheck = 2700;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					441B7E032EEED7F4008D76CA = {
@@ -782,6 +860,10 @@
 					};
 					4448AD602E579266005CDDDF = {
 						CreatedOnToolsVersion = 16.2;
+					};
+					4457190930276FA400BE9967 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = 44FB495D2E51F1EB0059CC5B;
 					};
 					44D6EABC2E83176B00B5EF9E = {
 						CreatedOnToolsVersion = 26.0.1;
@@ -814,6 +896,7 @@
 				4448AD602E579266005CDDDF /* Widgets */,
 				441B7E032EEED7F4008D76CA /* ClarityAppIntentsExtension */,
 				443254E12F4B4903003176B3 /* ClarityWatchWidgetsExtension */,
+				4457190930276FA400BE9967 /* ClarityTests */,
 			);
 		};
 /* End PBXProject section */
@@ -839,6 +922,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				44DD88E32F9E5CF400732504 /* Media.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4457190830276FA400BE9967 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -902,6 +992,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		4457190630276FA400BE9967 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		44D6EAB92E83176B00B5EF9E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -934,6 +1031,11 @@
 			isa = PBXTargetDependency;
 			target = 4448AD602E579266005CDDDF /* Widgets */;
 			targetProxy = 4448AD732E579268005CDDDF /* PBXContainerItemProxy */;
+		};
+		4457190F30276FA400BE9967 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 44FB495D2E51F1EB0059CC5B /* Clarity */;
+			targetProxy = 4457190E30276FA400BE9967 /* PBXContainerItemProxy */;
 		};
 		44D6EADC2E83177400B5EF9E /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -1367,6 +1469,84 @@
 			};
 			name = Release;
 		};
+		4457191130276FA400BE9967 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4VL692ZU4A;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.clarity.ClarityTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Clarity.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Clarity";
+				XROS_DEPLOYMENT_TARGET = 27.0;
+			};
+			name = Debug;
+		};
+		4457191230276FA400BE9967 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4VL692ZU4A;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.clarity.ClarityTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Clarity.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Clarity";
+				XROS_DEPLOYMENT_TARGET = 27.0;
+			};
+			name = Release;
+		};
+		4457191330276FA400BE9967 /* Internal */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4VL692ZU4A;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = me.craigpeters.clarity.ClarityTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Clarity.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Clarity";
+				XROS_DEPLOYMENT_TARGET = 27.0;
+			};
+			name = Internal;
+		};
 		44D6EADF2E83177400B5EF9E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1675,6 +1855,16 @@
 				4448AD772E579268005CDDDF /* Debug */,
 				4448AD782E579268005CDDDF /* Release */,
 				441B80282F1595BF008D76CA /* Internal */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4457191030276FA400BE9967 /* Build configuration list for PBXNativeTarget "ClarityTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4457191130276FA400BE9967 /* Debug */,
+				4457191230276FA400BE9967 /* Release */,
+				4457191330276FA400BE9967 /* Internal */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

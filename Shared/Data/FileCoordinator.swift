@@ -48,6 +48,8 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
     private let fileName = "ClarityWidget.json"
     private let weeklyProgressFileName = "ClarityWeeklyProgress.json"
     private let categoriesFileName = "ClarityCategories.json"
+    private let habitsFileName = "ClarityHabits.json"
+    private let habitArtworkDirectoryName = "HabitArtwork"
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Clarity", category: "WidgetFileCoordinator")
 
     private let encoder: JSONEncoder
@@ -414,6 +416,58 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
         guard let url = categoriesURL(),
               let data = try? Data(contentsOf: url) else { return [] }
         return (try? decoder.decode([CategoryDTO].self, from: data)) ?? []
+    }
+
+    // MARK: Habits
+
+    nonisolated private func habitsURL() -> URL? {
+        containerURL()?.appendingPathComponent(habitsFileName)
+    }
+
+    nonisolated func habitArtworkDirectoryURL() -> URL? {
+        guard let container = containerURL() else { return nil }
+        let dir = container.appendingPathComponent(habitArtworkDirectoryName)
+        createDirectoryIfNeeded(dir)
+        return dir
+    }
+
+    nonisolated func habitArtworkURL(filename: String) -> URL? {
+        habitArtworkDirectoryURL()?.appendingPathComponent(filename)
+    }
+
+    nonisolated func copyArtwork(from sourceURL: URL, for habitUUID: UUID) throws -> String? {
+        let filename = "\(habitUUID.uuidString).png"
+        guard let destination = habitArtworkURL(filename: filename) else { return nil }
+        let coordinator = NSFileCoordinator(filePresenter: nil)
+        var error: NSError?
+        coordinator.coordinate(readingItemAt: sourceURL, options: .withoutChanges, writingItemAt: destination, options: .forReplacing, error: &error) { readURL, writeURL in
+            if FileManager.default.fileExists(atPath: writeURL.path) {
+                try? FileManager.default.removeItem(at: writeURL)
+            }
+            try? FileManager.default.copyItem(at: readURL, to: writeURL)
+        }
+        if let error = error {
+            throw error
+        }
+        return FileManager.default.fileExists(atPath: destination.path) ? filename : nil
+    }
+
+    nonisolated func removeArtwork(filename: String) {
+        guard let url = habitArtworkURL(filename: filename) else { return }
+        try? FileManager.default.removeItem(at: url)
+    }
+
+    nonisolated func writeHabits(_ habits: [HabitDTO]) throws {
+        guard let url = habitsURL() else { throw NSError(domain: "WidgetFileCoordinator", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing App Group URL"]) }
+        let data = try encoder.encode(habits)
+        try data.write(to: url, options: .atomic)
+        notifyWidgetReload()
+    }
+
+    nonisolated func readHabits() -> [HabitDTO] {
+        guard let url = habitsURL(),
+              let data = try? Data(contentsOf: url) else { return [] }
+        return (try? decoder.decode([HabitDTO].self, from: data)) ?? []
     }
 
     // MARK: Widget refresh hook
