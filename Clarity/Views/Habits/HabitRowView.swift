@@ -14,10 +14,13 @@ struct HabitRowView: View {
     let onCompleteAnyway: () -> Void
     let onUseFreeze: () -> Void
     let onGenerateArt: () -> Void
+    var isGeneratingArt: Bool = false
+    var isImagePlaygroundAvailable: Bool = false
 
     var body: some View {
         ZStack {
             HabitArtworkBackground(filename: habit.artworkFilename)
+                .allowsHitTesting(false)
 
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
@@ -29,12 +32,18 @@ struct HabitRowView: View {
                             .foregroundColor(.secondary)
                     }
                     Spacer()
-                    HStack(spacing: 4) {
-                        Image(systemName: "flame.fill")
-                            .foregroundColor(.orange)
-                        Text("\(streak.current)")
-                            .font(.subheadline.weight(.semibold))
+                HStack(spacing: 4) {
+                    Image(systemName: "flame.fill")
+                        .foregroundColor(.orange)
+                    Text("\(streak.current)")
+                        .font(.subheadline.weight(.semibold))
+                    if occurrence?.source == "healthkit" {
+                        Image(systemName: "heart.text.square.fill")
+                            .foregroundColor(.green)
+                            .font(.caption)
+                            .accessibilityLabel("HealthKit linked")
                     }
+                }
                 }
 
                 HStack(spacing: 16) {
@@ -75,7 +84,15 @@ struct HabitRowView: View {
                     Spacer()
                 }
             }
-            .padding(.vertical, 8)
+            .padding(12)
+            .background(
+                ZStack {
+                    if habit.artworkFilename != nil {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(.ultraThinMaterial.opacity(0.6))
+                    }
+                }
+            )
         }
         .contentShape(Rectangle())
         .onTapGesture { onLogAmount() }
@@ -86,8 +103,11 @@ struct HabitRowView: View {
             Button(action: onCompleteAnyway) {
                 Label("Complete Anyway", systemImage: "checkmark.circle")
             }
-            Button(action: onGenerateArt) {
-                Label("Generate Art", systemImage: "paintbrush")
+            if isImagePlaygroundAvailable {
+                Button(action: onGenerateArt) {
+                    Label(isGeneratingArt ? "Generating Art..." : "Generate Art", systemImage: "paintbrush")
+                }
+                .disabled(isGeneratingArt)
             }
             Button(action: onArchive) {
                 Label("Archive", systemImage: "archivebox")
@@ -96,6 +116,9 @@ struct HabitRowView: View {
                 Label("Delete", systemImage: "trash")
             }
         }
+        .listRowInsets(EdgeInsets())
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
     }
 
     private var currentAmount: Double { occurrence?.currentAmount ?? 0 }
@@ -115,7 +138,9 @@ struct HabitArtworkBackground: View {
             Image(uiImage: uiImage)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                .overlay(.regularMaterial.opacity(0.7))
+                .clipped()
+        } else {
+            Color.clear
         }
     }
 }
@@ -132,11 +157,15 @@ struct WeeklyDotsView: View {
                 let isCompleted = occurrence?.completed ?? false
                 let isFreeze = occurrence?.freezeUsed ?? false
                 Circle()
-                    .fill(isCompleted ? Color.accentColor : (isFreeze ? Color.orange : Color.secondary.opacity(0.2)))
+                    .fill(isCompleted ? Color.accentColor : (isFreeze ? Color.orange : Color.clear))
                     .frame(width: 10, height: 10)
+                    .background(
+                        Circle()
+                            .fill(Color.secondary.opacity(0.2))
+                    )
                     .overlay(
                         Circle()
-                            .stroke(Color.secondary.opacity(0.3), lineWidth: 0.5)
+                            .stroke(isCompleted || isFreeze ? Color.clear : Color.secondary.opacity(0.3), lineWidth: 1)
                     )
                     .accessibilityLabel(label(for: day, completed: isCompleted, freeze: isFreeze))
             }

@@ -5,94 +5,111 @@ struct HabitFormView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @State private var store: ClarityModelActor? = nil
-    @StateObject private var suggestionService = HabitSuggestionService()
+    @State private var state = HabitFormState()
 
     var habit: HabitDTO? = nil
 
-    @State private var name: String = ""
-    @State private var unitLabel: String = ""
-    @State private var dailyTarget: Double = 1
-    @State private var incrementStep: Double = 1
-    @State private var weeklyFrequency: Int = 7
-    @State private var selectedCategories: [CategoryDTO] = []
-    @State private var healthKitIdentifier: String? = nil
     @State private var isSaving = false
     @State private var saveError: String? = nil
     @State private var showError = false
-    @State private var didEditUnit = false
-    @State private var didEditTarget = false
-    @State private var didEditIncrement = false
-    @State private var suggestionTask: Task<Void, Never>? = nil
-
-    private let healthKitOptions = ["None", "water", "steps", "workouts", "mindful"]
 
     var body: some View {
+        let isEditing = habit != nil
         NavigationStack {
             Form {
-                Section("Habit Name") {
-                    TextField("e.g. Drink Water", text: $name)
-                        .onChange(of: name) { _, _ in
-                            requestSuggestion()
-                        }
+                if isEditing {
+                    typeReadOnlySection
+                } else {
+                    typeSelectionSection
+                }
 
-                    if suggestionService.isProcessing {
-                        HStack {
-                            Spacer()
-                            ProgressView()
-                                .controlSize(.small)
-                            Spacer()
-                        }
-                    } else if let suggestion = suggestionService.currentSuggestion {
-                        Button {
-                            applySuggestion(suggestion)
-                        } label: {
-                            HStack {
-                                Image(systemName: "lightbulb.fill")
-                                    .foregroundColor(.yellow)
-                                Text(suggestionChipText(for: suggestion))
-                                    .font(.subheadline)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .buttonStyle(.borderless)
-                    }
+                Section("Habit Name") {
+                    TextField("e.g. Drink Water", text: $state.name)
                 }
 
                 Section("Unit") {
-                    TextField("e.g. glasses, pages, minutes", text: $unitLabel)
-                        .onChange(of: unitLabel) { _, _ in didEditUnit = true }
-                }
-
-                Section("Daily Target") {
-                    HStack {
-                        TextField("Target", value: $dailyTarget, format: .number)
-                            .keyboardType(.decimalPad)
-                            .onChange(of: dailyTarget) { _, newValue in
-                                dailyTarget = clampedTarget(newValue)
-                                didEditTarget = true
+                    if state.habitType == .health {
+                        if !state.availableUnits.isEmpty {
+                            Picker("Unit", selection: $state.unitLabel) {
+                                ForEach(state.availableUnits, id: \.self) { unit in
+                                    Text(unit).tag(unit)
+                                }
                             }
-                        Stepper(value: $dailyTarget, in: HabitConfig.dailyTargetRange, step: 1) { EmptyView() }
+                            .pickerStyle(.menu)
+                        }
+                    } else {
+                        TextField("e.g. glasses, pages, minutes", text: $state.unitLabel)
                     }
                 }
 
-                Section("Increment Step") {
-                    Stepper(value: $incrementStep, in: HabitConfig.incrementStepRange, step: 0.5) {
-                        Text("\(incrementStep, specifier: "%.1f")")
+                Section {
+                    HStack {
+                        Text("Increment size")
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        TextField("Amount", value: $state.incrementStep, format: .number)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                        .onChange(of: state.incrementStep) { _, newValue in
+                            let upper = min(HabitConfig.maxIncrementStep, HabitConfig.dailyTargetRange(for: state.healthKitIdentifier).upperBound)
+                            state.incrementStep = max(min(newValue, upper), HabitConfig.incrementStepRange.lowerBound)
+                            state.didEditIncrement = true
+                        }
+                        Text(state.displayUnit)
+                            .foregroundColor(.secondary)
                     }
-                    .onChange(of: incrementStep) { _, _ in didEditIncrement = true }
+
+                HStack {
+                    Text("Number of increments")
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    HStack(spacing: 16) {
+                        Button {
+                            state.incrementCount = max(state.incrementCount - 1, 1)
+                            state.didEditCount = true
+                        } label: {
+                            Image(systemName: "minus")
+                                .frame(width: 24, height: 24)
+                        }
+                        .disabled(state.incrementCount <= 1)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+
+                        Text("\(state.incrementCount)")
+                            .monospacedDigit()
+                            .frame(minWidth: 24)
+
+                        Button {
+                            state.incrementCount += 1
+                            state.didEditCount = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .frame(width: 24, height: 24)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                }
+
+                    HStack {
+                        Text("Total daily target")
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text(state.formattedTotal)
+                            .fontWeight(.semibold)
+                    }
+                } header: {
+                    Text("Daily Amount")
                 }
 
                 Section("Days per Week") {
-                    Stepper(value: $weeklyFrequency, in: 1...7) {
-                        Text("\(weeklyFrequency) day\(weeklyFrequency == 1 ? "" : "s")")
+                    Stepper(value: $state.weeklyFrequency, in: 1...7) {
+                        Text("^[\(state.weeklyFrequency) days](inflect: true)")
                     }
                 }
 
                 Section("Categories") {
-                    CategorySelectionView(selectedCategories: $selectedCategories)
+                    CategorySelectionView(selectedCategories: $state.selectedCategories)
                 }
             }
             .navigationTitle(habit == nil ? "New Habit" : "Edit Habit")
@@ -103,7 +120,7 @@ struct HabitFormView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { save() }
-                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
+                        .disabled(!state.isValid || isSaving)
                 }
             }
             .alert("Save Failed", isPresented: $showError) {
@@ -116,71 +133,16 @@ struct HabitFormView: View {
                     store = await ClarityModelActorFactory.makeBackground(container: modelContext.container)
                 }
                 if let habit = habit {
-                    name = habit.name
-                    unitLabel = habit.unitLabel ?? ""
-                    dailyTarget = habit.dailyTarget
-                    incrementStep = habit.incrementStep
-                    weeklyFrequency = habit.weeklyFrequency
-                    selectedCategories = habit.categories
-                    healthKitIdentifier = habit.healthKitIdentifier
-                    didEditUnit = true
-                    didEditTarget = true
-                    didEditIncrement = true
+                    state.load(habit: habit)
                 }
             }
         }
     }
 
-    private func suggestionChipText(for suggestion: HabitSuggestionService.Suggestion) -> String {
-        let target = HabitFormatter.formatted(suggestion.dailyTarget)
-        let step = HabitFormatter.formatted(suggestion.incrementStep)
-        return "Suggested: \(target) \(suggestion.unitLabel), +\(step)"
-    }
-
-    private func applySuggestion(_ suggestion: HabitSuggestionService.Suggestion) {
-        if !didEditUnit || unitLabel.isEmpty {
-            unitLabel = suggestion.unitLabel
-        }
-        if !didEditTarget || dailyTarget == 1 {
-            dailyTarget = suggestion.dailyTarget
-        }
-        if !didEditIncrement || incrementStep == 1 {
-            incrementStep = suggestion.incrementStep
-        }
-        suggestionService.clear()
-    }
-
-    private func requestSuggestion() {
-        suggestionTask?.cancel()
-        let currentName = name
-        guard habit == nil else { return }
-        suggestionTask = Task {
-            try? await Task.sleep(nanoseconds: 500_000_000)
-            guard !Task.isCancelled else { return }
-            await suggestionService.suggest(for: currentName)
-        }
-    }
-
-    private func clampedTarget(_ value: Double) -> Double {
-        min(max(value, HabitConfig.dailyTargetRange.lowerBound), HabitConfig.dailyTargetRange.upperBound)
-    }
-
     private func save() {
         guard let store = store else { return }
         isSaving = true
-        suggestionTask?.cancel()
-        let trimmedUnit = unitLabel.trimmingCharacters(in: .whitespacesAndNewlines)
-        let dto = HabitDTO(
-            id: habit?.id,
-            uuid: habit?.uuid ?? UUID(),
-            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-            unitLabel: trimmedUnit.isEmpty ? nil : trimmedUnit,
-            dailyTarget: clampedTarget(dailyTarget),
-            incrementStep: incrementStep,
-            weeklyFrequency: weeklyFrequency,
-            healthKitIdentifier: healthKitIdentifier,
-            categories: selectedCategories
-        )
+        let dto = state.makeDTO(existing: habit)
         Task {
             do {
                 if habit == nil {
@@ -200,4 +162,60 @@ struct HabitFormView: View {
             }
         }
     }
+
+    private var typeReadOnlySection: some View {
+        Section("Type") {
+            HStack {
+                Image(systemName: state.habitType.localizedIcon)
+                    .foregroundColor(state.habitType == .health ? .red : .accentColor)
+                    .frame(width: 24)
+                Text(state.habitType.localizedTitle)
+                    .font(.headline)
+                Spacer()
+            }
+
+            if let option = state.selectedHealthKitTypeOption {
+                HStack {
+                    Image(systemName: option.icon)
+                        .foregroundColor(.accentColor)
+                        .frame(width: 24)
+                    Text(option.title)
+                        .font(.headline)
+                    Spacer()
+                }
+            }
+        }
+    }
+
+    private var typeSelectionSection: some View {
+        Section("Type") {
+            Picker("Type", selection: $state.habitType) {
+                ForEach(HabitFormState.HabitType.allCases) { option in
+                    Label(option.localizedTitle, systemImage: option.localizedIcon).tag(option)
+                }
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: state.habitType) { _, newValue in
+                if newValue == .nonHealth {
+                    state.healthKitIdentifier = nil
+                } else if state.healthKitIdentifier == nil {
+                    state.healthKitIdentifier = state.healthKitOptions.first
+                    state.applyHealthKitDefaultsIfNeeded()
+                }
+            }
+
+            if state.habitType == .health {
+                Picker("HealthKit Type", selection: $state.healthKitIdentifier) {
+                    ForEach(state.healthKitTypeOptions) { option in
+                        Label(option.title, systemImage: option.icon).tag(option.id as String?)
+                    }
+                }
+                .onChange(of: state.healthKitIdentifier) { _, newValue in
+                    HabitHealthKitSync.shared.requestAuthorizationIfNeeded(for: newValue)
+                    state.applyHealthKitDefaultsIfNeeded()
+                }
+            }
+        }
+    }
 }
+

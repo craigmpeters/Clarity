@@ -37,7 +37,13 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
 
     func buildSnapshot() async -> Snapshot {
         let tasks = (try? WidgetFileCoordinator.shared.readTasks()) ?? []
-        let habits = WidgetFileCoordinator.shared.readHabits()
+        let habits: [HabitDTO]
+        do {
+            habits = try WidgetFileCoordinator.shared.readHabits()
+        } catch {
+            LogManager.shared.log.error("Failed to read habits snapshot: \(error)")
+            habits = []
+        }
         let progress = WidgetFileCoordinator.shared.readWeeklyProgress() ?? WeeklyProgress(completed: 0, target: 0, error: nil, categories: [])
         let active: PomodoroDTO? = {
             guard PomodoroService.shared.isActive else { return nil }
@@ -48,7 +54,8 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
             )
         }()
         let occurrences = await buildHabitOccurrences(habits: habits)
-        return Snapshot(revision: revision, tasks: tasks, habits: habits, habitOccurrences: occurrences, progress: progress, activePomodoro: active)
+        let enrichedHabits = await enrichHabitsForWatch(habits: habits, occurrences: occurrences)
+        return Snapshot(revision: revision, tasks: tasks, habits: enrichedHabits, habitOccurrences: occurrences, progress: progress, activePomodoro: active)
     }
 
     private func buildHabitOccurrences(habits: [HabitDTO]) async -> [UUID: HabitOccurrenceDTO] {
@@ -64,6 +71,36 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
             }
         }
         return result
+    }
+
+    private func enrichHabitsForWatch(habits: [HabitDTO], occurrences: [UUID: HabitOccurrenceDTO]) async -> [HabitDTO] {
+        let store = try? await ClarityServices.store()
+        let calendar = HabitStreakCalculator.streakCalendar()
+        let weekStart = calendar.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
+        return await withTaskGroup(of: HabitDTO.self) { group in
+            for habit in habits {
+                group.addTask {
+                    var enriched = habit
+                    guard let store = store else { return enriched }
+                    let allHistory = (try? await store.fetchHabitHistory(habit.uuid, from: Date.distantPast, to: Date())) ?? []
+                    let streak = HabitStreakCalculator.streak(occurrences: allHistory, frequency: habit.weeklyFrequency, freezes: habit.streakFreezes)
+                    enriched.currentStreak = streak.current
+                    let weekHistory = (try? await store.fetchHabitHistory(habit.uuid, from: weekStart, to: Date())) ?? []
+                    enriched.weekCompletionBitmap = (0..<7).map { offset -> Bool in
+                        guard let day = calendar.date(byAdding: .day, value: offset, to: weekStart) else { return false }
+                        return weekHistory.contains { occurrence in
+                            calendar.isDate(occurrence.periodStart, inSameDayAs: day) && (occurrence.completed || occurrence.freezeUsed)
+                        }
+                    }
+                    return enriched
+                }
+            }
+            var result: [HabitDTO] = []
+            for await habit in group {
+                result.append(habit)
+            }
+            return result
+        }
     }
 
     func transferHabitArtwork(filename: String, for habitUUID: UUID) {
@@ -112,12 +149,21 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
             break
         case .logHabitProgress(let uuid, let amount):
             do {
-                try await ClarityServices.store().logHabitProgress(uuid, amount: amount)
+                let store = try await ClarityServices.store()
+                let habit = try await store.fetchHabits().first(where: { $0.uuid == uuid })
+                if habit?.healthKitIdentifier != nil {
+                    _ = try await store.logHabitProgressWithHealthKit(uuid, amount: amount)
+                } else {
+                    _ = try await store.logHabitProgress(uuid, amount: amount, source: "watch")
+                }
+                broadcastSnapshot()
             } catch {
                 LogManager.shared.log.error("⌚️ log habit progress failed: \(error)")
+                try? await ConnectivityTransport.shared.send(.habitCommandFailed(uuid: uuid))
+                // Still broadcast the current snapshot so the watch can reconcile its optimistic state.
+                broadcastSnapshot()
             }
         }
-        broadcastSnapshot()
     }
 
     private func startPomodoroFromWatch(_ id: UUID) async {

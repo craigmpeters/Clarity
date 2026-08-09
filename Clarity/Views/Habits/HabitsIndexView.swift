@@ -11,13 +11,14 @@ struct HabitsIndexView: View {
     @State private var showingForm = false
     @State private var editingHabit: HabitDTO? = nil
     @State private var loggingHabit: HabitDTO? = nil
-    @State private var artHabit: HabitDTO? = nil
+    @State private var generatingArtHabitIDs: Set<UUID> = []
+    @State private var isImagePlaygroundAvailable: Bool = false
+    @State private var habitToDelete: HabitDTO? = nil
     @State private var store: ClarityModelActor? = nil
 
     var body: some View {
-        NavigationStack {
-            List {
-                if !atRiskHabits.isEmpty {
+        List {
+            if !atRiskHabits.isEmpty {
                     Section("Streak at Risk") {
                         ForEach(atRiskHabits, id: \.uuid) { habit in
                             HabitRowView(
@@ -29,10 +30,12 @@ struct HabitsIndexView: View {
                                 onLogAmount: { loggingHabit = habit },
                                 onEdit: { editingHabit = habit },
                                 onArchive: { archive(habit) },
-                                onDelete: { delete(habit) },
+                                onDelete: { habitToDelete = habit },
                                 onCompleteAnyway: { completeAnyway(habit) },
                                 onUseFreeze: { useFreeze(habit) },
-                                onGenerateArt: { artHabit = habit }
+                                onGenerateArt: { generateArt(habit) },
+                                isGeneratingArt: generatingArtHabitIDs.contains(habit.uuid),
+                                isImagePlaygroundAvailable: isImagePlaygroundAvailable
                             )
                         }
                     }
@@ -49,11 +52,14 @@ struct HabitsIndexView: View {
                             onLogAmount: { loggingHabit = habit },
                             onEdit: { editingHabit = habit },
                             onArchive: { archive(habit) },
-                            onDelete: { delete(habit) },
-                            onCompleteAnyway: { completeAnyway(habit) },
-                            onUseFreeze: { useFreeze(habit) },
-                            onGenerateArt: { artHabit = habit }
-                        )
+                            onDelete: { habitToDelete = habit },
+                                onCompleteAnyway: { completeAnyway(habit) },
+                                onUseFreeze: { useFreeze(habit) },
+                                onGenerateArt: { generateArt(habit) },
+                                isGeneratingArt: generatingArtHabitIDs.contains(habit.uuid),
+                                isImagePlaygroundAvailable: isImagePlaygroundAvailable
+                            )
+
                     }
                 }
             }
@@ -75,7 +81,7 @@ struct HabitsIndexView: View {
                 await refresh()
             }
             .sheet(isPresented: $showingForm) {
-                HabitFormView()
+                HabitWizardView()
             }
             .sheet(item: $editingHabit) { habit in
                 HabitFormView(habit: habit)
@@ -85,22 +91,45 @@ struct HabitsIndexView: View {
                     setAmount(habit, amount: amount)
                 }
             }
-            .sheet(item: $artHabit) { habit in
-                #if os(iOS) && canImport(ImagePlayground)
-                if #available(iOS 26.0, *) {
-                    HabitArtSheet(habit: habit, onComplete: { url in
-                        artHabit = nil
-                        saveArtwork(url, for: habit)
-                    }, onCancel: {
-                        artHabit = nil
-                    })
-                }
-                #endif
-            }
             .onChange(of: habits) { _, _ in
                 Task { await refresh() }
             }
-        }
+            .task {
+                if store == nil {
+                    store = await ClarityModelActorFactory.makeBackground(container: modelContext.container)
+                }
+                await refresh()
+                checkImagePlaygroundAvailability()
+                _ = await HabitHealthKitSync.shared.syncAllHabits()
+                await refresh()
+            }
+            .refreshable {
+                await refresh()
+                _ = await HabitHealthKitSync.shared.syncAllHabits()
+                await refresh()
+            }
+            .confirmationDialog(
+                "Delete Habit?",
+                isPresented: Binding(
+                    get: { habitToDelete != nil },
+                    set: { if !$0 { habitToDelete = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    if let habit = habitToDelete {
+                        delete(habit)
+                    }
+                    habitToDelete = nil
+                }
+                Button("Cancel", role: .cancel) {
+                    habitToDelete = nil
+                }
+            } message: {
+                if let habit = habitToDelete {
+                    Text("Are you sure you want to delete \"\(habit.name)\"? This cannot be undone.")
+                }
+            }
     }
 
     private var activeHabits: [HabitDTO] {
@@ -125,7 +154,7 @@ struct HabitsIndexView: View {
             try await withThrowingTaskGroup(of: (UUID, HabitOccurrenceDTO?, [HabitOccurrenceDTO], HabitStreakResult).self) { group in
                 for habit in fetched {
                     group.addTask {
-                        let calendar = Calendar.current
+                        let calendar = HabitStreakCalculator.streakCalendar()
                         let now = Date()
                         let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
                         let history = try await store.fetchHabitHistory(habit.uuid, from: weekStart, to: now)
@@ -152,7 +181,11 @@ struct HabitsIndexView: View {
         guard let store = store else { return }
         Task {
             do {
-                try await store.logHabitProgress(habit.uuid)
+                if habit.healthKitIdentifier != nil {
+                    _ = try await store.logHabitProgressWithHealthKit(habit.uuid)
+                } else {
+                    _ = try await store.logHabitProgress(habit.uuid)
+                }
                 await refresh()
             } catch {
                 LogManager.shared.log.error("Failed to increment habit: \(error)")
@@ -212,9 +245,38 @@ struct HabitsIndexView: View {
         }
     }
 
+    private func checkImagePlaygroundAvailability() {
+        #if os(iOS) && canImport(ImagePlayground)
+        if #available(iOS 26.0, *) {
+            isImagePlaygroundAvailable = HabitArtService().isAvailable
+        } else {
+            isImagePlaygroundAvailable = false
+        }
+        #else
+        isImagePlaygroundAvailable = false
+        #endif
+    }
+
+    private func generateArt(_ habit: HabitDTO) {
+        #if os(iOS) && canImport(ImagePlayground)
+        guard #available(iOS 26.0, *) else { return }
+        Task { @MainActor in
+            generatingArtHabitIDs.insert(habit.uuid)
+            defer { generatingArtHabitIDs.remove(habit.uuid) }
+            do {
+                let service = HabitArtService()
+                let url = try await service.generate(for: habit)
+                saveArtwork(url, for: habit)
+            } catch {
+                LogManager.shared.log.error("Failed to generate habit art: \(error)")
+            }
+        }
+        #endif
+    }
+
     private func saveArtwork(_ url: URL, for habit: HabitDTO) {
         guard let store = store else { return }
-        Task {
+        Task { @MainActor in
             do {
                 guard let filename = try WidgetFileCoordinator.shared.copyArtwork(from: url, for: habit.uuid) else {
                     LogManager.shared.log.error("Failed to copy artwork to app group")

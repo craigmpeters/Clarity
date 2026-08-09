@@ -73,8 +73,8 @@ final class HabitSuggestionService: ObservableObject {
             let response = try await session.respond(to: prompt, generating: HabitSuggestion.self, options: options)
             let suggestion = response.content
             let unit = suggestion.unitLabel.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            let target = min(max(suggestion.dailyTarget, HabitConfig.dailyTargetRange.lowerBound), HabitConfig.dailyTargetRange.upperBound)
-            let step = min(max(suggestion.incrementStep, HabitConfig.incrementStepRange.lowerBound), HabitConfig.incrementStepRange.upperBound)
+            let target = min(max(suggestion.dailyTarget, HabitConfig.dailyTargetRange(for: nil).lowerBound), HabitConfig.dailyTargetRange(for: nil).upperBound)
+            let step = max(suggestion.incrementStep, HabitConfig.incrementStepRange.lowerBound)
             guard !unit.isEmpty else { return }
             currentSuggestion = Suggestion(unitLabel: unit, dailyTarget: target, incrementStep: step)
         } catch {

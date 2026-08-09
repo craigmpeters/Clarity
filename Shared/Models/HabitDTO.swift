@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftData
+import os
 
 struct HabitDTO: Sendable, Hashable, Codable {
     var id: PersistentIdentifier?
@@ -58,7 +59,7 @@ struct HabitDTO: Sendable, Hashable, Codable {
 
     var isTargetReached: Bool { currentAmount >= dailyTarget }
     var progressFraction: Double { min(currentAmount / max(dailyTarget, 1), 1.0) }
-    var periodDescription: String { HabitFormatter.progressDescription(amount: currentAmount, target: dailyTarget, unit: unitLabel) }
+    var periodDescription: String { HabitFormatter.progressDescription(amount: currentAmount, target: dailyTarget, unit: unitLabel, healthKitIdentifier: healthKitIdentifier) }
 
     // Mutable value used for inline editing in the UI, not persisted in the DTO itself.
     var currentAmount: Double = 0
@@ -67,6 +68,8 @@ struct HabitDTO: Sendable, Hashable, Codable {
     var freezeUsed: Bool = false
     var source: String? = nil
     var periodStart: Date = Date()
+    var currentStreak: Int = 0
+    var weekCompletionBitmap: [Bool] = []
 }
 
 extension HabitDTO {
@@ -189,9 +192,10 @@ extension HabitOccurrenceDTO {
         )
     }
 
-    nonisolated init(from model: HabitOccurrence) {
+    nonisolated init?(from model: HabitOccurrence) {
         guard let habitUUID = model.habit?.uuid else {
-            fatalError("HabitOccurrence must have a habit UUID")
+            Logger(subsystem: "me.craigpeters.Clarity", category: "HabitDTO").error("HabitOccurrence missing habit UUID; skipping DTO conversion")
+            return nil
         }
         self.init(
             id: model.persistentModelID,

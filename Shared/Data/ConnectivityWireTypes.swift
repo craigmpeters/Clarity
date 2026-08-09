@@ -26,6 +26,7 @@ nonisolated extension WatchCommand: Codable {}
 enum PhoneEvent: Sendable {
     case pomodoroStarted(PomodoroDTO)
     case pomodoroStopped(taskID: UUID?)
+    case habitCommandFailed(uuid: UUID)
 }
 
 nonisolated extension PhoneEvent: Codable {}

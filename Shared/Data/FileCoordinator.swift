@@ -460,14 +460,52 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
     nonisolated func writeHabits(_ habits: [HabitDTO]) throws {
         guard let url = habitsURL() else { throw NSError(domain: "WidgetFileCoordinator", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing App Group URL"]) }
         let data = try encoder.encode(habits)
-        try data.write(to: url, options: .atomic)
+        var writeError: NSError?
+        let coordinator = NSFileCoordinator(filePresenter: nil)
+        var coordinationError: NSError?
+        var innerError: NSError?
+        coordinator.coordinate(writingItemAt: url, options: .forReplacing, error: &coordinationError) { writeURL in
+            do {
+                let tmp = writeURL.deletingLastPathComponent().appendingPathComponent(".tmp_habits_\(UUID().uuidString)")
+                try data.write(to: tmp, options: .atomic)
+                if FileManager.default.fileExists(atPath: writeURL.path) {
+                    _ = try FileManager.default.replaceItemAt(writeURL, withItemAt: tmp)
+                } else {
+                    try FileManager.default.moveItem(at: tmp, to: writeURL)
+                }
+            } catch {
+                innerError = error as NSError
+            }
+        }
+        if let coordinationError { writeError = coordinationError }
+        if let innerError { writeError = innerError }
+        if let writeError { throw writeError }
         notifyWidgetReload()
     }
 
-    nonisolated func readHabits() -> [HabitDTO] {
-        guard let url = habitsURL(),
-              let data = try? Data(contentsOf: url) else { return [] }
-        return (try? decoder.decode([HabitDTO].self, from: data)) ?? []
+    nonisolated func readHabits() throws -> [HabitDTO] {
+        guard let url = habitsURL() else { throw NSError(domain: "WidgetFileCoordinator", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing App Group URL"]) }
+        var readError: NSError?
+        let coordinator = NSFileCoordinator(filePresenter: nil)
+        var coordinationError: NSError?
+        var innerError: NSError?
+        var innerResult: [HabitDTO] = []
+        coordinator.coordinate(readingItemAt: url, options: .withoutChanges, error: &coordinationError) { readURL in
+            do {
+                let data = try Data(contentsOf: readURL, options: [.mappedIfSafe])
+                if data.isEmpty {
+                    innerResult = []
+                } else {
+                    innerResult = try decoder.decode([HabitDTO].self, from: data)
+                }
+            } catch {
+                innerError = error as NSError
+            }
+        }
+        if let coordinationError { readError = coordinationError }
+        if let innerError { readError = innerError }
+        if let readError { throw readError }
+        return innerResult
     }
 
     // MARK: Widget refresh hook

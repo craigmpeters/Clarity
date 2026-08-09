@@ -17,6 +17,7 @@ actor ClarityModelActor {
     private var logger: XCGLogger { LogManager.shared.log }
     // Prevent concurrent completions for the same UUID within this actor
     private var inFlightCompletions: Set<UUID> = []
+    private var inFlightHabitMutations: Set<UUID> = []
 
     /// Hook for the main app to push weekly progress to the watch after a task completes.
     /// Not set in widget/extension targets where WatchConnectivity is unavailable.
@@ -126,10 +127,14 @@ actor ClarityModelActor {
         return new
     }
     
-    private func validateDailyTarget(_ target: Double) throws {
-        guard HabitConfig.dailyTargetRange.contains(target) else {
+    private func validateDailyTarget(_ target: Double, healthKitIdentifier: String?) throws {
+        guard HabitConfig.validateTarget(target, healthKitIdentifier: healthKitIdentifier) else {
             throw HabitError.invalidTarget
         }
+    }
+
+    private func validateDailyTarget(_ dto: HabitDTO) throws {
+        try validateDailyTarget(dto.dailyTarget, healthKitIdentifier: dto.healthKitIdentifier)
     }
     
     private func resolveCategories(from dtoCategories: [CategoryDTO]) throws -> [Category] {
@@ -143,7 +148,7 @@ actor ClarityModelActor {
     }
     
     func addHabit(_ dto: HabitDTO) throws -> HabitDTO {
-        try validateDailyTarget(dto.dailyTarget)
+        try validateDailyTarget(dto)
         let categories = try resolveCategories(from: dto.categories)
         let habit = Habit(
             uuid: dto.uuid,
@@ -165,7 +170,7 @@ actor ClarityModelActor {
     }
     
     func updateHabit(_ dto: HabitDTO) throws -> HabitDTO {
-        try validateDailyTarget(dto.dailyTarget)
+        try validateDailyTarget(dto)
         guard let id = dto.id else {
             throw NSError(domain: "ClarityActor", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing PersistentIdentifier"])
         }
@@ -218,40 +223,91 @@ actor ClarityModelActor {
         let descriptor = FetchDescriptor<HabitOccurrence>(
             predicate: #Predicate { $0.habit?.uuid == uuid && $0.periodStart >= from && $0.periodStart <= to }
         )
-        return try modelContext.fetch(descriptor).map(HabitOccurrenceDTO.init(from:))
+        return try modelContext.fetch(descriptor).compactMap(HabitOccurrenceDTO.init(from:))
+    }
+    
+    private func withHabitMutationLock<T>(_ habitUUID: UUID, operation: () throws -> T) throws -> T {
+        guard !inFlightHabitMutations.contains(habitUUID) else {
+            throw HabitError.persistenceFailed(underlying: NSError(domain: "ClarityActor", code: 21, userInfo: [NSLocalizedDescriptionKey: "Habit mutation already in flight"]))
+        }
+        inFlightHabitMutations.insert(habitUUID)
+        defer { inFlightHabitMutations.remove(habitUUID) }
+        return try operation()
     }
     
     func logHabitProgress(_ habitUUID: UUID, amount: Double? = nil, source: String = "manual") throws -> HabitOccurrenceDTO {
-        let habit = try habitByUUID(habitUUID)
-        let occurrence = try todayOccurrence(for: habit, source: source)
-        let step = amount ?? habit.incrementStep
-        occurrence.currentAmount += step
-        if occurrence.currentAmount >= habit.dailyTarget {
-            occurrence.completed = true
-            occurrence.completedAt = Date.now
+        try withHabitMutationLock(habitUUID) {
+            let habit = try habitByUUID(habitUUID)
+            let occurrence = try todayOccurrence(for: habit, source: source)
+            let step = amount ?? habit.incrementStep
+            occurrence.currentAmount += step
+            if occurrence.currentAmount >= habit.dailyTarget {
+                occurrence.completed = true
+                occurrence.completedAt = Date.now
+            }
+            occurrence.source = source
+            reconcileFreezes(habit)
+            try habitPostMutationPipeline()
+            guard let dto = HabitOccurrenceDTO(from: occurrence) else {
+                throw HabitError.persistenceFailed(underlying: NSError(domain: "ClarityActor", code: 22, userInfo: [NSLocalizedDescriptionKey: "HabitOccurrence missing habit UUID"]))
+            }
+            return dto
         }
-        occurrence.source = source
-        reconcileFreezes(habit)
-        try habitPostMutationPipeline()
-        return HabitOccurrenceDTO(from: occurrence)
+    }
+
+    /// Log habit progress and optionally write the delta to HealthKit.
+    /// HealthKit write is only attempted when source == "manual" and the habit is HealthKit-linked.
+    func logHabitProgressWithHealthKit(_ habitUUID: UUID, amount: Double? = nil) async throws -> HabitOccurrenceDTO {
+        let dto = try logHabitProgress(habitUUID, amount: amount, source: "manual")
+#if os(iOS)
+        if let habit = try? habitByUUID(habitUUID), let identifier = habit.healthKitIdentifier {
+            let delta = amount ?? habit.incrementStep
+            await HealthKitService.shared.saveHabitSample(identifier: identifier, value: delta)
+        }
+#endif
+        return dto
     }
     
     func setHabitProgress(_ habitUUID: UUID, date: Date, amount: Double) throws -> HabitOccurrenceDTO {
-        let habit = try habitByUUID(habitUUID)
-        let occurrence = try todayOccurrence(for: habit, date: date)
-        occurrence.currentAmount = max(amount, 0)
-        if occurrence.currentAmount >= habit.dailyTarget {
-            occurrence.completed = true
-            occurrence.completedAt = Date.now
-        } else {
-            occurrence.completed = false
-            occurrence.completedAt = nil
+        try withHabitMutationLock(habitUUID) {
+            let habit = try habitByUUID(habitUUID)
+            let occurrence = try todayOccurrence(for: habit, date: date)
+            occurrence.currentAmount = max(amount, 0)
+            if occurrence.currentAmount >= habit.dailyTarget {
+                occurrence.completed = true
+                occurrence.completedAt = Date.now
+            } else {
+                occurrence.completed = false
+                occurrence.completedAt = nil
+            }
+            reconcileFreezes(habit)
+            try habitPostMutationPipeline()
+            guard let dto = HabitOccurrenceDTO(from: occurrence) else {
+                throw HabitError.persistenceFailed(underlying: NSError(domain: "ClarityActor", code: 22, userInfo: [NSLocalizedDescriptionKey: "HabitOccurrence missing habit UUID"]))
+            }
+            return dto
         }
-        reconcileFreezes(habit)
-        try habitPostMutationPipeline()
-        return HabitOccurrenceDTO(from: occurrence)
     }
     
+    func applyHealthKitProgress(_ habitUUID: UUID, value: Double) throws -> HabitOccurrenceDTO {
+        try withHabitMutationLock(habitUUID) {
+            let habit = try habitByUUID(habitUUID)
+            let occurrence = try todayOccurrence(for: habit, source: "healthkit")
+            occurrence.currentAmount = max(occurrence.currentAmount, value)
+            if occurrence.currentAmount >= habit.dailyTarget {
+                occurrence.completed = true
+                occurrence.completedAt = Date.now
+            }
+            occurrence.source = "healthkit"
+            reconcileFreezes(habit)
+            try habitPostMutationPipeline()
+            guard let dto = HabitOccurrenceDTO(from: occurrence) else {
+                throw HabitError.persistenceFailed(underlying: NSError(domain: "ClarityActor", code: 22, userInfo: [NSLocalizedDescriptionKey: "HabitOccurrence missing habit UUID"]))
+            }
+            return dto
+        }
+    }
+
     func updateHabitArtwork(_ uuid: UUID, filename: String?) throws -> HabitDTO {
         let habit = try habitByUUID(uuid, includeArchived: true)
         habit.artworkFilename = filename
@@ -260,33 +316,34 @@ actor ClarityModelActor {
     }
     
     func spendFreeze(_ habitUUID: UUID) throws {
-        let habit = try habitByUUID(habitUUID)
-        guard habit.streakFreezes > 0 else {
-            throw HabitError.noFreezesAvailable
+        try withHabitMutationLock(habitUUID) {
+            let habit = try habitByUUID(habitUUID)
+            guard habit.streakFreezes > 0 else {
+                throw HabitError.noFreezesAvailable
+            }
+            let calendar = Calendar.current
+            let allOccurrences = try fetchHabitHistory(habitUUID, from: Date.distantPast, to: Date.distantFuture)
+            let streak = HabitStreakCalculator.streak(
+                occurrences: allOccurrences,
+                frequency: habit.weeklyFrequency,
+                freezes: habit.streakFreezes
+            )
+            guard let missedPeriod = streak.missedPeriod,
+                  let graceEnd = calendar.date(byAdding: .day, value: HabitConfig.gracePeriodDays, to: missedPeriod),
+                  Date() <= graceEnd else {
+                throw HabitError.noFreezableMiss
+            }
+            let occurrence = try todayOccurrence(for: habit, date: missedPeriod)
+            occurrence.freezeUsed = true
+            occurrence.completed = true
+            occurrence.currentAmount = habit.dailyTarget
+            habit.streakFreezes -= 1
+            habit.freezesSpent += 1
+            try habitPostMutationPipeline()
         }
-        let calendar = Calendar.current
-        let allOccurrences = try fetchHabitHistory(habitUUID, from: Date.distantPast, to: Date.distantFuture)
-        let streak = HabitStreakCalculator.streak(
-            occurrences: allOccurrences,
-            frequency: habit.weeklyFrequency,
-            freezes: habit.streakFreezes
-        )
-        guard let missedPeriod = streak.missedPeriod,
-              let graceEnd = calendar.date(byAdding: .day, value: HabitConfig.gracePeriodDays, to: missedPeriod),
-              Date() <= graceEnd else {
-            throw HabitError.noFreezableMiss
-        }
-        let occurrence = try todayOccurrence(for: habit, date: missedPeriod)
-        occurrence.freezeUsed = true
-        occurrence.completed = true
-        occurrence.currentAmount = habit.dailyTarget
-        habit.streakFreezes -= 1
-        habit.freezesSpent += 1
-        try habitPostMutationPipeline()
     }
 
     private func reconcileFreezes(_ habit: Habit) {
-        let calendar = Calendar.current
         let allOccurrences = try? fetchHabitHistory(habit.uuid, from: Date.distantPast, to: Date.distantFuture)
         let streak = HabitStreakCalculator.streak(
             occurrences: allOccurrences ?? [],

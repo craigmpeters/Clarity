@@ -28,7 +28,6 @@ import CryptoKit
     func activate()
     func updateApplicationContext(_ context: [String: Any]) throws
     func transferUserInfo(_ userInfo: [String: Any]) -> WCSessionUserInfoTransfer
-    func transferFile(_ file: URL, metadata: [String: Any]?) -> WCSessionFileTransfer
     #if os(iOS)
     func transferCurrentComplicationUserInfo(_ userInfo: [String: Any]) -> WCSessionUserInfoTransfer
     #endif
@@ -37,11 +36,7 @@ import CryptoKit
                          errorHandler: ((Error) -> Void)?)
 }
 
-extension WCSession: WCSessionProtocol {
-    func transferFile(_ file: URL, metadata: [String : Any]?) -> WCSessionFileTransfer {
-        WCSession.default.transferFile(file, metadata: metadata)
-    }
-}
+extension WCSession: WCSessionProtocol {}
 
 // MARK: - Snapshot builder
 
@@ -113,7 +108,8 @@ final class ConnectivityTransport: NSObject {
 
     func transferHabitArtwork(fileURL: URL, habitUUID: UUID) {
         guard session.activationState == .activated else { return }
-        _ = session.transferFile(fileURL, metadata: ["habitArtwork": habitUUID.uuidString])
+        guard let wcSession = session as? WCSession else { return }
+        _ = wcSession.transferFile(fileURL, metadata: ["habitArtwork": habitUUID.uuidString])
     }
 
     func pushComplicationIfNeeded(_ snapshot: Snapshot) async throws {

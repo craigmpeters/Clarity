@@ -24,6 +24,7 @@ final class WatchSnapshotStore {
     )
     private(set) var activePomodoro: PomodoroDTO?
     private(set) var optimisticallyCompleted: Set<UUID> = []
+    private(set) var optimisticallyIncrementedHabits: Set<UUID> = []
 
     private var lastAppliedRevision: Int = 0
     private var consumerTask: Task<Void, Never>?
@@ -34,7 +35,7 @@ final class WatchSnapshotStore {
         ConnectivityTransport.shared.start()
         consumerTask = Task { [weak self] in
             for await msg in ConnectivityTransport.shared.inbound {
-                await self?.apply(msg)
+                self?.apply(msg)
             }
         }
     }
@@ -47,6 +48,7 @@ final class WatchSnapshotStore {
             snapshot = s
             activePomodoro = s.activePomodoro
             optimisticallyCompleted = []
+            optimisticallyIncrementedHabits = []
             persistSnapshot(s)
             WidgetCenter.shared.reloadAllTimelines()
         case .event(let evt):
@@ -56,6 +58,8 @@ final class WatchSnapshotStore {
                 activePomodoro = dto
             case .pomodoroStopped:
                 activePomodoro = nil
+            case .habitCommandFailed(let uuid):
+                optimisticallyIncrementedHabits.remove(uuid)
             }
         case .command:
             // Commands don't originate on watch in this path.
@@ -76,7 +80,12 @@ final class WatchSnapshotStore {
     // MARK: UI intents
 
     func logHabitProgress(_ habit: HabitDTO, amount: Double? = nil) {
+        optimisticallyIncrementedHabits.insert(habit.uuid)
         Task { try? await ConnectivityTransport.shared.send(.logHabitProgress(habit.uuid, amount: amount)) }
+    }
+
+    func isHabitOptimisticallyIncremented(_ uuid: UUID) -> Bool {
+        optimisticallyIncrementedHabits.contains(uuid)
     }
 
     func complete(_ task: ToDoTaskDTO) {
@@ -112,7 +121,13 @@ final class WatchSnapshotStore {
         } catch {
             LogManager.shared.log.debug("[WatchSnapshotStore] fetchSnapshot failed: \(error). Falling back to cached snapshot.")
             let tasks = (try? WidgetFileCoordinator.shared.readTasks()) ?? []
-            let habits = WidgetFileCoordinator.shared.readHabits()
+            let habits: [HabitDTO]
+            do {
+                habits = try WidgetFileCoordinator.shared.readHabits()
+            } catch {
+                LogManager.shared.log.error("[WatchSnapshotStore] readHabits failed: \(error). Using empty habits.")
+                habits = []
+            }
             let progress = WidgetFileCoordinator.shared.readWeeklyProgress() ?? WeeklyProgress(completed: 0, target: 0, error: nil, categories: [])
             snapshot = Snapshot(revision: 0, tasks: tasks, habits: habits, habitOccurrences: [:], progress: progress, activePomodoro: nil)
         }

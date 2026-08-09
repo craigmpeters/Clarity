@@ -20,7 +20,16 @@ struct HabitStreakResult: Sendable, Hashable, Codable {
 /// A streak is the number of consecutive successful weeks ending at the current week.
 /// In-progress weeks preserve the streak from prior weeks until they actually fail.
 /// Freezes are auto-earned at a rate of 1 per 7 days of streak, capped in the model at 3.
+/// The grace window for spending a freeze is the end of the next period.
 nonisolated struct HabitStreakCalculator: Sendable {
+
+    /// Streak periods are always 7-day calendar weeks starting on Sunday so that streaks
+    /// are deterministic across locales and the freeze grace window is unambiguous.
+    static func streakCalendar() -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.firstWeekday = 1 // Sunday
+        return calendar
+    }
 
     static func streak(
         occurrences: [HabitOccurrenceDTO],
@@ -28,7 +37,7 @@ nonisolated struct HabitStreakCalculator: Sendable {
         freezes: Int,
         referenceDate: Date = Date()
     ) -> HabitStreakResult {
-        let calendar = Calendar.current
+        let calendar = streakCalendar()
         let effectiveFrequency = max(1, min(7, frequency))
         let periodDays = HabitConfig.periodDays
 
@@ -80,13 +89,13 @@ nonisolated struct HabitStreakCalculator: Sendable {
         var longestStreak = 0
 
         if currentWeekClosed && !currentWeekSucceeded {
-            // The current week has ended and did not meet the target; the streak is broken.
+            // The current week has just ended and did not meet the target; the streak is broken.
             lastWeekFailed = true
             missedPeriod = currentWeekEnd
             currentStreak = 0
             longestStreak = 0
         } else {
-            // Walk backward from the previous week, counting consecutive successful weeks.
+            // Walk backward from the current week, counting consecutive successful weeks.
             var weekStart = currentWeekStart
             while true {
                 guard let previousWeekStart = calendar.date(byAdding: .weekOfYear, value: -1, to: weekStart) else {
@@ -106,14 +115,18 @@ nonisolated struct HabitStreakCalculator: Sendable {
             longestStreak = max(currentStreak, streakSoFar)
         }
 
-        let freezesEarned = min(currentStreak * periodDays / HabitConfig.freezeEarnIntervalDays, HabitConfig.maxFreezes)
+        // 1 freeze per 7-day streak. Because the streak is counted in weeks,
+        // each successful week represents one 7-day streak and earns one freeze.
+        let freezesEarned = min(currentStreak, HabitConfig.maxFreezes)
 
-        // At risk if the last completed week failed, we are still in the grace window,
-        // and we have freezes available.
+        // At risk if the most recently completed period failed, we have freezes available,
+        // and we are within the grace window that ends at the end of the next period.
+        // The boundary itself is included: a freeze can be spent at the very end of the
+        // missed period and any time before the next period closes.
         let atRisk: Bool = {
             guard lastWeekFailed, freezes > 0, let missedPeriod = missedPeriod else { return false }
-            let graceEnd = calendar.date(byAdding: .day, value: HabitConfig.gracePeriodDays, to: missedPeriod) ?? missedPeriod
-            return referenceDate <= graceEnd && referenceDate > missedPeriod
+            guard let graceEnd = calendar.date(byAdding: .day, value: HabitConfig.gracePeriodDays, to: missedPeriod) else { return false }
+            return referenceDate >= missedPeriod && referenceDate <= graceEnd
         }()
 
         return HabitStreakResult(

@@ -25,7 +25,11 @@ struct WatchHabitsView: View {
         NavigationStack {
             TabView(selection: selectedTabBinding) {
                 ForEach(habits) { habit in
-                    WatchHabitPage(habit: habit, occurrence: store.occurrence(for: habit.uuid)) {
+                    WatchHabitPage(
+                        habit: habit,
+                        occurrence: store.occurrence(for: habit.uuid),
+                        isOptimisticallyIncremented: store.isHabitOptimisticallyIncremented(habit.uuid)
+                    ) {
                         store.logHabitProgress(habit)
                     }
                     .tag(habit.uuid as UUID?)
@@ -59,17 +63,19 @@ struct WatchHabitsView: View {
 struct WatchHabitPage: View {
     let habit: HabitDTO
     let occurrence: HabitOccurrenceDTO?
+    let isOptimisticallyIncremented: Bool
     let onIncrement: () -> Void
 
     var body: some View {
         ZStack {
             WatchHabitArtworkBackground(filename: habit.artworkFilename)
+                .allowsHitTesting(false)
 
             VStack(spacing: 12) {
                 HStack {
                     Image(systemName: "flame.fill")
                         .foregroundColor(.orange)
-                    Text("\(habit.streakFreezes)")
+                    Text("\(habit.currentStreak)")
                         .font(.subheadline.weight(.semibold))
                     Spacer()
                 }
@@ -83,32 +89,62 @@ struct WatchHabitPage: View {
                         .rotationEffect(.degrees(-90))
                         .animation(.easeInOut(duration: 0.2), value: progressFraction)
                     Button(action: onIncrement) {
-                        Image(systemName: "plus")
+                        Image(systemName: isOptimisticallyIncremented ? "checkmark" : "plus")
                             .font(.largeTitle.weight(.semibold))
                             .foregroundColor(.accentColor)
                     }
                     .buttonStyle(PlainButtonStyle())
+                    .disabled(isOptimisticallyIncremented)
+                    .accessibilityLabel("Log progress for \(habit.name)")
+                    .accessibilityHint("Adds \(HabitFormatter.formatted(habit.incrementStep)) to today's amount")
                 }
                 .frame(width: 100, height: 100)
+                .contentShape(Circle())
+                .onTapGesture(perform: onIncrement)
+                .accessibilityElement(children: .combine)
+                .accessibilityValue(HabitFormatter.progressDescription(amount: effectiveAmount, target: habit.dailyTarget, unit: habit.unitLabel, healthKitIdentifier: habit.healthKitIdentifier))
 
-                Text(HabitFormatter.progressDescription(amount: occurrence?.currentAmount ?? 0, target: habit.dailyTarget, unit: habit.unitLabel))
+                Text(HabitFormatter.progressDescription(amount: effectiveAmount, target: habit.dailyTarget, unit: habit.unitLabel, healthKitIdentifier: habit.healthKitIdentifier))
                     .font(.subheadline)
 
                 HStack(spacing: 4) {
-                    ForEach(0..<7, id: \.self) { _ in
+                    ForEach(Array(habit.weekCompletionBitmap.enumerated()), id: \.offset) { index, completed in
                         Circle()
-                            .fill(Color.secondary.opacity(0.2))
+                            .fill(completed ? Color.accentColor : Color.secondary.opacity(0.2))
                             .frame(width: 6, height: 6)
+                            .accessibilityLabel(dotAccessibilityLabel(index: index, completed: completed))
                     }
                 }
+                .accessibilityLabel("Weekly progress: \(habit.weekCompletionBitmap.filter(\.self).count) of 7 days completed")
             }
-            .padding(.horizontal, 8)
+            .padding(8)
+            .background(
+                ZStack {
+                    if habit.artworkFilename != nil {
+                        RoundedRectangle(cornerRadius: 40)
+                            .fill(.ultraThinMaterial.opacity(0.6))
+                    }
+                }
+            )
         }
     }
 
+    private var effectiveAmount: Double {
+        let base = occurrence?.currentAmount ?? habit.currentAmount
+        if isOptimisticallyIncremented {
+            return min(base + habit.incrementStep, habit.dailyTarget)
+        }
+        return base
+    }
+
     private var progressFraction: Double {
-        let current = occurrence?.currentAmount ?? habit.currentAmount
+        let current = effectiveAmount
         return min(current / max(habit.dailyTarget, 1), 1.0)
+    }
+
+    private func dotAccessibilityLabel(index: Int, completed: Bool) -> String {
+        let dayName = Calendar.current.weekdaySymbols[(index + 1) % 7]
+        return completed ? "\(dayName): completed" : "\(dayName): not completed"
     }
 }
 
@@ -122,7 +158,9 @@ struct WatchHabitArtworkBackground: View {
             Image(decorative: cgImage, scale: 1.0)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                .overlay(.regularMaterial.opacity(0.7))
+                .clipped()
+        } else {
+            Color.clear
         }
     }
 

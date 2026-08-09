@@ -38,7 +38,12 @@ struct LogHabitProgressIntent: AppIntent {
 
         do {
             let store = try await ClarityServices.store()
-            let occurrence = try await store.logHabitProgress(uuid, amount: amount)
+            let occurrence: HabitOccurrenceDTO
+            if habit.healthKitIdentifier != nil {
+                occurrence = try await store.logHabitProgressWithHealthKit(uuid, amount: amount)
+            } else {
+                occurrence = try await store.logHabitProgress(uuid, amount: amount)
+            }
             let current = occurrence.currentAmount
             let target = habit.dailyTarget
             let dialog: IntentDialog

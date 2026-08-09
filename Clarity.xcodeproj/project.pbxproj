@@ -237,6 +237,8 @@
 			membershipExceptions = (
 				Date.swift,
 				Logger.swift,
+				HealthKitService.swift,
+				HabitHealthKitSync.swift,
 			);
 			target = 443254E12F4B4903003176B3 /* ClarityWatchWidgetsExtension */;
 		};
@@ -378,6 +380,8 @@
 			membershipExceptions = (
 				Date.swift,
 				Logger.swift,
+				HealthKitService.swift,
+				HabitHealthKitSync.swift,
 			);
 			target = 4448AD602E579266005CDDDF /* Widgets */;
 		};
@@ -386,6 +390,8 @@
 			membershipExceptions = (
 				Date.swift,
 				Logger.swift,
+				HealthKitService.swift,
+				HabitHealthKitSync.swift,
 			);
 			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
 		};

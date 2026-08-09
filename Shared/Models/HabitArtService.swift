@@ -7,7 +7,8 @@
 
 import Foundation
 import SwiftUI
-import Combine
+import ImageIO
+import UniformTypeIdentifiers
 #if os(iOS) && canImport(ImagePlayground)
 import ImagePlayground
 #endif
@@ -16,9 +17,7 @@ import XCGLogger
 #if os(iOS) && canImport(ImagePlayground)
 @available(iOS 26.0, *)
 @MainActor
-final class HabitArtService: ObservableObject {
-    @Published var isPresenting = false
-
+final class HabitArtService {
     var isAvailable: Bool {
         ImagePlaygroundViewController.isAvailable
     }
@@ -35,33 +34,32 @@ final class HabitArtService: ObservableObject {
         "minimalist soft gradient illustration of \(habit.name), calm and focused"
     }
 
-    func viewController(for habit: HabitDTO, onComplete: @escaping (URL) -> Void, onCancel: @escaping () -> Void) -> ImagePlaygroundViewController {
-        let controller = ImagePlaygroundViewController()
-        controller.allowedGenerationStyles = [.illustration, .sketch]
-        controller.concepts = concepts(for: habit)
-        controller.delegate = HabitArtDelegate(habit: habit, onComplete: onComplete, onCancel: onCancel)
-        return controller
-    }
-}
+    /// Generates a habit artwork on-device in the background using the ImagePlayground programmatic API.
+    /// Returns a file URL to the generated PNG in a temporary directory. The caller is responsible for
+    /// copying it to the App Group artwork directory via `WidgetFileCoordinator.copyArtwork`.
+    func generate(for habit: HabitDTO) async throws -> URL {
+        guard isAvailable else { throw HabitArtError.unavailable }
 
-@available(iOS 26.0, *)
-private final class HabitArtDelegate: NSObject, ImagePlaygroundViewController.Delegate {
-    let habit: HabitDTO
-    let onComplete: (URL) -> Void
-    let onCancel: () -> Void
+        let concepts = concepts(for: habit)
+        let generator = try await ImageCreator()
+        let iterator = generator.images(for: concepts, style: .illustration, limit: 1)
 
-    init(habit: HabitDTO, onComplete: @escaping (URL) -> Void, onCancel: @escaping () -> Void) {
-        self.habit = habit
-        self.onComplete = onComplete
-        self.onCancel = onCancel
-    }
+        for try await image in iterator {
+            let cgImage = image.cgImage
+            let data = NSMutableData()
+            guard let destination = CGImageDestinationCreateWithData(data, UTType.png.identifier as CFString, 1, nil) else {
+                throw HabitArtError.saveFailed(underlying: NSError(domain: "HabitArtService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Could not create PNG destination"]))
+            }
+            CGImageDestinationAddImage(destination, cgImage, nil)
+            if !CGImageDestinationFinalize(destination) {
+                throw HabitArtError.saveFailed(underlying: NSError(domain: "HabitArtService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Could not finalize PNG"]))
+            }
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).png")
+            try data.write(to: url)
+            return url
+        }
 
-    func imagePlaygroundViewController(_ controller: ImagePlaygroundViewController, didCreateImageAt url: URL) {
-        onComplete(url)
-    }
-
-    func imagePlaygroundViewControllerDidCancel(_ controller: ImagePlaygroundViewController) {
-        onCancel()
+        throw HabitArtError.saveFailed(underlying: NSError(domain: "HabitArtService", code: 3, userInfo: [NSLocalizedDescriptionKey: "No image generated"]))
     }
 }
 #endif

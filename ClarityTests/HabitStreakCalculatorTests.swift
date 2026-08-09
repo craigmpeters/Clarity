@@ -11,7 +11,11 @@ import Testing
 
 struct HabitStreakCalculatorTests {
 
-    private let calendar = Calendar.current
+    private let calendar: Calendar = {
+        var cal = Calendar(identifier: .gregorian)
+        cal.firstWeekday = 1 // Sunday, matching HabitStreakCalculator
+        return cal
+    }()
     private let habitUUID = UUID()
 
     private func date(year: Int, month: Int, day: Int) -> Date {
@@ -86,15 +90,34 @@ struct HabitStreakCalculatorTests {
     }
 
     @Test func noFreezeAfterGraceWindowExpires() {
-        // Previous week failed; today is past the 1-day grace window.
-        let reference = date(year: 2026, month: 1, day: 13) // Tuesday
+        // Previous week failed two weeks ago; the next period (last week) succeeded,
+        // so we are now past the grace window for the failed week.
+        let reference = date(year: 2026, month: 1, day: 25)
+        let currentWeekStart = weekStart(for: reference)
+        let previousStart = calendar.date(byAdding: .day, value: -7, to: currentWeekStart)!
+        let failedStart = calendar.date(byAdding: .day, value: -7, to: previousStart)!
+        var occurrences = (0..<5).compactMap { offset -> HabitOccurrenceDTO? in
+            guard let day = calendar.date(byAdding: .day, value: offset, to: failedStart) else { return nil }
+            return occurrence(day)
+        }
+        // Make the intervening week succeed so the failed week is the most recent miss.
+        occurrences.append(contentsOf: fullWeek(start: previousStart))
+        let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 7, freezes: 1, referenceDate: reference)
+        #expect(result.atRisk == false)
+        #expect(result.current == 1) // previous week succeeded; in-progress week preserves the streak
+    }
+
+    @Test func freezeAvailableWithinNextPeriodGraceWindow() {
+        // Previous week failed on Sunday 2026-01-11; today is the next Sunday 2026-01-18,
+        // which is the start of the next period (the grace window).
+        let reference = date(year: 2026, month: 1, day: 18)
         let previousStart = calendar.date(byAdding: .day, value: -7, to: weekStart(for: reference))!
         let occurrences = (0..<5).compactMap { offset -> HabitOccurrenceDTO? in
             guard let day = calendar.date(byAdding: .day, value: offset, to: previousStart) else { return nil }
             return occurrence(day)
         }
         let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 7, freezes: 1, referenceDate: reference)
-        #expect(result.atRisk == false)
+        #expect(result.atRisk == true)
         #expect(result.current == 0)
     }
 

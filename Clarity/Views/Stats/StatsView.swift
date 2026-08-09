@@ -5,6 +5,19 @@ import os
 import UniformTypeIdentifiers
 import UIKit
 
+// MARK: - Habit Streak Data Types
+
+struct HabitStreakRow: Identifiable, Sendable {
+    let id = UUID()
+    let uuid: UUID
+    let name: String
+    let currentStreak: Int
+    let longestStreak: Int
+    let freezes: Int
+    let completedThisWeek: Int
+    let weeklyFrequency: Int
+}
+
 // Timeframe selection pill component
 struct TimeframePill: View {
     let timeframe: StatsTimeframe
@@ -38,12 +51,14 @@ struct TimeframePill: View {
 struct StatsView: View {
     @Query private var allTasks: [ToDoTask]
     @Query private var allCategories: [Category]
+    @Query private var allHabits: [Habit]
     @State private var selectedTimeframe: StatsTimeframe = .last7Days
     @State private var selectedCategory: Category? = nil
     @Environment(\.modelContext) private var modelContext
     @Environment(CompanionService.self) private var companion
     // Track last-seen streak to only fire companion once per milestone
     @State private var lastReportedStreak: Int = 0
+    @State private var habitStreaks: [HabitStreakRow] = []
 
     @State private var isPresentingShareSheet = false
     @State private var shareItems: [Any]? = nil
@@ -119,6 +134,10 @@ struct StatsView: View {
                     // Streak tracking
                     StreakView(streak: summary.streak)
                         .padding(.horizontal)
+
+                    // Habit streaks
+                    HabitStreaksSection(rows: habitStreaks)
+                        .padding(.horizontal)
                 }
                 .padding(.vertical)
             }
@@ -160,7 +179,34 @@ struct StatsView: View {
             categoryFilter: selectedCategory?.name,
             categories: categoryDTOs
         )
+        Task { await loadHabitStreaks() }
         checkCompanionTriggers(completedDTOs: completedDTOs)
+    }
+
+    private func loadHabitStreaks() async {
+        guard let store = try? await ClarityServices.store() else { return }
+        let calendar = HabitStreakCalculator.streakCalendar()
+        let now = Date()
+        let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
+        var rows: [HabitStreakRow] = []
+        for habit in allHabits.filter({ !$0.isArchived }) {
+            let history = (try? await store.fetchHabitHistory(habit.uuid, from: Date.distantPast, to: now)) ?? []
+            let streak = HabitStreakCalculator.streak(occurrences: history, frequency: habit.weeklyFrequency, freezes: habit.streakFreezes)
+            let weekHistory = (try? await store.fetchHabitHistory(habit.uuid, from: startOfWeek, to: now)) ?? []
+            let completedThisWeek = weekHistory.filter { $0.completed || $0.freezeUsed }.count
+            rows.append(HabitStreakRow(
+                uuid: habit.uuid,
+                name: habit.name,
+                currentStreak: streak.current,
+                longestStreak: streak.longest,
+                freezes: habit.streakFreezes,
+                completedThisWeek: completedThisWeek,
+                weeklyFrequency: habit.weeklyFrequency
+            ))
+        }
+        await MainActor.run {
+            habitStreaks = rows
+        }
     }
 
     private func checkCompanionTriggers(completedDTOs: [ToDoTaskDTO]) {
@@ -532,6 +578,78 @@ struct StreakView: View {
             }
 
             Spacer()
+        }
+        .padding()
+        .background(Color.secondary.opacity(0.1))
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - Habit Streaks Section
+
+struct HabitStreaksSection: View {
+    let rows: [HabitStreakRow]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Habits")
+                .font(.headline)
+                .padding(.horizontal)
+
+            if rows.isEmpty {
+                Text("No active habits yet.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
+            } else {
+                ForEach(rows) { row in
+                    HabitStreakCard(row: row)
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+}
+
+struct HabitStreakCard: View {
+    let row: HabitStreakRow
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(row.name)
+                .font(.subheadline.weight(.semibold))
+
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Label("Current", systemImage: "flame.fill")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                    Text("^\(row.currentStreak) [days](inflect: true)")
+                        .font(.title3.bold())
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Label("Longest", systemImage: "trophy.fill")
+                        .font(.caption)
+                        .foregroundColor(.yellow)
+                    Text("^\(row.longestStreak) [days](inflect: true)")
+                        .font(.title3.bold())
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Label("Freezes", systemImage: "snowflake")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text("\(row.freezes)")
+                        .font(.title3.bold())
+                }
+            }
+
+            Text("\(row.completedThisWeek) / \(row.weeklyFrequency) days this week")
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
         .padding()
         .background(Color.secondary.opacity(0.1))
