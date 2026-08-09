@@ -88,6 +88,7 @@ struct ContentView: View {
                 store = bg
                 companion.setStore(bg)
                 await companion.loadContext(from: bg)
+                companion.loadChatHistory()
                 // Fire appLaunch only after context is ready, so Otto has task data
                 companion.trigger(.appLaunch)
             }

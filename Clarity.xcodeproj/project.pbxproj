@@ -236,9 +236,9 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Date.swift,
-				Logger.swift,
-				HealthKitService.swift,
 				HabitHealthKitSync.swift,
+				HealthKitService.swift,
+				Logger.swift,
 			);
 			target = 443254E12F4B4903003176B3 /* ClarityWatchWidgetsExtension */;
 		};
@@ -379,9 +379,9 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Date.swift,
-				Logger.swift,
-				HealthKitService.swift,
 				HabitHealthKitSync.swift,
+				HealthKitService.swift,
+				Logger.swift,
 			);
 			target = 4448AD602E579266005CDDDF /* Widgets */;
 		};
@@ -389,9 +389,9 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Date.swift,
-				Logger.swift,
-				HealthKitService.swift,
 				HabitHealthKitSync.swift,
+				HealthKitService.swift,
+				Logger.swift,
 			);
 			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
 		};

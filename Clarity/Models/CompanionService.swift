@@ -72,11 +72,63 @@ enum CompanionTrigger: Sendable {
     case appLaunch
     case taskCompleted(taskName: String)
     case taskUncompleted(taskName: String)
-    case moodSelected(valence: Double, taskName: String)
     case pomodoroCompleted(taskName: String)
     case streakMilestone(days: Int)
     case lowMoodDetected(averageValence: Double)
     case habitSuggestion(categories: [String], completedCount: Int)
+    case habitCompleted(habitName: String, state: HabitStreakState)
+}
+
+enum HabitStreakState: Sendable, Equatable {
+    case continued(streak: Int)
+    case milestone(streak: Int)
+    case saved(streak: Int)
+    case restarted(streak: Int)
+
+    static func resolve(
+        habit: HabitDTO,
+        completedOccurrences: [HabitOccurrenceDTO],
+        completedAt: Date
+    ) -> HabitStreakState {
+        let result = HabitStreakCalculator.streak(
+            occurrences: completedOccurrences,
+            frequency: habit.weeklyFrequency,
+            freezes: habit.streakFreezes,
+            referenceDate: completedAt
+        )
+        let streak = result.current
+        let milestoneStreaks: Set<Int> = [7, 30, 100, 365]
+
+        if milestoneStreaks.contains(streak) {
+            return .milestone(streak: streak)
+        }
+        if result.atRisk {
+            return .saved(streak: streak)
+        }
+        if streak == 0 && hasPriorActivity(occurrences: completedOccurrences, referenceDate: completedAt) {
+            return .restarted(streak: streak)
+        }
+        return .continued(streak: streak)
+    }
+
+    private static func hasPriorActivity(occurrences: [HabitOccurrenceDTO], referenceDate: Date) -> Bool {
+        let calendar = HabitStreakCalculator.streakCalendar()
+        let currentWeekStart = calendar.dateInterval(of: .weekOfYear, for: referenceDate)?.start ?? referenceDate
+        return occurrences.contains { occurrence in
+            occurrence.completed && occurrence.periodStart < currentWeekStart
+        }
+    }
+}
+
+extension CompanionTrigger {
+    var allowsTaskSuggestion: Bool {
+        switch self {
+        case .taskCompleted, .pomodoroCompleted:
+            return true
+        default:
+            return false
+        }
+    }
 }
 
 // MARK: - Message
@@ -118,16 +170,25 @@ struct CompanionTaskContext: Sendable {
         let categories: [String]
     }
 
+    struct HabitSummary: Sendable {
+        let uuid: UUID
+        let name: String
+        let weeklyFrequency: Int
+        let currentStreak: Int
+        let doneToday: Bool
+    }
+
     let dueTasks: [TaskSummary]        // incomplete tasks, capped at 10
     let recentlyCompleted: [TaskSummary] // last 5 completed tasks
+    let habits: [HabitSummary]         // active habits with streak/today status
     let loadedAt: Date
 
-    static let empty = CompanionTaskContext(dueTasks: [], recentlyCompleted: [], loadedAt: .distantPast)
+    static let empty = CompanionTaskContext(dueTasks: [], recentlyCompleted: [], habits: [], loadedAt: .distantPast)
 
     /// Human-readable summary injected into the system instructions.
     var instructionsBlock: String {
-        guard !dueTasks.isEmpty || !recentlyCompleted.isEmpty else {
-            return "The user has no tasks recorded yet."
+        guard !dueTasks.isEmpty || !recentlyCompleted.isEmpty || !habits.isEmpty else {
+            return "The user has no tasks or habits recorded yet."
         }
 
         var lines: [String] = []
@@ -171,6 +232,15 @@ struct CompanionTaskContext: Sendable {
             }
         }
 
+        if !habits.isEmpty {
+            lines.append("HABITS:")
+            for h in habits {
+                let frequency = h.weeklyFrequency == 7 ? "daily" : "\(h.weeklyFrequency) days/week"
+                let done = h.doneToday ? "done today" : "not done today"
+                lines.append("- \"\(h.name)\" (\(frequency)) — streak \(h.currentStreak) weeks, \(done)")
+            }
+        }
+
         return lines.joined(separator: "\n")
     }
 }
@@ -194,6 +264,7 @@ final class CompanionService {
     var isGenerating: Bool = false
     var modelAvailability: CompanionModelAvailability = .unsupported
     var startTaskRequest: UUID? = nil
+    var chatHistory: [ChatMessage] = []
     private(set) var personality: any CompanionPersonality
 
     // Opaque storage for LanguageModelSession (iOS 26+ only)
@@ -204,6 +275,9 @@ final class CompanionService {
 
     // Retained store reference so chat sheet can refresh context without prop-drilling
     private var modelStore: ClarityModelActor? = nil
+
+    // App-target-only chat history store
+    private let chatStore = CompanionChatStore()
 
     /// The resolved display name — UserDefaults value, or the personality's default if unset.
     var displayName: String {
@@ -273,15 +347,23 @@ final class CompanionService {
         await loadContext(from: store)
     }
 
+    /// Load persisted chat history and prune stale messages.
+    func loadChatHistory() {
+        let history = chatStore.fetchRecent()
+        chatHistory = history
+        log.info("loadChatHistory: loaded \(history.count) messages")
+    }
+
     // MARK: - Context loading
 
     /// Call this from any actor that has a ClarityModelActor before triggering or chatting.
     func loadContext(from store: ClarityModelActor) async {
-        log.debug("loadContext: fetching tasks")
+        log.debug("loadContext: fetching tasks and habits")
         do {
             let incomplete = try await store.fetchTasks(filter: .all)
             let completed = try await store.fetchCompletedTasks()
-            log.debug("loadContext: \(incomplete.count) incomplete, \(completed.count) completed tasks")
+            let habits = try await store.fetchHabits()
+            log.debug("loadContext: \(incomplete.count) incomplete, \(completed.count) completed tasks, \(habits.count) habits")
 
             let now = Date()
 
@@ -324,12 +406,31 @@ final class CompanionService {
                     )
                 }
 
+            let calendar = Calendar.current
+            var habitSummaries: [CompanionTaskContext.HabitSummary] = []
+            for habit in habits {
+                let allHistory = try await store.fetchHabitHistory(habit.uuid, from: Date.distantPast, to: now)
+                let streak = HabitStreakCalculator.streak(occurrences: allHistory, frequency: habit.weeklyFrequency, freezes: habit.streakFreezes)
+                let today = calendar.startOfDay(for: now)
+                let doneToday = allHistory.contains { occurrence in
+                    occurrence.completed && calendar.isDate(occurrence.periodStart, inSameDayAs: today)
+                }
+                habitSummaries.append(CompanionTaskContext.HabitSummary(
+                    uuid: habit.uuid,
+                    name: habit.name,
+                    weeklyFrequency: habit.weeklyFrequency,
+                    currentStreak: streak.current,
+                    doneToday: doneToday
+                ))
+            }
+
             taskContext = CompanionTaskContext(
                 dueTasks: Array(dueSummaries),
                 recentlyCompleted: Array(recentSummaries),
+                habits: habitSummaries,
                 loadedAt: now
             )
-            log.debug("loadContext: context built — \(self.taskContext.dueTasks.count) due, \(self.taskContext.recentlyCompleted.count) recent")
+            log.debug("loadContext: context built — \(self.taskContext.dueTasks.count) due, \(self.taskContext.recentlyCompleted.count) recent, \(self.taskContext.habits.count) habits")
 
             // Invalidate the session so the next request picks up fresh instructions
             #if canImport(FoundationModels)
@@ -358,12 +459,22 @@ final class CompanionService {
         if let existing = session { return existing }
         let base = personality.systemInstructions(name: displayName, contextBlock: taskContext.instructionsBlock)
         let emotionList = personality.supportedEmotions.map(\.rawValue).joined(separator: ", ")
-        let instructions = base + "\n\nValid emotion values: \(emotionList)"
+        let historyBlock = recentConversationBlock()
+        let instructions = base + "\n\nValid emotion values: \(emotionList)" + (historyBlock.isEmpty ? "" : "\n\nRECENT CONVERSATION:\n\(historyBlock)")
         log.debug("currentSession: creating new session")
         log.debug("currentSession: instructions —\n\(instructions)")
         let newSession = LanguageModelSession(instructions: instructions)
         session = newSession
         return newSession
+    }
+
+    private func recentConversationBlock(limit: Int = 8) -> String {
+        let recent = Array(chatHistory.suffix(limit))
+        guard !recent.isEmpty else { return "" }
+        return recent.map { message in
+            let sender = message.sender == .user ? "User" : displayName
+            return "\(sender): \(message.text)"
+        }.joined(separator: "\n")
     }
     #endif
 
@@ -403,6 +514,8 @@ final class CompanionService {
         checkModelAvailability()
         log.info("chat: user message — \"\(userMessage)\" — model availability: \(String(describing: modelAvailability))")
 
+        appendUserMessage(userMessage)
+
         #if canImport(FoundationModels)
         if #available(iOS 26.0, *), modelAvailability.isAvailable {
             Task { await generate(prompt: userMessage, fallbackEvent: nil) }
@@ -414,6 +527,12 @@ final class CompanionService {
         log.debug("chat: FoundationModels not importable, using fallback")
         showChatFallback()
         #endif
+    }
+
+    private func appendUserMessage(_ text: String) {
+        let message = ChatMessage(sender: .user, text: text)
+        chatStore.append(message)
+        chatHistory.append(message)
     }
 
     // MARK: - Generation
@@ -429,7 +548,7 @@ final class CompanionService {
 
         do {
             let response = try await currentSession().respond(to: prompt, generating: CompanionOutput.self)
-            show(response.content)
+            show(response.content, trigger: fallbackEvent)
         } catch let genError as LanguageModelSession.GenerationError {
             switch genError {
             case .assetsUnavailable:
@@ -444,7 +563,7 @@ final class CompanionService {
                 session = nil
                 do {
                     let response = try await currentSession().respond(to: prompt, generating: CompanionOutput.self)
-                    show(response.content)
+                    show(response.content, trigger: fallbackEvent)
                 } catch {
                     log.error("generate: retry after context reset failed — \(error)")
                     showErrorFallback()
@@ -495,19 +614,48 @@ final class CompanionService {
     }
 
     @available(iOS 26.0, *)
-    private func show(_ output: CompanionOutput) {
+    private func show(_ output: CompanionOutput, trigger: CompanionTrigger?) {
         let text = output.text.trimmingCharacters(in: .whitespacesAndNewlines)
         let emotion = CompanionEmotion(rawValue: output.emotion)
             ?? personality.supportedEmotions.first
             ?? .happy
-        let suggested = taskContext.dueTasks.first {
-            $0.name.localizedCaseInsensitiveCompare(output.suggestedTaskName) == .orderedSame
-        }
-        log.debug("generate: text=\"\(text)\" emotion=\(emotion.rawValue) suggestedTask=\(suggested?.name ?? "none")")
+        let suggested = trigger?.allowsTaskSuggestion == true
+            ? taskContext.dueTasks.first {
+                $0.name.localizedCaseInsensitiveCompare(output.suggestedTaskName) == .orderedSame
+            }
+            : nil
+        log.debug("generate: text='\(text)' emotion=\(emotion.rawValue) suggestedTask=\(String(describing: suggested?.name))")
+        let message = CompanionMessage(text: text.isEmpty ? output.text : text, emotion: emotion, suggestedTask: suggested)
+        guard appendCompanionMessage(message, trigger: trigger) else { return }
         withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-            currentMessage = CompanionMessage(text: text.isEmpty ? output.text : text, emotion: emotion, suggestedTask: suggested)
+            currentMessage = message
             isVisible = true
         }
+    }
+
+    @discardableResult
+    private func appendCompanionMessage(_ message: CompanionMessage, trigger: CompanionTrigger?) -> Bool {
+        if isDuplicateCompanionMessage(message, trigger: trigger) {
+            log.debug("appendCompanionMessage: skipping duplicate companion message")
+            return false
+        }
+        let historyMessage = ChatMessage(
+            sender: .companion,
+            text: message.text,
+            emotion: message.emotion.rawValue,
+            suggestedTaskUUID: message.suggestedTask?.uuid,
+            suggestedTaskName: message.suggestedTask?.name
+        )
+        chatStore.append(historyMessage)
+        chatHistory.append(historyMessage)
+        return true
+    }
+
+    private func isDuplicateCompanionMessage(_ message: CompanionMessage, trigger: CompanionTrigger?) -> Bool {
+        guard let last = chatHistory.last else { return false }
+        guard last.sender == .companion else { return false }
+        if trigger?.allowsTaskSuggestion == true { return false }
+        return last.text == message.text
     }
     #endif
 
@@ -536,6 +684,7 @@ final class CompanionService {
 
     private func showErrorFallback() {
         let message = personality.errorFallback(overdueTask: taskContext.dueTasks.first)
+        guard appendCompanionMessage(message, trigger: nil) else { return }
         withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
             currentMessage = message
             isVisible = true
@@ -543,14 +692,17 @@ final class CompanionService {
     }
 
     private func showChatFallback() {
+        let message = personality.chatFallback
+        guard appendCompanionMessage(message, trigger: nil) else { return }
         withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-            currentMessage = personality.chatFallback
+            currentMessage = message
             isVisible = true
         }
     }
 
     private func showFallback(for event: CompanionTrigger) {
         let message = personality.fallbackMessage(for: event)
+        guard appendCompanionMessage(message, trigger: event) else { return }
         withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
             currentMessage = message
             isVisible = true
@@ -563,10 +715,32 @@ final class CompanionService {
         _session = nil
         currentMessage = nil
         isVisible = false
-        log.info("clearHistory: session and message cleared")
+        chatStore.deleteAll()
+        chatHistory.removeAll()
+        log.info("clearHistory: session, message, and persisted chat history cleared")
     }
 
-    // MARK: - Dismiss
+    // MARK: - Habit completion trigger
+
+    func triggerHabitCompleted(habit: HabitDTO, completedOccurrence: HabitOccurrenceDTO) {
+        guard let store = modelStore else {
+            log.warning("triggerHabitCompleted: no store registered")
+            return
+        }
+        Task {
+            do {
+                let allHistory = try await store.fetchHabitHistory(habit.uuid, from: Date.distantPast, to: Date.distantFuture)
+                let state = HabitStreakState.resolve(
+                    habit: habit,
+                    completedOccurrences: allHistory,
+                    completedAt: completedOccurrence.completedAt ?? Date()
+                )
+                trigger(.habitCompleted(habitName: habit.name, state: state))
+            } catch {
+                log.error("triggerHabitCompleted: failed to resolve streak — \(error)")
+            }
+        }
+    }
 
     func dismiss() {
         withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {

@@ -71,7 +71,6 @@ struct PomodoroView: View {
                     pendingMoodSession = nil
                 }, onMoodSaved: { valence, emoji in
                     service.markMoodLogged(for: session.id, emoji: emoji)
-                    companion.trigger(.moodSelected(valence: valence, taskName: session.taskName))
                     if let taskUUID = session.taskUUID {
                         let store = ClarityModelActor(modelContainer: context.container)
                         Task {

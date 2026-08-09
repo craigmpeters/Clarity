@@ -23,37 +23,31 @@ struct GoosePersonality: CompanionPersonality {
 
         Here is the user's current task data:
         \(contextBlock)
-
-        When suggesting a task, only pick from the UPCOMING TASKS list above — never from RECENTLY COMPLETED. Prefer tasks that are overdue or due soonest. Provide its exact name in suggestedTaskName.
         """
     }
 
     func prompt(for trigger: CompanionTrigger) -> String {
+        let base: String
         switch trigger {
         case .appLaunch:
-            return "The user just opened Clarity. Greet them with chaotic goose energy and get them pumped for the day."
+            base = "The user just opened Clarity. Greet them with chaotic goose energy and get them pumped for the day."
         case .taskCompleted(let taskName):
-            return "The user just completed \"\(taskName)\". Celebrate wildly in goose fashion."
+            base = "The user just completed \"\(taskName)\". Celebrate wildly in goose fashion."
         case .taskUncompleted(let taskName):
-            return "The user just undid the completion of \"\(taskName)\". React with chaotic but supportive goose energy — this is totally normal and maybe even strategic! Mistakes are part of the process!"
-        case .moodSelected(let valence, let taskName):
-            if valence >= 0.5 {
-                return "After completing \"\(taskName)\", the user felt great. React with over-the-top goose excitement."
-            } else if valence >= 0 {
-                return "After completing \"\(taskName)\", the user felt okay. Give them some silly but genuine goose encouragement."
-            } else {
-                return "After completing \"\(taskName)\", the user felt drained. Offer surprisingly tender goose comfort."
-            }
+            base = "The user just undid the completion of \"\(taskName)\". React with chaotic but supportive goose energy — this is totally normal and maybe even strategic! Mistakes are part of the process!"
         case .pomodoroCompleted(let taskName):
-            return "The user finished a focus session on \"\(taskName)\". Celebrate in chaotic goose style."
+            base = "The user finished a focus session on \"\(taskName)\". Celebrate in chaotic goose style."
         case .streakMilestone(let days):
-            return "The user hit a \(days)-day streak. React with maximum goose excitement."
+            base = "The user hit a \(days)-day streak. React with maximum goose excitement."
         case .lowMoodDetected(let avg):
-            return "The user has been feeling low lately (average mood \(String(format: "%.1f", avg))). Offer silly but heartfelt goose support."
+            base = "The user has been feeling low lately (average mood \(String(format: "%.1f", avg))). Offer silly but heartfelt goose support."
         case .habitSuggestion(let categories, let completedCount):
             let catList = categories.prefix(3).joined(separator: ", ")
-            return "The user has completed \(completedCount) tasks in \(catList). Hype them up in peak goose fashion and suggest they keep going."
+            base = "The user has completed \(completedCount) tasks in \(catList). Hype them up in peak goose fashion and suggest they keep going."
+        case .habitCompleted(let habitName, let state):
+            base = habitPrompt(habitName: habitName, state: state)
         }
+        return base + " " + suggestionInstruction(for: trigger)
     }
 
     func fallbackMessage(for trigger: CompanionTrigger) -> CompanionMessage {
@@ -64,12 +58,6 @@ struct GoosePersonality: CompanionPersonality {
             return CompanionMessage(text: "YESSS! Another one down! The goose is THRIVING!", emotion: .silly)
         case .taskUncompleted:
             return CompanionMessage(text: "Wait, plot twist! HONK! The goose respects this strategic maneuver. Chaos is normal!", emotion: .silly)
-        case .moodSelected(let valence, _):
-            if valence >= 0 {
-                return CompanionMessage(text: "Good vibes! The goose approves of this energy.", emotion: .happy)
-            } else {
-                return CompanionMessage(text: "Even geese have tough days. You showed up, and that's everything.", emotion: .caring)
-            }
         case .pomodoroCompleted:
             return CompanionMessage(text: "Focus session complete! The goose has never been more proud!", emotion: .happy)
         case .streakMilestone(let days):
@@ -78,6 +66,8 @@ struct GoosePersonality: CompanionPersonality {
             return CompanionMessage(text: "The goose sees you struggling and offers this honk of solidarity. HONK.", emotion: .caring)
         case .habitSuggestion:
             return CompanionMessage(text: "You're on a roll! The goose demands you keep going!", emotion: .determined)
+        case .habitCompleted(let habitName, let state):
+            return habitFallback(habitName: habitName, state: state)
         }
     }
 
@@ -97,5 +87,40 @@ struct GoosePersonality: CompanionPersonality {
             text: "The goose wandered off briefly but has returned with renewed determination!",
             emotion: .determined
         )
+    }
+
+    // MARK: - Habit helpers
+
+    private func habitPrompt(habitName: String, state: HabitStreakState) -> String {
+        switch state {
+        case .continued(let streak):
+            return "The user just completed the habit \"\(habitName)\". Their streak is now \(streak). Celebrate with silly goose energy."
+        case .milestone(let streak):
+            return "The user just completed the habit \"\(habitName)\" and hit a \(streak)-streak milestone! React with maximum goose excitement."
+        case .saved(let streak):
+            return "The user just completed the habit \"\(habitName)\" and kept their \(streak)-streak alive just in time. Goose-level relief."
+        case .restarted(let streak):
+            return "The user just completed the habit \"\(habitName)\" after a streak break. Their streak is now \(streak). Welcome them back with open wings."
+        }
+    }
+
+    private func habitFallback(habitName: String, state: HabitStreakState) -> CompanionMessage {
+        switch state {
+        case .continued(let streak):
+            return CompanionMessage(text: "\(habitName) done! Streak is now \(streak). The goose approves!", emotion: .happy)
+        case .milestone(let streak):
+            return CompanionMessage(text: "\(streak) in a row for \(habitName)! HONK! The goose is THRIVING!", emotion: .silly)
+        case .saved(let streak):
+            return CompanionMessage(text: "Phew, \"\(habitName)\" just in time! \(streak)-streak still alive. HONK!", emotion: .encouraging)
+        case .restarted(let streak):
+            return CompanionMessage(text: "Welcome back to \"\(habitName)\"! Streak is now \(streak). The goose missed you!", emotion: .caring)
+        }
+    }
+
+    private func suggestionInstruction(for trigger: CompanionTrigger) -> String {
+        if trigger.allowsTaskSuggestion {
+            return "You may suggest one task from UPCOMING TASKS by setting suggestedTaskName."
+        }
+        return "Do not set suggestedTaskName."
     }
 }

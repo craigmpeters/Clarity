@@ -121,7 +121,7 @@ final class HabitFormState {
     func load(habit: HabitDTO?) {
         guard let habit = habit else { return }
         name = habit.name
-        unitLabel = habit.unitLabel ?? ""
+        unitLabel = habit.unitLabel ?? localeNaturalUnit ?? ""
         incrementStep = habit.incrementStep
         incrementCount = Int(round(habit.dailyTarget / max(habit.incrementStep, 1)))
         incrementCount = max(incrementCount, 1)

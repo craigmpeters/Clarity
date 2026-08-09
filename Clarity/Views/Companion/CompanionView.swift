@@ -42,7 +42,7 @@ struct CompanionOverlayView: View {
         .animation(.spring(response: 0.4, dampingFraction: 0.75), value: companion.isVisible)
         .animation(.spring(response: 0.4, dampingFraction: 0.75), value: companion.currentMessage?.emotion)
         .sheet(isPresented: $showingChat) {
-            CompanionChatSheet(companion: companion)
+            CompanionChatView(companion: companion)
         }
     }
 
@@ -202,132 +202,6 @@ struct CompanionOverlayView: View {
     }
 }
 
-// MARK: - Chat sheet
-
-struct CompanionChatSheet: View {
-    var companion: CompanionService
-
-    @State private var inputText = ""
-    @FocusState private var inputFocused: Bool
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                // Companion header
-                VStack(spacing: 8) {
-                    CompanionFaceView(
-                        emotion: companion.currentMessage?.emotion ?? .idle,
-                        size: 80,
-                        assetPrefix: companion.personality.assetPrefix,
-                        fallbackEmoji: companion.personality.fallbackEmoji
-                    )
-                    if let message = companion.currentMessage {
-                        Text(message.text)
-                            .font(.subheadline)
-                            .multilineTextAlignment(.center)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 32)
-                            .transition(.opacity)
-                    } else {
-                        Text("What's on your mind?")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(.top, 16)
-                .padding(.bottom, 20)
-                .animation(.easeInOut(duration: 0.3), value: companion.currentMessage?.text)
-
-                Divider()
-
-                Spacer()
-
-                if let task = companion.currentMessage?.suggestedTask {
-                    Button {
-                        companion.requestStartTask(task.uuid)
-                    } label: {
-                        Label("Start \"\(task.name)\"", systemImage: "timer")
-                            .font(.subheadline.weight(.medium))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 14))
-                            .foregroundStyle(.white)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 8)
-                }
-
-                if companion.modelAvailability.isAvailable {
-                    // Input bar
-                    HStack(spacing: 10) {
-                        TextField("Say something to \(companion.displayName)…", text: $inputText, axis: .vertical)
-                            .lineLimit(1...4)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20))
-                            .focused($inputFocused)
-                            .onSubmit { sendMessage() }
-
-                        Button(action: sendMessage) {
-                            Group {
-                                if companion.isGenerating {
-                                    ProgressView()
-                                        .frame(width: 20, height: 20)
-                                } else {
-                                    Image(systemName: "arrow.up.circle.fill")
-                                        .font(.system(size: 32))
-                                        .foregroundStyle(inputText.trimmingCharacters(in: .whitespaces).isEmpty ? Color.secondary : Color.accentColor)
-                                }
-                            }
-                        }
-                        .disabled(inputText.trimmingCharacters(in: .whitespaces).isEmpty || companion.isGenerating)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 12)
-                    .padding(.top, 8)
-                } else {
-                    // Apple Intelligence unavailable notice
-                    VStack(spacing: 6) {
-                        Label("Apple Intelligence unavailable", systemImage: "exclamationmark.triangle.fill")
-                            .font(.subheadline)
-                            .foregroundStyle(.orange)
-                        Text(companion.modelAvailability.userFacingReason)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 16)
-                }
-            }
-            .navigationTitle(companion.displayName)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                }
-            }
-        }
-        .presentationDetents([.medium])
-        .presentationDragIndicator(.visible)
-        .onAppear {
-            if companion.modelAvailability.isAvailable {
-                inputFocused = true
-            }
-            Task { await companion.refreshContext() }
-        }
-    }
-
-    private func sendMessage() {
-        let trimmed = inputText.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty, !companion.isGenerating else { return }
-        inputText = ""
-        companion.chat(trimmed)
-    }
-}
-
 // MARK: - Triangle shape for speech bubble tail
 
 private struct Triangle: Shape {
@@ -349,5 +223,5 @@ private struct Triangle: Shape {
 }
 
 #Preview("Chat Sheet") {
-    CompanionChatSheet(companion: CompanionService.shared)
+    CompanionChatView(companion: CompanionService.shared)
 }

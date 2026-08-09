@@ -124,7 +124,12 @@ struct HabitRowView: View {
     private var currentAmount: Double { occurrence?.currentAmount ?? 0 }
     private var progressFraction: Double { min(currentAmount / max(habit.dailyTarget, 1), 1.0) }
     private var periodDescription: String {
-        HabitFormatter.progressDescription(amount: currentAmount, target: habit.dailyTarget, unit: habit.unitLabel)
+        HabitFormatter.progressDescription(
+            amount: currentAmount,
+            target: habit.dailyTarget,
+            unit: habit.unitLabel,
+            healthKitIdentifier: habit.healthKitIdentifier
+        )
     }
 }
 

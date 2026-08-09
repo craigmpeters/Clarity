@@ -15,6 +15,7 @@ struct HabitsIndexView: View {
     @State private var isImagePlaygroundAvailable: Bool = false
     @State private var habitToDelete: HabitDTO? = nil
     @State private var store: ClarityModelActor? = nil
+    @Environment(CompanionService.self) private var companion
 
     var body: some View {
         List {
@@ -100,12 +101,22 @@ struct HabitsIndexView: View {
                 }
                 await refresh()
                 checkImagePlaygroundAvailability()
-                _ = await HabitHealthKitSync.shared.syncAllHabits()
+                let synced = await HabitHealthKitSync.shared.syncAllHabits()
+                for dto in synced where dto.completed {
+                    if let habit = habitDTOs.first(where: { $0.uuid == dto.habitUUID }) {
+                        companion.triggerHabitCompleted(habit: habit, completedOccurrence: dto)
+                    }
+                }
                 await refresh()
             }
             .refreshable {
                 await refresh()
-                _ = await HabitHealthKitSync.shared.syncAllHabits()
+                let synced = await HabitHealthKitSync.shared.syncAllHabits()
+                for dto in synced where dto.completed {
+                    if let habit = habitDTOs.first(where: { $0.uuid == dto.habitUUID }) {
+                        companion.triggerHabitCompleted(habit: habit, completedOccurrence: dto)
+                    }
+                }
                 await refresh()
             }
             .confirmationDialog(
@@ -181,10 +192,14 @@ struct HabitsIndexView: View {
         guard let store = store else { return }
         Task {
             do {
+                let dto: HabitOccurrenceDTO
                 if habit.healthKitIdentifier != nil {
-                    _ = try await store.logHabitProgressWithHealthKit(habit.uuid)
+                    dto = try await store.logHabitProgressWithHealthKit(habit.uuid)
                 } else {
-                    _ = try await store.logHabitProgress(habit.uuid)
+                    dto = try await store.logHabitProgress(habit.uuid)
+                }
+                if dto.completed {
+                    companion.triggerHabitCompleted(habit: habit, completedOccurrence: dto)
                 }
                 await refresh()
             } catch {
@@ -197,7 +212,10 @@ struct HabitsIndexView: View {
         guard let store = store else { return }
         Task {
             do {
-                try await store.setHabitProgress(habit.uuid, date: Date(), amount: amount)
+                let dto = try await store.setHabitProgress(habit.uuid, date: Date(), amount: amount)
+                if dto.completed {
+                    companion.triggerHabitCompleted(habit: habit, completedOccurrence: dto)
+                }
                 await refresh()
             } catch {
                 LogManager.shared.log.error("Failed to set habit amount: \(error)")

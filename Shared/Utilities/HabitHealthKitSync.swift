@@ -13,24 +13,24 @@ final class HabitHealthKitSync {
     private init() {}
 
     /// Sync today's HealthKit data for all active habits with a `healthKitIdentifier`.
-    /// Returns the number of habits updated.
-    func syncAllHabits() async -> Int {
+    /// Returns the updated occurrences so callers can react to newly completed habits.
+    func syncAllHabits() async -> [HabitOccurrenceDTO] {
         #if !canImport(HealthKit)
-        return 0
+        return []
         #else
-        guard HealthKitService.shared.isAvailable else { return 0 }
-        guard let store = try? await ClarityServices.store() else { return 0 }
-        guard let habits = try? await store.fetchHabits() else { return 0 }
+        guard HealthKitService.shared.isAvailable else { return [] }
+        guard let store = try? await ClarityServices.store() else { return [] }
+        guard let habits = try? await store.fetchHabits() else { return [] }
 
-        var updated = 0
+        var updated: [HabitOccurrenceDTO] = []
 
         for habit in habits where habit.healthKitIdentifier != nil {
             guard let identifier = habit.healthKitIdentifier else { continue }
             guard let value = await HealthKitService.shared.cumulativeToday(for: identifier) else { continue }
             guard value > 0 else { continue }
             do {
-                _ = try await store.applyHealthKitProgress(habit.uuid, value: value)
-                updated += 1
+                let dto = try await store.applyHealthKitProgress(habit.uuid, value: value)
+                updated.append(dto)
             } catch {
                 LogManager.shared.log.error("HealthKit sync failed for \(habit.name): \(error)")
             }
