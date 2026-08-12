@@ -23,13 +23,27 @@
           "hidden" : false,
           "image-name" : "Clarity Transparent.png",
           "name" : "Clarity Transparent",
-          "position" : {
-            "scale" : 1.25,
-            "translation-in-points" : [
-              0,
-              0
-            ]
-          }
+          "position-specializations" : [
+            {
+              "value" : {
+                "scale" : 1.1,
+                "translation-in-points" : [
+                  0,
+                  0
+                ]
+              }
+            },
+            {
+              "idiom" : "square",
+              "value" : {
+                "scale" : 1.25,
+                "translation-in-points" : [
+                  0,
+                  0
+                ]
+              }
+            }
+          ]
         }
       ],
       "lighting-specializations" : [
