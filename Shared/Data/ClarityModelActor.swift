@@ -10,9 +10,11 @@ import os
 import SwiftData
 import WidgetKit
 import XCGLogger
-
 @ModelActor
 actor ClarityModelActor {
+    /// Seam for widget/file coordination so tests can opt out of WidgetKit/NSFileCoordinator.
+    nonisolated(unsafe) static var widgetCoordinator: any WidgetCoordination = LiveWidgetCoordinator()
+
     // MARK: Category Functions
     private var logger: XCGLogger { LogManager.shared.log }
     // Prevent concurrent completions for the same UUID within this actor
@@ -40,8 +42,8 @@ actor ClarityModelActor {
         )
         modelContext.insert(category)
         try modelContext.save()
-        try WidgetFileCoordinator.shared.writeCategories(getCategories())
-        WidgetCenter.shared.reloadTimelines(ofKind: "TodoWidget")
+        try Self.widgetCoordinator.writeCategories(getCategories())
+        Self.widgetCoordinator.reloadTimelines(ofKind: "TodoWidget")
         return CategoryDTO(from: category)
     }
     
@@ -57,8 +59,8 @@ actor ClarityModelActor {
         model.weeklyTarget = dto.weeklyTarget
         model.iconName = dto.iconName
         try modelContext.save()
-        try WidgetFileCoordinator.shared.writeCategories(getCategories())
-        WidgetCenter.shared.reloadAllTimelines()
+        try Self.widgetCoordinator.writeCategories(getCategories())
+        Self.widgetCoordinator.reloadAllTimelines()
         return CategoryDTO(from: model)
     }
     
@@ -67,8 +69,8 @@ actor ClarityModelActor {
             modelContext.delete(model)
             try modelContext.save()
         }
-        try WidgetFileCoordinator.shared.writeCategories(getCategories())
-        WidgetCenter.shared.reloadAllTimelines()
+        try Self.widgetCoordinator.writeCategories(getCategories())
+        Self.widgetCoordinator.reloadAllTimelines()
     }
     
     func getCategories() throws -> [CategoryDTO] {
@@ -83,9 +85,9 @@ actor ClarityModelActor {
     
     private func habitPostMutationPipeline() throws {
         try modelContext.save()
-        try WidgetFileCoordinator.shared.writeHabits(fetchHabits())
-        try WidgetFileCoordinator.shared.writeTasks(fetchRecentTasks())
-        WidgetCenter.shared.reloadAllTimelines()
+        try Self.widgetCoordinator.writeHabits(fetchHabits())
+        try Self.widgetCoordinator.writeTasks(fetchRecentTasks())
+        Self.widgetCoordinator.reloadAllTimelines()
         if let onTaskMutated = ClarityModelActor.onTaskMutated {
             Task { @MainActor in onTaskMutated() }
         }
@@ -505,8 +507,8 @@ actor ClarityModelActor {
         LogManager.shared.log.debug("Update Task Day Day \(task.everySpecificDayDay)")
         
         try modelContext.save()
-        try WidgetFileCoordinator.shared.writeTasks(fetchRecentTasks())
-        WidgetCenter.shared.reloadAllTimelines()
+        try Self.widgetCoordinator.writeTasks(fetchRecentTasks())
+        Self.widgetCoordinator.reloadAllTimelines()
         if let onTaskMutated = ClarityModelActor.onTaskMutated {
             Task { @MainActor in onTaskMutated() }
         }
@@ -572,8 +574,8 @@ actor ClarityModelActor {
             throw NSError(domain: "ClarityActor", code: 3, userInfo: [NSLocalizedDescriptionKey: "Dedup: existing task missing after insert skipped"])
         }
         try modelContext.save()
-        try WidgetFileCoordinator.shared.writeTasks(fetchRecentTasks())
-        WidgetCenter.shared.reloadAllTimelines()
+        try Self.widgetCoordinator.writeTasks(fetchRecentTasks())
+        Self.widgetCoordinator.reloadAllTimelines()
         if let onTaskMutated = ClarityModelActor.onTaskMutated {
             Task { @MainActor in onTaskMutated() }
         }
@@ -586,8 +588,8 @@ actor ClarityModelActor {
             modelContext.delete(model)
             try modelContext.save()
         }
-        try WidgetFileCoordinator.shared.writeTasks(fetchRecentTasks())
-        WidgetCenter.shared.reloadAllTimelines()
+        try Self.widgetCoordinator.writeTasks(fetchRecentTasks())
+        Self.widgetCoordinator.reloadAllTimelines()
         if let onTaskMutated = ClarityModelActor.onTaskMutated {
             Task { @MainActor in onTaskMutated() }
         }
@@ -635,8 +637,8 @@ actor ClarityModelActor {
             LogManager.shared.log.error("Error in completing task \(error.localizedDescription)")
         }
         try modelContext.save()
-        try WidgetFileCoordinator.shared.writeTasks(fetchRecentTasks())
-        WidgetCenter.shared.reloadAllTimelines()
+        try Self.widgetCoordinator.writeTasks(fetchRecentTasks())
+        Self.widgetCoordinator.reloadAllTimelines()
         if let onTaskCompleted = ClarityModelActor.onTaskCompleted {
             Task { @MainActor in onTaskCompleted() }
         }
@@ -666,8 +668,8 @@ actor ClarityModelActor {
         task.completionMoodValence = nil
         
         try modelContext.save()
-        try WidgetFileCoordinator.shared.writeTasks(fetchRecentTasks())
-        WidgetCenter.shared.reloadAllTimelines()
+        try Self.widgetCoordinator.writeTasks(fetchRecentTasks())
+        Self.widgetCoordinator.reloadAllTimelines()
         if let onTaskMutated = ClarityModelActor.onTaskMutated {
             Task { @MainActor in onTaskMutated() }
         }
@@ -880,8 +882,8 @@ actor ClarityModelActor {
         if totalDuplicateGroups > 0 {
             try modelContext.save()
             // Keep widgets in sync with the new state
-            try WidgetFileCoordinator.shared.writeTasks(fetchRecentTasks())
-            WidgetCenter.shared.reloadAllTimelines()
+            try Self.widgetCoordinator.writeTasks(fetchRecentTasks())
+            Self.widgetCoordinator.reloadAllTimelines()
         }
 
         logger.info("Dedup: groups=\(totalDuplicateGroups) deleted=\(totalDeleted)")

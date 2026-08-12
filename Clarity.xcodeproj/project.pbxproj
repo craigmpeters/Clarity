@@ -160,6 +160,7 @@
 				ClarityModelActor.swift,
 				ClarityServices.swift,
 				FileCoordinator.swift,
+				WidgetCoordination.swift,
 			);
 			target = 441B7E032EEED7F4008D76CA /* ClarityAppIntentsExtension */;
 		};
@@ -304,6 +305,7 @@
 				ClarityModelActor.swift,
 				ClarityServices.swift,
 				FileCoordinator.swift,
+				WidgetCoordination.swift,
 			);
 			target = 4448AD602E579266005CDDDF /* Widgets */;
 		};
@@ -315,6 +317,7 @@
 				ConnectivityTransport.swift,
 				ConnectivityWireTypes.swift,
 				FileCoordinator.swift,
+				WidgetCoordination.swift,
 			);
 			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
 		};
