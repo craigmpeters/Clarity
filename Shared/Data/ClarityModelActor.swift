@@ -317,6 +317,12 @@ actor ClarityModelActor {
         return HabitDTO(from: habit)
     }
     
+    func forceStreakFreezes(_ uuid: UUID, count: Int) throws {
+        let habit = try habitByUUID(uuid, includeArchived: true)
+        habit.streakFreezes = count
+        try modelContext.save()
+    }
+
     func spendFreeze(_ habitUUID: UUID) throws {
         try withHabitMutationLock(habitUUID) {
             let habit = try habitByUUID(habitUUID)

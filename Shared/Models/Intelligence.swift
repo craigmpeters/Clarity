@@ -64,6 +64,13 @@ class TaskSplitterService: ObservableObject {
     }
     
     private func parseResponse(_ text: String, taskName: String) -> [SplitTaskSuggestion] {
+        TaskSplitParser.parse(text, fallbackTaskName: taskName)
+    }
+}
+
+// MARK: - Parsing Helpers
+enum TaskSplitParser {
+    static func parse(_ text: String, fallbackTaskName: String) -> [SplitTaskSuggestion] {
         print("Apple Intelligence Response: \(text) ")
         let lines = text.components(separatedBy: .newlines)
         var suggestions: [SplitTaskSuggestion] = []
@@ -89,7 +96,7 @@ class TaskSplitterService: ObservableObject {
         // If parsing fails, create a simple split
         if suggestions.isEmpty && !text.isEmpty {
             suggestions.append(SplitTaskSuggestion(
-                name: taskName,
+                name: fallbackTaskName,
                 estimatedMinutes: 15
             ))
         }

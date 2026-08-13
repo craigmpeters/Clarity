@@ -21,16 +21,10 @@ struct FilterMenuView: View {
     }
 
     private var filteredCategories: [Category] {
-        var allowedNames = Set(allCategories.compactMap { $0.name })
-        if let settings = focusSettings {
-            let focusedNames = Set(settings.Categories.compactMap { $0.name })
-            switch settings.showOrHide {
-            case .show:
-                allowedNames = allowedNames.intersection(focusedNames)
-            case .hide:
-                allowedNames.subtract(focusedNames)
-            }
-        }
+        let focusedNames = focusSettings?.Categories.compactMap { $0.name } ?? []
+        let isHide = focusSettings?.showOrHide == .hide
+        let allNames = Set(allCategories.compactMap { $0.name })
+        let allowedNames = CategoryFilter.allowedNames(allNames: allNames, focusedNames: focusedNames, isHide: isHide)
         return allCategories.filter { cat in
             if let name = cat.name { return allowedNames.contains(name) }
             return false
@@ -137,6 +131,19 @@ struct FilterMenuView: View {
 //            }
 //        }
 //    }
+}
+
+// MARK: - Category filter helper
+
+enum CategoryFilter {
+    static func allowedNames(allNames: Set<String>, focusedNames: [String], isHide: Bool) -> Set<String> {
+        let focused = Set(focusedNames)
+        if isHide {
+            return allNames.subtracting(focused)
+        } else {
+            return focused.isEmpty ? [] : allNames.intersection(focused)
+        }
+    }
 }
 
 #if DEBUG

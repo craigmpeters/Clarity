@@ -1,10 +1,4 @@
-//
-//  Heatmap.swift
-//  Clarity
-//
-//  Created by Craig Peters on 10/05/2026.
-//
-
+import Foundation
 import SwiftUI
 
 // MARK: - HeatmapTask protocol
@@ -35,16 +29,6 @@ extension ToDoTaskDTO: HeatmapTask {
     var heatmapCompleted: Bool                                   { completed }
     var heatmapRecurrenceInterval: ToDoTask.RecurrenceInterval?  { recurrenceInterval }
     var heatmapCustomRecurrenceDays: Int                         { customRecurrenceDays }
-}
-
-// MARK: - Conditional modifier helper
-
-private extension View {
-    /// Applies a transform only when `condition` is true.
-    @ViewBuilder
-    func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
-        if condition { transform(self) } else { self }
-    }
 }
 
 // MARK: - Widget size preset
@@ -84,6 +68,55 @@ enum HeatmapSize {
     var isInteractive: Bool  { self == .custom }
 }
 
+// MARK: - Heatmap math
+
+enum HeatmapMath {
+    static func latenessRatio(for task: any HeatmapTask, completedAt: Date?, interval: ToDoTask.RecurrenceInterval?) -> Double {
+        guard let completedAt else { return 0 }
+        let secondsLate = completedAt.timeIntervalSince(task.heatmapDue)
+        guard secondsLate > 0 else { return 0 }
+
+        let intervalSecs = intervalDuration(for: interval, customDays: task.heatmapCustomRecurrenceDays)
+        guard intervalSecs > 0 else {
+            return min(secondsLate / (7 * 24 * 3600), 1.0)
+        }
+        return min(secondsLate / intervalSecs, 1.0)
+    }
+
+    static func intervalDuration(for interval: ToDoTask.RecurrenceInterval?, customDays: Int) -> TimeInterval {
+        guard let interval else { return 0 }
+        switch interval {
+        case .daily:         return 1  * 24 * 3600
+        case .everyOtherDay: return 2  * 24 * 3600
+        case .weekly:        return 7  * 24 * 3600
+        case .biweekly:      return 14 * 24 * 3600
+        case .monthly:       return 30 * 24 * 3600
+        case .custom:        return Double(customDays) * 24 * 3600
+        case .specific:      return 7  * 24 * 3600
+        }
+    }
+
+    static func buildDays(totalDays: Int, tasks: [any HeatmapTask], referenceDate: Date) -> [DayEntry] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: referenceDate)
+
+        var dayTasks: [Date: [any HeatmapTask]] = [:]
+        for task in tasks where task.heatmapCompleted {
+            guard let completedAt = task.heatmapCompletedAt else { continue }
+            let dayStart = calendar.startOfDay(for: completedAt)
+            dayTasks[dayStart, default: []].append(task)
+        }
+
+        return (0..<totalDays).map { offset in
+            let daysAgo = (totalDays - 1) - offset
+            let date = calendar.date(byAdding: .day, value: -daysAgo, to: today) ?? today
+            let tasksOnDay = dayTasks[date] ?? []
+            let bestRatio = tasksOnDay.map { HeatmapMath.latenessRatio(for: $0, completedAt: $0.heatmapCompletedAt, interval: $0.heatmapRecurrenceInterval) }.min()
+            return DayEntry(date: date, tasks: tasksOnDay, bestLatenessRatio: bestRatio)
+        }
+    }
+}
+
 // MARK: - Public view
 
 struct Heatmap: View {
@@ -113,7 +146,7 @@ struct Heatmap: View {
             let totalDays = resolvedColumns * resolvedRows
             let spacing = geo.size.width / CGFloat(resolvedColumns) * spacingRatio
             let cellSize = (geo.size.width - spacing * CGFloat(resolvedColumns - 1)) / CGFloat(resolvedColumns)
-            let entries = buildDays(totalDays: totalDays)
+            let entries = HeatmapMath.buildDays(totalDays: totalDays, tasks: tasks, referenceDate: Date())
 
             VStack(alignment: .leading, spacing: spacing) {
                 if resolvedMonthLabels {
@@ -160,26 +193,14 @@ struct Heatmap: View {
             : Color(hue: 0.60, saturation: 0.08, brightness: 0.96)
     }
 
-    // MARK: Data
+    // MARK: Tooltip helpers
 
-    private func buildDays(totalDays: Int) -> [DayEntry] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
+    private func latenessRatio(for task: any HeatmapTask) -> Double {
+        HeatmapMath.latenessRatio(for: task, completedAt: task.heatmapCompletedAt, interval: task.heatmapRecurrenceInterval)
+    }
 
-        var dayTasks: [Date: [any HeatmapTask]] = [:]
-        for task in tasks where task.heatmapCompleted {
-            guard let completedAt = task.heatmapCompletedAt else { continue }
-            let dayStart = calendar.startOfDay(for: completedAt)
-            dayTasks[dayStart, default: []].append(task)
-        }
-
-        return (0..<totalDays).map { offset in
-            let daysAgo = (totalDays - 1) - offset
-            let date = calendar.date(byAdding: .day, value: -daysAgo, to: today) ?? today
-            let tasksOnDay = dayTasks[date] ?? []
-            let bestRatio = tasksOnDay.map { latenessRatio(for: $0) }.min()
-            return DayEntry(date: date, tasks: tasksOnDay, bestLatenessRatio: bestRatio)
-        }
+    private func intervalDuration(for task: any HeatmapTask) -> TimeInterval {
+        HeatmapMath.intervalDuration(for: task.heatmapRecurrenceInterval, customDays: task.heatmapCustomRecurrenceDays)
     }
 
     /// Estimated minimum height so GeometryReader doesn't collapse to zero.
@@ -195,7 +216,7 @@ struct Heatmap: View {
 
 // MARK: - Day model
 
-private struct DayEntry: Identifiable {
+struct DayEntry: Identifiable {
     let date: Date
     /// All completed tasks on this day
     let tasks: [any HeatmapTask]
@@ -295,6 +316,14 @@ private struct DayCell: View {
     }
 }
 
+private extension View {
+    /// Applies a transform only when `condition` is true.
+    @ViewBuilder
+    func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
+        if condition { transform(self) } else { self }
+    }
+}
+
 // MARK: - Tooltip
 
 private struct TooltipContent: View {
@@ -314,7 +343,7 @@ private struct TooltipContent: View {
                 ForEach(Array(entry.tasks.enumerated()), id: \.offset) { _, task in
                     HStack(spacing: 6) {
                         Circle()
-                            .fill(completionColor(for: latenessRatio(for: task), scheme: colorScheme))
+                            .fill(completionColor(for: HeatmapMath.latenessRatio(for: task, completedAt: task.heatmapCompletedAt, interval: task.heatmapRecurrenceInterval), scheme: colorScheme))
                             .frame(width: 8, height: 8)
 
                         Text(task.heatmapName)
@@ -322,7 +351,7 @@ private struct TooltipContent: View {
 
                         Spacer(minLength: 0)
 
-                        let ratio = latenessRatio(for: task)
+                        let ratio = HeatmapMath.latenessRatio(for: task, completedAt: task.heatmapCompletedAt, interval: task.heatmapRecurrenceInterval)
                         Text(ratio == 0 ? "On time" : "\(Int(ratio * 100))% late")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
@@ -414,7 +443,7 @@ private struct HeatmapLegend: View {
     }
 }
 
-// MARK: - Colour & ratio helpers
+// MARK: - Colour helper
 
 /// Single-hue blue ramp, adapted per colour scheme.
 ///
@@ -435,168 +464,3 @@ private func completionColor(for ratio: Double, scheme: ColorScheme) -> Color {
         return Color(hue: 0.60, saturation: saturation, brightness: brightness)
     }
 }
-
-/// 0.0 = on time or early, 1.0 = one full recurrence interval late
-private func latenessRatio(for task: any HeatmapTask) -> Double {
-    guard let completedAt = task.heatmapCompletedAt else { return 0 }
-    let secondsLate = completedAt.timeIntervalSince(task.heatmapDue)
-    guard secondsLate > 0 else { return 0 }
-
-    let intervalSecs = intervalDuration(for: task)
-    guard intervalSecs > 0 else {
-        return min(secondsLate / (7 * 24 * 3600), 1.0)
-    }
-    return min(secondsLate / intervalSecs, 1.0)
-}
-
-private func intervalDuration(for task: any HeatmapTask) -> TimeInterval {
-    guard let interval = task.heatmapRecurrenceInterval else { return 0 }
-    switch interval {
-    case .daily:         return 1  * 24 * 3600
-    case .everyOtherDay: return 2  * 24 * 3600
-    case .weekly:        return 7  * 24 * 3600
-    case .biweekly:      return 14 * 24 * 3600
-    case .monthly:       return 30 * 24 * 3600
-    case .custom:        return Double(task.heatmapCustomRecurrenceDays) * 24 * 3600
-    case .specific:      return 7  * 24 * 3600
-    }
-}
-
-// MARK: - Preview
-
-private struct HeatmapPreview: View {
-    private let now = Date()
-    private let calendar = Calendar.current
-
-    var tasks: [any HeatmapTask] {
-        let samples: [(daysAgo: Int, secondsLate: TimeInterval, recurrence: ToDoTask.RecurrenceInterval?, name: String)] = [
-            (0,  0,           .daily,        "Morning run"),
-            (0,  3600,        .daily,        "Vitamins"),
-            (1,  0,           .weekly,       "Weekly review"),
-            (2,  12 * 3600,   .daily,        "Morning run"),
-            (4,  3.5 * 86400, .weekly,       "Weekly review"),
-            (5,  86400,       .daily,        "Morning run"),
-            (7,  7 * 86400,   .weekly,       "Weekly review"),
-            (10, -3600,       nil,           "Book dentist"),
-            (12, 3 * 86400,   nil,           "File expenses"),
-            (15, 7 * 86400,   nil,           "Call mum"),
-            (20, 0,           .monthly,      "Budget check"),
-            (25, 5 * 86400,   .weekly,       "Weekly review"),
-            (30, 0,           .daily,        "Morning run"),
-            (35, 86400,       .daily,        "Morning run"),
-            (40, 0,           .weekly,       "Weekly review"),
-            (45, 2 * 86400,   .everyOtherDay,"Gym"),
-            (50, 0,           .daily,        "Morning run"),
-            (55, 0,           .daily,        "Morning run"),
-            (58, 12 * 3600,   .daily,        "Morning run"),
-            (59, 0,           .daily,        "Morning run"),
-        ]
-
-        return samples.map { s -> any HeatmapTask in
-            let due = calendar.date(byAdding: .day, value: -s.daysAgo, to: now) ?? now
-            return ToDoTaskDTO(
-                name: s.name,
-                repeating: s.recurrence != nil,
-                recurrenceInterval: s.recurrence,
-                due: due,
-                completed: true,
-                completedAt: due.addingTimeInterval(s.secondsLate)
-            )
-        }
-    }
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("In-App — Last 60 Days").font(.headline)
-                Heatmap(tasks: tasks)
-            }
-            .padding()
-        }
-    }
-}
-
-// Shared widget container that mimics the widget chrome
-private struct WidgetFrame<Content: View>: View {
-    let width: CGFloat
-    let height: CGFloat
-    let content: Content
-
-    init(width: CGFloat, height: CGFloat, @ViewBuilder content: () -> Content) {
-        self.width = width
-        self.height = height
-        self.content = content()
-    }
-
-    var body: some View {
-        content
-            .frame(width: width, height: height)
-            .clipShape(RoundedRectangle(cornerRadius: 22))
-            .shadow(radius: 8)
-    }
-}
-
-#Preview("In-App — Dark") {
-    HeatmapPreview()
-        .preferredColorScheme(.dark)
-}
-
-#Preview("In-App — Light") {
-    HeatmapPreview()
-        .preferredColorScheme(.light)
-}
-
-#Preview("Widget Large — Dark") {
-    WidgetFrame(width: 329, height: 345) {
-        Heatmap(tasks: HeatmapPreview().tasks, size: .large)
-            .padding(12)
-            .background(Color(hue: 0.60, saturation: 0.20, brightness: 0.10))
-    }
-    .preferredColorScheme(.dark)
-}
-#Preview("Widget Large — Light") {
-    WidgetFrame(width: 329, height: 345) {
-        Heatmap(tasks: HeatmapPreview().tasks, size: .large)
-            .padding(12)
-            .background(Color(UIColor.secondarySystemBackground))
-    }
-    .preferredColorScheme(.light)
-}
-
-#Preview("Widget Medium — Dark") {
-    WidgetFrame(width: 329, height: 155) {
-        Heatmap(tasks: HeatmapPreview().tasks, size: .medium)
-            .padding(12)
-            .background(Color(hue: 0.60, saturation: 0.20, brightness: 0.10))
-    }
-    .preferredColorScheme(.dark)
-}
-
-#Preview("Widget Medium — Light") {
-    WidgetFrame(width: 329, height: 155) {
-        Heatmap(tasks: HeatmapPreview().tasks, size: .medium)
-            .padding(12)
-            .background(Color(UIColor.secondarySystemBackground))
-    }
-    .preferredColorScheme(.light)
-}
-
-#Preview("Widget Small — Dark") {
-    WidgetFrame(width: 155, height: 155) {
-        Heatmap(tasks: HeatmapPreview().tasks, size: .small)
-            .padding(10)
-            .background(Color(hue: 0.60, saturation: 0.20, brightness: 0.10))
-    }
-    .preferredColorScheme(.dark)
-}
-
-#Preview("Widget Small — Light") {
-    WidgetFrame(width: 155, height: 155) {
-        Heatmap(tasks: HeatmapPreview().tasks, size: .small)
-            .padding(10)
-            .background(Color(UIColor.secondarySystemBackground))
-    }
-    .preferredColorScheme(.light)
-}
-
-

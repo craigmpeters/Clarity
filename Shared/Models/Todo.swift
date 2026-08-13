@@ -249,38 +249,22 @@ extension ToDoTaskDTO {
             completionMoodValence: model.completionMoodValence
         )
     }
-    
-    // TODO: Remove Duplication
+
     public nonisolated static func focusFilter(in tasks: [ToDoTaskDTO]) -> [ToDoTaskDTO] {
-        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
-        let focusData = defaults?.data(forKey: "ClarityFocusFilter")
-        guard let focusData, let settings = try? JSONDecoder().decode(_FocusFilterRaw.self, from: focusData) else {
-            return tasks
-        }
+        FocusFilter.apply(to: tasks, settings: FocusFilter.currentSettings())
+    }
+}
 
-        let focusedNames = Set(settings.Categories)
-        let isHide = settings.showOrHide == "hide"
-        let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "me.craigpeters.Clarity", category: "Focus Filter")
-        logger.debug("Focus filter active: mode=\(settings.showOrHide), categories=\(settings.Categories)")
-
-        func hasAllowedCategory(_ task: ToDoTaskDTO, allowed: Set<String>) -> Bool {
-            let categoryNames = task.categories.map { $0.name }
-            if categoryNames.isEmpty { return !isHide }
-            return categoryNames.contains { focusedNames.contains($0) }
-        }
-
-        if isHide {
-            return tasks.filter { !hasAllowedCategory($0, allowed: focusedNames) }
-        } else {
-            return tasks.filter { hasAllowedCategory($0, allowed: focusedNames) }
-        }
+extension ToDoTask {
+    static func focusFilter(in tasks: [ToDoTask]) -> [ToDoTask] {
+        FocusFilter.apply(to: tasks, settings: FocusFilter.currentSettings())
     }
 }
 
 // Plain decode-only mirror of CategoryFilterSettings.
 // Avoids AppEntity/AppEnum isolation bleed by using only plain Swift types.
 // Explicit Decodable conformance prevents @MainActor synthesis from @Model context.
-private struct _FocusFilterRaw {
+struct _FocusFilterRaw {
     var Categories: [String]
     var showOrHide: String  // raw value of FilterShowOrHide ("show" or "hide")
 }
@@ -305,31 +289,54 @@ extension _FocusFilterRaw: Decodable {
     }
 }
 
-extension ToDoTask {
-    static func focusFilter(in tasks: [ToDoTask]) -> [ToDoTask] {
+// MARK: - Focus filter
+
+nonisolated enum FocusFilter {
+    struct Settings: Equatable, Sendable {
+        let categoryNames: [String]
+        let isHide: Bool
+    }
+
+    nonisolated static func currentSettings() -> Settings? {
         let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
-        let focusData = defaults?.data(forKey: "ClarityFocusFilter")
-        guard let focusData, let settings = try? JSONDecoder().decode(_FocusFilterRaw.self, from: focusData) else {
-            return tasks
+        guard let focusData = defaults?.data(forKey: "ClarityFocusFilter"),
+              let raw = try? JSONDecoder().decode(_FocusFilterRaw.self, from: focusData) else {
+            return nil
         }
-
-        let focusedNames = Set(settings.Categories)
-        let isHide = settings.showOrHide == "hide"
         let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "me.craigpeters.Clarity", category: "Focus Filter")
-        logger.debug("Focus filter active: mode=\(settings.showOrHide), categories=\(settings.Categories)")
+        logger.debug("Focus filter active: mode=\(raw.showOrHide), categories=\(raw.Categories)")
+        return Settings(categoryNames: raw.Categories, isHide: raw.showOrHide == "hide")
+    }
 
-        func hasAllowedCategory(_ task: ToDoTask, allowed: Set<String>) -> Bool {
-            let categoryNames = (task.categories ?? []).compactMap { $0.name }
+    nonisolated static func apply<T: FocusFilterable>(to tasks: [T], settings: Settings?) -> [T] {
+        guard let settings else { return tasks }
+        let focusedNames = Set(settings.categoryNames)
+        let isHide = settings.isHide
+
+        func hasAllowedCategory(_ task: T) -> Bool {
+            let categoryNames = task.focusCategoryNames
             if categoryNames.isEmpty { return !isHide }
             return categoryNames.contains { focusedNames.contains($0) }
         }
 
         if isHide {
-            return tasks.filter { !hasAllowedCategory($0, allowed: focusedNames) }
+            return tasks.filter { !hasAllowedCategory($0) }
         } else {
-            return tasks.filter { hasAllowedCategory($0, allowed: focusedNames) }
+            return tasks.filter { hasAllowedCategory($0) }
         }
     }
+}
+
+nonisolated protocol FocusFilterable {
+    var focusCategoryNames: [String] { get }
+}
+
+nonisolated extension ToDoTaskDTO: FocusFilterable {
+    var focusCategoryNames: [String] { categories.map { $0.name } }
+}
+
+nonisolated extension ToDoTask: FocusFilterable {
+    var focusCategoryNames: [String] { (categories ?? []).compactMap { $0.name } }
 }
 
 extension ToDoTask.TaskFilter {

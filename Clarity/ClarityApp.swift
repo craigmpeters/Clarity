@@ -23,12 +23,8 @@ final class AppState: ObservableObject {
 
 @main
 struct ClarityApp: App {
-    private struct Migration {
+    struct Migration {
         static let uuidPopulatedKeyPrefix = "com.clarity.migration.uuidPopulated_"
-
-        static var currentBuild: String {
-            Bundle.main.object(forInfoDictionaryKey: kCFBundleVersionKey as String) as? String ?? "0"
-        }
 
         static func hasRun(forBuild build: String) -> Bool {
             UserDefaults.standard.bool(forKey: uuidPopulatedKeyPrefix + build)
@@ -36,6 +32,10 @@ struct ClarityApp: App {
 
         static func markRun(forBuild build: String) {
             UserDefaults.standard.set(true, forKey: uuidPopulatedKeyPrefix + build)
+        }
+
+        static func reset(forBuild build: String) {
+            UserDefaults.standard.removeObject(forKey: uuidPopulatedKeyPrefix + build)
         }
     }
     
@@ -49,9 +49,9 @@ struct ClarityApp: App {
     @State private var store = Store()
     @Environment(\.scenePhase) private var scenePhase
     
-    private func populateUUIDsIfNeeded(modelContext: ModelContext, minimumBuild: String) {
+    func populateUUIDsIfNeeded(modelContext: ModelContext, minimumBuild: String) {
         // Only run once per build
-        let currentBuild = Migration.currentBuild
+        let currentBuild = ClarityApp.currentBuild
         guard currentBuild >= minimumBuild, Migration.hasRun(forBuild: currentBuild) == false else { return }
         LogManager.shared.log.debug("Running Populate UUID Migration")
 
@@ -81,7 +81,6 @@ struct ClarityApp: App {
             LogManager.shared.log.error("Migration populateUUIDsIfNeeded error: \(error)")
         }
     }
-        
 
     var body: some Scene {
         WindowGroup {
@@ -149,14 +148,27 @@ struct ClarityApp: App {
             ClarityShortcutsProvider.self
         }
     
-    private func consumePendingStartTimerTaskId(appGroup: String = "group.me.craigpeters.clarity") -> UUID? {
+    func consumePendingStartTimerTaskId(appGroup: String = "group.me.craigpeters.clarity") -> UUID? {
         let defaults = UserDefaults(suiteName: appGroup)
         guard let idString = defaults?.string(forKey: "pendingStartTimerTaskId"),
               let id = UUID(uuidString: idString) else {
+            defaults?.removeObject(forKey: "pendingStartTimerTaskId")
             return nil
         }
         defaults?.removeObject(forKey: "pendingStartTimerTaskId")
         return id
+    }
+}
+
+extension ClarityApp {
+    /// Returns the current build number from the main bundle.
+    static var currentBuild: String {
+        Bundle.main.object(forInfoDictionaryKey: kCFBundleVersionKey as String) as? String ?? "0"
+    }
+
+    /// Returns the build number from the main bundle without a fallback.
+    static var buildNumber: String? {
+        Bundle.main.object(forInfoDictionaryKey: kCFBundleVersionKey as String) as? String
     }
 }
 

@@ -139,6 +139,64 @@ struct CompanionMessage: Sendable {
     var suggestedTask: CompanionTaskContext.TaskSummary? = nil
 }
 
+// MARK: - Output mapping
+
+protocol CompanionOutputValues: Sendable {
+    var text: String { get }
+    var emotion: String { get }
+    var suggestedTaskName: String { get }
+}
+
+#if canImport(FoundationModels)
+@available(iOS 26.0, *)
+extension CompanionOutput: CompanionOutputValues {}
+#endif
+
+enum CompanionOutputMapper {
+    static func map(
+        _ output: some CompanionOutputValues,
+        trigger: CompanionTrigger?,
+        supportedEmotions: [CompanionEmotion],
+        dueTasks: [CompanionTaskContext.TaskSummary]
+    ) -> CompanionMessage {
+        let text = output.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let emotion = CompanionEmotion(rawValue: output.emotion)
+            ?? supportedEmotions.first
+            ?? .happy
+        let suggested = trigger?.allowsTaskSuggestion == true
+            ? dueTasks.first { $0.name.localizedCaseInsensitiveCompare(output.suggestedTaskName) == .orderedSame }
+            : nil
+        return CompanionMessage(text: text.isEmpty ? output.text : text, emotion: emotion, suggestedTask: suggested)
+    }
+
+    static func isDuplicate(
+        _ message: CompanionMessage,
+        lastChatHistoryMessage: ChatMessage?,
+        trigger: CompanionTrigger?
+    ) -> Bool {
+        guard let last = lastChatHistoryMessage else { return false }
+        guard last.sender == .companion else { return false }
+        if trigger?.allowsTaskSuggestion == true { return false }
+        return last.text == message.text
+    }
+
+    static func isModelCatalogError(_ error: Error) -> Bool {
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            if let genError = error as? LanguageModelSession.GenerationError,
+               case .assetsUnavailable = genError {
+                return true
+            }
+        }
+        #endif
+        let ns = error as NSError
+        if ns.domain == "FoundationModels.LanguageModelSession.GenerationError", ns.code == -1 {
+            return true
+        }
+        return false
+    }
+}
+
 // MARK: - Guided generation output
 
 #if canImport(FoundationModels)
@@ -615,17 +673,13 @@ final class CompanionService {
 
     @available(iOS 26.0, *)
     private func show(_ output: CompanionOutput, trigger: CompanionTrigger?) {
-        let text = output.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let emotion = CompanionEmotion(rawValue: output.emotion)
-            ?? personality.supportedEmotions.first
-            ?? .happy
-        let suggested = trigger?.allowsTaskSuggestion == true
-            ? taskContext.dueTasks.first {
-                $0.name.localizedCaseInsensitiveCompare(output.suggestedTaskName) == .orderedSame
-            }
-            : nil
-        log.debug("generate: text='\(text)' emotion=\(emotion.rawValue) suggestedTask=\(String(describing: suggested?.name))")
-        let message = CompanionMessage(text: text.isEmpty ? output.text : text, emotion: emotion, suggestedTask: suggested)
+        let message = CompanionOutputMapper.map(
+            output,
+            trigger: trigger,
+            supportedEmotions: personality.supportedEmotions,
+            dueTasks: taskContext.dueTasks
+        )
+        log.debug("generate: text='\(message.text)' emotion=\(message.emotion.rawValue) suggestedTask=\(String(describing: message.suggestedTask?.name))")
         guard appendCompanionMessage(message, trigger: trigger) else { return }
         withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
             currentMessage = message
@@ -635,7 +689,7 @@ final class CompanionService {
 
     @discardableResult
     private func appendCompanionMessage(_ message: CompanionMessage, trigger: CompanionTrigger?) -> Bool {
-        if isDuplicateCompanionMessage(message, trigger: trigger) {
+        if CompanionOutputMapper.isDuplicate(message, lastChatHistoryMessage: chatHistory.last, trigger: trigger) {
             log.debug("appendCompanionMessage: skipping duplicate companion message")
             return false
         }
@@ -650,13 +704,6 @@ final class CompanionService {
         chatHistory.append(historyMessage)
         return true
     }
-
-    private func isDuplicateCompanionMessage(_ message: CompanionMessage, trigger: CompanionTrigger?) -> Bool {
-        guard let last = chatHistory.last else { return false }
-        guard last.sender == .companion else { return false }
-        if trigger?.allowsTaskSuggestion == true { return false }
-        return last.text == message.text
-    }
     #endif
 
     // MARK: - Error classification
@@ -665,19 +712,7 @@ final class CompanionService {
     /// generic GenerationError Code=-1 wrapping ModelManagerError Code=1026, as well
     /// as the typed .assetsUnavailable case.
     private func isModelCatalogError(_ error: Error) -> Bool {
-        #if canImport(FoundationModels)
-        if #available(iOS 26.0, *) {
-            if let genError = error as? LanguageModelSession.GenerationError,
-               case .assetsUnavailable = genError {
-                return true
-            }
-        }
-        #endif
-        let ns = error as NSError
-        if ns.domain == "FoundationModels.LanguageModelSession.GenerationError", ns.code == -1 {
-            return true
-        }
-        return false
+        CompanionOutputMapper.isModelCatalogError(error)
     }
 
     // MARK: - Fallback (no LLM)
