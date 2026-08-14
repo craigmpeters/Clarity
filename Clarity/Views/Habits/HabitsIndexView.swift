@@ -64,16 +64,19 @@ struct HabitsIndexView: View {
                     }
                 }
             }
-            .navigationTitle("Habits")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showingForm = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
+        .navigationTitle("Habits")
+        .accessibilityIdentifier("habit-list")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showingForm = true
+                } label: {
+                    Image(systemName: "plus")
                 }
+                .accessibilityIdentifier("habit-add")
             }
+        }
+
             .refreshable { await refresh() }
             .task {
                 if store == nil {

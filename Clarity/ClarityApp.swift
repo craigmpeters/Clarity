@@ -43,12 +43,42 @@ struct ClarityApp: App {
     
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
-    private let container = try! Containers.liveApp()
+    private let container = ClarityApp.makeContainer()
     @StateObject private var appState = AppState()
     private var companion = CompanionService.shared
     @State private var store = Store()
     @Environment(\.scenePhase) private var scenePhase
     
+    private static func makeContainer() -> ModelContainer {
+        let isUITesting = ProcessInfo.processInfo.arguments.contains("--uitesting")
+        if isUITesting {
+            UserDefaults.hasCompletedOnboarding = false
+            if ProcessInfo.processInfo.arguments.contains("--uitesting-skip-onboarding") {
+                UserDefaults.hasCompletedOnboarding = true
+            }
+            UserDefaults.companionEnabled = false
+            UserDefaults.companionEnabled = false
+            UserDefaults.pomodoroAlarmSoundID = "default"
+            do {
+                let container = try Containers.inMemory()
+                UITestDataSeeder.seed(in: container)
+                return container
+            } catch {
+                LogManager.shared.log.error("Failed to create in-memory UI test container: \(error)")
+            }
+        }
+        
+        do {
+            return try Containers.liveApp()
+        } catch {
+            LogManager.shared.log.error("Failed to create live app container: \(error). Falling back to in-memory container.")
+            do {
+                return try Containers.inMemory()
+            } catch {
+                fatalError("Could not create any model container: \(error)")
+            }
+        }
+    }
     func populateUUIDsIfNeeded(modelContext: ModelContext, minimumBuild: String) {
         // Only run once per build
         let currentBuild = ClarityApp.currentBuild

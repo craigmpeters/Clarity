@@ -86,6 +86,7 @@ struct FilterMenuView: View {
         } label: {
             Image(systemName: "line.3.horizontal.decrease.circle")
                 .foregroundStyle(.blue)
+                .accessibilityLabel("Filter")
         }
     }
     

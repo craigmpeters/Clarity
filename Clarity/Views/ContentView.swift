@@ -25,6 +25,7 @@ struct ContentView: View {
                 Text("Tasks")
             }
             .tag(0)
+            .accessibilityIdentifier("tab-tasks")
 
             NavigationStack {
                 HabitsIndexView()
@@ -35,6 +36,7 @@ struct ContentView: View {
                 Text("Habits")
             }
             .tag(1)
+            .accessibilityIdentifier("tab-habits")
 
             PomodoroView()
                 .tabItem {
@@ -42,6 +44,7 @@ struct ContentView: View {
                     Text("Focus")
                 }
                 .tag(2)
+                .accessibilityIdentifier("tab-focus")
                 .badge(pomodoroService.isActive ? 1 : 0)
 
             NavigationStack {
@@ -53,6 +56,7 @@ struct ContentView: View {
                 Text("Stats")
             }
             .tag(3)
+            .accessibilityIdentifier("tab-stats")
 
             NavigationStack {
                 SettingsView()
@@ -63,6 +67,7 @@ struct ContentView: View {
                 Text("Settings")
             }
             .tag(4)
+            .accessibilityIdentifier("tab-settings")
         }
         .sheet(isPresented: $showingFirstRun) {
             FirstRunView()

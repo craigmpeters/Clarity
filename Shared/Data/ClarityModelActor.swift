@@ -953,7 +953,13 @@ enum Containers {
 
     nonisolated static func inMemory() throws -> ModelContainer {
         let schema = Schema([ToDoTask.self, Category.self, GlobalTargetSettings.self, TaskSwipeAndTapOptions.self, Habit.self, HabitOccurrence.self])
-        let cfg = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, allowsSave: true)
+        let cfg = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: true,
+            allowsSave: true,
+            groupContainer: .none,
+            cloudKitDatabase: .none
+        )
         return try ModelContainer(for: schema, configurations: [cfg])
     }
 }

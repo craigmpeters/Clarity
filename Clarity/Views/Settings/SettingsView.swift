@@ -22,6 +22,7 @@ struct SettingsView: View {
                     }
                 }
                 .foregroundColor(.primary)
+                .accessibilityIdentifier("settings-categories")
             }
 
             Section("Health") {
@@ -65,6 +66,7 @@ struct SettingsView: View {
                     }
                 }
                 .foregroundColor(.primary)
+                .accessibilityIdentifier("settings-companion")
             }
 
             // TODO: Version 1.1 Stuff
@@ -76,6 +78,7 @@ struct SettingsView: View {
                         Text("Notifications")
                         Spacer()
                     }
+                    .accessibilityIdentifier("settings-notifications")
                 }
                 HStack {
                     NavigationLink(destination: AppIconSettingsView()) {
@@ -84,6 +87,7 @@ struct SettingsView: View {
                         Text("Change App Icon")
                         Spacer()
                     }
+                    .accessibilityIdentifier("settings-appicon")
                 }
                 HStack {
                     NavigationLink(destination: SwipeSettingsView()) {
@@ -92,6 +96,7 @@ struct SettingsView: View {
                         Text("Change Swipe Options")
                         Spacer()
                     }
+                    .accessibilityIdentifier("settings-swipe")
                 }
             }
 

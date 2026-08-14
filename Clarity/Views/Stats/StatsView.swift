@@ -155,6 +155,8 @@ struct StatsView: View {
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
+                            .accessibilityIdentifier("stats-menu")
+                            .accessibilityLabel("More")
                     }
                 }
             }

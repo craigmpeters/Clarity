@@ -18,17 +18,11 @@ final class PreviewData {
         previewContainer.mainContext
     }
     
-    // Private Init as Singleton
     private init() {
-        insertPreviewCategories()
-        insertPreviewTasks()
-        insertPreviewGlobalTarget()
-        insertTaskSwipeAndTapOptions()
-        insertPreviewAddStatistics()
+        UITestDataSeeder.seed(in: previewContainer)
     }
     
     // MARK: Public Functions
-    
     
     func getCategories() -> [Category] {
         do {
@@ -69,44 +63,32 @@ final class PreviewData {
                 sortBy: [SortDescriptor(\.due, order: .forward)]
             )
             let allTasks = try previewContext.fetch(descriptor)
-            
             return allTasks.filter { $0.completed }
         } catch {
             print("Failed to fetch tasks: \(error)")
             return []
         }
-        
     }
     
-    func getTargets() -> GlobalTargetSettings? {
-        do {
-            let descriptor = FetchDescriptor<GlobalTargetSettings>()
-            return try previewContext.fetch(descriptor).first!
-        } catch {
-            return nil
-        }
-    }
-    
-    // #MARK: Individual Task Functions
+    // MARK: Individual Task Functions
     
     func getToDoTask() -> ToDoTask {
         return getToDoTasks().first!
     }
     
-    func getOverDueToDoTask() -> ToDoTask{
-        let task =  getToDoTasks().first!
-        task.due =  Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+    func getOverDueToDoTask() -> ToDoTask {
+        let task = getToDoTasks().first!
+        task.due = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
         return task
     }
     
-    func getTaskWithManyCategories() -> ToDoTask{
+    func getTaskWithManyCategories() -> ToDoTask {
         let task = getToDoTask()
         task.categories = getCategories()
         return task
     }
     
-    
-    // #MARK: Preview Helper Functions
+    // MARK: Preview Helper Functions
     
     func makeEveryMonday(_ task: ToDoTask) -> ToDoTask {
         task.repeating = true
@@ -115,7 +97,6 @@ final class PreviewData {
         return task
     }
     
-    
     func toToDoTaskDTO(from task: ToDoTask) -> ToDoTaskDTO {
         return ToDoTaskDTO(from: task)
     }
@@ -123,7 +104,6 @@ final class PreviewData {
     func getToDoTaskDTO() -> ToDoTaskDTO {
         return ToDoTaskDTO(from: getToDoTasks().first!)
     }
-    
     
     func getPreviewTaskWidgetEntry() -> TaskWidgetEntry {
         let tasks = getToDoTasks()
@@ -141,17 +121,17 @@ final class PreviewData {
     }
     
     func getPreviewWatchWidgetDueEntry() -> WatchDueEntry {
-        let tasks = getToDoTasks().map { ToDoTaskDTO(from: $0 )}
-        return(WatchDueEntry(date: .now, todos: tasks, filter: .all, progress: returnPreviewWeeklyProgress()))
+        let tasks = getToDoTasks().map { ToDoTaskDTO(from: $0) }
+        return WatchDueEntry(date: .now, todos: tasks, filter: .all, progress: returnPreviewWeeklyProgress())
     }
     
     func getPreviewWatchWidgetCompleteEntry() -> WatchCompleteEntry {
-        let tasks = getToDoTasks().map { ToDoTaskDTO(from: $0 )}
-        return(WatchCompleteEntry(date: .now, todos: tasks, filter: .Today, progress: returnPreviewWeeklyProgress()))
+        let tasks = getToDoTasks().map { ToDoTaskDTO(from: $0) }
+        return WatchCompleteEntry(date: .now, todos: tasks, filter: .Today, progress: returnPreviewWeeklyProgress())
     }
     
     func getPreviewWatchWidgetCompleteNoTargetEntry() -> WatchCompleteEntry {
-        let tasks = getToDoTasks().map { ToDoTaskDTO(from: $0 )}
+        let tasks = getToDoTasks().map { ToDoTaskDTO(from: $0) }
         return WatchCompleteEntry(date: .now, todos: tasks, filter: .PastWeek, progress: WeeklyProgress(completed: 2, target: 0, error: nil, categories: []))
     }
     
@@ -177,7 +157,7 @@ final class PreviewData {
             (50, 0,           .daily),
             (55, 0,           .daily),
             (58, 12 * 3600,   .daily),
-            (59, 0,           .daily),
+            (59, 0,           .daily)
         ]
         return samples.map { s in
             let due = calendar.date(byAdding: .day, value: -s.daysAgo, to: now) ?? now
@@ -197,140 +177,18 @@ final class PreviewData {
         let target = returnPreviewWeeklyProgress()
         let categories = getCategoriesDTO()
         let showWeeklyProgress = Bool.random()
+        let dtos: [ToDoTaskDTO] = tasks.map { ToDoTaskDTO(from: $0) }
+        let filtered = dtos.filter { filter.matches($0) }
         print("Total Tasks \(tasks.count)")
-        let dtos: [ToDoTaskDTO] = tasks.map { ToDoTaskDTO(from: $0)}
-        var filtered : [ToDoTaskDTO]
-        filtered = dtos.filter{ filter.matches($0)}
         print("Total Filtered: \(filtered.count)")
-        print ("Total DTOs \(dtos.count)")
+        print("Total DTOs \(dtos.count)")
         print("Filtered tasks: \(dtos.count)")
-
         return CompletedTaskEntry(date: Date.now, tasks: filtered, categories: categories, progress: target, filter: filter, showWeeklyProgress: showWeeklyProgress)
     }
     
-    // MARK: Functions to insert Preview Data
+    // MARK: Private Helpers
     
-    private func returnPreviewWeeklyProgress() -> WeeklyProgress{
+    private func returnPreviewWeeklyProgress() -> WeeklyProgress {
         return WeeklyProgress(completed: 2, target: 10, error: nil, categories: [])
     }
-    
-    private func insertPreviewCategories(){
-        let categories = [
-            Category(name: "Work", color: .Blue, weeklyTarget: 8, iconName: "briefcase.fill"),
-            Category(name: "Personal", color: .Green, weeklyTarget: 5, iconName: "person.fill"),
-            Category(name: "Learning", color: .Purple, weeklyTarget: 3, iconName: "book.fill"),
-            Category(name: "Health", color: .Red, weeklyTarget: 7, iconName: "heart.fill"),
-            Category(name: "Creative", color: .Orange, weeklyTarget: 2, iconName: "paintbrush.fill"),
-            Category(name: "Urgent", color: .Yellow, weeklyTarget: 0, iconName: "exclamationmark.triangle.fill"),
-            Category(name: "Planning", color: .Cyan, weeklyTarget: 2, iconName: "calendar")
-        ]
-        
-        for category in categories {
-            previewContext.insert(category)
-        }
-        
-        saveContext()
-    }
-    
-    private func insertPreviewTasks(){
-        // Get existing categories or create basic ones
-        let categories = getCategories()
-        if categories.isEmpty {
-            insertPreviewCategories()
-        }
-
-        let workCategory = categories.first { $0.name == "Work" }
-        let personalCategory = categories.first { $0.name == "Personal" }
-        let learningCategory = categories.first { $0.name == "Learning" }
-        
-        let sampleTasks = [
-            // Overdue tasks
-            ("Review quarterly reports", 5, Date().addingTimeInterval(-86400), [workCategory].compactMap { $0 }),
-            
-            // Today's tasks
-            ("Team standup meeting prep", 5, Date(), [workCategory].compactMap { $0 }),
-            ("Grocery shopping", 5, Date(), [personalCategory].compactMap { $0 }),
-            ("SwiftUI documentation reading", 5, Date(), [learningCategory].compactMap { $0 }),
-            
-            // Tomorrow's tasks
-            ("Client presentation slides", 5, Date().addingTimeInterval(86400), [workCategory].compactMap { $0 }),
-            ("Doctor appointment", 5, Date().addingTimeInterval(86400), [personalCategory].compactMap { $0 }),
-            
-            // This week
-            ("Code review session", 5, Date().addingTimeInterval(86400 * 2), [workCategory].compactMap { $0 }),
-            ("Weekend hiking preparation", 5, Date().addingTimeInterval(86400 * 3), [personalCategory].compactMap { $0 }),
-            ("iOS 18 features research", 5, Date().addingTimeInterval(86400 * 4), [learningCategory].compactMap { $0 }),
-        ]
-        
-        for (name, minutes, dueDate, taskCategories) in sampleTasks {
-            let task = ToDoTask(
-                name: name,
-                pomodoroTime: TimeInterval(minutes * 60),
-                due: dueDate,
-                everySpecificDayDay: nil,
-                categories: taskCategories
-            )
-            previewContext.insert(task)
-        }
-        
-        let task = ToDoTask(
-            name: "Completed",
-            pomodoroTime: TimeInterval(1000),
-            due: Date(),
-            everySpecificDayDay: nil,
-            categories: []
-        )
-        task.completed = true
-        task.completedAt = Date()
-        previewContext.insert(task)
-        saveContext()
-    }
-    
-    private func insertPreviewGlobalTarget() {
-        let settings = GlobalTargetSettings()
-        settings.weeklyGlobalTarget = 10
-        previewContext.insert(settings)
-        saveContext()
-    }
-    
-    private func insertPreviewAddStatistics() {
-        let calendar = Calendar.current
-        let now = Date()
-        
-        // Add completed tasks for the past week
-        for dayOffset in 0..<30 {
-            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: now) else { continue }
-            
-            let taskCount = Int.random(in: 1...3)
-            for taskIndex in 0..<taskCount {
-                let category = getCategories().randomElement()!
-                let task = ToDoTask(
-                    name: "Stats Task \(dayOffset)-\(taskIndex)",
-                    pomodoroTime: TimeInterval(5 * 60),
-                    due: date,
-                    categories: [category]
-                )
-                task.completed = true
-                task.completedAt = date.addingTimeInterval(Double.random(in: 0...86400))
-                previewContext.insert(task)
-            }
-        }
-        
-        saveContext()
-    }
-    
-    private func insertTaskSwipeAndTapOptions() {
-        let swipeOptions = TaskSwipeAndTapOptions()
-        previewContext.insert(swipeOptions)
-    }
-    
-    
-    private func saveContext() {
-        do {
-            try previewContext.save()
-        } catch {
-            print("Failed to save context: \(error)")
-        }
-    }
 }
-

@@ -1,0 +1,13 @@
+{
+  "name": "Clarity",
+  "testTargets": [
+    {
+      "target": {
+        "containerPath": "container:Clarity.xcodeproj",
+        "identifier": "4457190930276FA400BE9967",
+        "name": "ClarityTests"
+      }
+    }
+  ],
+  "version": 1
+}

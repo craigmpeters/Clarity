@@ -182,6 +182,11 @@ import XCGLogger
     @MainActor
     func restoreIfNeeded(container: ModelContainer, device: DeviceType) async {
         loadSessionHistory()
+        // UI tests launch fresh each time; avoid restoring a timer that leaks across test launches.
+        if ProcessInfo.processInfo.arguments.contains("--uitesting") {
+            clearPersistedState()
+            return
+        }
         guard let data = appGroupDefaults()?.data(forKey: pomodoroPersistKey) else {
             LogManager.shared.log.debug("No Pomodoro state to restore")
             return

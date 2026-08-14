@@ -58,7 +58,7 @@
             parallelizable = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "44FB49772E51F1ED0059CC5B"
+               BlueprintIdentifier = "44E77E38302DF1B000C601CE"
                BuildableName = "ClarityUITests.xctest"
                BlueprintName = "ClarityUITests"
                ReferencedContainer = "container:Clarity.xcodeproj">
@@ -69,7 +69,7 @@
             parallelizable = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "44FB496D2E51F1ED0059CC5B"
+               BlueprintIdentifier = "4457190930276FA400BE9967"
                BuildableName = "ClarityTests.xctest"
                BlueprintName = "ClarityTests"
                ReferencedContainer = "container:Clarity.xcodeproj">

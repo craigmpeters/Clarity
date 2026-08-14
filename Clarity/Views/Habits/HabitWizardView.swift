@@ -51,8 +51,10 @@ struct HabitWizardView: View {
                     if step == .finish {
                         Button("Save") { save() }
                             .disabled(!state.isValid || isSaving)
+                            .accessibilityIdentifier("habit-wizard-save")
                     } else {
                         Button("Next") { advance() }
+                            .accessibilityIdentifier("habit-wizard-next")
                     }
                 }
             }
@@ -139,7 +141,9 @@ struct HabitWizardView: View {
     private var amountStep: some View {
         Group {
             Section("Habit Name") {
-                TextField("e.g. Drink Water", text: $state.name)
+                    TextField("e.g. Drink Water", text: $state.name)
+                        .accessibilityIdentifier("habit-wizard-name")
+
             }
 
             Section("Unit") {

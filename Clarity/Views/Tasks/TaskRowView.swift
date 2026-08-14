@@ -11,30 +11,18 @@ import os
 
 struct TaskRowView: View {
     let task: ToDoTask
+    let swipeOptions: TaskSwipeAndTapOptions
     let onEdit: () -> Void
     let onDelete: () -> Void
     let onComplete: () -> Void
     let onStartTimer: () -> Void
-    
-    @Environment(\.modelContext) private var context
+
     @Environment(CompanionService.self) private var companion
     @State private var showingDeleteAlert = false
     @State private var isDismissing = false
-    @Query private var taskSwipeAndTapOptions: [TaskSwipeAndTapOptions]
-    private var currentTaskSwipeAndTapOptions: TaskSwipeAndTapOptions {
-        if let existing = taskSwipeAndTapOptions.first {
-            return existing
-        }
-        // No options persisted yet — create a default one, insert into the model context, and return it.
-        let defaults = TaskSwipeAndTapOptions()
-        context.insert(defaults)
-        // Attempt to save; if save fails, we still return the in-memory defaults so UI can function.
-        try? context.save()
-        return defaults
-    }
-    
+
     var body: some View {
-        HStack(spacing:12) {
+        HStack(spacing: 12) {
             VStack(spacing: 2) {
                 Text(task.due, format: .dateTime.day())
                     .font(.title3.weight(.bold))
@@ -48,16 +36,12 @@ struct TaskRowView: View {
                 RoundedRectangle(cornerRadius: 10)
                     .fill(dateAccentBackgroundColor(task.due))
             )
-//            VStack(alignment: .leading, spacing: 2) {
-//                CategoryLines(categories: task.categories ?? [])
-//                    .frame(width:20, height: 48)
-//            }
-            
+
             VStack(alignment: .leading, spacing: 6) {
                 Text(task.name ?? "")
                     .font(.headline)
                     .lineLimit(2)
-                
+
                 HStack(spacing: 6) {
                     if task.categories?.count ?? 0 >= 2 {
                         ForEach(task.categories!) { category in
@@ -78,49 +62,43 @@ struct TaskRowView: View {
             .padding(.vertical, 8)
             .contentShape(Rectangle())
             .onTapGesture {
-                performAction(.Tap)
+                performAction(.tap)
             }
-            .swipeActions(edge: .trailing,  allowsFullSwipe: false) {
-                if (currentTaskSwipeAndTapOptions.primarySwipeTrailing != .none) {
+            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                if swipeOptions.primarySwipeTrailing != .none {
                     Button {
-                        performAction(.TrailingPrimary)
-                        
+                        performAction(.trailingPrimary)
                     } label: {
-                        Label(currentTaskSwipeAndTapOptions.primarySwipeTrailing.title, systemImage: currentTaskSwipeAndTapOptions.primarySwipeTrailing.systemImage)
+                        Label(swipeOptions.primarySwipeTrailing.title, systemImage: swipeOptions.primarySwipeTrailing.systemImage)
                     }
-                    .tint(currentTaskSwipeAndTapOptions.primarySwipeTrailing.color)
+                    .tint(swipeOptions.primarySwipeTrailing.color)
                 }
-                if (currentTaskSwipeAndTapOptions.secondarySwipeTrailing != .none) {
+                if swipeOptions.secondarySwipeTrailing != .none {
                     Button {
-                        performAction(.TrailingSecondary)
-                        
+                        performAction(.trailingSecondary)
                     } label: {
-                        Label(currentTaskSwipeAndTapOptions.secondarySwipeTrailing.title, systemImage: currentTaskSwipeAndTapOptions.secondarySwipeTrailing.systemImage)
+                        Label(swipeOptions.secondarySwipeTrailing.title, systemImage: swipeOptions.secondarySwipeTrailing.systemImage)
                     }
-                    .tint(currentTaskSwipeAndTapOptions.secondarySwipeTrailing.color)
+                    .tint(swipeOptions.secondarySwipeTrailing.color)
                 }
-
             }
             .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                if (currentTaskSwipeAndTapOptions.primarySwipeLeading != .none) {
-                    Button{
-                        performAction(.LeadingPrimary)
+                if swipeOptions.primarySwipeLeading != .none {
+                    Button {
+                        performAction(.leadingPrimary)
                     } label: {
-                        Label(currentTaskSwipeAndTapOptions.primarySwipeLeading.title, systemImage: currentTaskSwipeAndTapOptions.primarySwipeLeading.systemImage)
+                        Label(swipeOptions.primarySwipeLeading.title, systemImage: swipeOptions.primarySwipeLeading.systemImage)
                     }
-                    .tint(currentTaskSwipeAndTapOptions.primarySwipeLeading.color)
+                    .tint(swipeOptions.primarySwipeLeading.color)
                 }
-                
-                if (currentTaskSwipeAndTapOptions.secondarySwipeLeading != .none) {
-                    Button{
-                        performAction(.LeadingSecondary)
+                if swipeOptions.secondarySwipeLeading != .none {
+                    Button {
+                        performAction(.leadingSecondary)
                     } label: {
-                        Label(currentTaskSwipeAndTapOptions.secondarySwipeLeading.title, systemImage: currentTaskSwipeAndTapOptions.secondarySwipeLeading.systemImage)
+                        Label(swipeOptions.secondarySwipeLeading.title, systemImage: swipeOptions.secondarySwipeLeading.systemImage)
                     }
-                    .tint(currentTaskSwipeAndTapOptions.secondarySwipeLeading.color)
+                    .tint(swipeOptions.secondarySwipeLeading.color)
                 }
-
-
             }
             .confirmationDialog(
                 "Are you sure you want to delete \(task.name ?? "task")?",
@@ -136,18 +114,18 @@ struct TaskRowView: View {
             }
         }
     }
-    
+
     func performAction(_ action: ActionOption) {
         LogManager.shared.log.debug("Perform action: \(String(describing: action))")
         switch action {
-        case .LeadingPrimary: performActionOption(currentTaskSwipeAndTapOptions.primarySwipeLeading)
-        case .LeadingSecondary: performActionOption(currentTaskSwipeAndTapOptions.secondarySwipeLeading)
-        case .TrailingPrimary: performActionOption(currentTaskSwipeAndTapOptions.primarySwipeTrailing)
-        case .TrailingSecondary: performActionOption(currentTaskSwipeAndTapOptions.secondarySwipeTrailing)
-        case .Tap: performActionOption(currentTaskSwipeAndTapOptions.tap)
+        case .leadingPrimary: performActionOption(swipeOptions.primarySwipeLeading)
+        case .leadingSecondary: performActionOption(swipeOptions.secondarySwipeLeading)
+        case .trailingPrimary: performActionOption(swipeOptions.primarySwipeTrailing)
+        case .trailingSecondary: performActionOption(swipeOptions.secondarySwipeTrailing)
+        case .tap: performActionOption(swipeOptions.tap)
         }
     }
-    
+
     func performActionOption(_ action: SwipeAction) {
         switch action {
         case .complete:
@@ -168,7 +146,7 @@ struct TaskRowView: View {
 
 struct CategoryIconPill: View {
     let category: Category
-    
+
     var body: some View {
         HStack(spacing: 4) {
             if let iconName = category.iconName, !iconName.isEmpty {
@@ -179,7 +157,7 @@ struct CategoryIconPill: View {
                     .textCase(.uppercase)
                     .font(.system(size: 10, weight: .bold))
             }
-            
+
             Text(category.name ?? "")
                 .font(.caption2)
         }
@@ -195,13 +173,13 @@ struct CategoryIconPill: View {
 
 struct CategoryCompactIcon: View {
     let category: Category
-    
+
     var body: some View {
         ZStack {
             Circle()
                 .fill(category.color?.SwiftUIColor ?? .gray)
                 .frame(width: 25, height: 25)
-            
+
             if let iconName = category.iconName, !iconName.isEmpty {
                 CategoryIcon.image(for: iconName)
                     .frame(width: 14, height: 14)
@@ -219,28 +197,27 @@ struct CategoryCompactIcon: View {
 }
 
 enum ActionOption: CustomStringConvertible {
-    case LeadingPrimary
-    case LeadingSecondary
-    case TrailingPrimary
-    case TrailingSecondary
-    case Tap
-    
+    case leadingPrimary
+    case leadingSecondary
+    case trailingPrimary
+    case trailingSecondary
+    case tap
+
     var description: String {
         switch self {
-        case .LeadingPrimary: return "Leading Primary"
-        case .LeadingSecondary: return "Leading Secondary"
-        case .TrailingPrimary: return "Trailing Primary"
-        case .TrailingSecondary: return "Trailing Secondary"
-        case .Tap: return "Tap"
+        case .leadingPrimary: return "Leading Primary"
+        case .leadingSecondary: return "Leading Secondary"
+        case .trailingPrimary: return "Trailing Primary"
+        case .trailingSecondary: return "Trailing Secondary"
+        case .tap: return "Tap"
         }
     }
 }
 
-
 func dateAccentTextColor(_ due: Date) -> Color {
     let isToday = Calendar.current.isDateInToday(due)
     let isPast = Date.now.midnight > due.midnight
-    
+
     if isPast { return .red }
     if isToday { return .primary }
 
@@ -250,16 +227,18 @@ func dateAccentTextColor(_ due: Date) -> Color {
 func dateAccentBackgroundColor(_ due: Date) -> Color {
     let isToday = Calendar.current.isDateInToday(due)
     let isPast = Date.now.midnight > due.midnight
-    
+
     if isPast { return .red.opacity(0.15) }
     if isToday { return .green.opacity(0.15) }
     return Color.accentColor.opacity(0.12)
 }
+
 #if DEBUG
 #Preview("Default") {
-    HStack() {
+    HStack {
         TaskRowView(
             task: PreviewData.shared.getToDoTask(),
+            swipeOptions: TaskSwipeAndTapOptions(),
             onEdit: { print("Task Edited") },
             onDelete: { print("Task Deleted") },
             onComplete: { print("Task Completed") },
@@ -272,9 +251,10 @@ func dateAccentBackgroundColor(_ due: Date) -> Color {
 }
 
 #Preview("Overdue") {
-    HStack() {
+    HStack {
         TaskRowView(
             task: PreviewData.shared.getOverDueToDoTask(),
+            swipeOptions: TaskSwipeAndTapOptions(),
             onEdit: { print("Task Edited") },
             onDelete: { print("Task Deleted") },
             onComplete: { print("Task Completed") },
@@ -287,9 +267,10 @@ func dateAccentBackgroundColor(_ due: Date) -> Color {
 }
 
 #Preview("Many Categories") {
-    HStack() {
+    HStack {
         TaskRowView(
-            task: PreviewData.shared.makeEveryMonday(PreviewData.shared.getTaskWithManyCategories()) ,
+            task: PreviewData.shared.makeEveryMonday(PreviewData.shared.getTaskWithManyCategories()),
+            swipeOptions: TaskSwipeAndTapOptions(),
             onEdit: { print("Task Edited") },
             onDelete: { print("Task Deleted") },
             onComplete: { print("Task Completed") },
@@ -301,4 +282,3 @@ func dateAccentBackgroundColor(_ due: Date) -> Color {
     .padding(30)
 }
 #endif
-

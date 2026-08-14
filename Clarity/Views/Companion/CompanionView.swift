@@ -33,6 +33,7 @@ struct CompanionOverlayView: View {
                         ))
                 } else {
                     idleBubble(geo: geo)
+                        .accessibilityIdentifier("companion-bubble")
                         .transition(.scale(scale: 0.8).combined(with: .opacity))
                 }
             }
