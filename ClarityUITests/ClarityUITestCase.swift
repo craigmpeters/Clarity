@@ -40,6 +40,14 @@ class ClarityUITestCase: XCTestCase {
     func assertExists(_ element: XCUIElement, timeout: TimeInterval = 5) {
         XCTAssertTrue(element.waitForExistence(timeout: timeout))
     }
+    
+    func scrollToCell(_ cell: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 8) {
+        var attempts = 0
+        while !cell.isHittable && attempts < maxSwipes {
+            app.swipeUp()
+            attempts += 1
+        }
+    }
 
     // MARK: - Coordinate helpers
 

@@ -658,6 +658,13 @@ actor ClarityModelActor {
         try modelContext.save()
         try Self.widgetCoordinator.writeTasks(fetchRecentTasks())
         Self.widgetCoordinator.reloadAllTimelines()
+        Task {
+            await MainActor.run {
+                NotificationCenter.default.post(name: Notification.Name("taskCompleted"), object: nil)
+            }
+            LogManager.shared.log.debug("📋 📋Sending taskCompleted notification")
+        }
+
         if let onTaskCompleted = ClarityModelActor.onTaskCompleted {
             Task { @MainActor in onTaskCompleted() }
         }

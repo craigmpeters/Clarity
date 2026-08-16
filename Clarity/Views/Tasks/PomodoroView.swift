@@ -51,12 +51,12 @@ struct PomodoroView: View {
                         IdleCard()
                     }
 
-                    if !service.recentSessions.isEmpty {
+                    //if !service.recentSessions.isEmpty {
                         RecentSessionsList(sessions: service.recentSessions) { session in
                             pendingMoodSession = session
                             showingMoodSheet = true
                         }
-                    }
+                    //}
                     
                     RecentlyCompletedSection(modelContext: context)
                 }
@@ -460,9 +460,9 @@ private struct RecentlyCompletedSection: View {
             LogManager.shared.log.debug("📋 RecentlyCompletedSection onAppear fired!")
             loadRecentlyCompleted()
         }
-        .onReceive(NotificationCenter.default.publisher(for: .pomodoroCompleted)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("taskCompleted"))) { _ in
             // Refresh when a task is completed via Pomodoro
-            LogManager.shared.log.debug("📋 Received pomodoroCompleted notification")
+            LogManager.shared.log.debug("📋 Received taskCompleted notification")
             Task {
                 try? await Task.sleep(nanoseconds: 500_000_000) // Wait 0.5s for completion to save
                 loadRecentlyCompleted()

@@ -69,7 +69,8 @@ enum UITestDataSeeder {
             ("Doctor appointment", 5, Date().addingTimeInterval(86400), [personal].compactMap { $0 }),
             ("Code review session", 5, Date().addingTimeInterval(86400 * 2), [work].compactMap { $0 }),
             ("Weekend hiking preparation", 5, Date().addingTimeInterval(86400 * 3), [personal].compactMap { $0 }),
-            ("iOS 18 features research", 5, Date().addingTimeInterval(86400 * 4), [learning].compactMap { $0 })
+            ("iOS 18 features research", 5, Date().addingTimeInterval(86400 * 4), [learning].compactMap { $0 }),
+            ("Watch WWDC", 5, Date().addingTimeInterval(86400 * 4), [learning].compactMap { $0 })
         ]
 
         for (name, minutes, dueDate, taskCategories) in sampleTasks {
