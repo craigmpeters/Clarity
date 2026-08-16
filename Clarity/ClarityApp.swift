@@ -54,6 +54,7 @@ struct ClarityApp: App {
         let isRunningTests = TestEnvironment.isRunningTests
         print("ClarityApp.makeContainer: isUITesting=\(isUITesting), isRunningTests=\(isRunningTests), args=\(ProcessInfo.processInfo.arguments)")
         
+        #if DEBUG
         if isUITesting {
             UserDefaults.hasCompletedOnboarding = false
             if ProcessInfo.processInfo.arguments.contains("--uitesting-skip-onboarding") {
@@ -69,6 +70,7 @@ struct ClarityApp: App {
                 LogManager.shared.log.error("Failed to create in-memory UI test container: \(error)")
             }
         }
+        #endif
 
         if TestEnvironment.isRunningTests {
             do {
