@@ -12,6 +12,9 @@ import Testing
 struct TaskFilterTests {
 
     private let calendar = Calendar.current
+    
+    private let excludedCategory = CategoryDTO(id: nil, name: "excluded", color: .Blue, weeklyTarget: 1)
+    private let includedCategory = CategoryDTO(id: nil, name: "included", color: .Red, weeklyTarget: 1)
 
     private func date(year: Int, month: Int, day: Int, hour: Int = 12) -> Date {
         var components = DateComponents()
@@ -24,6 +27,52 @@ struct TaskFilterTests {
 
     private func task(name: String, due: Date) -> ToDoTaskDTO {
         ToDoTaskDTO(name: name, due: due, categories: [], uuid: UUID())
+    }
+    
+    private func task(name: String, due: Date, categories: [CategoryDTO]) -> ToDoTaskDTO {
+        ToDoTaskDTO(name: name, due: due, categories: categories, uuid: UUID())
+    }
+    
+    @Test func focusFilterHideExcludesMatchingCategory() {
+        let tasks = [
+            task(name: "focus", due: date(year: 2026, month: 1, day: 1), categories: [excludedCategory]),
+            task(name: "not focus", due: date(year: 2026, month: 1, day: 1), categories: [includedCategory]),
+            task(name: "both", due: date(year: 2026, month: 1, day: 1), categories: [includedCategory, excludedCategory])
+        ]
+        let filterSettings = FocusFilter.Settings(categoryNames: ["excluded"], isHide: true)
+        let filteredTasks = ToDoTaskDTO.focusFilter(in: tasks, settings: filterSettings)
+        #expect(filteredTasks.map(\.name) == ["not focus"])
+    }
+
+    @Test func focusFilterShowIncludesOnlyMatchingCategory() {
+        let tasks = [
+            task(name: "focus", due: date(year: 2026, month: 1, day: 1), categories: [excludedCategory]),
+            task(name: "not focus", due: date(year: 2026, month: 1, day: 1), categories: [includedCategory]),
+            task(name: "both", due: date(year: 2026, month: 1, day: 1), categories: [includedCategory, excludedCategory])
+        ]
+        let filterSettings = FocusFilter.Settings(categoryNames: ["excluded"], isHide: false)
+        let filteredTasks = ToDoTaskDTO.focusFilter(in: tasks, settings: filterSettings)
+        #expect(filteredTasks.map(\.name) == ["focus", "both"])
+    }
+
+    @Test func focusFilterShowIncludesUncategorized() {
+        let uncategorized = task(name: "none", due: date(year: 2026, month: 1, day: 1))
+        let tasks = [
+            uncategorized,
+            task(name: "focus", due: date(year: 2026, month: 1, day: 1), categories: [excludedCategory])
+        ]
+        let filterSettings = FocusFilter.Settings(categoryNames: ["excluded"], isHide: false)
+        let filteredTasks = ToDoTaskDTO.focusFilter(in: tasks, settings: filterSettings)
+        #expect(filteredTasks.map(\.name) == ["none", "focus"])
+    }
+
+    @Test func focusFilterNoSettingsReturnsAllTasks() {
+        let tasks = [
+            task(name: "focus", due: date(year: 2026, month: 1, day: 1), categories: [excludedCategory]),
+            task(name: "not focus", due: date(year: 2026, month: 1, day: 1), categories: [includedCategory])
+        ]
+        let filteredTasks = ToDoTaskDTO.focusFilter(in: tasks, settings: nil)
+        #expect(filteredTasks.count == 2)
     }
 
     @Test func allMatchesEverything() {

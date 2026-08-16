@@ -199,6 +199,9 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
         // Use separate inner error to avoid overlapping access with the error pointer borrowed by NSFileCoordinator
         var coordinationError: NSError?
         var innerError: NSError?
+        
+        // Apply Focus Filter
+        let tasks = ToDoTaskDTO.focusFilter(in: tasks)
 
         coordinator.coordinate(writingItemAt: url, options: .forReplacing, error: &coordinationError) { writeURL in
             do {

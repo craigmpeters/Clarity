@@ -18,7 +18,7 @@ class ToDoTask {
     var created: Date = Date()
     var due: Date = Date.now.addingTimeInterval(24 * 60 * 60)
     var pomodoro: Bool = true
-    var pomodoroTime: TimeInterval = 25 * 60
+    var pomodoroTime: TimeInterval = 0
     var repeating: Bool?
     var completed: Bool = false
     var completedAt: Date?
@@ -250,8 +250,8 @@ extension ToDoTaskDTO {
         )
     }
 
-    public nonisolated static func focusFilter(in tasks: [ToDoTaskDTO]) -> [ToDoTaskDTO] {
-        FocusFilter.apply(to: tasks, settings: FocusFilter.currentSettings())
+    public nonisolated static func focusFilter(in tasks: [ToDoTaskDTO], settings: FocusFilter.Settings? = nil) -> [ToDoTaskDTO] {
+        FocusFilter.apply(to: tasks, settings: settings ?? FocusFilter.currentSettings())
     }
 }
 
@@ -291,8 +291,8 @@ extension _FocusFilterRaw: Decodable {
 
 // MARK: - Focus filter
 
-nonisolated enum FocusFilter {
-    struct Settings: Equatable, Sendable {
+public nonisolated enum FocusFilter {
+    public struct Settings: Equatable, Sendable {
         let categoryNames: [String]
         let isHide: Bool
     }

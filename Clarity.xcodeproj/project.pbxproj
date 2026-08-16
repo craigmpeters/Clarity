@@ -695,20 +695,6 @@
 			path = ViewModels;
 			sourceTree = "<group>";
 		};
-		44E78094302F05EA00C601CE /* Docs 2 */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = "Docs 2";
-			sourceTree = "<group>";
-		};
-		44E78095302F05FA00C601CE /* Docs 3 */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = "Docs 3";
-			sourceTree = "<group>";
-		};
 		44FB49552E51F1EB0059CC5B = {
 			isa = PBXGroup;
 			children = (
@@ -732,8 +718,6 @@
 				44D6F0492E85DDDF00B5EF9E /* ClarityWatch.entitlements */,
 				44E77E31302DF0F500C601CE /* ViewModels */,
 				799D41ED8B34C4FF51F34B1B /* Clarity.xctestplan */,
-				44E78094302F05EA00C601CE /* Docs 2 */,
-				44E78095302F05FA00C601CE /* Docs 3 */,
 			);
 			sourceTree = "<group>";
 		};
