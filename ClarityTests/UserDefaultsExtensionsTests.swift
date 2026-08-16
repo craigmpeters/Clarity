@@ -9,6 +9,7 @@ import Foundation
 import Testing
 @testable import Clarity
 
+@MainActor
 @Suite(.serialized)
 struct UserDefaultsExtensionsTests {
 

@@ -1,13 +1,42 @@
 {
-  "name": "Clarity",
-  "testTargets": [
+  "configurations" : [
     {
-      "target": {
-        "containerPath": "container:Clarity.xcodeproj",
-        "identifier": "4457190930276FA400BE9967",
-        "name": "ClarityTests"
+      "id" : "27EDA099-0749-4CBE-89D7-547B27EE90A9",
+      "name" : "Test Scheme Action",
+      "options" : {
+
       }
     }
   ],
-  "version": 1
+  "defaultOptions" : {
+    "commandLineArgumentEntries" : [
+      {
+        "argument" : "--clarity-running-tests"
+      }
+    ],
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Clarity.xcodeproj",
+      "identifier" : "44FB495D2E51F1EB0059CC5B",
+      "name" : "Clarity"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:Clarity.xcodeproj",
+        "identifier" : "44E77E38302DF1B000C601CE",
+        "name" : "ClarityUITests"
+      }
+    },
+    {
+      "parallelizable" : false,
+      "target" : {
+        "containerPath" : "container:Clarity.xcodeproj",
+        "identifier" : "4457190930276FA400BE9967",
+        "name" : "ClarityTests"
+      }
+    }
+  ],
+  "version" : 1
 }

@@ -41,6 +41,11 @@ enum ClarityServices {
 
     // -------- Snapshots for widgets / quick reads --------
     
+    // TODO: [CRASH-001] Route all snapshot reads through ClarityModelActor to avoid ad-hoc ModelContext
+    // access on a non-actor isolation domain. SwiftData's ModelContext is not thread-safe; creating
+    // contexts here and calling fetch() concurrently with the @ModelActor store can trigger
+    // CoreData performAndWait crashes (signature: NSManagedObjectContext.performAndWait<A>(_:) + 8).
+    // Replace with: let store = try await ClarityServices.store(); return await store.snapshotCompleted().
     nonisolated static func snapshotCompleted() -> [ToDoTaskDTO] {
         do {
             let container = try sharedContainer()
@@ -57,6 +62,8 @@ enum ClarityServices {
         }
     }
 
+    // TODO: [CRASH-001] Ad-hoc ModelContext.fetch from a nonisolated static method is unsafe when
+    // ClarityModelActor is mutating the same store. Move this to the actor and call via store().
     nonisolated static func snapshotTasks(filter: ToDoTask.TaskFilter = .all) -> [ToDoTaskDTO] {
         do {
             let container = try sharedContainer()         // <- was Containers.live()
@@ -75,6 +82,7 @@ enum ClarityServices {
         }
     }
     
+    // TODO: [CRASH-001] Same ModelContext isolation issue: this should be a read on the actor.
     nonisolated static func snapshotCategories() -> [CategoryDTO] {
         do {
             let container = try sharedContainer()
@@ -96,6 +104,8 @@ enum ClarityServices {
         #endif
     }
 
+    // TODO: [CRASH-001] Heavy snapshot read across GlobalTargetSettings, Category, and ToDoTask
+    // from a nonisolated context risks concurrent performAndWait with the model actor. Move to actor.
     nonisolated static func fetchWeeklyProgress() -> WeeklyProgress {
         do {
             let container = try sharedContainer()

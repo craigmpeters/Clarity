@@ -1,5 +1,13 @@
-// TaskSplitterView.swift
-// AI-powered task splitting using Foundation Models (iOS 18+)
+//  TaskSplitterService.swift
+//  AI-powered task splitting using Foundation Models (iOS 18+)
+//
+//  TODO: Mitigate FoundationModels crash "Clarity: NO_CRASH_STACK"
+//  - Exception: EXC_BREAKPOINT (SIGTRAP) — Range requires lowerBound <= upperBound
+//  - Crashes inside LanguageModelSession.produceNextEntry; no app code in stack.
+//  - Add validation that `taskName` and the prompt are non-empty before calling respond(to:options:).
+//  - Add timeout/cancellation around LanguageModelSession.respond calls so a hung session cannot outlive the service.
+//  - Recreate the LanguageModelSession on any failure; do not reuse a potentially corrupted session.
+//  - File Feedback Assistant report with Apple; this is primarily a framework bug.
 
 import SwiftUI
 import SwiftData

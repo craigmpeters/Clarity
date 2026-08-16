@@ -595,6 +595,11 @@ final class CompanionService {
 
     // MARK: - Generation
 
+    // TODO: Mitigate FoundationModels crash "Clarity: NO_CRASH_STACK" (EXC_BREAKPOINT, Range lowerBound > upperBound in LanguageModelSession.produceNextEntry).
+    //   - Validate prompt and context inputs are non-empty and consistent before calling respond(to:generating:).
+    //   - Add timeout/cancellation around the model call so a hung or corrupt session cannot outlive the actor.
+    //   - Ensure session is recreated after any non-retryable GenerationError.
+    //   - File Feedback Assistant report with Apple; this is primarily a framework bug.
     #if canImport(FoundationModels)
     /// Single generation path for both trigger events and free-form chat.
     @available(iOS 26.0, *)

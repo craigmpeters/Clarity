@@ -82,6 +82,6 @@ Date: 2026-08-13
 
 ## Next steps
 
-- Investigate the Swift Testing runner crashes when running the full `Clarity` plan. They appear to be environment/Xcode-beta issues (`Runner._applyScopingTraits`) rather than product bugs, but they prevent a fully green full-plan run.
+- The Swift Testing runner crashes (`Runner._applyScopingTraits`) were misattributed; the real root cause is CloudKit container churn in the app-hosted unit-test process poisoning Core Data's connection pool. The fix is in place: `TestEnvironment.isRunningTests` gates live/CloudKit `ModelContainer` creation, `ClarityApp.makeContainer()` returns `AppContainer.shared` to avoid duplicate live containers, and the affected targets include `Shared/Utilities/TestEnvironment.swift`.
 - Consider creating `ClarityUIOnly.xctestplan` so UI tests can run independently of the unit-test suite.
 - Update `docs/clarity-ui-test-plan.md` if any of the new harness helpers become reusable patterns.

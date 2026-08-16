@@ -32,23 +32,20 @@ struct ClarityAppShellTests {
         let id = UUID()
         testDefaults?.set(id.uuidString, forKey: pendingKey)
 
-        let app = ClarityApp()
-        let consumed = app.consumePendingStartTimerTaskId(appGroup: appGroup)
+        let consumed = ClarityApp.consumePendingStartTimerTaskId(appGroup: appGroup)
         #expect(consumed == id)
         #expect(testDefaults?.string(forKey: pendingKey) == nil)
     }
 
     @Test func consumePendingStartTimerTaskIdReturnsNilWhenMissing() throws {
         defer { cleanup() }
-        let app = ClarityApp()
-        #expect(app.consumePendingStartTimerTaskId(appGroup: appGroup) == nil)
+        #expect(ClarityApp.consumePendingStartTimerTaskId(appGroup: appGroup) == nil)
     }
 
     @Test func consumePendingStartTimerTaskIdReturnsNilAndClearsMalformedValue() throws {
         defer { cleanup() }
         testDefaults?.set("not-a-uuid", forKey: pendingKey)
-        let app = ClarityApp()
-        #expect(app.consumePendingStartTimerTaskId(appGroup: appGroup) == nil)
+        #expect(ClarityApp.consumePendingStartTimerTaskId(appGroup: appGroup) == nil)
         #expect(testDefaults?.string(forKey: pendingKey) == nil)
     }
 

@@ -140,12 +140,21 @@
 		44DD8A6D2FA8BB9C00732504 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		44E0DD902F562849003A7BC6 /* ClarityWatchWidgetsExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ClarityWatchWidgetsExtension.entitlements; sourceTree = "<group>"; };
 		44E77E39302DF1B000C601CE /* ClarityUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClarityUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		44E78526302F7D6D00C601CE /* Clarity.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Clarity.xctestplan; sourceTree = "<group>"; };
 		44F7CE5F2E8B2FA300F520BF /* DataRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataRepository.swift; sourceTree = "<group>"; };
 		44FB495E2E51F1EB0059CC5B /* Clarity.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Clarity.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		799D41ED8B34C4FF51F34B1B /* Clarity.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text.json.xctestplan; path = Clarity.xctestplan; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		2D8C80CFBD49433F8D3566F7389C1ECB /* Exceptions for "Utilities" folder in "ClarityAppIntentsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Date.swift,
+				HabitHealthKitSync.swift,
+			);
+			target = 441B7E032EEED7F4008D76CA /* ClarityAppIntentsExtension */;
+		};
 		441B7E112EEED7F4008D76CA /* Exceptions for "ClarityAppIntentsExtension" folder in "ClarityAppIntentsExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -249,6 +258,7 @@
 				HabitHealthKitSync.swift,
 				HealthKitService.swift,
 				Logger.swift,
+				TestEnvironment.swift,
 			);
 			target = 443254E12F4B4903003176B3 /* ClarityWatchWidgetsExtension */;
 		};
@@ -398,6 +408,7 @@
 				HabitHealthKitSync.swift,
 				HealthKitService.swift,
 				Logger.swift,
+				TestEnvironment.swift,
 			);
 			target = 4448AD602E579266005CDDDF /* Widgets */;
 		};
@@ -408,6 +419,7 @@
 				HabitHealthKitSync.swift,
 				HealthKitService.swift,
 				Logger.swift,
+				TestEnvironment.swift,
 			);
 			target = 44D6EABC2E83176B00B5EF9E /* ClarityWatch */;
 		};
@@ -543,6 +555,7 @@
 			exceptions = (
 				44D6F0482E85DAA100B5EF9E /* Exceptions for "Utilities" folder in "ClarityWatch" target */,
 				44D6F0472E85DAA100B5EF9E /* Exceptions for "Utilities" folder in "Widgets" target */,
+				2D8C80CFBD49433F8D3566F7389C1ECB /* Exceptions for "Utilities" folder in "ClarityAppIntentsExtension" target */,
 				443255232F4F5D58003176B3 /* Exceptions for "Utilities" folder in "ClarityWatchWidgetsExtension" target */,
 			);
 			path = Utilities;
@@ -682,9 +695,24 @@
 			path = ViewModels;
 			sourceTree = "<group>";
 		};
+		44E78094302F05EA00C601CE /* Docs 2 */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = "Docs 2";
+			sourceTree = "<group>";
+		};
+		44E78095302F05FA00C601CE /* Docs 3 */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = "Docs 3";
+			sourceTree = "<group>";
+		};
 		44FB49552E51F1EB0059CC5B = {
 			isa = PBXGroup;
 			children = (
+				44E78526302F7D6D00C601CE /* Clarity.xctestplan */,
 				44DD88E22F9E5C7400732504 /* bump-version.sh */,
 				44E0DD902F562849003A7BC6 /* ClarityWatchWidgetsExtension.entitlements */,
 				44588D1E2EA924AC00A657C3 /* Icons */,
@@ -704,6 +732,8 @@
 				44D6F0492E85DDDF00B5EF9E /* ClarityWatch.entitlements */,
 				44E77E31302DF0F500C601CE /* ViewModels */,
 				799D41ED8B34C4FF51F34B1B /* Clarity.xctestplan */,
+				44E78094302F05EA00C601CE /* Docs 2 */,
+				44E78095302F05FA00C601CE /* Docs 3 */,
 			);
 			sourceTree = "<group>";
 		};

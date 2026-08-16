@@ -22,19 +22,20 @@ final class CompanionChatStore {
 
     init() {
         let schema = Schema([ChatMessage.self])
+        let isTestRun = TestEnvironment.isRunningTests || ProcessInfo.processInfo.arguments.contains("--uitesting")
         let config = ModelConfiguration(
             schema: schema,
-            isStoredInMemoryOnly: false,
+            isStoredInMemoryOnly: isTestRun,
             allowsSave: true,
             groupContainer: .none,
             cloudKitDatabase: .none
         )
         do {
             container = try ModelContainer(for: schema, configurations: [config])
-            inMemory = false
-            log.info("CompanionChatStore: persisted container created")
+            inMemory = isTestRun
+            log.info("CompanionChatStore: \(isTestRun ? "in-memory" : "persisted") container created")
         } catch {
-            log.error("CompanionChatStore: failed to create persisted container — \(error). Falling back to in-memory.")
+            log.error("CompanionChatStore: failed to create container — \(error). Falling back to in-memory.")
             let memoryConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, allowsSave: true)
             do {
                 container = try ModelContainer(for: schema, configurations: [memoryConfig])

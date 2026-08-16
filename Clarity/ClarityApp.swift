@@ -51,12 +51,14 @@ struct ClarityApp: App {
     
     private static func makeContainer() -> ModelContainer {
         let isUITesting = ProcessInfo.processInfo.arguments.contains("--uitesting")
+        let isRunningTests = TestEnvironment.isRunningTests
+        print("ClarityApp.makeContainer: isUITesting=\(isUITesting), isRunningTests=\(isRunningTests), args=\(ProcessInfo.processInfo.arguments)")
+        
         if isUITesting {
             UserDefaults.hasCompletedOnboarding = false
             if ProcessInfo.processInfo.arguments.contains("--uitesting-skip-onboarding") {
                 UserDefaults.hasCompletedOnboarding = true
             }
-            UserDefaults.companionEnabled = false
             UserDefaults.companionEnabled = false
             UserDefaults.pomodoroAlarmSoundID = "default"
             do {
@@ -67,9 +69,17 @@ struct ClarityApp: App {
                 LogManager.shared.log.error("Failed to create in-memory UI test container: \(error)")
             }
         }
-        
+
+        if TestEnvironment.isRunningTests {
+            do {
+                return try Containers.inMemory()
+            } catch {
+                fatalError("Could not create in-memory test container: \(error)")
+            }
+        }
+
         do {
-            return try Containers.liveApp()
+            return AppContainer.shared
         } catch {
             LogManager.shared.log.error("Failed to create live app container: \(error). Falling back to in-memory container.")
             do {
@@ -119,6 +129,7 @@ struct ClarityApp: App {
                 .environment(companion)
                 .modelContainer(container)
                 .onAppear {
+                    guard !TestEnvironment.isRunningTests else { return }
                     appDelegate.appState = appState
                     populateUUIDsIfNeeded(modelContext: container.mainContext, minimumBuild: "1.3.0")
                     // Prime the shared category snapshot so widgets / App Intents can read
@@ -134,7 +145,7 @@ struct ClarityApp: App {
                     }
                 }
                 .task {
-                    if let id = consumePendingStartTimerTaskId() {
+                    if let id = Self.consumePendingStartTimerTaskId() {
                         appState.pomodoroUuid = id
                         LogManager.shared.log.debug("Starting Pomodero (.task) for \(id.uuidString)")
                         let store = ClarityModelActor(modelContainer: container)
@@ -155,7 +166,7 @@ struct ClarityApp: App {
                     ClarityServices.writeCategorySnapshot()
                     // Sync any Pomodoro state that was changed by a widget / Live Activity intent.
                     PomodoroService.shared.syncIfStoppedExternally()
-                    if let id = consumePendingStartTimerTaskId() {
+                    if let id = Self.consumePendingStartTimerTaskId() {
                         LogManager.shared.log.debug("Starting Pomodero (.onChange Active) for \(id.uuidString)")
                         appState.pomodoroUuid = id
                         let store = ClarityModelActor(modelContainer: container)
@@ -178,7 +189,7 @@ struct ClarityApp: App {
             ClarityShortcutsProvider.self
         }
     
-    func consumePendingStartTimerTaskId(appGroup: String = "group.me.craigpeters.clarity") -> UUID? {
+    static func consumePendingStartTimerTaskId(appGroup: String = "group.me.craigpeters.clarity") -> UUID? {
         let defaults = UserDefaults(suiteName: appGroup)
         guard let idString = defaults?.string(forKey: "pendingStartTimerTaskId"),
               let id = UUID(uuidString: idString) else {
@@ -211,11 +222,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency UNUserNotifi
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
-        // Migrations are triggered from ClarityApp.onAppear via modelContext
-        PhoneConnectivityCoordinator.shared.start()
-        ClarityModelActor.onTaskCompleted = { PhoneConnectivityCoordinator.shared.broadcastSnapshot() }
-        ClarityModelActor.onTaskMutated = { PhoneConnectivityCoordinator.shared.broadcastSnapshot() }
-        ClarityModelActor.onHabitMutated = { PhoneConnectivityCoordinator.shared.broadcastSnapshot() }
+        if !TestEnvironment.isRunningTests {
+            // Migrations are triggered from ClarityApp.onAppear via modelContext
+            PhoneConnectivityCoordinator.shared.start()
+            ClarityModelActor.onTaskCompleted = { PhoneConnectivityCoordinator.shared.broadcastSnapshot() }
+            ClarityModelActor.onTaskMutated = { PhoneConnectivityCoordinator.shared.broadcastSnapshot() }
+            ClarityModelActor.onHabitMutated = { PhoneConnectivityCoordinator.shared.broadcastSnapshot() }
+        }
         _ = LogManager.shared
         // let url = LogManager.defaultLogFileURL()
         LogManager.shared.log.info("Clarity logger initialized in AppDelegate")

@@ -84,6 +84,10 @@ actor ClarityModelActor {
     // MARK: - Habit Helpers
     
     private func habitPostMutationPipeline() throws {
+        // TODO: [CRASH-003] Habit and task mutation pipelines both save and then call deduplicateTasksByUUID.
+        // If multiple concurrent operations run dedup, overlapping fetch/delete/save cycles can saturate
+        // SwiftData's performAndWait queue and cause the CoreData crash in NSManagedObjectContext.performAndWait.
+        // Serialize deduplication via a single in-flight task or dedicated serial actor.
         try modelContext.save()
         try Self.widgetCoordinator.writeHabits(fetchHabits())
         try Self.widgetCoordinator.writeTasks(fetchRecentTasks())
@@ -259,6 +263,10 @@ actor ClarityModelActor {
 
     /// Log habit progress and optionally write the delta to HealthKit.
     /// HealthKit write is only attempted when source == "manual" and the habit is HealthKit-linked.
+    // TODO: [CRASH-002] Avoid awaiting @MainActor HealthKitService.shared from inside the model actor.
+    // Suspending the actor here while holding the modelContext can interleave SwiftData performAndWait
+    // calls on reacquisition and contribute to CoreData crashes. Do the HealthKit write after returning
+    // the DTO (e.g. in the caller) or dispatch it via a detached task without holding the actor context.
     func logHabitProgressWithHealthKit(_ habitUUID: UUID, amount: Double? = nil) async throws -> HabitOccurrenceDTO {
         let dto = try logHabitProgress(habitUUID, amount: amount, source: "manual")
 #if os(iOS)
@@ -567,6 +575,10 @@ actor ClarityModelActor {
     }
 
     func addTask(_ dto: ToDoTaskDTO) throws -> ToDoTaskDTO {
+        // TODO: [CRASH-004] insertTask creates a new ToDoTask and inserts it while completeTask may also be
+        // inserting a next occurrence on the same actor context. The overlapping insert+save+dedup cycle is
+        // a prime candidate for the CoreData performAndWait crash. Consider collecting staged inserts and
+        // saving/deduping once per actor turn.
         let toDoTask: ToDoTask
         if let inserted = try insertTask(dto) {
             toDoTask = inserted
@@ -599,6 +611,7 @@ actor ClarityModelActor {
         if let onTaskMutated = ClarityModelActor.onTaskMutated {
             Task { @MainActor in onTaskMutated() }
         }
+        // TODO: [CRASH-003] Concurrent task mutations can trigger overlapping dedup runs. Serialize.
         try? deduplicateTasksByUUID()
     }
     
@@ -648,6 +661,8 @@ actor ClarityModelActor {
         if let onTaskCompleted = ClarityModelActor.onTaskCompleted {
             Task { @MainActor in onTaskCompleted() }
         }
+        // TODO: [CRASH-003] completeTask can create a next occurrence and then immediately dedup. Combined
+        // with other task mutations, this can produce concurrent performAndWait calls. Serialize dedup.
         try? deduplicateTasksByUUID()
     }
     
@@ -967,7 +982,14 @@ enum Containers {
 // AppContainer.swift (APP TARGET)
 enum AppContainer {
     nonisolated static let shared: ModelContainer = {
-        return try! Containers.liveApp()
+        do {
+            if TestEnvironment.isRunningTests {
+                return try Containers.inMemory()
+            }
+            return try Containers.liveApp()
+        } catch {
+            fatalError("Failed to create shared model container: \(error)")
+        }
     }()
 }
 
