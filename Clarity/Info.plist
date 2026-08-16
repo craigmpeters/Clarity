@@ -2,12 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleDevelopmentRegion</key>
-	<string>en</string>
-	<key>UIFileSharingEnabled</key>
-	<true/>
-	<key>LSSupportsOpeningDocumentsInPlace</key>
-	<true/>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -27,10 +21,6 @@
 	<string>$(LOG_VIEWER_ENABLED)</string>
 	<key>NSFoundationModelsUsageDescription</key>
 	<string>This app uses AI to help split tasks, suggest habit configurations, and generate optional habit artwork.</string>
-	<key>NSHealthShareUsageDescription</key>
-	<string>Clarity reads your state of mind logs to show how completing tasks affected your mood.</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>Clarity logs how completing a Pomodoro session made you feel so you can track your emotional wellbeing over time.</string>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>IntentIntent</string>
@@ -40,5 +30,7 @@
 		<string>remote-notification</string>
 		<string>fetch</string>
 	</array>
+	<key>UIFileSharingEnabled</key>
+	<true/>
 </dict>
 </plist>

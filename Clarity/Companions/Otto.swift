@@ -5,7 +5,7 @@ import Foundation
 
 struct OttoPersonality: CompanionPersonality {
     let id = "otto"
-    let displayName = "Otto"
+    let displayName = "Otter"
     let defaultCompanionName = "Otto"
     let requiresPremium = false
     let assetPrefix = "otter"

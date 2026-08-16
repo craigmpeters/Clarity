@@ -526,7 +526,7 @@ final class CompanionService {
         return newSession
     }
 
-    private func recentConversationBlock(limit: Int = 8) -> String {
+    private func recentConversationBlock(limit: Int = 2) -> String {
         let recent = Array(chatHistory.suffix(limit))
         guard !recent.isEmpty else { return "" }
         return recent.map { message in
