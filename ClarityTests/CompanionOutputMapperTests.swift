@@ -14,11 +14,12 @@ struct CompanionOutputMapperTests {
     private struct FakeOutput: CompanionOutputValues {
         let text: String
         let emotion: String
+        let isSuggestingTask: Bool
         let suggestedTaskName: String
     }
 
-    private func makeOutput(text: String, emotion: String, suggestedTaskName: String) -> some CompanionOutputValues {
-        FakeOutput(text: text, emotion: emotion, suggestedTaskName: suggestedTaskName)
+    private func makeOutput(text: String, emotion: String, isSuggestingTask: Bool = false, suggestedTaskName: String = "") -> some CompanionOutputValues {
+        FakeOutput(text: text, emotion: emotion, isSuggestingTask: isSuggestingTask, suggestedTaskName: suggestedTaskName)
     }
 
     private func makeTask(name: String, uuid: UUID = UUID()) -> CompanionTaskContext.TaskSummary {
@@ -40,32 +41,33 @@ struct CompanionOutputMapperTests {
     }
 
     @Test func emptyTextFallsBackToRawOutput() {
-        let output = makeOutput(text: "   ", emotion: "happy", suggestedTaskName: "")
+        let output = makeOutput(text: "   ", emotion: "happy")
         let message = CompanionOutputMapper.map(output, trigger: nil, supportedEmotions: [.happy], dueTasks: [])
         #expect(message.text == "   ")
+        #expect(message.suggestedTask == nil)
     }
 
     @Test func mapsValidEmotion() {
-        let output = makeOutput(text: "Great job!", emotion: "encouraging", suggestedTaskName: "")
+        let output = makeOutput(text: "Great job!", emotion: "encouraging")
         let message = CompanionOutputMapper.map(output, trigger: nil, supportedEmotions: [.encouraging, .happy], dueTasks: [])
         #expect(message.emotion == .encouraging)
     }
 
     @Test func fallsBackToFirstSupportedEmotion() {
-        let output = makeOutput(text: "Great job!", emotion: "unknown", suggestedTaskName: "")
+        let output = makeOutput(text: "Great job!", emotion: "unknown")
         let message = CompanionOutputMapper.map(output, trigger: nil, supportedEmotions: [.loving, .happy], dueTasks: [])
         #expect(message.emotion == .loving)
     }
 
     @Test func fallsBackToHappyWhenNoSupportedEmotions() {
-        let output = makeOutput(text: "Great job!", emotion: "unknown", suggestedTaskName: "")
+        let output = makeOutput(text: "Great job!", emotion: "unknown")
         let message = CompanionOutputMapper.map(output, trigger: nil, supportedEmotions: [], dueTasks: [])
         #expect(message.emotion == .happy)
     }
 
     @Test func matchesSuggestedTaskIgnoringCase() {
         let task = makeTask(name: "File taxes")
-        let output = makeOutput(text: "You should file taxes today.", emotion: "happy", suggestedTaskName: "file taxes")
+        let output = makeOutput(text: "You should file taxes today.", emotion: "happy", isSuggestingTask: true, suggestedTaskName: "file taxes")
         let message = CompanionOutputMapper.map(
             output,
             trigger: .taskCompleted(taskName: "Some task"),
@@ -75,9 +77,21 @@ struct CompanionOutputMapperTests {
         #expect(message.suggestedTask?.name == "File taxes")
     }
 
+    @Test func doesNotSuggestTaskWhenFlagIsFalse() {
+        let task = makeTask(name: "File taxes")
+        let output = makeOutput(text: "You should file taxes today.", emotion: "happy", isSuggestingTask: false, suggestedTaskName: "file taxes")
+        let message = CompanionOutputMapper.map(
+            output,
+            trigger: .taskCompleted(taskName: "Some task"),
+            supportedEmotions: [.happy],
+            dueTasks: [task]
+        )
+        #expect(message.suggestedTask == nil)
+    }
+
     @Test func doesNotSuggestTaskWhenTriggerDisallows() {
         let task = makeTask(name: "File taxes")
-        let output = makeOutput(text: "You should file taxes today.", emotion: "happy", suggestedTaskName: "file taxes")
+        let output = makeOutput(text: "You should file taxes today.", emotion: "happy", isSuggestingTask: true, suggestedTaskName: "file taxes")
         let message = CompanionOutputMapper.map(
             output,
             trigger: .appLaunch,

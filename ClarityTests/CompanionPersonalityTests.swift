@@ -28,7 +28,7 @@ struct CompanionPersonalityTests {
 
     @Test func personalityMetadata() {
         #expect(otto.id == "otto")
-        #expect(otto.displayName == "Otto")
+        #expect(otto.displayName == "Otter")
         #expect(otto.defaultCompanionName == "Otto")
         #expect(otto.requiresPremium == false)
         #expect(otto.assetPrefix == "otter")
@@ -93,10 +93,10 @@ struct CompanionPersonalityTests {
     }
 
     @Test func promptSuggestionInstructionMatchesAllowance() {
-        #expect(otto.prompt(for: .taskCompleted(taskName: "T")).contains("You may suggest one task"))
-        #expect(otto.prompt(for: .pomodoroCompleted(taskName: "T")).contains("You may suggest one task"))
-        #expect(otto.prompt(for: .appLaunch).contains("Do not set suggestedTaskName"))
-        #expect(otto.prompt(for: .taskUncompleted(taskName: "T")).contains("Do not set suggestedTaskName"))
+        #expect(otto.prompt(for: .taskCompleted(taskName: "T")).contains("isSuggestingTask to true"))
+        #expect(otto.prompt(for: .pomodoroCompleted(taskName: "T")).contains("isSuggestingTask to true"))
+        #expect(otto.prompt(for: .appLaunch).contains("isSuggestingTask to false"))
+        #expect(otto.prompt(for: .taskUncompleted(taskName: "T")).contains("isSuggestingTask to false"))
     }
 
     @Test func fallbackMessageEmotionsForOtto() {

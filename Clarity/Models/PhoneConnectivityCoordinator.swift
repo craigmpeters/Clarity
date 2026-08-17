@@ -216,10 +216,11 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
             forName: .pomodoroCompleted,
             object: nil,
             queue: .main
-        ) { [weak self] _ in
+        ) { [weak self] notification in
             guard let self else { return }
+            let taskUUID = notification.userInfo?[Notification.Name.taskUUIDKey] as? UUID
             Task { @MainActor in
-                let id = PomodoroService.shared.toDoTask?.uuid
+                let id = taskUUID ?? PomodoroService.shared.toDoTask?.uuid
                 try? await ConnectivityTransport.shared.send(.pomodoroStopped(taskID: id))
                 self.broadcastSnapshot()
             }

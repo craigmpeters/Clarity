@@ -34,24 +34,23 @@ final class TaskSwipeUITests: ClarityUITestCase {
         XCTAssertFalse(app.staticTexts["Client presentation slides"].waitForExistence(timeout: 5))
     }
 
-    //TODO: This works in UI but not in unit test
-//    func testRecentlyCompleted() {
-//        let taskCell = app.cells.containing(
-//            NSPredicate(format: "label == %@", "Watch WWDC")
-//        ).firstMatch
-//        scrollToCell(taskCell, in: app)
-//        assertExists(taskCell)
-//        
-//        
-//        taskCell.swipeRight()
-//        let completeButton = app.buttons["Complete Task"]
-//        assertExists(completeButton, timeout: 3)
-//        completeButton.tap()
-//        
-//        _ = taskCell.waitForNonExistence(timeout: 5)
-//
-//        switchToTab("Focus")
-//        XCTAssertTrue(app.staticTexts["Watch WWDC"].waitForExistence(timeout: 5))
-//        
-//    }
+    func testRecentlyCompleted() {
+        let taskCell = app.cells.containing(
+            NSPredicate(format: "label == %@", "Watch WWDC")
+        ).firstMatch
+        scrollToCell(taskCell, in: app)
+        assertExists(taskCell)
+        
+        taskCell.swipeRight()
+        let completeButton = app.buttons["Complete Task"]
+        assertExists(completeButton, timeout: 3)
+        completeButton.tap()
+        
+        _ = taskCell.waitForNonExistence(timeout: 5)
+
+        switchToTab("Focus")
+        let section = app.otherElements["recentlyCompletedSection"]
+        XCTAssertTrue(section.waitForExistence(timeout: 10))
+        XCTAssertTrue(section.staticTexts["Watch WWDC"].waitForExistence(timeout: 5))
+    }
 }

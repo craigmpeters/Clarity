@@ -159,6 +159,9 @@ import XCGLogger
         // Determine if the timer ran out naturally (vs. manual early stop)
         let completedNaturally = remainingTime <= 0
 
+        // Capture the task UUID before clearing the in-memory session state
+        let completedTaskUUID = toDoTask?.uuid
+
         // Mark inactive and clean up timer/activity/notification
         isActive = false
 
@@ -174,9 +177,10 @@ import XCGLogger
         // Record the completed session for the history list
         recordCompletedSession(taskName: sessionTaskName, taskUUID: toDoTask?.uuid, startTime: sessionStart, endTime: sessionEnd)
 
-        // Post a single completion notification. The phone coordinator observes this
-        // and sends the corresponding PhoneEvent to the watch.
-        NotificationCenter.default.post(name: .pomodoroCompleted, object: nil)
+        // Post a single completion notification with the task UUID so observers
+        // don't have to rely on the now-cleared in-memory task state.
+        let userInfo: [AnyHashable: Any] = completedTaskUUID.map { [Notification.Name.taskUUIDKey: $0] } ?? [:]
+        NotificationCenter.default.post(name: .pomodoroCompleted, object: nil, userInfo: userInfo)
     }
     
     @MainActor
@@ -434,13 +438,15 @@ import XCGLogger
             remainingTime = 0
             progress = 0
             loadSessionHistory()
-            NotificationCenter.default.post(name: .pomodoroCompleted, object: nil)
+            let userInfo: [AnyHashable: Any] = recentSessions.first?.taskUUID.map { [Notification.Name.taskUUIDKey: $0] } ?? [:]
+            NotificationCenter.default.post(name: .pomodoroCompleted, object: nil, userInfo: userInfo)
             LogManager.shared.log.debug("PomodoroService: reset after external stop (was active)")
         } else {
             loadSessionHistory()
             // The session was completed by the Live Activity intent while the app process
             // was not active; surface the mood sheet so the user can log how it went.
-            NotificationCenter.default.post(name: .pomodoroCompleted, object: nil)
+            let userInfo: [AnyHashable: Any] = recentSessions.first?.taskUUID.map { [Notification.Name.taskUUIDKey: $0] } ?? [:]
+            NotificationCenter.default.post(name: .pomodoroCompleted, object: nil, userInfo: userInfo)
             LogManager.shared.log.debug("PomodoroService: loaded history and posted completion after external stop")
         }
     }

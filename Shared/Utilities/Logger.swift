@@ -10,6 +10,17 @@ import Foundation
 import XCGLogger
 import Compression
 
+extension Notification.Name {
+    static let pomodoroCompleted = Notification.Name("pomodoroCompleted")
+    static let pomodoroStarted = Notification.Name("pomodoroStarted")
+    static let focusSettingsChanged = Notification.Name("focusSettingsChanged")
+    static let taskCompleted = Notification.Name("taskCompleted")
+    static let taskUncompleted = Notification.Name("taskUncompleted")
+
+    /// Standard key for the affected task UUID in task-state notifications.
+    static var taskUUIDKey: String { "taskUUID" }
+}
+
 extension Logger {
     static let subsystem = Bundle.main.bundleIdentifier ?? "me.craigpeters.Clarity"
     

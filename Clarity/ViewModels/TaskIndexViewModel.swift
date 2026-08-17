@@ -82,13 +82,12 @@ final class TaskIndexViewModel {
 
     func completeTaskFromPomodoroNotification(userInfo: [AnyHashable: Any]?) {
         guard let store else { return }
-        if let id = userInfo?["taskID"] as? UUID {
-            LogManager.shared.log.debug("Completing Task with ID \(id)")
-            Task { try? await store.completeTask(id) }
-        } else if let id = PomodoroService.shared.toDoTask?.uuid {
-            LogManager.shared.log.debug("Completing Task with ID: \(id)")
-            Task { try? await store.completeTask(id) }
+        guard let id = userInfo?[Notification.Name.taskUUIDKey] as? UUID else {
+            LogManager.shared.log.warning("Pomodoro completed notification missing taskUUID")
+            return
         }
+        LogManager.shared.log.debug("Completing task from Pomodoro notification with ID: \(id)")
+        Task { try? await store.completeTask(id) }
     }
 
     #if INTERNAL

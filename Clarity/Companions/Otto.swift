@@ -117,8 +117,8 @@ struct OttoPersonality: CompanionPersonality {
 
     private func suggestionInstruction(for trigger: CompanionTrigger) -> String {
         if trigger.allowsTaskSuggestion {
-            return "You may suggest one task from UPCOMING TASKS by setting suggestedTaskName."
+            return "You may suggest one task from UPCOMING TASKS by setting isSuggestingTask to true and suggestedTaskName to the exact task name."
         }
-        return "Do not set suggestedTaskName."
+        return "Set isSuggestingTask to false."
     }
 }

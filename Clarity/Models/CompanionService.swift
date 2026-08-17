@@ -144,6 +144,7 @@ struct CompanionMessage: Sendable {
 protocol CompanionOutputValues: Sendable {
     var text: String { get }
     var emotion: String { get }
+    var isSuggestingTask: Bool { get }
     var suggestedTaskName: String { get }
 }
 
@@ -160,13 +161,16 @@ enum CompanionOutputMapper {
         dueTasks: [CompanionTaskContext.TaskSummary]
     ) -> CompanionMessage {
         let text = output.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else {
+            return CompanionMessage(text: output.text, emotion: supportedEmotions.first ?? .happy, suggestedTask: nil)
+        }
         let emotion = CompanionEmotion(rawValue: output.emotion)
             ?? supportedEmotions.first
             ?? .happy
-        let suggested = trigger?.allowsTaskSuggestion == true
+        let suggested = output.isSuggestingTask && trigger?.allowsTaskSuggestion == true
             ? dueTasks.first { $0.name.localizedCaseInsensitiveCompare(output.suggestedTaskName) == .orderedSame }
             : nil
-        return CompanionMessage(text: text.isEmpty ? output.text : text, emotion: emotion, suggestedTask: suggested)
+        return CompanionMessage(text: text, emotion: emotion, suggestedTask: suggested)
     }
 
     static func isDuplicate(
@@ -209,7 +213,10 @@ struct CompanionOutput {
     @Guide(description: "The emotional tone as a single word. Use one of the valid emotion values listed in the system instructions.")
     var emotion: String
 
-    @Guide(description: "If your message suggests the user work on a specific task, provide its exact name here. Otherwise leave this empty.")
+    @Guide(description: "True only if your message suggests the user work on a specific task from UPCOMING TASKS.")
+    var isSuggestingTask: Bool
+
+    @Guide(description: "The exact task name when isSuggestingTask is true; ignored otherwise.")
     var suggestedTaskName: String
 }
 #endif
@@ -226,6 +233,8 @@ struct CompanionTaskContext: Sendable {
         let lastCompletedAt: Date?
         let lastMoodValence: Double?   // -1.0 to +1.0, nil if never logged
         let categories: [String]
+        var consistency: ConsistencyBand = .notEnoughHistory
+        var pace: PaceSummary? = nil
     }
 
     struct HabitSummary: Sendable {
@@ -234,6 +243,7 @@ struct CompanionTaskContext: Sendable {
         let weeklyFrequency: Int
         let currentStreak: Int
         let doneToday: Bool
+        var consistency: ConsistencyBand = .notEnoughHistory
     }
 
     let dueTasks: [TaskSummary]        // incomplete tasks, capped at 10
@@ -262,6 +272,10 @@ struct CompanionTaskContext: Sendable {
                 if !t.categories.isEmpty {
                     line += " [\(t.categories.joined(separator: ", "))]"
                 }
+                if let pace = t.pace {
+                    line += " — \(pace.intervalPhrase), \(pace.overduePhrase)"
+                }
+                line += " — \(t.consistency.descriptor)"
                 if let mood = t.lastMoodValence {
                     let feel = mood >= 0.5 ? "great" : mood >= 0 ? "okay" : "drained"
                     if let last = t.lastCompletedAt {
@@ -282,9 +296,10 @@ struct CompanionTaskContext: Sendable {
                 if let at = t.lastCompletedAt {
                     line += " completed \(formatter.localizedString(for: at, relativeTo: loadedAt))"
                 }
+                line += " — \(t.consistency.descriptor)"
                 if let mood = t.lastMoodValence {
                     let feel = mood >= 0.5 ? "great" : mood >= 0 ? "okay" : "drained"
-                    line += ", felt \(feel) (\(String(format: "%.1f", mood)))"
+                    line += ", felt \(feel)"
                 }
                 lines.append(line)
             }
@@ -295,7 +310,7 @@ struct CompanionTaskContext: Sendable {
             for h in habits {
                 let frequency = h.weeklyFrequency == 7 ? "daily" : "\(h.weeklyFrequency) days/week"
                 let done = h.doneToday ? "done today" : "not done today"
-                lines.append("- \"\(h.name)\" (\(frequency)) — streak \(h.currentStreak) weeks, \(done)")
+                lines.append("- \"\(h.name)\" (\(frequency)) — \(h.consistency.descriptor), streak \(h.currentStreak) weeks, \(done)")
             }
         }
 
@@ -346,6 +361,7 @@ final class CompanionService {
     private init() {
         let savedID = UserDefaults.companionPersonalityID
         personality = CompanionService.allPersonalities.first { $0.id == savedID } ?? OttoPersonality()
+        restoreDigest()
         checkModelAvailability()
     }
 
@@ -412,24 +428,137 @@ final class CompanionService {
         log.info("loadChatHistory: loaded \(history.count) messages")
     }
 
+    // MARK: - Conversation naturalness
+
+    /// Number of recent messages to include verbatim in the session instructions.
+    /// The remainder of the 48-hour history is summarized as a rolling digest.
+    /// This can become a user setting later, but is currently fixed at 2.
+    static let recentVerbatimCount: Int = 2
+
+    private var cachedDigest: String? {
+        didSet { persistDigest() }
+    }
+
+    private func persistDigest() {
+        UserDefaults.standard.set(cachedDigest, forKey: "me.craigpeters.clarity.companionDigest")
+    }
+
+    private func restoreDigest() {
+        cachedDigest = UserDefaults.standard.string(forKey: "me.craigpeters.clarity.companionDigest")
+    }
+
+    private var styleGuidance: String {
+        """
+        STYLE:
+        - Vary your sentence openers; never start two consecutive messages the same way.
+        - Do not reuse phrasing from the recent conversation above.
+        - Reference progress the way a supportive friend would ("you've been so consistent with Walk") — never restate raw stats or numbers.
+        - Choose ONE conversational move per reply: light humor, a check-in question, a brief acknowledgment, or encouragement. Do not default to encouragement every time.
+        """
+    }
+
+    #if canImport(FoundationModels)
+    @available(iOS 26.0, *)
+    @Generable(description: "A concise summary of a conversation")
+    fileprivate struct ConversationDigestOutput {
+        @Guide(description: "1–3 sentences summarizing what the user has been talking about, third person, no advice.")
+        var text: String
+    }
+    #endif
+
+    #if canImport(FoundationModels)
+    @available(iOS 26.0, *)
+    private func updateConversationDigest() async {
+        guard modelAvailability.isAvailable else { return }
+        let tail = CompanionService.recentVerbatimCount
+        guard chatHistory.count > tail else {
+            cachedDigest = nil
+            return
+        }
+
+        let older = Array(chatHistory.prefix(chatHistory.count - tail))
+        guard !older.isEmpty else {
+            cachedDigest = nil
+            return
+        }
+
+        let transcript = older.map { message in
+            let sender = message.sender == .user ? "User" : displayName
+            return "\(sender): \(message.text)"
+        }.joined(separator: "\n")
+
+        let instructions = """
+        Summarize the following conversation in 1–3 sentences, third person, no advice. \
+        Focus on what the user has been talking about.
+
+        \(transcript)
+        """
+        do {
+            let session = LanguageModelSession(instructions: instructions)
+            let response = try await session.respond(to: "Summarize the conversation above.", generating: ConversationDigestOutput.self)
+            let summary = response.content.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            cachedDigest = summary.isEmpty ? nil : summary
+        } catch {
+            log.warning("updateConversationDigest: failed to generate digest — \(error)")
+            // Keep the existing cachedDigest on failure.
+        }
+    }
+    #endif
+
     // MARK: - Context loading
 
     /// Call this from any actor that has a ClarityModelActor before triggering or chatting.
     func loadContext(from store: ClarityModelActor) async {
         log.debug("loadContext: fetching tasks and habits")
         do {
+            let now = Date()
+            let ninetyDaysAgo = now.addingTimeInterval(-90 * 86_400)
+            let thirteenWeeksAgo = now.addingTimeInterval(-13 * 7 * 86_400)
+
             let incomplete = try await store.fetchTasks(filter: .all)
-            let completed = try await store.fetchCompletedTasks()
+            let completed = try await store.fetchCompletedTasks(since: ninetyDaysAgo)
             let habits = try await store.fetchHabits()
             log.debug("loadContext: \(incomplete.count) incomplete, \(completed.count) completed tasks, \(habits.count) habits")
 
-            let now = Date()
+            let scorer = ConsistencyScorer()
+            let paceDetector = PaceDetector()
+            let calendar = Calendar.current
 
-            // Build a name → last completed/mood lookup from completed tasks
-            // (multiple completions of the same recurring task — keep most recent)
+            // Group completed tasks by UUID for pace & consistency computation.
+            var completionsByUUID: [UUID: [Date]] = [:]
+            var completionsByCategory: [String: [Date]] = [:]
+            for task in completed {
+                completionsByUUID[task.uuid, default: []].append(task.completedAt ?? task.due)
+                for category in task.categories.map(\.name) {
+                    completionsByCategory[category, default: []].append(task.completedAt ?? task.due)
+                }
+            }
+            for uuid in completionsByUUID.keys {
+                completionsByUUID[uuid]?.sort()
+            }
+            for category in completionsByCategory.keys {
+                completionsByCategory[category]?.sort()
+            }
+
+            // Build a name → last completed/mood lookup from completed tasks.
+            // `fetchCompletedTasks(since:)` returns tasks sorted ascending by completedAt,
+            // so simply assigning over the dictionary keeps the most recent completion for each name.
             var completionByName: [String: ToDoTaskDTO] = [:]
-            for task in completed.sorted(by: { ($0.completedAt ?? .distantPast) < ($1.completedAt ?? .distantPast) }) {
+            for task in completed {
                 completionByName[task.name] = task
+            }
+
+            func taskPace(uuid: UUID, categories: [String]) -> PaceSummary? {
+                if let completions = completionsByUUID[uuid], completions.count >= 4 {
+                    return paceDetector.pace(completions: completions, now: now)
+                }
+                // Fallback: category cluster for sparse one-off tasks.
+                for category in categories {
+                    if let cluster = completionsByCategory[category], cluster.count >= 4 {
+                        return paceDetector.pace(completions: cluster, now: now)
+                    }
+                }
+                return nil
             }
 
             let dueSummaries = incomplete
@@ -438,6 +567,13 @@ final class CompanionService {
                 .prefix(10)
                 .map { task -> CompanionTaskContext.TaskSummary in
                     let prev = completionByName[task.name]
+                    let completions = completionsByUUID[task.uuid] ?? []
+                    let periods = ConsistencyScorer.taskPeriods(
+                        completions: completions,
+                        now: now,
+                        firstDueDate: task.due
+                    )
+                    let pace = taskPace(uuid: task.uuid, categories: task.categories.map(\.name))
                     return CompanionTaskContext.TaskSummary(
                         uuid: task.uuid,
                         name: task.name,
@@ -445,40 +581,55 @@ final class CompanionService {
                         pomodoroMinutes: Int(task.pomodoroTime / 60),
                         lastCompletedAt: prev?.completedAt,
                         lastMoodValence: prev?.completionMoodValence,
-                        categories: task.categories.map(\.name)
+                        categories: task.categories.map(\.name),
+                        consistency: scorer.band(for: scorer.score(periods: periods)),
+                        pace: pace
                     )
                 }
 
             let recentSummaries = completed
                 .sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
                 .prefix(5)
-                .map { task in
-                    CompanionTaskContext.TaskSummary(
+                .map { task -> CompanionTaskContext.TaskSummary in
+                    let periods = ConsistencyScorer.taskPeriods(
+                        completions: completionsByUUID[task.uuid] ?? [],
+                        now: now,
+                        firstDueDate: task.due
+                    )
+                    return CompanionTaskContext.TaskSummary(
                         uuid: task.uuid,
                         name: task.name,
                         dueDate: task.due,
                         pomodoroMinutes: Int(task.pomodoroTime / 60),
                         lastCompletedAt: task.completedAt,
                         lastMoodValence: task.completionMoodValence,
-                        categories: task.categories.map(\.name)
+                        categories: task.categories.map(\.name),
+                        consistency: scorer.band(for: scorer.score(periods: periods)),
+                        pace: nil
                     )
                 }
 
-            let calendar = Calendar.current
             var habitSummaries: [CompanionTaskContext.HabitSummary] = []
             for habit in habits {
-                let allHistory = try await store.fetchHabitHistory(habit.uuid, from: Date.distantPast, to: now)
-                let streak = HabitStreakCalculator.streak(occurrences: allHistory, frequency: habit.weeklyFrequency, freezes: habit.streakFreezes)
+                let history = try await store.fetchHabitHistory(habit.uuid, from: thirteenWeeksAgo, to: now)
+                let streak = HabitStreakCalculator.streak(occurrences: history, frequency: habit.weeklyFrequency, freezes: habit.streakFreezes)
                 let today = calendar.startOfDay(for: now)
-                let doneToday = allHistory.contains { occurrence in
+                let doneToday = history.contains { occurrence in
                     occurrence.completed && calendar.isDate(occurrence.periodStart, inSameDayAs: today)
                 }
+                let completedDates = history.filter(\.completed).map(\.periodStart)
+                let periods = ConsistencyScorer.habitPeriods(
+                    occurrences: completedDates,
+                    weeklyFrequency: habit.weeklyFrequency,
+                    now: now
+                )
                 habitSummaries.append(CompanionTaskContext.HabitSummary(
                     uuid: habit.uuid,
                     name: habit.name,
                     weeklyFrequency: habit.weeklyFrequency,
                     currentStreak: streak.current,
-                    doneToday: doneToday
+                    doneToday: doneToday,
+                    consistency: scorer.band(for: scorer.score(periods: periods))
                 ))
             }
 
@@ -517,8 +668,15 @@ final class CompanionService {
         if let existing = session { return existing }
         let base = personality.systemInstructions(name: displayName, contextBlock: taskContext.instructionsBlock)
         let emotionList = personality.supportedEmotions.map(\.rawValue).joined(separator: ", ")
-        let historyBlock = recentConversationBlock()
-        let instructions = base + "\n\nValid emotion values: \(emotionList)" + (historyBlock.isEmpty ? "" : "\n\nRECENT CONVERSATION:\n\(historyBlock)")
+        let historyBlock = recentConversationBlock(limit: Self.recentVerbatimCount)
+        var instructions = base + "\n\nValid emotion values: \(emotionList)"
+        if let cachedDigest, !cachedDigest.isEmpty {
+            instructions += "\n\nCONVERSATION SO FAR: \(cachedDigest)"
+        }
+        if !historyBlock.isEmpty {
+            instructions += "\n\nRECENT MESSAGES:\n\(historyBlock)"
+        }
+        instructions += "\n\n" + styleGuidance
         log.debug("currentSession: creating new session")
         log.debug("currentSession: instructions —\n\(instructions)")
         let newSession = LanguageModelSession(instructions: instructions)
@@ -526,7 +684,7 @@ final class CompanionService {
         return newSession
     }
 
-    private func recentConversationBlock(limit: Int = 2) -> String {
+    private func recentConversationBlock(limit: Int) -> String {
         let recent = Array(chatHistory.suffix(limit))
         guard !recent.isEmpty else { return "" }
         return recent.map { message in
@@ -576,7 +734,16 @@ final class CompanionService {
 
         #if canImport(FoundationModels)
         if #available(iOS 26.0, *), modelAvailability.isAvailable {
-            Task { await generate(prompt: userMessage, fallbackEvent: nil) }
+            let sanitized = userMessage
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "\"", with: "\\\"")
+                .replacingOccurrences(of: "\n", with: " ")
+                .replacingOccurrences(of: "\r", with: "")
+            let prompt = """
+                The user said: "\(sanitized)"
+                Respond to what they said first and foremost. Only bring in task or habit context if it naturally follows from their message. \n\(styleGuidance)
+                """
+            Task { await generate(prompt: prompt, fallbackEvent: nil) }
         } else {
             log.debug("chat: model unavailable, using fallback")
             showChatFallback()
@@ -612,6 +779,8 @@ final class CompanionService {
         do {
             let response = try await currentSession().respond(to: prompt, generating: CompanionOutput.self)
             show(response.content, trigger: fallbackEvent)
+            // Update the rolling digest off the critical path after a successful reply.
+            Task { await updateConversationDigest() }
         } catch let genError as LanguageModelSession.GenerationError {
             switch genError {
             case .assetsUnavailable:
@@ -792,3 +961,28 @@ final class CompanionService {
         startTaskRequest = uuid
     }
 }
+
+// MARK: - Test hooks
+
+#if DEBUG
+extension CompanionService {
+    /// Internal test accessor for the cached conversation digest.
+    var testableDigest: String? { cachedDigest }
+
+    /// Internal test helper to populate the digest cache directly.
+    func setTestableDigest(_ digest: String?) {
+        cachedDigest = digest
+    }
+
+    /// Internal test helper to restore the digest cache from UserDefaults.
+    func restoreTestableDigest() {
+        restoreDigest()
+    }
+
+    /// Internal test helper to clear the digest cache and persisted copy.
+    func clearTestableDigest() {
+        cachedDigest = nil
+        UserDefaults.standard.removeObject(forKey: "me.craigpeters.clarity.companionDigest")
+    }
+}
+#endif

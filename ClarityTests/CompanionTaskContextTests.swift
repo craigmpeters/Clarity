@@ -111,7 +111,7 @@ struct CompanionTaskContextTests {
         let ctx = context(recentlyCompleted: [completed])
         #expect(ctx.instructionsBlock.contains("RECENTLY COMPLETED"))
         #expect(ctx.instructionsBlock.contains("\"Done\""))
-        #expect(ctx.instructionsBlock.contains("0.6"))
+        #expect(ctx.instructionsBlock.contains("felt great"))
     }
 
     @Test func habitsSectionDailyFrequency() {
@@ -133,5 +133,24 @@ struct CompanionTaskContextTests {
         let habit = habitSummary(name: "Read", weeklyFrequency: 7, currentStreak: 5)
         let ctx = context(habits: [habit])
         #expect(ctx.instructionsBlock.contains("streak 5 weeks"))
+    }
+
+    @Test func dueTaskLineIncludesConsistency() {
+        let due = summary(name: "Read Docs", dueDate: Date().addingTimeInterval(3600))
+        let ctx = context(dueTasks: [due])
+        #expect(ctx.instructionsBlock.contains("just getting started"))
+    }
+
+    @Test func habitLineIncludesConsistency() {
+        let habit = habitSummary(name: "Walk", weeklyFrequency: 7, currentStreak: 3, doneToday: true)
+        let ctx = context(habits: [habit])
+        #expect(ctx.instructionsBlock.contains("just getting started"))
+    }
+
+    @Test func descriptorContentExcludesRawScores() {
+        let due = summary(name: "Read Docs", dueDate: Date().addingTimeInterval(3600))
+        let ctx = context(dueTasks: [due])
+        #expect(ctx.instructionsBlock.contains("0.0") == false)
+        #expect(ctx.instructionsBlock.contains("1.0") == false)
     }
 }
