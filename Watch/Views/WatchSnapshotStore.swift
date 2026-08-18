@@ -28,7 +28,8 @@ final class WatchSnapshotStore {
 
     private var lastAppliedRevision: Int = 0
     private var consumerTask: Task<Void, Never>?
-
+    private var logger : XCGLogger { LogManager.shared.log }
+    
     private init() {}
 
     func start() {
@@ -43,6 +44,7 @@ final class WatchSnapshotStore {
     private func apply(_ msg: WireMessage) {
         switch msg {
         case .snapshot(let s), .complicationSnapshot(let s):
+            logger.debug("Received snapshot rev=\(s.revision) (last applied=\(lastAppliedRevision)) tasks=\(s.tasks.count) habits=\(s.habits.count) activePomodoro=\(s.activePomodoro != nil)")
             guard s.revision > lastAppliedRevision else { return }
             lastAppliedRevision = s.revision
             snapshot = s
