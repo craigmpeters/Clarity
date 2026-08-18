@@ -76,12 +76,12 @@ struct ConsistencyScorerTests {
     @Test func habitPeriodsAcrossYearBoundary() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.firstWeekday = 1
-        // Sunday Dec 28 2025, near the week of Jan 1 2026
-        var components = DateComponents(year: 2025, month: 12, day: 28)
+        // Saturday Jan 3 2026, inside the Sunday-start week that spans the year boundary.
+        var components = DateComponents(year: 2026, month: 1, day: 3)
         let now = calendar.date(from: components)!
-        // Two completions in the week ending Jan 3, 2026 (week 1 of 2026)
+        // Two completions in the week spanning Dec 28 2025 – Jan 3 2026.
         let occurrences = [
-            calendar.date(from: DateComponents(year: 2026, month: 1, day: 2))!,
+            calendar.date(from: DateComponents(year: 2025, month: 12, day: 31))!,
             calendar.date(from: DateComponents(year: 2026, month: 1, day: 3))!
         ]
         let periods = ConsistencyScorer.habitPeriods(
@@ -89,7 +89,7 @@ struct ConsistencyScorerTests {
             weeklyFrequency: 2,
             now: now
         )
-        // Must include the week that spans the year boundary.
+        // The boundary week must be the last period in the window.
         #expect(periods.last == true)
     }
 
@@ -100,14 +100,15 @@ struct ConsistencyScorerTests {
 
         var calendar = Calendar(identifier: .gregorian)
         calendar.firstWeekday = 1
-        // Pick a Sunday; completions are on that Sunday and the next Sunday, so they fall in the same
+        // Pick a Sunday; completions are on that Sunday and the following Saturday, so they fall in the same
         // Sunday-start week and should produce exactly one completed period when weeklyFrequency is 2.
         let sunday = calendar.date(from: DateComponents(year: 2026, month: 1, day: 4))!
-        let occurrences = [sunday, calendar.date(byAdding: .day, value: 7, to: sunday)!]
+        let saturday = calendar.date(byAdding: .day, value: 6, to: sunday)!
+        let occurrences = [sunday, saturday]
         let periods = ConsistencyScorer.habitPeriods(
             occurrences: occurrences,
             weeklyFrequency: 2,
-            now: calendar.date(byAdding: .day, value: 7, to: sunday)!
+            now: saturday
         )
         #expect(periods.last == true)
     }
