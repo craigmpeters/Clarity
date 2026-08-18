@@ -64,6 +64,56 @@ struct CompanionChatStoreTests {
         #expect(fetched.first?.sender == .companion)
     }
 
+    private func taskMessage(
+        timestamp: Date = Date(),
+        sender: ChatSender = .companion,
+        text: String,
+        taskUUID: UUID?,
+        taskName: String?
+    ) -> ChatMessage {
+        ChatMessage(
+            timestamp: timestamp,
+            sender: sender,
+            text: text,
+            suggestedTaskUUID: taskUUID,
+            suggestedTaskName: taskName
+        )
+    }
+
+    @Test func fetchMostRecentTaskMessageReturnsLatestSuggestion() throws {
+        let store = try makeStore()
+        let now = Date()
+        let firstID = UUID()
+        let secondID = UUID()
+        store.append(taskMessage(timestamp: now.addingTimeInterval(-120), text: "older", taskUUID: firstID, taskName: "First task"))
+        store.append(taskMessage(timestamp: now.addingTimeInterval(-60), text: "middle", taskUUID: nil, taskName: nil))
+        store.append(taskMessage(timestamp: now, text: "newest", taskUUID: secondID, taskName: "Latest task"))
+
+        let latest = store.fetchMostRecentTaskMessage()
+        #expect(latest?.suggestedTaskUUID == secondID)
+        #expect(latest?.suggestedTaskName == "Latest task")
+    }
+
+    @Test func fetchMostRecentTaskMessageIgnoresEmptyOrNilTaskNames() throws {
+        let store = try makeStore()
+        let now = Date()
+        store.append(taskMessage(timestamp: now.addingTimeInterval(-120), text: "older", taskUUID: UUID(), taskName: ""))
+        store.append(taskMessage(timestamp: now.addingTimeInterval(-60), text: "middle", taskUUID: UUID(), taskName: nil))
+        store.append(taskMessage(timestamp: now, text: "newest", taskUUID: UUID(), taskName: "Real task"))
+
+        let latest = store.fetchMostRecentTaskMessage()
+        #expect(latest?.suggestedTaskName == "Real task")
+    }
+
+    @Test func fetchMostRecentTaskMessageReturnsNilWhenNoSuggestions() throws {
+        let store = try makeStore()
+        let now = Date()
+        store.append(message(timestamp: now.addingTimeInterval(-60), text: "hello"))
+        store.append(message(timestamp: now, text: "world"))
+
+        #expect(store.fetchMostRecentTaskMessage() == nil)
+    }
+
     @Test func deleteAllEmptiesStore() throws {
         let store = try makeStore()
         store.append(message(text: "a"))

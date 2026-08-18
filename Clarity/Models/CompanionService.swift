@@ -338,6 +338,7 @@ final class CompanionService {
     var modelAvailability: CompanionModelAvailability = .unsupported
     var startTaskRequest: UUID? = nil
     var chatHistory: [ChatMessage] = []
+    var mostRecentSuggestedTask: ChatMessage? { chatStore.fetchMostRecentTaskMessage() }
     private(set) var personality: any CompanionPersonality
 
     // Opaque storage for LanguageModelSession (iOS 26+ only)

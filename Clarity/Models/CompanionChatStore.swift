@@ -70,6 +70,22 @@ final class CompanionChatStore {
             return []
         }
     }
+    
+    func fetchMostRecentTaskMessage() -> ChatMessage? {
+        let context = context
+        var descriptor = FetchDescriptor<ChatMessage>(
+            predicate: #Predicate { message in
+                (message.suggestedTaskName?.isEmpty ?? true) == false
+            },
+            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+        )
+        descriptor.fetchLimit = 1
+        do {
+            return try context.fetch(descriptor).first
+        } catch {
+            return nil
+        }
+    }
 
     func append(_ message: ChatMessage) {
         let context = context

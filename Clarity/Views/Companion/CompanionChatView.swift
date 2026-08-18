@@ -112,11 +112,12 @@ struct CompanionChatView: View {
 
     @ViewBuilder
     private func messageRow(_ message: ChatMessage, index: Int) -> some View {
-        if let uuid = message.suggestedTaskUUID, let name = message.suggestedTaskName {
+        if let uuid = message.suggestedTaskUUID,
+           let name = message.suggestedTaskName,
+           message.persistentModelID == companion.mostRecentSuggestedTask?.persistentModelID {
             suggestionRow(uuid: uuid, name: name)
-        } else {
-            chatBubbleRow(message, index: index)
         }
+        chatBubbleRow(message, index: index)
     }
 
     @ViewBuilder
@@ -172,6 +173,7 @@ struct CompanionChatView: View {
         HStack(spacing: 0) {
             Button {
                 companion.requestStartTask(uuid)
+                dismiss()
             } label: {
                 Image(systemName: "play.fill")
                     .font(.system(size: 20, weight: .semibold))
