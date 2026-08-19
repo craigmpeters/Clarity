@@ -19,6 +19,8 @@ extension Notification.Name {
 
     /// Standard key for the affected task UUID in task-state notifications.
     static var taskUUIDKey: String { "taskUUID" }
+    /// Key whose presence indicates the task completion has already been handled by an external process (e.g., the Live Activity intent).
+    static var completionHandledExternallyKey: String { "completionHandledExternally" }
 }
 
 extension Logger {

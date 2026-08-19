@@ -81,8 +81,16 @@ final class TaskIndexViewModel {
     }
 
     func completeTaskFromPomodoroNotification(userInfo: [AnyHashable: Any]?) {
+        guard let userInfo else { return }
+        guard userInfo[Notification.Name.completionHandledExternallyKey] as? Bool != true else {
+            LogManager.shared.log.debug(
+                "Skipping .pomodoroCompleted: already handled by Live Activity intent"
+            )
+            return
+        }
+        guard PomodoroService.shared.startedDevice != .watchOS else { return }
         guard let store else { return }
-        guard let id = userInfo?[Notification.Name.taskUUIDKey] as? UUID else {
+        guard let id = userInfo[Notification.Name.taskUUIDKey] as? UUID else {
             LogManager.shared.log.warning("Pomodoro completed notification missing taskUUID")
             return
         }

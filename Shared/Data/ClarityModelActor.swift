@@ -696,6 +696,10 @@ actor ClarityModelActor {
       }
     )
     var tasks = try modelContext.fetch(descriptor)
+    if tasks.isEmpty {
+      LogManager.shared.log.info("completeTask: no incomplete task found for UUID \(id.uuidString); skipping")
+      return
+    }
     do {
       tasks = try tasks.map { task in
         task.completed = true
@@ -1020,11 +1024,12 @@ actor ClarityModelActor {
     logger.info("Dedup: groups=\(totalDuplicateGroups) deleted=\(totalDeleted)")
   }
 
-  func getTaskHistory(for taskUuid: UUID) -> [ToDoTask] {
+  func fetchTaskHistory(for taskUuid: UUID) throws -> [ToDoTaskDTO] {
     let descriptor = FetchDescriptor<ToDoTask>(
       predicate: #Predicate { $0.uuid == taskUuid }
     )
-    return (try? modelContext.fetch(descriptor)) ?? []
+    let tasks = (try? modelContext.fetch(descriptor)) ?? []
+    return tasks.map(ToDoTaskDTO.init(from:))
   }
 
   //    func getTaskHistoryTimeline(for taskUuid: UUID) -> [TaskHistoryEntry] {

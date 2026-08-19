@@ -54,7 +54,6 @@ struct TaskIndexView: View {
             viewModel.triggerRefresh()
         }
         .onReceive(NotificationCenter.default.publisher(for: .pomodoroCompleted)) { notification in
-            if PomodoroService.shared.startedDevice == .watchOS { return }
             LogManager.shared.log.debug("Finishing task on phone from Pomodoro completion")
             viewModel.completeTaskFromPomodoroNotification(userInfo: notification.userInfo)
         }

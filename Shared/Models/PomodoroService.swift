@@ -438,14 +438,24 @@ import XCGLogger
             remainingTime = 0
             progress = 0
             loadSessionHistory()
-            let userInfo: [AnyHashable: Any] = recentSessions.first?.taskUUID.map { [Notification.Name.taskUUIDKey: $0] } ?? [:]
+            let userInfo: [AnyHashable: Any] = recentSessions.first?.taskUUID.map {
+                [
+                    Notification.Name.taskUUIDKey: $0,
+                    Notification.Name.completionHandledExternallyKey: true
+                ]
+            } ?? [:]
             NotificationCenter.default.post(name: .pomodoroCompleted, object: nil, userInfo: userInfo)
             LogManager.shared.log.debug("PomodoroService: reset after external stop (was active)")
         } else {
             loadSessionHistory()
             // The session was completed by the Live Activity intent while the app process
             // was not active; surface the mood sheet so the user can log how it went.
-            let userInfo: [AnyHashable: Any] = recentSessions.first?.taskUUID.map { [Notification.Name.taskUUIDKey: $0] } ?? [:]
+            let userInfo: [AnyHashable: Any] = recentSessions.first?.taskUUID.map {
+                [
+                    Notification.Name.taskUUIDKey: $0,
+                    Notification.Name.completionHandledExternallyKey: true
+                ]
+            } ?? [:]
             NotificationCenter.default.post(name: .pomodoroCompleted, object: nil, userInfo: userInfo)
             LogManager.shared.log.debug("PomodoroService: loaded history and posted completion after external stop")
         }

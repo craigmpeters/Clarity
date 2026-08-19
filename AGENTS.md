@@ -20,3 +20,6 @@
 - After every code change run `swift build` and `swift test`; fix all errors and warnings before considering the task done
 - Keep diffs minimal; do not refactor unrelated code
 - Never hardcode secrets or API keys; use Secrets.xcconfig (gitignored)
+
+## Design Decisions
+* Tasks themselves in ToDoTask have a UUID, this is unique for the task but not the instance of the task - this behaviour is intended
