@@ -453,6 +453,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		44045A6030379793003AE512 /* Reminders */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Reminders;
+			sourceTree = "<group>";
+		};
 		441B7E052EEED7F4008D76CA /* ClarityAppIntentsExtension */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -654,6 +659,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		44045A5F3037978A003AE512 /* Intents */ = {
+			isa = PBXGroup;
+			children = (
+				44045A6030379793003AE512 /* Reminders */,
+			);
+			path = Intents;
+			sourceTree = "<group>";
+		};
 		4448AD622E579266005CDDDF /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -718,6 +731,7 @@
 				44D6F0492E85DDDF00B5EF9E /* ClarityWatch.entitlements */,
 				44E77E31302DF0F500C601CE /* ViewModels */,
 				799D41ED8B34C4FF51F34B1B /* Clarity.xctestplan */,
+				44045A5F3037978A003AE512 /* Intents */,
 			);
 			sourceTree = "<group>";
 		};
@@ -751,6 +765,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				44045A6030379793003AE512 /* Reminders */,
 				441B7E052EEED7F4008D76CA /* ClarityAppIntentsExtension */,
 				44D6F0432E85DAA100B5EF9E /* Utilities */,
 			);
@@ -906,6 +921,7 @@
 				441B7E0C2EEED7F4008D76CA /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
+				44045A6030379793003AE512 /* Reminders */,
 				44588D1E2EA924AC00A657C3 /* Icons */,
 				44BCDDFA2E5D2A7E00B61B9C /* Icon Composer */,
 				44D6F0172E85DA9500B5EF9E /* Data */,

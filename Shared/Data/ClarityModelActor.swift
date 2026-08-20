@@ -408,6 +408,41 @@ actor ClarityModelActor {
 
   // MARK: Task Functions
 
+  func fetchTaskByUuidIncludingCompleted(_ id: UUID) throws -> ToDoTaskDTO? {
+    let taskUuid: UUID? = id
+    let descriptor = FetchDescriptor<ToDoTask>(
+      predicate: #Predicate { $0.uuid == taskUuid }
+    )
+    let tasks = try modelContext.fetch(descriptor)
+    return tasks.first.map(ToDoTaskDTO.init(from:))
+  }
+
+  func fetchHabit(_ uuid: UUID) throws -> HabitDTO? {
+    let descriptor = FetchDescriptor<Habit>(predicate: #Predicate { $0.uuid == uuid && !$0.isArchived })
+    guard let habit = try modelContext.fetch(descriptor).first else { return nil }
+    return HabitDTO(from: habit)
+  }
+
+  func fetchHabitIncludingArchived(_ uuid: UUID) throws -> HabitDTO? {
+    let descriptor = FetchDescriptor<Habit>(predicate: #Predicate { $0.uuid == uuid })
+    guard let habit = try modelContext.fetch(descriptor).first else { return nil }
+    return HabitDTO(from: habit)
+  }
+
+  func deleteTask(uuid: UUID) throws {
+    let descriptor = FetchDescriptor<ToDoTask>(predicate: #Predicate { $0.uuid == uuid })
+    let tasks = try modelContext.fetch(descriptor)
+    for task in tasks {
+      modelContext.delete(task)
+    }
+    try modelContext.save()
+    try Self.widgetCoordinator.writeTasks(fetchRecentTasks())
+    Self.widgetCoordinator.reloadAllTimelines()
+    if let onTaskMutated = ClarityModelActor.onTaskMutated {
+      Task { @MainActor in onTaskMutated() }
+    }
+    try? deduplicateTasksByUUID()
+  }
   func fetchWatchWidgetBackingData(
     completeFilter: ToDoTask.CompletedTaskFilter, dueFilter: ToDoTask.TaskFilterOption
   ) -> WatchWidgetData {
