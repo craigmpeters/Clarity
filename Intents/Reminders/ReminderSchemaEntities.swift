@@ -103,12 +103,16 @@ struct ReminderLocationTriggerEntity {
 }
 
 @available(iOS 27, macOS 27, *)
-struct ReminderLocationTriggerEntityQuery: EntityQuery, Sendable {
+struct ReminderLocationTriggerEntityQuery: EntityQuery, EntityStringQuery, Sendable {
     func entities(for identifiers: [ReminderLocationTriggerEntity.ID]) async throws -> [ReminderLocationTriggerEntity] {
         []
     }
 
     func suggestedEntities() async throws -> [ReminderLocationTriggerEntity] {
+        []
+    }
+
+    func entities(matching string: String) async throws -> [ReminderLocationTriggerEntity] {
         []
     }
 }
@@ -134,12 +138,16 @@ struct ReminderSectionEntity {
 }
 
 @available(iOS 27, macOS 27, *)
-struct ReminderSectionEntityQuery: EntityQuery, Sendable {
+struct ReminderSectionEntityQuery: EntityQuery, EntityStringQuery, Sendable {
     func entities(for identifiers: [ReminderSectionEntity.ID]) async throws -> [ReminderSectionEntity] {
         []
     }
 
     func suggestedEntities() async throws -> [ReminderSectionEntity] {
+        []
+    }
+
+    func entities(matching string: String) async throws -> [ReminderSectionEntity] {
         []
     }
 }
@@ -171,7 +179,8 @@ struct ReminderEntity {
         DisplayRepresentation(title: "\(title)")
     }
 
-    init(task: ToDoTaskDTO, list: ReminderListEntity) {
+    init(task: ToDoTaskDTO, category: CategoryDTO?, allCategories: [CategoryDTO]) {
+        let listEntity = ReminderSchemaList.entity(for: category, allCategories: allCategories)
         self.id = ReminderSchemaID.encode(.task, uuid: task.uuid)
         self.images = []
         self.subtasks = []
@@ -189,12 +198,13 @@ struct ReminderEntity {
         self.isFlagged = false
         self.creationDate = task.created
         self.completionDate = task.completedAt
-        self.list = list
+        self.list = listEntity
         self.section = nil
         self.locationTrigger = nil
     }
 
-    init(habit: HabitDTO, occurrence: HabitOccurrenceDTO? = nil, list: ReminderListEntity) {
+    init(habit: HabitDTO, occurrence: HabitOccurrenceDTO? = nil, category: CategoryDTO?, allCategories: [CategoryDTO]) {
+        let listEntity = ReminderSchemaList.entity(for: category, allCategories: allCategories)
         self.id = ReminderSchemaID.encode(.habit, uuid: habit.uuid)
         self.images = []
         self.subtasks = []
@@ -208,7 +218,7 @@ struct ReminderEntity {
         self.isFlagged = false
         self.creationDate = habit.created
         self.completionDate = occurrence?.completedAt
-        self.list = list
+        self.list = listEntity
         self.section = nil
         self.locationTrigger = nil
     }
@@ -218,19 +228,28 @@ struct ReminderEntity {
 struct ReminderEntityQuery: EntityQuery, EntityStringQuery, Sendable {
     func entities(for identifiers: [ReminderEntity.ID]) async throws -> [ReminderEntity] {
         let store = try await ClarityServices.store()
+        let allCategories = (try? await store.getCategories()) ?? []
         var results: [ReminderEntity] = []
         for id in identifiers {
             guard let (kind, uuid) = ReminderSchemaID.decode(id) else { continue }
-            let list = await defaultList(using: store)
             switch kind {
             case .task:
                 if let dto = try await store.fetchTaskByUuidIncludingCompleted(uuid) {
-                    results.append(ReminderEntity(task: dto, list: list))
+                    results.append(ReminderEntity(
+                        task: dto,
+                        category: dto.categories.first,
+                        allCategories: allCategories
+                    ))
                 }
             case .habit:
                 if let dto = try await store.fetchHabit(uuid) {
-                    let occurrence = try? await store.fetchHabitHistory(uuid, from: .now, to: .now).first
-                    results.append(ReminderEntity(habit: dto, occurrence: occurrence, list: list))
+                    let occurrence = try? await todaysOccurrence(for: uuid, using: store)
+                    results.append(ReminderEntity(
+                        habit: dto,
+                        occurrence: occurrence,
+                        category: dto.categories.first,
+                        allCategories: allCategories
+                    ))
                 }
             }
         }
@@ -239,44 +258,58 @@ struct ReminderEntityQuery: EntityQuery, EntityStringQuery, Sendable {
 
     func suggestedEntities() async throws -> [ReminderEntity] {
         let store = try await ClarityServices.store()
-        let list = await defaultList(using: store)
+        let allCategories = (try? await store.getCategories()) ?? []
         let tasks = try await store.fetchTasks(filter: .all)
         let habits = try await store.fetchHabits()
         var results: [ReminderEntity] = []
         for task in tasks where !task.completed {
-            results.append(ReminderEntity(task: task, list: list))
+            results.append(ReminderEntity(
+                task: task,
+                category: task.categories.first,
+                allCategories: allCategories
+            ))
         }
         for habit in habits {
-            let occurrence = try? await store.fetchHabitHistory(habit.uuid, from: .now, to: .now).first
-            results.append(ReminderEntity(habit: habit, occurrence: occurrence, list: list))
+            let occurrence = try? await todaysOccurrence(for: habit.uuid, using: store)
+            results.append(ReminderEntity(
+                habit: habit,
+                occurrence: occurrence,
+                category: habit.categories.first,
+                allCategories: allCategories
+            ))
         }
         return results
     }
 
     func entities(matching string: String) async throws -> [ReminderEntity] {
         let store = try await ClarityServices.store()
-        let list = await defaultList(using: store)
+        let allCategories = (try? await store.getCategories()) ?? []
         let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return try await suggestedEntities() }
         let tasks = try await store.fetchTasks(filter: .all)
         let habits = try await store.fetchHabits()
         var results: [ReminderEntity] = []
         for task in tasks where task.name.localizedCaseInsensitiveContains(trimmed) {
-            results.append(ReminderEntity(task: task, list: list))
+            results.append(ReminderEntity(
+                task: task,
+                category: task.categories.first,
+                allCategories: allCategories
+            ))
         }
         for habit in habits where habit.name.localizedCaseInsensitiveContains(trimmed) {
-            let occurrence = try? await store.fetchHabitHistory(habit.uuid, from: .now, to: .now).first
-            results.append(ReminderEntity(habit: habit, occurrence: occurrence, list: list))
+            let occurrence = try? await todaysOccurrence(for: habit.uuid, using: store)
+            results.append(ReminderEntity(
+                habit: habit,
+                occurrence: occurrence,
+                category: habit.categories.first,
+                allCategories: allCategories
+            ))
         }
         return results
     }
 
-    private func defaultList(using store: ClarityModelActor) async -> ReminderListEntity {
-        let categories = (try? await store.getCategories()) ?? []
-        let category = categories.first
-        return ReminderListEntity(
-            id: category?.uuid?.uuidString ?? "default",
-            name: category?.name ?? "Default"
-        )
+    private func todaysOccurrence(for habitUUID: UUID, using store: ClarityModelActor) async -> HabitOccurrenceDTO? {
+        let startOfDay = Calendar.current.startOfDay(for: .now)
+        return try? await store.fetchHabitHistory(habitUUID, from: startOfDay, to: .now).first
     }
 }

@@ -9,9 +9,30 @@ import AppIntents
 import Foundation
 
 @available(iOS 27, macOS 27, *)
-enum ReminderKind {
+enum ReminderKind: String, AppEnum, Sendable {
     case task
     case habit
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation {
+        TypeDisplayRepresentation(name: "Reminder Kind")
+    }
+
+    static let caseDisplayRepresentations: [ReminderKind: DisplayRepresentation] = [
+        .task: DisplayRepresentation(title: "Task"),
+        .habit: DisplayRepresentation(title: "Habit")
+    ]
+}
+
+@available(iOS 27, macOS 27, *)
+enum ReminderSchemaError: Error, CustomStringConvertible {
+    case unresolvableReminder
+
+    var description: String {
+        switch self {
+        case .unresolvableReminder:
+            return "Could not resolve the reminder."
+        }
+    }
 }
 
 @available(iOS 27, macOS 27, *)
@@ -67,16 +88,17 @@ enum ReminderSchemaRecurrence {
         case .monthly:
             return Calendar.RecurrenceRule(calendar: .current, frequency: .monthly, interval: 1)
         case .specific:
-            let appWeekday = specificDay ?? 1
-            let normalized = ((appWeekday - 1) % 7 + 7) % 7 + 1
-            // Calendar weekday is 1 = Sunday, 7 = Saturday.
-            let calendarWeekday = ((normalized + 1 - 1) % 7) + 1
+            // App stores everySpecificDayDay as a 0-based index into Calendar.current.weekdaySymbols
+            // (0 = Sunday ... 6 = Saturday), while Calendar uses 1-based weekday numbers.
+            let appWeekday = specificDay ?? 0
+            let normalized = ((appWeekday % 7) + 7) % 7
+            let calendarWeekday = normalized + 1
             let localeWeekday = localeWeekday(from: calendarWeekday)
             return Calendar.RecurrenceRule(
                 calendar: .current,
                 frequency: .weekly,
                 interval: 1,
-                weekdays: [.nth(1, localeWeekday)]
+                weekdays: [.every(localeWeekday)]
             )
         case .custom:
             let days = max(customDays, 1)
@@ -116,7 +138,7 @@ enum ReminderSchemaRecurrence {
                 if weekdays.count == 1 {
                     let weekday = weekdays[0]
                     switch weekday {
-                    case .nth(_, let localeWeekday):
+                    case .every(let localeWeekday):
                         return (.specific, 1, appWeekday(from: localeWeekday))
                     default:
                         return (.weekly, 1, nil)
@@ -135,16 +157,30 @@ enum ReminderSchemaRecurrence {
     }
 
     private static func appWeekday(from localeWeekday: Locale.Weekday) -> Int {
+        // Calendar weekday numbers are 1-based (1 = Sunday). Convert to the app's 0-based
+        // weekdaySymbols index (0 = Sunday ... 6 = Saturday).
         switch localeWeekday {
-        case .sunday: return 1
-        case .monday: return 2
-        case .tuesday: return 3
-        case .wednesday: return 4
-        case .thursday: return 5
-        case .friday: return 6
-        case .saturday: return 7
-        default: return 2
+        case .sunday: return 0
+        case .monday: return 1
+        case .tuesday: return 2
+        case .wednesday: return 3
+        case .thursday: return 4
+        case .friday: return 5
+        case .saturday: return 6
+        default: return 1
         }
+    }
+}
+
+@available(iOS 27, macOS 27, *)
+enum ReminderSchemaList {
+    /// Build a schema list entity from the given category, falling back to the first available category.
+    static func entity(for category: CategoryDTO?, allCategories: [CategoryDTO]) -> ReminderListEntity {
+        let resolved = category ?? allCategories.first
+        return ReminderListEntity(
+            id: resolved?.uuid?.uuidString ?? "default",
+            name: resolved?.name ?? "Default"
+        )
     }
 }
 
