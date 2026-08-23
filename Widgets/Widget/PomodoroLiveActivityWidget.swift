@@ -12,6 +12,7 @@ import SwiftUI
 import WidgetKit
 
 struct PomodoroLiveActivityWidget: Widget {
+    
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: PomodoroAttributes.self) { context in
             PomodoroLiveActivityView(context: context)
@@ -70,10 +71,11 @@ struct PomodoroLiveActivityWidget: Widget {
                 if context.isStale {
                     Text("✅")
                 } else {
-                    Text(context.state.endTime, style: .timer)
-                        .monospacedDigit()
-                        .font(.caption2)
-                        .frame(maxWidth: .minimum(50, 50), alignment: .leading)
+                    let elapsed = Date().timeIntervalSince(context.state.startTime)
+                    let total = context.state.endTime.timeIntervalSince(context.state.startTime)
+                    let progress = total > 0 ? min(max(elapsed / total, 0), 1) : 1
+                    ProgressView(value: progress)
+                        .progressViewStyle(CircularProgressViewStyle(tint: .clarityBlue))
                 }
             }
         }
