@@ -141,9 +141,20 @@ enum UITestDataSeeder {
             )
         ]
         for habit in habits {
+            addOccurrence(habit, context)
             context.insert(habit)
         }
     }
+    
+    private static func addOccurrence(_ habit: Habit, _ context: ModelContext) {
+        let total = habit.incrementStep * 2.0
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: Date())
+        let new =  HabitOccurrence(habit:habit, periodStart: startOfDay, currentAmount: total)
+        context.insert(new)
+    }
+    
+    
 
     private static func fetchCategories(from context: ModelContext) -> [Category] {
         (try? context.fetch(FetchDescriptor<Category>())) ?? []

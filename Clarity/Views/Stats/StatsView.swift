@@ -52,6 +52,8 @@ struct StatsView: View {
     @Query private var allTasks: [ToDoTask]
     @Query private var allCategories: [Category]
     @Query private var allHabits: [Habit]
+    
+    
     @State private var selectedTimeframe: StatsTimeframe = .last7Days
     @State private var selectedCategory: Category? = nil
     @Environment(\.modelContext) private var modelContext
@@ -181,34 +183,43 @@ struct StatsView: View {
             categoryFilter: selectedCategory?.name,
             categories: categoryDTOs
         )
-        Task { await loadHabitStreaks() }
+        loadHabitStreaks()
         checkCompanionTriggers(completedDTOs: completedDTOs)
     }
 
-    private func loadHabitStreaks() async {
-        guard let store = try? await ClarityServices.store() else { return }
+    private func loadHabitStreaks() {
         let calendar = HabitStreakCalculator.streakCalendar()
         let now = Date()
         let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
         var rows: [HabitStreakRow] = []
         for habit in allHabits.filter({ !$0.isArchived }) {
-            let history = (try? await store.fetchHabitHistory(habit.uuid, from: Date.distantPast, to: now)) ?? []
-            let streak = HabitStreakCalculator.streak(occurrences: history, frequency: habit.weeklyFrequency, freezes: habit.streakFreezes)
-            let weekHistory = (try? await store.fetchHabitHistory(habit.uuid, from: startOfWeek, to: now)) ?? []
-            let completedThisWeek = weekHistory.filter { $0.completed || $0.freezeUsed }.count
-            rows.append(HabitStreakRow(
-                uuid: habit.uuid,
-                name: habit.name,
-                currentStreak: streak.current,
-                longestStreak: streak.longest,
-                freezes: habit.streakFreezes,
-                completedThisWeek: completedThisWeek,
-                weeklyFrequency: habit.weeklyFrequency
-            ))
-        }
-        await MainActor.run {
-            habitStreaks = rows
-        }
+            
+            let allOccurrences = (habit.occurrences ?? []).compactMap(
+                HabitOccurrenceDTO.init(from:))
+            
+            let streak = HabitStreakCalculator.streak(
+                occurrences: allOccurrences,
+                frequency: habit.weeklyFrequency,
+                freezes: habit.streakFreezes)
+            
+            let weeklyOccurrences = allOccurrences.filter
+            
+            let weekOccurrences = allOccurrences.filter {
+                   $0.periodStart >= startOfWeek && $0.periodStart <= now
+               }
+           let completedThisWeek = weekOccurrences.filter { $0.completed || $0.freezeUsed }.count
+           
+           rows.append(HabitStreakRow(
+               uuid: habit.uuid,
+               name: habit.name,
+               currentStreak: streak.current,
+               longestStreak: streak.longest,
+               freezes: habit.streakFreezes,
+               completedThisWeek: completedThisWeek,
+               weeklyFrequency: habit.weeklyFrequency
+           ))
+       }
+       habitStreaks = rows
     }
 
     private func checkCompanionTriggers(completedDTOs: [ToDoTaskDTO]) {
@@ -626,7 +637,7 @@ struct HabitStreakCard: View {
                     Label("Current", systemImage: "flame.fill")
                         .font(.caption)
                         .foregroundColor(.orange)
-                    Text("^\(row.currentStreak) [days](inflect: true)")
+                    Text("\(row.currentStreak) \(row.currentStreak == 1 ? "day" : "days")")
                         .font(.title3.bold())
                 }
 
@@ -634,7 +645,7 @@ struct HabitStreakCard: View {
                     Label("Longest", systemImage: "trophy.fill")
                         .font(.caption)
                         .foregroundColor(.yellow)
-                    Text("^\(row.longestStreak) [days](inflect: true)")
+                    Text("\(row.longestStreak) \(row.currentStreak == 1 ? "day" : "days")")
                         .font(.title3.bold())
                 }
 
@@ -707,5 +718,6 @@ struct ActivityViewController: UIViewControllerRepresentable {
 #Preview {
     StatsView()
     .modelContainer(PreviewData.shared.previewContainer)
+    .environment(CompanionService.shared)
 }
 #endif

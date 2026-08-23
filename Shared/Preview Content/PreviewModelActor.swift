@@ -56,6 +56,16 @@ final class PreviewData {
         }
     }
     
+    func getHabits() -> [Habit] {
+        do {
+            let descriptor = FetchDescriptor<Habit>()
+            return try previewContext.fetch(descriptor)
+        } catch {
+            print("Failed to fetch habits: \(error)")
+            return []
+        }
+    }
+    
     func getCompletedTasks(filter: ToDoTask.CompletedTaskFilter = .Month) -> [ToDoTask] {
         do {
             let descriptor = FetchDescriptor<ToDoTask>(

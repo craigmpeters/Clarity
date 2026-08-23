@@ -90,5 +90,6 @@ struct TaskIndexView: View {
         selectedTask: .constant(selectedTask)
     )
     .modelContainer(PreviewData.shared.previewContainer)
+    .environment(CompanionService.shared)
 }
 #endif
