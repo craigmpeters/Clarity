@@ -24,7 +24,7 @@ struct WatchHabitsView: View {
     var body: some View {
         NavigationStack {
             TabView(selection: selectedTabBinding) {
-                ForEach(habits) { habit in
+                ForEach(habits, id: \.uuid) { habit in
                     WatchHabitPage(
                         habit: habit,
                         occurrence: store.occurrence(for: habit.uuid),
@@ -37,13 +37,13 @@ struct WatchHabitsView: View {
             }
             .tabViewStyle(.verticalPage)
             .navigationTitle(selectedHabit?.name ?? "Habits")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink(destination: ContentView()) {
-                        Image(systemName: "list.bullet")
-                    }
-                }
-            }
+//            .toolbar {
+//                ToolbarItem(placement: .topBarTrailing) {
+//                    NavigationLink(destination: ContentView()) {
+//                        Image(systemName: "list.bullet")
+//                    }
+//                }
+//            }
             .overlay {
                 if habits.isEmpty {
                     ContentUnavailableView("No Habits", systemImage: "checklist", description: Text("Add habits on your iPhone"))

@@ -22,33 +22,14 @@ struct ContentView: View {
                     .tag(0)
                 WatchHabitsView()
                     .tag(1)
+                #if INTERNAL
+                WatchLogTransferView()
+                    .tag(2)
+                #endif
             }
             .tabViewStyle(.verticalPage)
             .navigationTitle(selectedTab == 0 ? "Tasks" : "Habits")
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        selectedTab = selectedTab == 0 ? 1 : 0
-                    } label: {
-                        Image(systemName: selectedTab == 0 ? "checklist" : "list.bullet")
-                    }
-                }
-                #if INTERNAL
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        transferLogButton()
-                    } label: {
-                        Image(systemName: "line.3.horizontal.decrease")
-                    }
-                }
-                #endif
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: refresh) {
-                        Image(systemName: isRefreshing ? "arrow.clockwise.circle.fill" : "arrow.clockwise.circle")
-                    }
-                    .disabled(isRefreshing)
-                }
-            }
+            .refreshable(action: refresh)
             .sheet(item: Binding(
                 get: { store.activePomodoro.map(IdentifiedPomodoro.init) },
                 set: { _ in WatchSnapshotStore.shared.dismissPomodoro() }
@@ -87,17 +68,6 @@ struct ContentView: View {
             .sorted { $0.due < $1.due }
     }
 
-    #if INTERNAL
-    private func transferLogButton() {
-        LogManager.shared.log.debug("Sending Logs to Phone")
-        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity") else {
-            LogManager.shared.log.error("Cannot create Container URL")
-            return
-        }
-        let logData = WidgetFileCoordinator.shared.collectlogs()
-        store.sendLogs(logData)
-    }
-    #endif
 
     private func refresh() {
         isRefreshing = true
@@ -107,6 +77,30 @@ struct ContentView: View {
         }
     }
 }
+
+#if INTERNAL
+
+struct WatchLogTransferView: View {
+
+    var body : some View {
+        VStack {
+            Button(action: transferLogButton, label: {
+                Text("Send Logs")
+            })
+        }
+    }
+    
+    private func transferLogButton() {
+        LogManager.shared.log.debug("Sending Logs to Phone")
+        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity") else {
+            LogManager.shared.log.error("Cannot create Container URL")
+            return
+        }
+        let logData = WidgetFileCoordinator.shared.collectlogs()
+        WatchSnapshotStore.shared.sendLogs(logData)
+    }
+}
+#endif
 
 
 struct WatchTaskRow: View {

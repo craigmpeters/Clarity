@@ -132,6 +132,12 @@ final class WatchSnapshotStore {
             }
             let progress = WidgetFileCoordinator.shared.readWeeklyProgress() ?? WeeklyProgress(completed: 0, target: 0, error: nil, categories: [])
             snapshot = Snapshot(revision: 0, tasks: tasks, habits: habits, habitOccurrences: [:], progress: progress, activePomodoro: nil)
+            if let data = try? JSONEncoder().encode(snapshot),
+               let string = String(data: data, encoding: .utf8) {
+                logger.debug(string)
+            } else {
+                logger.debug("Failed to encode fallback snapshot")
+            }
         }
     }
 }
