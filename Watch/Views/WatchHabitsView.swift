@@ -36,7 +36,7 @@ struct WatchHabitsView: View {
                 }
             }
             .tabViewStyle(.verticalPage)
-            .navigationTitle(selectedHabit?.name ?? "Habits")
+//            .navigationTitle(selectedHabit?.name ?? "Habits")
 //            .toolbar {
 //                ToolbarItem(placement: .topBarTrailing) {
 //                    NavigationLink(destination: ContentView()) {
@@ -68,41 +68,15 @@ struct WatchHabitPage: View {
 
     var body: some View {
         ZStack {
-            WatchHabitArtworkBackground(filename: habit.artworkFilename)
-                .allowsHitTesting(false)
-
             VStack(spacing: 12) {
-                HStack {
-                    Image(systemName: "flame.fill")
-                        .foregroundColor(.orange)
-                    Text("\(habit.currentStreak)")
-                        .font(.subheadline.weight(.semibold))
-                    Spacer()
-                }
-
-                ZStack {
-                    Circle()
-                        .stroke(Color.secondary.opacity(0.2), lineWidth: 10)
-                    Circle()
-                        .trim(from: 0, to: progressFraction)
-                        .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .animation(.easeInOut(duration: 0.2), value: progressFraction)
-                    Button(action: onIncrement) {
-                        Image(systemName: isOptimisticallyIncremented ? "checkmark" : "plus")
-                            .font(.largeTitle.weight(.semibold))
-                            .foregroundColor(.accentColor)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .disabled(isOptimisticallyIncremented)
-                    .accessibilityLabel("Log progress for \(habit.name)")
-                    .accessibilityHint("Adds \(HabitFormatter.formatted(habit.incrementStep)) to today's amount")
-                }
-                .frame(width: 100, height: 100)
-                .contentShape(Circle())
-                .onTapGesture(perform: onIncrement)
-                .accessibilityElement(children: .combine)
-                .accessibilityValue(HabitFormatter.progressDescription(amount: effectiveAmount, target: habit.dailyTarget, unit: habit.unitLabel, healthKitIdentifier: habit.healthKitIdentifier))
+                Text(habit.name)
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity)
+                    .allowsTightening(true)
 
                 Text(HabitFormatter.progressDescription(amount: effectiveAmount, target: habit.dailyTarget, unit: habit.unitLabel, healthKitIdentifier: habit.healthKitIdentifier))
                     .font(.subheadline)
@@ -117,15 +91,22 @@ struct WatchHabitPage: View {
                 }
                 .accessibilityLabel("Weekly progress: \(habit.weekCompletionBitmap.filter(\.self).count) of 7 days completed")
             }
+
             .padding(8)
-            .background(
-                ZStack {
-                    if habit.artworkFilename != nil {
-                        RoundedRectangle(cornerRadius: 40)
-                            .fill(.ultraThinMaterial.opacity(0.6))
-                    }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .bottomBar) {
+                Button {
+                    onIncrement()
+                } label: {
+                    Image(systemName: isOptimisticallyIncremented ? "checkmark" : "plus")
                 }
-            )
+                .controlSize(.extraLarge)
+                .background(.blue, in: Capsule())
+                .disabled(isOptimisticallyIncremented)
+                .accessibilityLabel("Log progress for \(habit.name)")
+                .accessibilityHint("Adds \(HabitFormatter.formatted(habit.incrementStep)) to today's amount")
+            }
         }
     }
 

@@ -18,7 +18,7 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             TabView(selection: $selectedTab) {
-                taskList
+                WatchTaskView()
                     .tag(0)
                 WatchHabitsView()
                     .tag(1)
@@ -30,6 +30,24 @@ struct ContentView: View {
             .tabViewStyle(.verticalPage)
             .navigationTitle(selectedTab == 0 ? "Tasks" : "Habits")
             .refreshable(action: refresh)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        selectedTab = selectedTab == 0 ? 1 : 0
+                    } label: {
+                        Image(systemName: selectedTab == 0 ? "checklist" : "list.bullet")
+                    }
+                }
+//                ToolbarItem(placement: .topBarTrailing) {
+//                    Button {
+//                        transferLogButton()
+//                        refresh()
+//                    } label: {
+//                        Image(systemName: isRefreshing ? "arrow.clockwise.circle.fill" : "arrow.clockwise.circle")
+//                    }
+//                    .disabled(isRefreshing)
+//                }
+            }
             .sheet(item: Binding(
                 get: { store.activePomodoro.map(IdentifiedPomodoro.init) },
                 set: { _ in WatchSnapshotStore.shared.dismissPomodoro() }
@@ -44,28 +62,32 @@ struct ContentView: View {
             }
         }
     }
-
-    private var taskList: some View {
-        List {
-            ForEach(currentTasks, id: \.id) { task in
-                WatchTaskRow(
-                    task: task,
-                    onComplete: { store.complete(task) },
-                    onStartTimer: { store.startPomodoro(task) }
-                )
+    
+    struct WatchTaskView : View {
+        @State private var store = WatchSnapshotStore.shared
+        
+        var body: some View {
+            List {
+                ForEach(currentTasks, id: \.id) { task in
+                    WatchTaskRow(task: task,
+                                 onComplete: { store.complete(task) },
+                                 onStartTimer: {store.startPomodoro(task) }
+                    )
+                }
             }
-        }
-        .overlay {
-            if currentTasks.isEmpty {
-                ContentUnavailableView("No Tasks", systemImage: "tray", description: Text("Tap Refresh"))
+            .overlay {
+                if currentTasks.isEmpty {
+                    ContentUnavailableView("No Tasks", systemImage: "tray", description: Text("Tap Refresh"))
+                }
             }
+            .focusable()
         }
-    }
-
-    private var currentTasks: [ToDoTaskDTO] {
-        store.snapshot.tasks
-            .filter { !$0.completed && !store.optimisticallyCompleted.contains($0.uuid) }
-            .sorted { $0.due < $1.due }
+        
+        private var currentTasks: [ToDoTaskDTO] {
+            store.snapshot.tasks
+                .filter { !$0.completed && !store.optimisticallyCompleted.contains($0.uuid) }
+                .sorted { $0.due < $1.due }
+        }
     }
 
 
