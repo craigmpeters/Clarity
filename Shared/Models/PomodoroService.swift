@@ -175,7 +175,7 @@ import XCGLogger
         clearPersistedState()
 
         // Record the completed session for the history list
-        recordCompletedSession(taskName: sessionTaskName, taskUUID: toDoTask?.uuid, startTime: sessionStart, endTime: sessionEnd)
+        recordCompletedSession(taskName: sessionTaskName, taskUUID: toDoTask?.uuid, startTime: sessionStart, endTime: sessionEnd, pomodoroTime: toDoTask?.pomodoroTime ?? 0)
 
         // Post a single completion notification with the task UUID so observers
         // don't have to rely on the now-cleared in-memory task state.
@@ -474,13 +474,20 @@ import XCGLogger
 
     /// Appends a newly completed session and persists the updated list.
     @MainActor
-    func recordCompletedSession(taskName: String, taskUUID: UUID?, startTime: Date, endTime: Date) {
+    func recordCompletedSession(taskName: String, taskUUID: UUID?, startTime: Date, endTime: Date, pomodoroTime: TimeInterval) {
+        let recordedEndTime = {
+            if startTime.addingTimeInterval(pomodoroTime) < endTime {
+                return endTime
+            } else {
+                return startTime.addingTimeInterval(pomodoroTime)
+            }
+        }
         let session = CompletedSession(
             id: UUID(),
             taskName: taskName,
             taskUUID: taskUUID,
             startTime: startTime,
-            endTime: endTime
+            endTime: recordedEndTime()
         )
         recentSessions.insert(session, at: 0)
         pruneOldSessions()

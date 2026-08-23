@@ -738,7 +738,7 @@ actor ClarityModelActor {
     do {
       tasks = try tasks.map { task in
         task.completed = true
-        if let startedAt = startedAt, startedAt + task.pomodoroTime < Date.now {
+          if let startedAt = startedAt, startedAt + task.pomodoroTime < Date.now {
           task.completedAt = startedAt + task.pomodoroTime
         } else {
           task.completedAt = Date.now
