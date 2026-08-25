@@ -476,7 +476,7 @@ import XCGLogger
     @MainActor
     func recordCompletedSession(taskName: String, taskUUID: UUID?, startTime: Date, endTime: Date, pomodoroTime: TimeInterval) {
         let recordedEndTime = {
-            if startTime.addingTimeInterval(pomodoroTime) < endTime {
+            if startTime.addingTimeInterval(pomodoroTime) > endTime {
                 return endTime
             } else {
                 return startTime.addingTimeInterval(pomodoroTime)
