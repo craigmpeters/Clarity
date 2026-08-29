@@ -135,6 +135,8 @@ struct SwipeActionDemo {
 struct InteractiveTaskDemo: View {
     let action: SwipeActionDemo
     let onActionTriggered: () -> Void
+    
+    let swipeOptions = TaskSwipeAndTapOptions()
     let exampleTask = ToDoTask(
         name: "Sample Task",
         pomodoro: true,
@@ -178,6 +180,7 @@ struct InteractiveTaskDemo: View {
             
             // Task row
             // FIXME: Preview Tasks, Generic?
+            TaskRowView(task: exampleTask, swipeOptions: swipeOptions, onEdit: {}, onDelete: {}, onComplete: {}, onStartTimer: {})
             
             VStack(alignment: .leading, spacing: 4) {
                 HStack {

@@ -74,8 +74,8 @@ struct PomodoroLiveActivityWidget: Widget {
                     let elapsed = Date().timeIntervalSince(context.state.startTime)
                     let total = context.state.endTime.timeIntervalSince(context.state.startTime)
                     let progress = total > 0 ? min(max(elapsed / total, 0), 1) : 1
-                    ProgressView(value: progress)
-                        .progressViewStyle(CircularProgressViewStyle(tint: .clarityBlue))
+                    ProgressView(timerInterval: context.state.startTime ... context.state.endTime, countsDown: true)
+                    .progressViewStyle(CircularProgressViewStyle(tint: .clarityBlue))
                 }
             }
         }
