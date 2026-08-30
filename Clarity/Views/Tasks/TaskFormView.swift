@@ -86,13 +86,25 @@ struct TaskFormView: View {
                         .accessibilityIdentifier("task-form-name")
                         .submitLabel(.done)
                         .focused($nameFieldFocused)
-                    HStack {
-                        Image(systemName: "timer")
-                            .foregroundStyle(.orange)
-                        Text("Duration")
-                        Spacer()
-                        MinutePickerView(selectedTimeInterval: $toDoTask.pomodoroTime, TaskName: $toDoTask.name)
+                    VStack {
+                        HStack {
+                            Image(systemName: "timer")
+                                .foregroundStyle(.orange)
+                            Text("Duration")
+                            Spacer()
+                            MinutePickerView(selectedTimeInterval: $toDoTask.pomodoroTime, TaskName: $toDoTask.name)
+                        }
+                        
+                        if #available(iOS 26.0, *) {
+                            HStack {
+                                Text("Suggest a duration")
+                                Spacer()
+                                PomodoroSuggestion(taskSuggestion: $toDoTask.name, suggestedTime: $toDoTask.pomodoroTime)
+                            }
+
+                        }
                     }
+
                     
                     HStack {
                         Image(systemName: "calendar")

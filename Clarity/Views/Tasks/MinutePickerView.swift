@@ -19,9 +19,6 @@ struct MinutePickerView: View {
                 }
             }
             .accentColor(.primary)
-            if #available(iOS 26.0, *) {
-                PomodoroSuggestion(taskSuggestion: $TaskName, suggestedTime: $selectedTimeInterval)
-            }
         }
     }
     
