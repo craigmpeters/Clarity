@@ -23,3 +23,4 @@
 
 ## Design Decisions
 * Tasks themselves in ToDoTask have a UUID, this is unique for the task but not the instance of the task - this behaviour is intended
+* Habit progress dots (WeeklyDotsView on iOS, weekCompletionBitmap on watchOS) show a rolling 7-day window (today plus the previous 6 days, oldest first, today last) rather than a fixed calendar week. Streak calculation (HabitStreakCalculator) remains calendar-week based (Sunday start) and is intentionally unchanged.

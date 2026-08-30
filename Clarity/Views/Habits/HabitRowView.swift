@@ -4,7 +4,7 @@ import SwiftData
 struct HabitRowView: View {
     let habit: HabitDTO
     let occurrence: HabitOccurrenceDTO?
-    let weekOccurrences: [HabitOccurrenceDTO]
+    let recentOccurrences: [HabitOccurrenceDTO]
     let streak: HabitStreakResult
     let onIncrement: () -> Void
     let onLogAmount: () -> Void
@@ -69,7 +69,7 @@ struct HabitRowView: View {
                     .accessibilityValue(periodDescription)
 
                     VStack(alignment: .leading, spacing: 6) {
-                        WeeklyDotsView(habit: habit, weekOccurrences: weekOccurrences)
+                        WeeklyDotsView(habit: habit, recentOccurrences: recentOccurrences)
                         if streak.atRisk {
                             Button(action: onUseFreeze) {
                                 Label("Use Freeze", systemImage: "snowflake")
@@ -152,13 +152,21 @@ struct HabitArtworkBackground: View {
 
 struct WeeklyDotsView: View {
     let habit: HabitDTO
-    let weekOccurrences: [HabitOccurrenceDTO]
+    let recentOccurrences: [HabitOccurrenceDTO]
+
+    /// Rolling 7-day window: oldest day first, today last.
+    private var days: [Date] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return (0..<7).compactMap { offset in
+            calendar.date(byAdding: .day, value: offset - 6, to: today)
+        }
+    }
 
     var body: some View {
         HStack(spacing: 6) {
-            ForEach(0..<7, id: \.self) { offset in
-                let day = dayForOffset(offset)
-                let occurrence = weekOccurrences.first { Calendar.current.isDate($0.periodStart, inSameDayAs: day) }
+            ForEach(days, id: \.self) { day in
+                let occurrence = recentOccurrences.first { Calendar.current.isDate($0.periodStart, inSameDayAs: day) }
                 let isCompleted = occurrence?.completed ?? false
                 let isFreeze = occurrence?.freezeUsed ?? false
                 Circle()
@@ -177,12 +185,6 @@ struct WeeklyDotsView: View {
         }
     }
 
-    private func dayForOffset(_ offset: Int) -> Date {
-        let calendar = Calendar.current
-        let weekStart = calendar.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
-        return calendar.date(byAdding: .day, value: offset, to: weekStart) ?? Date()
-    }
-
     private func label(for day: Date, completed: Bool, freeze: Bool) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "EEEE"
@@ -196,3 +198,87 @@ struct WeeklyDotsView: View {
         }
     }
 }
+
+#if DEBUG
+#Preview {
+    let habit = HabitDTO(
+        name: "Morning Run",
+        unitLabel: "km",
+        dailyTarget: 5,
+        incrementStep: 1,
+        streakFreezes: 1
+    )
+    let calendar = Calendar.current
+    let now = Date()
+    let today = calendar.startOfDay(for: now)
+    let recentOccurrences: [HabitOccurrenceDTO] = (0..<7).compactMap { offset in
+        guard let day = calendar.date(byAdding: .day, value: offset - 6, to: today) else { return nil }
+        switch offset {
+        case 0, 1, 3, 4:
+            return HabitOccurrenceDTO(
+                habitUUID: habit.uuid,
+                periodStart: day,
+                currentAmount: 5,
+                completed: true,
+                completedAt: day
+            )
+        case 5:
+            return HabitOccurrenceDTO(
+                habitUUID: habit.uuid,
+                periodStart: day,
+                freezeUsed: true
+            )
+        default:
+            return nil
+        }
+    }
+    let todayOccurrence = HabitOccurrenceDTO(
+        habitUUID: habit.uuid,
+        periodStart: now,
+        currentAmount: 2
+    )
+    let streak = HabitStreakResult(current: 6, longest: 14, freezesEarned: 1, atRisk: false, missedPeriod: nil)
+
+    return HabitRowView(
+        habit: habit,
+        occurrence: todayOccurrence,
+        recentOccurrences: recentOccurrences,
+        streak: streak,
+        onIncrement: {},
+        onLogAmount: {},
+        onEdit: {},
+        onArchive: {},
+        onDelete: {},
+        onCompleteAnyway: {},
+        onUseFreeze: {},
+        onGenerateArt: {}
+    )
+}
+
+#Preview("Streak at Risk") {
+    let habit = HabitDTO(
+        name: "Read 20 Pages",
+        unitLabel: "pages",
+        dailyTarget: 20,
+        incrementStep: 5,
+        weeklyFrequency: 5,
+        streakFreezes: 1
+    )
+    let streak = HabitStreakResult(current: 12, longest: 12, freezesEarned: 1, atRisk: true, missedPeriod: Date())
+
+    return HabitRowView(
+        habit: habit,
+        occurrence: nil,
+        recentOccurrences: [],
+        streak: streak,
+        onIncrement: {},
+        onLogAmount: {},
+        onEdit: {},
+        onArchive: {},
+        onDelete: {},
+        onCompleteAnyway: {},
+        onUseFreeze: {},
+        onGenerateArt: {}
+    )
+}
+#endif

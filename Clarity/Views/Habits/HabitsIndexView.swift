@@ -6,7 +6,7 @@ struct HabitsIndexView: View {
     @Query private var habits: [Habit]
     @State private var habitDTOs: [HabitDTO] = []
     @State private var occurrences: [UUID: HabitOccurrenceDTO] = [:]
-    @State private var weekOccurrences: [UUID: [HabitOccurrenceDTO]] = [:]
+    @State private var recentOccurrences: [UUID: [HabitOccurrenceDTO]] = [:]
     @State private var streaks: [UUID: HabitStreakResult] = [:]
     @State private var showingForm = false
     @State private var editingHabit: HabitDTO? = nil
@@ -25,7 +25,7 @@ struct HabitsIndexView: View {
                             HabitRowView(
                                 habit: habit,
                                 occurrence: occurrences[habit.uuid],
-                                weekOccurrences: weekOccurrences[habit.uuid] ?? [],
+                                recentOccurrences: recentOccurrences[habit.uuid] ?? [],
                                 streak: streaks[habit.uuid] ?? HabitStreakResult(current: 0, longest: 0, freezesEarned: 0, atRisk: false, missedPeriod: nil),
                                 onIncrement: { increment(habit) },
                                 onLogAmount: { loggingHabit = habit },
@@ -47,7 +47,7 @@ struct HabitsIndexView: View {
                         HabitRowView(
                             habit: habit,
                             occurrence: occurrences[habit.uuid],
-                            weekOccurrences: weekOccurrences[habit.uuid] ?? [],
+                            recentOccurrences: recentOccurrences[habit.uuid] ?? [],
                             streak: streaks[habit.uuid] ?? HabitStreakResult(current: 0, longest: 0, freezesEarned: 0, atRisk: false, missedPeriod: nil),
                             onIncrement: { increment(habit) },
                             onLogAmount: { loggingHabit = habit },
@@ -170,18 +170,19 @@ struct HabitsIndexView: View {
                     group.addTask {
                         let calendar = HabitStreakCalculator.streakCalendar()
                         let now = Date()
-                        let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
-                        let history = try await store.fetchHabitHistory(habit.uuid, from: weekStart, to: now)
-                        let today = history.first { calendar.isDate($0.periodStart, inSameDayAs: now) }
+                        let today = calendar.startOfDay(for: now)
+                        let rollingStart = calendar.date(byAdding: .day, value: -6, to: today) ?? today
+                        let history = try await store.fetchHabitHistory(habit.uuid, from: rollingStart, to: now)
+                        let todayOccurrence = history.first { calendar.isDate($0.periodStart, inSameDayAs: now) }
                         let allHistory = try await store.fetchHabitHistory(habit.uuid, from: Date.distantPast, to: now)
                         let streak = HabitStreakCalculator.streak(occurrences: allHistory, frequency: habit.weeklyFrequency, freezes: habit.streakFreezes)
-                        return (habit.uuid, today, history, streak)
+                        return (habit.uuid, todayOccurrence, history, streak)
                     }
                 }
-                for try await (uuid, today, history, streak) in group {
+                for try await (uuid, todayOccurrence, history, streak) in group {
                     await MainActor.run {
-                        occurrences[uuid] = today
-                        weekOccurrences[uuid] = history
+                        occurrences[uuid] = todayOccurrence
+                        recentOccurrences[uuid] = history
                         streaks[uuid] = streak
                     }
                 }
@@ -349,3 +350,12 @@ struct LogHabitAmountSheet: View {
         }
     }
 }
+
+#if DEBUG
+#Preview() {
+    HabitsIndexView()
+        .modelContainer(PreviewData.shared.previewContainer)
+        .environment(CompanionService.shared)
+    
+}
+#endif

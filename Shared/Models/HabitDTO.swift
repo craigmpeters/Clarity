@@ -69,6 +69,7 @@ struct HabitDTO: Sendable, Hashable, Codable {
     var source: String? = nil
     var periodStart: Date = Date()
     var currentStreak: Int = 0
+    /// Rolling 7-day completion window: index 0 is 6 days ago, index 6 is today.
     var weekCompletionBitmap: [Bool] = []
 }
 

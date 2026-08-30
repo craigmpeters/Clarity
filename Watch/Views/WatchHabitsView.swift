@@ -89,7 +89,7 @@ struct WatchHabitPage: View {
                             .accessibilityLabel(dotAccessibilityLabel(index: index, completed: completed))
                     }
                 }
-                .accessibilityLabel("Weekly progress: \(habit.weekCompletionBitmap.filter(\.self).count) of 7 days completed")
+                .accessibilityLabel("Recent progress: \(habit.weekCompletionBitmap.filter(\.self).count) of last 7 days completed")
             }
 
             .padding(8)
@@ -123,8 +123,14 @@ struct WatchHabitPage: View {
         return min(current / max(habit.dailyTarget, 1), 1.0)
     }
 
+    /// The bitmap is a rolling 7-day window: index 0 is 6 days ago, index 6 is today.
     private func dotAccessibilityLabel(index: Int, completed: Bool) -> String {
-        let dayName = Calendar.current.weekdaySymbols[(index + 1) % 7]
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let day = calendar.date(byAdding: .day, value: index - 6, to: today) ?? today
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE"
+        let dayName = formatter.string(from: day)
         return completed ? "\(dayName): completed" : "\(dayName): not completed"
     }
 }

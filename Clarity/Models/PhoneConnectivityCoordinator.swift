@@ -76,19 +76,22 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
     private func enrichHabitsForWatch(habits: [HabitDTO], occurrences: [UUID: HabitOccurrenceDTO]) async -> [HabitDTO] {
         let store = try? await ClarityServices.store()
         let calendar = HabitStreakCalculator.streakCalendar()
-        let weekStart = calendar.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
+        let now = Date()
+        let today = calendar.startOfDay(for: now)
+        let rollingStart = calendar.date(byAdding: .day, value: -6, to: today) ?? today
         return await withTaskGroup(of: HabitDTO.self) { group in
             for habit in habits {
                 group.addTask {
                     var enriched = habit
                     guard let store = store else { return enriched }
-                    let allHistory = (try? await store.fetchHabitHistory(habit.uuid, from: Date.distantPast, to: Date())) ?? []
+                    let allHistory = (try? await store.fetchHabitHistory(habit.uuid, from: Date.distantPast, to: now)) ?? []
                     let streak = HabitStreakCalculator.streak(occurrences: allHistory, frequency: habit.weeklyFrequency, freezes: habit.streakFreezes)
                     enriched.currentStreak = streak.current
-                    let weekHistory = (try? await store.fetchHabitHistory(habit.uuid, from: weekStart, to: Date())) ?? []
+                    let recentHistory = (try? await store.fetchHabitHistory(habit.uuid, from: rollingStart, to: now)) ?? []
+                    // Rolling 7-day window: oldest day first, today last.
                     enriched.weekCompletionBitmap = (0..<7).map { offset -> Bool in
-                        guard let day = calendar.date(byAdding: .day, value: offset, to: weekStart) else { return false }
-                        return weekHistory.contains { occurrence in
+                        guard let day = calendar.date(byAdding: .day, value: offset - 6, to: today) else { return false }
+                        return recentHistory.contains { occurrence in
                             calendar.isDate(occurrence.periodStart, inSameDayAs: day) && (occurrence.completed || occurrence.freezeUsed)
                         }
                     }
