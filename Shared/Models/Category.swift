@@ -97,9 +97,9 @@ class Category {
         
         var contrastingTextColor: Color {
             switch self {
-            case .Yellow, .Cyan, .Pink:
+            case .Yellow, .Cyan, .Pink, .Orange:
                 return .black
-            case .Red, .Blue, .Green, .Brown, .Orange, .Purple:
+            case .Red, .Blue, .Green, .Brown, .Purple:
                 return .white
             }
         }

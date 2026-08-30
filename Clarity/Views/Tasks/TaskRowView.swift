@@ -176,6 +176,7 @@ struct CategoryIconPill: View {
                 Text(String(first))
                     .textCase(.uppercase)
                     .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(category.color?.contrastingTextColor ?? .secondary)
             }
 
             Text(category.name ?? "")
