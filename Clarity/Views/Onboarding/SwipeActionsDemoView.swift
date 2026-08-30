@@ -177,77 +177,19 @@ struct InteractiveTaskDemo: View {
                         )
                 }
             }
-            
-            // Task row
-            // FIXME: Preview Tasks, Generic?
-            TaskRowView(task: exampleTask, swipeOptions: swipeOptions, onEdit: {}, onDelete: {}, onComplete: {}, onStartTimer: {})
-            
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    HStack(spacing: 12) {
-                        VStack(spacing: 2) {
-                            Text(exampleTask.due, format: .dateTime.day())
-                                .font(.title3.weight(.bold))
-                            Text(exampleTask.due, format: .dateTime.month(.abbreviated))
-                                .font(.caption2.weight(.semibold))
-                                .textCase(.uppercase)
-                        }
-                        .foregroundStyle(dateAccentTextColor(exampleTask.due))
-                        .frame(width: 56, height: 48)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(dateAccentBackgroundColor(exampleTask.due))
-                        )
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(exampleTask.name ?? "")
-                                .font(.headline)
-                                .lineLimit(2)
 
-                            HStack(spacing: 6) {
-                                if exampleTask.categories?.count ?? 0 >= 3 {
-                                    ForEach(exampleTask.categories!) { category in
-                                        ZStack {
-                                            Circle()
-                                                .fill(category.color?.SwiftUIColor ?? .gray)
-                                                .frame(width: 25, height: 25)
-                                            if let iconName = category.iconName, !iconName.isEmpty {
-                                                CategoryIcon.image(for: iconName)
-                                                    .frame(width: 14, height: 14)
-                                                    .foregroundStyle(.white)
-                                            } else {
-                                                Text(String(category.name!.first!))
-                                                    .textCase(.uppercase)
-                                                    .font(.system(size: 10, weight: .bold))
-                                                    .foregroundStyle(.black)
-                                                    .blendMode(.colorBurn)
-                                            }
-                                        }
-                                        .clipShape(Circle())
-                                    }
-                                } else {
-                                    ForEach(exampleTask.categories!) { category in
-                                        Text(category.name!)
-                                            .font(.caption2)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 2)
-                                            .background(
-                                                Capsule().fill(category.color?.SwiftUIColor ?? .gray.opacity(0.2))
-                                            )
-                                            .foregroundStyle(category.color!.contrastingTextColor)
-                                    }
-                                }
-                                Spacer()
-                                HStack(spacing: 8) {
-                                    //RecurrenceIndicatorBadge(task: task)
-                                    //TimerIndicatorBadge(task: task)
-                                }
-                            }
-                        }
-                        .padding(.vertical, 8)
-                        .contentShape(Rectangle())
-                    }
-                    Spacer(minLength: 0)
-                }
+            // Sliding card: task row + hint slide together over the stationary reveal layer
+            VStack(alignment: .leading, spacing: 4) {
+                TaskRowView(
+                    task: exampleTask,
+                    swipeOptions: swipeOptions,
+                    showDemo: true,
+                    onEdit: {},
+                    onDelete: {},
+                    onComplete: {},
+                    onStartTimer: {}
+                )
+                .padding(.vertical, 8)
 
                 // Animated swipe hint
                 if showingHint {
@@ -270,6 +212,8 @@ struct InteractiveTaskDemo: View {
                                 .foregroundStyle(action.color)
                         }
                     }
+                    .padding(.horizontal)
+                    .padding(.bottom, 4)
                     .transition(.opacity.combined(with: .move(edge: action.direction == .right ? .leading : .trailing)))
                 }
             }
@@ -282,14 +226,14 @@ struct InteractiveTaskDemo: View {
                 DragGesture()
                     .onChanged { value in
                         let translation = value.translation.width
-                        
+
                         // Constrain swipe direction and limit distance
                         if action.direction == .left && translation < 0 {
                             offset = max(translation, -100)
                         } else if action.direction == .right && translation > 0 {
                             offset = min(translation, 100)
                         }
-                        
+
                         // Trigger action if swiped far enough
                         let threshold: CGFloat = 60
                         if !hasTriggered && abs(offset) > threshold {

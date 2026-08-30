@@ -16,11 +16,28 @@ struct TaskRowView: View {
     let onDelete: () -> Void
     let onComplete: () -> Void
     let onStartTimer: () -> Void
+    let showDemo: Bool
 
     @Environment(CompanionService.self) private var companion
     @State private var showingDeleteAlert = false
-    @State private var isDismissing = false
 
+    init(
+        task: ToDoTask,
+        swipeOptions: TaskSwipeAndTapOptions,
+        showDemo: Bool = false,
+        onEdit: @escaping () -> Void,
+        onDelete: @escaping () -> Void,
+        onComplete: @escaping () -> Void,
+        onStartTimer: @escaping () -> Void
+    ) {
+        self.task = task
+        self.swipeOptions = swipeOptions
+        self.showDemo = showDemo
+        self.onEdit = onEdit
+        self.onDelete = onDelete
+        self.onComplete = onComplete
+        self.onStartTimer = onStartTimer
+    }
     var body: some View {
         HStack(spacing: 12) {
             VStack(spacing: 2) {
@@ -62,7 +79,9 @@ struct TaskRowView: View {
             .padding(.vertical, 8)
             .contentShape(Rectangle())
             .onTapGesture {
-                performAction(.tap)
+                if !showDemo {
+                    performAction(.tap)
+                }
             }
             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                 if swipeOptions.primarySwipeTrailing != .none {
@@ -127,6 +146,7 @@ struct TaskRowView: View {
     }
 
     func performActionOption(_ action: SwipeAction) {
+        guard !showDemo else { return }
         switch action {
         case .complete:
             Task { await companion.refreshContext() }

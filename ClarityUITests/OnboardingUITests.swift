@@ -37,4 +37,15 @@ final class OnboardingUITests: ClarityUITestCase {
         backButton.tap()
         XCTAssertTrue(app.staticTexts["Welcome to Clarity"].exists)
     }
+    
+    func testCategoryIcon() {
+        launchWithoutSkippingOnboarding()
+        let nextButton = app.buttons["onboarding-next"]
+        let backButton = app.buttons["onboarding-back"]
+
+        assertExists(nextButton)
+        nextButton.tap()
+
+        XCTAssertTrue(app.images["category-icon"].firstMatch.exists)
+    }
 }
