@@ -172,6 +172,7 @@ struct CategoryIconPill: View {
             if let iconName = category.iconName, !iconName.isEmpty {
                 CategoryIcon.image(for: iconName)
                     .frame(width: 10, height: 10)
+                    .accessibilityLabel("category-icon")
             } else if let first = category.name?.first {
                 Text(String(first))
                     .textCase(.uppercase)
