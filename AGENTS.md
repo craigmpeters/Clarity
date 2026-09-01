@@ -24,3 +24,4 @@
 ## Design Decisions
 * Tasks themselves in ToDoTask have a UUID, this is unique for the task but not the instance of the task - this behaviour is intended
 * Habit progress dots (WeeklyDotsView on iOS, weekCompletionBitmap on watchOS) show a rolling 7-day window (today plus the previous 6 days, oldest first, today last) rather than a fixed calendar week. Streak calculation (HabitStreakCalculator) remains calendar-week based (Sunday start) and is intentionally unchanged.
+* Pomodoro durations are capped at a maximum of 25 minutes (5–25 in 5-minute steps). This is a deliberate business rule: MinutePickerView only offers 5...25, the Apple Intelligence duration suggestion clamps to 25 (PomodoroSuggestion / PomodoroSuggestionService), and AI task-splitting subtask estimates clamp to 25 (TaskSplitParser). Do not raise these caps.

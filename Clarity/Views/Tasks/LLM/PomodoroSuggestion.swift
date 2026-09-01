@@ -33,7 +33,7 @@ struct PomodoroSuggestion: View {
         await suggestion.suggestTime(for: taskSuggestion)
         let fiveminuteclamp = suggestion.suggestedInterval.truncatingRemainder(dividingBy: 5 * 60)
         
-        suggestedTime = min(suggestion.suggestedInterval, 25 * 60) // Clamp to 25 minutes
+        suggestedTime = min(suggestion.suggestedInterval, 25 * 60) // Business rule: pomodoros are capped at 25 minutes
         suggestedTime = suggestedTime - fiveminuteclamp // Ensure divisible by 5 minutes
         
         LogManager.shared.log.debug("Returned time interval: \(suggestedTime / 60) minutes")

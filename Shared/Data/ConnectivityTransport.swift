@@ -103,6 +103,15 @@ final class ConnectivityTransport: NSObject {
 
     func pushState(_ snapshot: Snapshot) async throws {
         let data = try makeEncoder().encode(WireMessage.snapshot(snapshot))
+        // Reliable queued path: survives the watch being unreachable and is
+        // delivered in order when it comes back in range. Without this, a
+        // watch that was offline misses every intermediate state.
+        _ = session.transferUserInfo(["payload": data])
+        // Latest-wins path: keeps applicationContext current so the watch
+        // (and its complications) see fresh state immediately when reachable.
+        // Throws while the counterpart is unreachable — the transfer above
+        // still guarantees eventual delivery, so callers may treat a throw
+        // as "deferred" rather than fatal.
         try session.updateApplicationContext(["payload": data])
     }
 

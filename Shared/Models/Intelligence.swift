@@ -134,6 +134,8 @@ class PomodoroSuggestionService: ObservableObject {
                 - Suggest the amount of time that it would take a typical adult
                 - The amount of time should be divisible by 5 with no remainder
                 - The minimum amount of time it should take is 5 minutes
+                - The maximum amount of time it should take is 25 minutes
+                - Do not always answer 25: pick the shortest duration that realistically fits the task (5, 10, 15, 20 or 25)
                 
                 Format Your response as a simple single number
                 """
@@ -146,8 +148,11 @@ class PomodoroSuggestionService: ObservableObject {
             )
             LogManager.shared.log.info("Apple Intelligence Response: \(response.content) for \(task)")
             
-            let minutes = Int(response.content)
-            suggestedInterval = TimeInterval((minutes ?? 25) * 60)
+            // The model can return extra prose or whitespace; pull out the first number.
+            let digits = response.content.components(separatedBy: CharacterSet.decimalDigits.inverted)
+            let minutes = digits.compactMap { Int($0) }.first
+            // Business rule: pomodoros are capped at 25 minutes (service-level guard).
+            suggestedInterval = TimeInterval(min(minutes ?? 25, 25) * 60)
             isProcessing = false
             
         } catch {

@@ -23,6 +23,14 @@ import XCGLogger
     @Published var startTime: Date?
     @Published var remainingTime: TimeInterval = 0
     @Published var progress: Double = 0
+
+    /// Derived identifier for the completion notification so it survives process restarts.
+    var notificationIdentifier: String {
+        if let uuid = toDoTask?.uuid {
+            return "pomodoro-\(uuid.uuidString)"
+        }
+        return "pomodoro-generic"
+    }
     
     var formattedTime: String {
         let time = remainingTime
@@ -34,7 +42,6 @@ import XCGLogger
     
     private var activity: Activity<PomodoroAttributes>?
     private var cancellables = Set<AnyCancellable>()
-    private var notificationid: String = ""
     private var timer: Timer?
     private var container: ModelContainer?
     private var calculatedRemainingTime: TimeInterval? {
@@ -145,10 +152,12 @@ import XCGLogger
     }
     
     func endPomodoro() async {
-        // Make idempotent: if already inactive, do nothing
-        guard isActive else {
-            LogManager.shared.log.error("Pomodoro is not active")
-            return
+        // Always attempt to clean up system resources even if the in-memory state is
+        // already inactive. A process restart or external stop can leave the persisted
+        // flag out of sync while the Live Activity / notification still exist.
+        let wasActive = isActive
+        if !wasActive {
+            LogManager.shared.log.debug("Pomodoro already inactive; running cleanup only")
         }
 
         // Capture session details before clearing state
@@ -174,6 +183,8 @@ import XCGLogger
         cancelNotification()
         clearPersistedState()
 
+        guard wasActive else { return }
+
         // Record the completed session for the history list
         recordCompletedSession(taskName: sessionTaskName, taskUUID: toDoTask?.uuid, startTime: sessionStart, endTime: sessionEnd, pomodoroTime: toDoTask?.pomodoroTime ?? 0)
 
@@ -193,6 +204,8 @@ import XCGLogger
         }
         guard let data = appGroupDefaults()?.data(forKey: pomodoroPersistKey) else {
             LogManager.shared.log.debug("No Pomodoro state to restore")
+            // No persisted timer, but there could still be orphaned system UI.
+            reconcileSystemStateIfNeeded()
             return
         }
         do {
@@ -291,24 +304,31 @@ import XCGLogger
 
         guard !all.isEmpty else {
             LogManager.shared.log.debug("No Live Activity to stop")
+            activity = nil
             return
         }
 
         Task {
             var endedAny = false
             for activity in all {
+                // Skip activities that are already dismissed or stale
+                guard activity.activityState == .active else {
+                    LogManager.shared.log.debug("Skipping Live Activity in state: \(activity.activityState)")
+                    continue
+                }
+
                 LogManager.shared.log.debug("Attempting to stop activity with state: \(activity.activityState)")
 
                 do {
                     if naturally {
                         // Leave the activity visible (stale) so the user can tap a mood button.
                         // Use .after to auto-dismiss after 5 minutes if no mood is tapped.
-                        await activity.end(
+                        try await activity.end(
                             ActivityContent(state: activity.content.state, staleDate: Date()),
                             dismissalPolicy: .after(Date().addingTimeInterval(5 * 60))
                         )
                     } else {
-                        await activity.end(
+                        try await activity.end(
                             ActivityContent(state: activity.content.state, staleDate: nil),
                             dismissalPolicy: .immediate
                         )
@@ -324,33 +344,33 @@ import XCGLogger
                 LogManager.shared.log.error("Could not stop any Live Activity")
             }
 
-            // Clear our stored reference regardless
+            // Always clear our stored reference, even if ending failed.
             self.activity = nil
         }
     }
     
     // #MARK: Notifications
     
-    private struct NotificationContent {
+    struct NotificationContent {
         var title: String
         var body: String
         var sound: UNNotificationSound = .default
     }
     
-    private func scheduleNotification(date: Date, notification: NotificationContent) {
+    func scheduleNotification(date: Date, notification: NotificationContent) {
         let content = UNMutableNotificationContent()
-        notificationid = UUID().uuidString
+        let identifier = notificationIdentifier
         content.title = notification.title
         content.body = notification.body
         content.sound = notification.sound
-        content.userInfo = ["pomodoro": notificationid]
-        
+        content.userInfo = ["pomodoro": identifier]
+
         let trigger = UNCalendarNotificationTrigger(
             dateMatching: Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date), repeats: false
         )
-        
-        let request = UNNotificationRequest(identifier: notificationid, content: content, trigger: trigger)
-        
+
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
                 LogManager.shared.log.error("Error scheduling notification: \(error)")
@@ -359,11 +379,10 @@ import XCGLogger
             }
         }
     }
-    
-    private func cancelNotification() {
+
+    func cancelNotification() {
         LogManager.shared.log.debug("Cancelling Notification")
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [notificationid])
-        notificationid = ""
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [notificationIdentifier])
     }
     
     // MARK: Pomodoro Timer Function
@@ -421,6 +440,7 @@ import XCGLogger
     /// believes a timer is active, resets it so the UI matches the externally-stopped state.
     @MainActor
     func syncIfStoppedExternally() {
+        reconcileSystemStateIfNeeded()
         guard appGroupDefaults()?.bool(forKey: externalStopFlagKey) == true else { return }
         appGroupDefaults()?.removeObject(forKey: externalStopFlagKey)
         LogManager.shared.log.debug("PomodoroService: external stop flag detected")
@@ -512,6 +532,19 @@ import XCGLogger
     private func saveSessionHistory() {
         guard let data = try? JSONEncoder().encode(recentSessions) else { return }
         appGroupDefaults()?.set(data, forKey: sessionHistoryKey)
+    }
+
+    /// If no timer is persisted as active, ensures no orphaned Live Activity or pending
+    /// notification remains. This catches cases where a previous cleanup attempt failed
+    /// silently (e.g. process killed mid-stop, or an `Activity.end` call threw).
+    @MainActor
+    private func reconcileSystemStateIfNeeded() {
+        guard !isActive else { return }
+        let hasPersistedState = appGroupDefaults()?.data(forKey: pomodoroPersistKey) != nil
+        if !hasPersistedState {
+            stopLiveActivity()
+            cancelNotification()
+        }
     }
 
 }

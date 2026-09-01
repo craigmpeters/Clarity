@@ -18,9 +18,18 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
 
     private var consumerTask: Task<Void, Never>?
     private var broadcastTask: Task<Void, Never>?
-    private var revision: Int = 0
+    private var lastBroadcastAt: Date = .distantPast
 
-    private init() {}
+    // Persisted so the revision is monotonic across phone app relaunches.
+    // The watch keeps its last-applied revision for the whole install, so a
+    // phone restart that reset this to 0 would make the watch drop every
+    // snapshot until the phone caught up — i.e. "watch never syncs".
+    private static let revisionKey = "phoneSnapshotRevision"
+    private var revision: Int
+
+    private init() {
+        self.revision = UserDefaults.standard.integer(forKey: Self.revisionKey)
+    }
 
     func start() {
         ConnectivityTransport.shared.configure(snapshotBuilder: self)
@@ -31,6 +40,9 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
             }
         }
         observePomodoroNotifications()
+        // Push current state shortly after launch so a watch that was out of
+        // reach (and missed queued transfers) converges once we activate.
+        broadcastSnapshot(delay: .seconds(2))
     }
 
     // MARK: SnapshotBuilder
@@ -132,12 +144,14 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
             } catch {
                 LogManager.shared.log.error("⌚️ complete task failed: \(error)")
             }
+            broadcastSnapshot()
         case .uncompleteTask(let id):
             do {
                 try await ClarityServices.store().uncompleteTask(id)
             } catch {
                 LogManager.shared.log.error("⌚️ uncomplete task failed: \(error)")
             }
+            broadcastSnapshot()
         case .startPomodoro(let id):
             await startPomodoroFromWatch(id)
         case .stopPomodoro:
@@ -183,17 +197,32 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
 
     // MARK: Snapshot broadcast
 
-    func broadcastSnapshot() {
+    func broadcastSnapshot(delay: Duration = .milliseconds(500)) {
         broadcastTask?.cancel()
         broadcastTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(500))
+            try? await Task.sleep(for: delay)
             guard !Task.isCancelled, let self else { return }
             self.revision += 1
+            UserDefaults.standard.set(self.revision, forKey: Self.revisionKey)
             let snap = await self.buildSnapshot()
-            try? await ConnectivityTransport.shared.pushState(snap)
+            do {
+                try await ConnectivityTransport.shared.pushState(snap)
+                self.lastBroadcastAt = Date()
+            } catch {
+                // Expected when the watch is unreachable (applicationContext
+                // can only be set while the counterpart is reachable). Retry
+                // with backoff so the watch converges when it comes back.
+                LogManager.shared.log.debug("[PhoneConnectivity] pushState failed: \(error.localizedDescription); will retry")
+                self.scheduleBroadcastRetry()
+            }
             try? await ConnectivityTransport.shared.pushComplicationIfNeeded(snap)
             WidgetCenter.shared.reloadAllTimelines()
         }
+    }
+
+    private func scheduleBroadcastRetry() {
+        guard Date().timeIntervalSince(lastBroadcastAt) > 30 else { return }
+        broadcastSnapshot(delay: .seconds(15))
     }
 
     // MARK: Pomodoro notifications

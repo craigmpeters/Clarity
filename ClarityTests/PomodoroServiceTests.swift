@@ -45,4 +45,36 @@ struct PomodoroServiceTests {
         let session = service.recentSessions.first
         #expect(session?.endTime == expectedEnd)
     }
+
+    @Test @MainActor func notificationIdentifierIsDerivedFromTaskUUID() {
+        let service = PomodoroService()
+        let taskUUID = UUID(uuidString: "A1B2C3D4-E5F6-7890-ABCD-EF1234567890")!
+        service.toDoTask = ToDoTaskDTO(
+            name: "Test task",
+            pomodoroTime: 1500,
+            due: Date(),
+            uuid: taskUUID,
+            completed: false
+        )
+
+        #expect(service.notificationIdentifier == "pomodoro-A1B2C3D4-E5F6-7890-ABCD-EF1234567890")
+    }
+
+    @Test @MainActor func notificationIdentifierFallsBackToGenericWhenNoTask() {
+        let service = PomodoroService()
+        service.toDoTask = nil
+
+        #expect(service.notificationIdentifier == "pomodoro-generic")
+    }
+
+    @Test @MainActor func endPomodoroWithoutActiveSessionStillCleansUp() async {
+        let service = PomodoroService()
+        service.isActive = false
+
+        // The method must return without posting a completion notification.
+        await service.endPomodoro()
+
+        #expect(service.isActive == false)
+        #expect(service.recentSessions.isEmpty)
+    }
 }
