@@ -45,7 +45,9 @@ struct ClarityApp: App {
     
     private let container = ClarityApp.makeContainer()
     @StateObject private var appState = AppState()
-    private var companion = CompanionService.shared
+    // Deferred so CompanionService.shared isn't forced during App.init() on the main thread.
+    // The companion's init chain (chat store, digest restore) is deferred until first use.
+    private var companion: CompanionService { CompanionService.shared }
     @State private var store = Store()
     @Environment(\.scenePhase) private var scenePhase
     

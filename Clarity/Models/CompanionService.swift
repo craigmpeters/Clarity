@@ -350,8 +350,15 @@ final class CompanionService {
     // Retained store reference so chat sheet can refresh context without prop-drilling
     private var modelStore: ClarityModelActor? = nil
 
-    // App-target-only chat history store
-    private let chatStore = CompanionChatStore()
+    // App-target-only chat history store. Lazily created so the SwiftData
+    // container isn't spun up during app launch.
+    private var _chatStore: CompanionChatStore? = nil
+    private var chatStore: CompanionChatStore {
+        if let existing = _chatStore { return existing }
+        let store = CompanionChatStore()
+        _chatStore = store
+        return store
+    }
 
     /// The resolved display name — UserDefaults value, or the personality's default if unset.
     var displayName: String {
@@ -363,7 +370,10 @@ final class CompanionService {
         let savedID = UserDefaults.companionPersonalityID
         personality = CompanionService.allPersonalities.first { $0.id == savedID } ?? OttoPersonality()
         restoreDigest()
-        checkModelAvailability()
+        // NOTE: checkModelAvailability() is intentionally NOT called here.
+        // It touches SystemLanguageModel.default which triggers FoundationModels
+        // metadata instantiation and can stall app launch while CoreData migrates.
+        // It is called lazily from trigger() and chat() on first actual use.
     }
 
     private func checkModelAvailability() {

@@ -96,8 +96,12 @@ struct ContentView: View {
         companion.setStore(bg)
         await companion.loadContext(from: bg)
         companion.loadChatHistory()
-        // Fire appLaunch only after context is ready, so Otto has task data
-        companion.trigger(.appLaunch)
+        // Fire appLaunch only after context is ready, so Otto has task data.
+        // A small delay keeps the first FoundationModels call off the launch critical path.
+        Task { @MainActor in
+          try? await Task.sleep(for: .seconds(2))
+          companion.trigger(.appLaunch)
+        }
       }
     }
     .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification))
