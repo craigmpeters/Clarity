@@ -40,6 +40,13 @@ struct HabitFormatterTests {
         #expect(HabitFormatter.formattedHealthKitMeasurement(value: 1000.0, identifier: "steps").contains("steps"))
     }
 
+    @Test func formattedHealthKitMeasurementForStepsRoundsDownToWholeNumber() {
+        let result = HabitFormatter.formattedHealthKitMeasurement(value: 1234.56, identifier: "steps")
+        #expect(result.contains("1,234") || result.contains("1234"))
+        #expect(!result.contains("1,235") && !result.contains("1235"))
+        #expect(!result.contains("."))
+    }
+
     @Test func formattedHealthKitMeasurementForWorkoutsAndMindful() {
         #expect(HabitFormatter.formattedHealthKitMeasurement(value: 30.0, identifier: "workouts").contains("min"))
         #expect(HabitFormatter.formattedHealthKitMeasurement(value: 15.0, identifier: "mindful").contains("min"))

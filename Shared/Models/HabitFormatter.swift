@@ -28,6 +28,11 @@ enum HabitFormatter {
         makeNumberFormatter().string(from: NSNumber(value: value)) ?? "\(value)"
     }
 
+    /// Whole-number formatting for count-like values (e.g. steps), always rounded down.
+    static func formattedWhole(_ value: Double) -> String {
+        formatted(value.rounded(.down))
+    }
+
     /// Locale-natural unit symbol for a HealthKit-linked habit identifier.
     static func healthKitUnitString(for identifier: String) -> String {
         makeMeasurementFormatter().string(from: healthKitUnit(for: identifier))
@@ -68,7 +73,7 @@ enum HabitFormatter {
             let measurement = Measurement(value: value, unit: UnitVolume.milliliters).converted(to: preferredWaterUnit)
             return makeMeasurementFormatter().string(from: measurement)
         case "steps":
-            return "\(formatted(value)) steps"
+            return "\(formattedWhole(value)) steps"
         case "workouts", "mindful":
             return "\(formatted(value)) \(makeMeasurementFormatter().string(from: UnitDuration.minutes))"
         default:
