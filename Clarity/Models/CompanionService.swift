@@ -310,7 +310,7 @@ struct CompanionTaskContext: Sendable {
             for h in habits {
                 let frequency = h.weeklyFrequency == 7 ? "daily" : "\(h.weeklyFrequency) days/week"
                 let done = h.doneToday ? "done today" : "not done today"
-                lines.append("- \"\(h.name)\" (\(frequency)) — \(h.consistency.descriptor), streak \(h.currentStreak) weeks, \(done)")
+                lines.append("- \"\(h.name)\" (\(frequency)) — \(h.consistency.descriptor), streak \(h.currentStreak) days, \(done)")
             }
         }
 

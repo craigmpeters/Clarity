@@ -8,7 +8,9 @@
 import Foundation
 
 struct HabitStreakResult: Sendable, Hashable, Codable {
+    /// Current streak length, in days.
     let current: Int
+    /// Longest streak ever reached, in days (all-time max over the full history).
     let longest: Int
     let freezesEarned: Int
     let atRisk: Bool
@@ -17,10 +19,12 @@ struct HabitStreakResult: Sendable, Hashable, Codable {
 
 /// Pure, nonisolated streak calculator over `HabitOccurrenceDTO` arrays.
 /// A week succeeds if the number of completed/frozen days is >= `weeklyFrequency`.
-/// A streak is the number of consecutive successful weeks ending at the current week.
-/// In-progress weeks preserve the streak from prior weeks until they actually fail.
-/// Freezes are auto-earned at a rate of 1 per 7 days of streak, capped in the model at 3.
-/// The grace window for spending a freeze is the end of the next period.
+/// A streak is expressed in days and can span multiple successful weeks:
+/// each consecutive successful week contributes 7 days, and the in-progress
+/// current week contributes its completed/frozen days so far. A failed week
+/// breaks the chain. Freezes are auto-earned at a rate of 1 per 7 days of
+/// streak, capped in the model at 3. The grace window for spending a freeze is
+/// the end of the next period.
 nonisolated struct HabitStreakCalculator: Sendable {
 
     /// Streak periods are always 7-day calendar weeks starting on Sunday so that streaks
@@ -73,51 +77,75 @@ nonisolated struct HabitStreakCalculator: Sendable {
             return count
         }
 
+        func weekSucceeded(_ weekStart: Date) -> Bool {
+            daysCounted(in: weekStart) >= effectiveFrequency
+        }
+
         func isLastDayOfWeek(_ date: Date) -> Bool {
             guard let nextDay = calendar.date(byAdding: .day, value: 1, to: date) else { return false }
             return calendar.dateInterval(of: .weekOfYear, for: date)?.start != calendar.dateInterval(of: .weekOfYear, for: nextDay)?.start
         }
 
         let (currentWeekStart, currentWeekEnd) = weekInterval(for: referenceDate)
-        let currentWeekSucceeded = daysCounted(in: currentWeekStart) >= effectiveFrequency
+        let currentWeekSucceeded = weekSucceeded(currentWeekStart)
         let currentWeekClosed = isLastDayOfWeek(referenceDate)
 
-        var streakSoFar = 0
+        // Current streak, in days.
+        var currentStreak = 0
         var missedPeriod: Date?
         var lastWeekFailed = false
-        var currentStreak = 0
-        var longestStreak = 0
 
         if currentWeekClosed && !currentWeekSucceeded {
             // The current week has just ended and did not meet the target; the streak is broken.
             lastWeekFailed = true
             missedPeriod = currentWeekEnd
             currentStreak = 0
-            longestStreak = 0
         } else {
-            // Walk backward from the current week, counting consecutive successful weeks.
+            // Count consecutive successful weeks immediately before the current week.
             var weekStart = currentWeekStart
             while true {
                 guard let previousWeekStart = calendar.date(byAdding: .weekOfYear, value: -1, to: weekStart) else {
                     break
                 }
                 weekStart = previousWeekStart
-                let succeeded = daysCounted(in: weekStart) >= effectiveFrequency
-                if succeeded {
-                    streakSoFar += 1
+                if weekSucceeded(weekStart) {
+                    currentStreak += periodDays
                 } else {
                     missedPeriod = calendar.date(byAdding: .day, value: periodDays - 1, to: weekStart)
                     lastWeekFailed = true
                     break
                 }
             }
-            currentStreak = streakSoFar + (currentWeekSucceeded ? 1 : 0)
-            longestStreak = max(currentStreak, streakSoFar)
+            // The current week contributes 7 days once it has met its target, otherwise
+            // only the days completed/frozen so far.
+            currentStreak += currentWeekSucceeded ? periodDays : daysCounted(in: currentWeekStart)
         }
 
-        // 1 freeze per 7-day streak. Because the streak is counted in weeks,
-        // each successful week represents one 7-day streak and earns one freeze.
-        let freezesEarned = min(currentStreak, HabitConfig.maxFreezes)
+        // Longest streak ever, in days: scan every week from the earliest occurrence
+        // forward, tracking the running chain (in days) and its all-time maximum.
+        let longestStreak: Int = {
+            guard let earliest = days.keys.min() else { return currentStreak }
+            var weekStart = calendar.dateInterval(of: .weekOfYear, for: earliest)?.start ?? earliest
+            var running = 0
+            var longest = 0
+            while weekStart <= currentWeekStart {
+                if weekStart == currentWeekStart {
+                    // Mirror the current-week rule used for the current streak.
+                    running = currentWeekSucceeded ? running + periodDays : running + daysCounted(in: currentWeekStart)
+                } else if weekSucceeded(weekStart) {
+                    running += periodDays
+                } else {
+                    running = 0
+                }
+                longest = max(longest, running)
+                guard let next = calendar.date(byAdding: .weekOfYear, value: 1, to: weekStart) else { break }
+                weekStart = next
+            }
+            return max(longest, currentStreak)
+        }()
+
+        // 1 freeze per 7 days of streak, capped in the model.
+        let freezesEarned = min(currentStreak / HabitConfig.freezeEarnIntervalDays, HabitConfig.maxFreezes)
 
         // At risk if the most recently completed period failed, we have freezes available,
         // and we are within the grace window that ends at the end of the next period.

@@ -132,7 +132,7 @@ struct CompanionTaskContextTests {
     @Test func habitsSectionStreakCount() {
         let habit = habitSummary(name: "Read", weeklyFrequency: 7, currentStreak: 5)
         let ctx = context(habits: [habit])
-        #expect(ctx.instructionsBlock.contains("streak 5 weeks"))
+        #expect(ctx.instructionsBlock.contains("streak 5 days"))
     }
 
     @Test func dueTaskLineIncludesConsistency() {

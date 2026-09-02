@@ -54,9 +54,9 @@ struct HabitStreakCalculatorGapTests {
             return occurrence(day)
         }
 
-        #expect(HabitStreakCalculator.streak(occurrences: occurrences, frequency: 0, freezes: 0, referenceDate: ref).current == 1)
-        #expect(HabitStreakCalculator.streak(occurrences: occurrences, frequency: 8, freezes: 0, referenceDate: ref).current == 1)
-        #expect(HabitStreakCalculator.streak(occurrences: occurrences, frequency: -3, freezes: 0, referenceDate: ref).current == 1)
+        #expect(HabitStreakCalculator.streak(occurrences: occurrences, frequency: 0, freezes: 0, referenceDate: ref).current == 7)
+        #expect(HabitStreakCalculator.streak(occurrences: occurrences, frequency: 8, freezes: 0, referenceDate: ref).current == 7)
+        #expect(HabitStreakCalculator.streak(occurrences: occurrences, frequency: -3, freezes: 0, referenceDate: ref).current == 7)
     }
 
     @Test func emptyOccurrencesReturnsZero() {
@@ -72,26 +72,26 @@ struct HabitStreakCalculatorGapTests {
         let ref = date(year: 2026, month: 1, day: 7)
         let start = weekStart(for: ref)
         let day1 = calendar.date(byAdding: .day, value: 0, to: start)!
-        let day2 = calendar.date(byAdding: .day, value: 1, to: start)!
 
-        // Two occurrences on day1: first completed, then later un-completed.
-        let occurrences = [
+        // Two occurrences on day1: first completed, then later un-completed. The
+        // later timestamp wins the dedup, so day1 ends up un-completed.
+        var occurrences = [
             occurrence(day1, completed: true),
-            occurrence(day1, completed: false),
-            occurrence(day2, completed: true),
-            occurrence(day2, completed: true),
-            occurrence(day2, completed: true),
-            occurrence(day2, completed: true),
-            occurrence(day2, completed: true)
+            occurrence(calendar.date(byAdding: .hour, value: 1, to: day1)!, completed: false)
         ]
+        // Six more completed days (days 1...6 of the same week).
+        for offset in 1...6 {
+            occurrences.append(occurrence(calendar.date(byAdding: .day, value: offset, to: start)!, completed: true))
+        }
 
         let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 7, freezes: 0, referenceDate: ref)
-        // Most recent on day1 is un-completed, so the week is missing one day.
-        #expect(result.current == 0)
+        // Most recent on day1 is un-completed, so the week is missing one day and the
+        // in-progress week contributes only its completed days (6).
+        #expect(result.current == 6)
     }
 
-    @Test func longestEqualsCurrentWhenCurrentWeekIsOpen() {
-        // PINNED: when the current week is still open, longest always equals current (not an all-time max).
+    @Test func longestEqualsCurrentWhenStreakIsUnbroken() {
+        // When the whole history is one unbroken streak, longest (all-time) equals current.
         let ref = date(year: 2026, month: 1, day: 21)
         let start = weekStart(for: ref)
         var occurrences: [HabitOccurrenceDTO] = []
@@ -105,24 +105,29 @@ struct HabitStreakCalculatorGapTests {
             }
         }
         let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 7, freezes: 0, referenceDate: ref)
-        #expect(result.current == 3)
-        #expect(result.longest == 3)
+        #expect(result.current == 21) // 3 full weeks, current week already closed & succeeded
+        #expect(result.longest == 21)
     }
 
-    @Test func longestResetsToZeroWhenCurrentWeekClosedAndFailed() {
-        // PINNED: when the current week is closed and failed, both current and longest are reset to 0.
-        let previousWeekEnd = date(year: 2026, month: 1, day: 10)
-        let reference = previousWeekEnd // Saturday: last day of the previous week, which is closed
-        let previousStart = weekStart(for: previousWeekEnd)
-
-        let occurrences = (0..<5).compactMap { offset -> HabitOccurrenceDTO? in
-            guard let day = calendar.date(byAdding: .day, value: offset, to: previousStart) else { return nil }
-            return occurrence(day)
+    @Test func longestIsAllTimeMaxAndDoesNotResetOnBreak() {
+        // PINNED: longest is a true all-time max. A broken streak resets current to 0 but
+        // longest keeps the best historical run.
+        // One full successful week, then a gap (failed week), then the current week.
+        let ref = date(year: 2026, month: 1, day: 21)
+        let start = weekStart(for: ref)
+        // Successful week two weeks ago.
+        var occurrences: [HabitOccurrenceDTO] = []
+        if let twoBack = calendar.date(byAdding: .weekOfYear, value: -2, to: start) {
+            for offset in 0..<7 {
+                if let day = calendar.date(byAdding: .day, value: offset, to: twoBack) {
+                    occurrences.append(occurrence(day))
+                }
+            }
         }
-
-        let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 7, freezes: 0, referenceDate: reference)
-        #expect(result.current == 0)
-        #expect(result.longest == 0)
+        // Last week is empty (failed). Current week in progress with no completions.
+        let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 7, freezes: 0, referenceDate: ref)
+        #expect(result.current == 0) // last week failed, breaking the chain
+        #expect(result.longest == 7) // but the earlier full week remains the all-time max
     }
 
     @Test func atRiskAtMissedPeriodBoundary() {
@@ -227,6 +232,6 @@ struct HabitStreakCalculatorGapTests {
         occurrences.append(occurrence(start, completed: true, habitUUID: otherUUID))
 
         let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 7, freezes: 0, referenceDate: ref)
-        #expect(result.current == 1)
+        #expect(result.current == 7)
     }
 }

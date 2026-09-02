@@ -55,8 +55,8 @@ struct HabitStreakCalculatorTests {
         let start = weekStart(for: reference)
         let occurrences = fullWeek(start: start)
         let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 7, freezes: 0, referenceDate: reference)
-        #expect(result.current == 1)
-        #expect(result.longest == 1)
+        #expect(result.current == 7)
+        #expect(result.longest == 7)
         #expect(result.freezesEarned == 1)
         #expect(result.atRisk == false)
     }
@@ -69,8 +69,9 @@ struct HabitStreakCalculatorTests {
             return occurrence(day)
         }
         let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 3, freezes: 0, referenceDate: reference)
-        #expect(result.current == 1)
-        #expect(result.longest == 1)
+        // A 3x/week habit that meets its weekly target contributes a full 7 days.
+        #expect(result.current == 7)
+        #expect(result.longest == 7)
     }
 
     @Test func freezeUsedOnMissedDayPreservesStreak() {
@@ -84,8 +85,8 @@ struct HabitStreakCalculatorTests {
             occurrences.append(occurrence(missedDay, completed: false, freezeUsed: true))
         }
         let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 7, freezes: 1, referenceDate: reference)
-        #expect(result.current == 1) // previous week succeeded; current week still in progress
-        #expect(result.longest == 1)
+        #expect(result.current == 7) // previous week succeeded; current week still in progress contributes 0 days
+        #expect(result.longest == 7)
         #expect(result.atRisk == false)
     }
 
@@ -104,7 +105,7 @@ struct HabitStreakCalculatorTests {
         occurrences.append(contentsOf: fullWeek(start: previousStart))
         let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 7, freezes: 1, referenceDate: reference)
         #expect(result.atRisk == false)
-        #expect(result.current == 1) // previous week succeeded; in-progress week preserves the streak
+        #expect(result.current == 7) // previous week succeeded; in-progress week contributes 0 days
     }
 
     @Test func freezeAvailableWithinNextPeriodGraceWindow() {
@@ -133,8 +134,8 @@ struct HabitStreakCalculatorTests {
             }
         }
         let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 7, freezes: 0, referenceDate: reference)
-        #expect(result.current == 1) // previous week succeeded; current week in progress
-        #expect(result.longest == 1)
+        #expect(result.current == 9) // previous week (7) + 2 in-progress days this week
+        #expect(result.longest == 9)
     }
 
     @Test func freezesEarnedCapAtMaxFreezes() {
@@ -156,6 +157,6 @@ struct HabitStreakCalculatorTests {
         let previousStart = calendar.date(byAdding: .day, value: -7, to: start)!
         let occurrences = fullWeek(start: previousStart)
         let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 7, freezes: 0, referenceDate: reference)
-        #expect(result.current == 1) // previous week only; current week has no completions
+        #expect(result.current == 7) // previous week only; current week has no completions
     }
 }

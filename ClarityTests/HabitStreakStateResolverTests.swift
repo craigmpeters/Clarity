@@ -18,12 +18,12 @@ struct HabitStreakStateResolverTests {
     }()
     private let habitUUID = UUID()
 
-    private func date(year: Int, month: Int, day: Int) -> Date {
+    private func date(year: Int, month: Int, day: Int, hour: Int = 12) -> Date {
         var components = DateComponents()
         components.year = year
         components.month = month
         components.day = day
-        components.hour = 12
+        components.hour = hour
         return calendar.date(from: components) ?? Date()
     }
 
@@ -58,20 +58,17 @@ struct HabitStreakStateResolverTests {
         )
     }
 
-    @Test func milestoneStateAtSevenWeeks() {
+    @Test func milestoneStateAtSevenDays() {
+        // One full successful week; reference is the week's Saturday, so the week
+        // is closed and succeeded: current == 7 days, hitting the first milestone.
         let reference = date(year: 2026, month: 1, day: 7)
         let start = weekStart(for: reference)
-        var occurrences = fullWeek(start: start)
-        // Add six prior successful weeks so after completing today we hit 7.
-        for offset in 1...6 {
-            if let previous = calendar.date(byAdding: .day, value: -offset * 7, to: start) {
-                occurrences.append(contentsOf: fullWeek(start: previous))
-            }
-        }
+        let saturday = calendar.date(byAdding: .day, value: 6, to: start)!
+        let occurrences = fullWeek(start: start)
         let state = HabitStreakState.resolve(
             habit: habit(),
             completedOccurrences: occurrences,
-            completedAt: reference
+            completedAt: saturday
         )
         #expect(state == .milestone(streak: 7))
     }
@@ -89,7 +86,7 @@ struct HabitStreakStateResolverTests {
             completedOccurrences: occurrences,
             completedAt: reference
         )
-        #expect(state == .continued(streak: 2))
+        #expect(state == .continued(streak: 14))
     }
 
     @Test func savedStateWhenAtRisk() {
@@ -110,19 +107,18 @@ struct HabitStreakStateResolverTests {
     }
 
     @Test func restartedStateAfterBreak() {
-        // One successful week, then a failed week, now completing again mid-week.
-        // The streak is broken (0) but the longest streak was 1, so this is a restart.
-        let reference = date(year: 2026, month: 1, day: 18)
-        let currentWeekStart = weekStart(for: reference)
+        // One successful week, then a failed week. Resolved at the very start of the
+        // new week, before any current-week completion, so the streak is broken (0)
+        // while prior activity exists: this is a restart.
+        let currentWeekStart = date(year: 2026, month: 1, day: 18, hour: 0)
         let previousStart = calendar.date(byAdding: .day, value: -7, to: currentWeekStart)!
         let priorStart = calendar.date(byAdding: .day, value: -7, to: previousStart)!
         var occurrences = fullWeek(start: priorStart)
         occurrences.append(occurrence(previousStart)) // one completion in the failed week
-        occurrences.append(occurrence(currentWeekStart)) // the completion being tested
         let state = HabitStreakState.resolve(
             habit: habit(),
             completedOccurrences: occurrences,
-            completedAt: reference
+            completedAt: currentWeekStart
         )
         #expect(state == .restarted(streak: 0))
     }
