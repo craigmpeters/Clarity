@@ -101,11 +101,27 @@ final class WatchSnapshotStore {
     }
 
     func startPomodoro(_ task: ToDoTaskDTO) {
-        Task { try? await ConnectivityTransport.shared.send(.startPomodoro(task.uuid)) }
+        logger.debug("[WatchSnapshotStore] startPomodoro requested for \(task.name) (\(task.uuid))")
+        Task {
+            do {
+                try await ConnectivityTransport.shared.send(.startPomodoro(task.uuid))
+                logger.debug("[WatchSnapshotStore] startPomodoro sent for \(task.name)")
+            } catch {
+                logger.error("[WatchSnapshotStore] startPomodoro failed for \(task.name): \(error)")
+            }
+        }
     }
 
     func stopPomodoro() {
-        Task { try? await ConnectivityTransport.shared.send(.stopPomodoro) }
+        logger.debug("[WatchSnapshotStore] stopPomodoro requested")
+        Task {
+            do {
+                try await ConnectivityTransport.shared.send(.stopPomodoro)
+                logger.debug("[WatchSnapshotStore] stopPomodoro sent")
+            } catch {
+                logger.error("[WatchSnapshotStore] stopPomodoro failed: \(error)")
+            }
+        }
     }
 
     func sendLogs(_ data: Data) {

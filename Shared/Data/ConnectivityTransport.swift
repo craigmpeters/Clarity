@@ -92,7 +92,22 @@ final class ConnectivityTransport: NSObject {
     func send(_ command: WatchCommand) async throws {
         let msg = WireMessage.command(command)
         let data = try makeEncoder().encode(msg)
-        enqueueReliable(data)
+        // Time-critical commands (start/stop pomodoro) attempt an immediate
+        // sendMessageData first so the phone is woken if reachable. If that
+        // fails (or the session isn't activated yet) we fall back to the
+        // reliable queued transferUserInfo path.
+        switch command {
+        case .startPomodoro, .stopPomodoro:
+            do {
+                try await sendImmediate(data)
+                LogManager.shared.log.debug("[ConnectivityTransport] sent command immediately: \(command)")
+            } catch {
+                LogManager.shared.log.debug("[ConnectivityTransport] immediate send failed for \(command), queueing: \(error.localizedDescription)")
+                enqueueReliable(data)
+            }
+        default:
+            enqueueReliable(data)
+        }
     }
 
     func send(_ event: PhoneEvent) async throws {
@@ -154,6 +169,19 @@ final class ConnectivityTransport: NSObject {
     }
 
     // MARK: Private queueing
+
+    /// Attempts to deliver `data` immediately via `sendMessageData`. Throws if the
+    /// session is not yet activated or the counterpart is unreachable.
+    private func sendImmediate(_ data: Data) async throws {
+        guard session.activationState == .activated else {
+            throw NSError(domain: "ConnectivityTransport", code: 2, userInfo: [NSLocalizedDescriptionKey: "WCSession not activated"])
+        }
+        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+            session.sendMessageData(data,
+                replyHandler: { _ in cont.resume() },
+                errorHandler: { cont.resume(throwing: $0) })
+        }
+    }
 
     private func enqueueReliable(_ data: Data) {
         outboundQueue.append(data)
