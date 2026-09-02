@@ -156,6 +156,10 @@ import XCGLogger
         // already inactive. A process restart or external stop can leave the persisted
         // flag out of sync while the Live Activity / notification still exist.
         let wasActive = isActive
+        let currentActivityCount = Activity<PomodoroAttributes>.activities.count
+        LogManager.shared.log.debug(
+            "endPomodoro: wasActive=\(wasActive) remainingTime=\(remainingTime) liveActivities=\(currentActivityCount)"
+        )
         if !wasActive {
             LogManager.shared.log.debug("Pomodoro already inactive; running cleanup only")
         }
@@ -203,7 +207,7 @@ import XCGLogger
             return
         }
         guard let data = appGroupDefaults()?.data(forKey: pomodoroPersistKey) else {
-            LogManager.shared.log.debug("No Pomodoro state to restore")
+            LogManager.shared.log.debug("restoreIfNeeded: no Pomodoro state to restore")
             // No persisted timer, but there could still be orphaned system UI.
             reconcileSystemStateIfNeeded()
             return
@@ -228,6 +232,7 @@ import XCGLogger
                 clearPersistedState()
                 stopLiveActivity()
                 cancelNotification()
+                LogManager.shared.log.debug("restoreIfNeeded: expired pomodoro cleaned up")
                 return
             }
             
@@ -250,11 +255,13 @@ import XCGLogger
             }
             
             // Attach to Activity
-            if let existing = Activity<PomodoroAttributes>.activities.first {
+            let existingActivities = Activity<PomodoroAttributes>.activities
+            LogManager.shared.log.debug("restoreIfNeeded: found \(existingActivities.count) existing Live Activities")
+            if let existing = existingActivities.first {
                 self.activity = existing
-                LogManager.shared.log.debug("Attached to existing Live Activity")
+                LogManager.shared.log.debug("restoreIfNeeded: attached to existing Live Activity id=\(existing.id) state=\(existing.activityState)")
             } else {
-                LogManager.shared.log.debug("Could not find Live Activity, creating new one")
+                LogManager.shared.log.debug("restoreIfNeeded: no Live Activity found, creating new one")
                 startLiveActivity()
             }
             
@@ -278,8 +285,29 @@ import XCGLogger
     
     private func startLiveActivity() {
         let attributes = PomodoroAttributes(sessionId: UUID().uuidString)
-        guard let task = toDoTask else { return }
-        guard let start = startTime, let end = endTime else { return }
+        guard let task = toDoTask else {
+            LogManager.shared.log.warning("startLiveActivity: no task set, skipping")
+            return
+        }
+        guard let start = startTime, let end = endTime else {
+            LogManager.shared.log.warning("startLiveActivity: missing start/end time, skipping")
+            return
+        }
+
+        // Clean up any pre-existing activities before requesting a new one.
+        let existing = Activity<PomodoroAttributes>.activities
+        if !existing.isEmpty {
+            LogManager.shared.log.debug("startLiveActivity: \(existing.count) pre-existing Live Activities found, ending them first")
+            for old in existing {
+                Task {
+                    try? await old.end(
+                        ActivityContent(state: old.content.state, staleDate: nil),
+                        dismissalPolicy: .immediate
+                    )
+                }
+            }
+        }
+
         let contentState = PomodoroAttributes.ContentState(
             taskName: task.name,
             startTime: start,
@@ -292,32 +320,36 @@ import XCGLogger
                 content: activityContent,
                 pushType: nil
             )
-            LogManager.shared.log.debug("SUCCESS: Live Activity started for task: \(task.name)")
+            LogManager.shared.log.debug("startLiveActivity: started Live Activity id=\(activity?.id ?? "nil") for task: \(task.name)")
         } catch {
-            LogManager.shared.log.error("ERROR: Failed to start Live Activity: \(error.localizedDescription)")
+            LogManager.shared.log.error("startLiveActivity: failed to start Live Activity: \(error.localizedDescription)")
         }
     }
     
     private func stopLiveActivity(naturally: Bool = false) {
         let all = Activity<PomodoroAttributes>.activities
-        LogManager.shared.log.debug("Stopping Live Activities. There are \(all.count) Live Activities")
+        LogManager.shared.log.debug("stopLiveActivity(naturally: \(naturally)): found \(all.count) Live Activities")
 
         guard !all.isEmpty else {
-            LogManager.shared.log.debug("No Live Activity to stop")
+            LogManager.shared.log.debug("stopLiveActivity: no Live Activity to stop")
             activity = nil
             return
+        }
+
+        // Log each activity's state up front so we can diagnose stuck activities.
+        for (index, activity) in all.enumerated() {
+            LogManager.shared.log.debug(
+                "stopLiveActivity: activity[\(index)] id=\(activity.id) state=\(activity.activityState) staleDate=\(activity.content.staleDate?.description ?? "nil")"
+            )
         }
 
         Task {
             var endedAny = false
             for activity in all {
-                // Skip activities that are already dismissed or stale
-                guard activity.activityState == .active else {
-                    LogManager.shared.log.debug("Skipping Live Activity in state: \(activity.activityState)")
-                    continue
-                }
-
-                LogManager.shared.log.debug("Attempting to stop activity with state: \(activity.activityState)")
+                let stateDescription = "\(activity.activityState)"
+                LogManager.shared.log.debug(
+                    "stopLiveActivity: attempting to end activity id=\(activity.id) state=\(stateDescription) naturally=\(naturally)"
+                )
 
                 do {
                     if naturally {
@@ -334,14 +366,20 @@ import XCGLogger
                         )
                     }
                     endedAny = true
-                    LogManager.shared.log.debug("Stopped Live Activity (naturally: \(naturally))")
+                    LogManager.shared.log.debug(
+                        "stopLiveActivity: ended activity id=\(activity.id) (naturally: \(naturally))"
+                    )
                 } catch {
-                    LogManager.shared.log.error("Failed to end Live Activity: \(error.localizedDescription)")
+                    LogManager.shared.log.error(
+                        "stopLiveActivity: failed to end activity id=\(activity.id) state=\(stateDescription): \(error.localizedDescription)"
+                    )
                 }
             }
 
             if !endedAny {
-                LogManager.shared.log.error("Could not stop any Live Activity")
+                LogManager.shared.log.error(
+                    "stopLiveActivity: could not stop any Live Activity (attempted \(all.count))"
+                )
             }
 
             // Always clear our stored reference, even if ending failed.
@@ -443,7 +481,10 @@ import XCGLogger
         reconcileSystemStateIfNeeded()
         guard appGroupDefaults()?.bool(forKey: externalStopFlagKey) == true else { return }
         appGroupDefaults()?.removeObject(forKey: externalStopFlagKey)
-        LogManager.shared.log.debug("PomodoroService: external stop flag detected")
+        let activityCount = Activity<PomodoroAttributes>.activities.count
+        LogManager.shared.log.debug(
+            "PomodoroService: external stop flag detected (isActive=\(isActive) liveActivities=\(activityCount))"
+        )
 
         if isActive {
             timer?.invalidate()
@@ -451,6 +492,8 @@ import XCGLogger
             isActive = false
             cancelNotification()
             clearPersistedState()
+            // Explicitly end any Live Activities that the widget intent may have missed.
+            stopLiveActivity()
             activity = nil
             toDoTask = nil
             startTime = nil
@@ -541,7 +584,14 @@ import XCGLogger
     private func reconcileSystemStateIfNeeded() {
         guard !isActive else { return }
         let hasPersistedState = appGroupDefaults()?.data(forKey: pomodoroPersistKey) != nil
+        let activityCount = Activity<PomodoroAttributes>.activities.count
+        LogManager.shared.log.debug(
+            "reconcileSystemStateIfNeeded: isActive=false hasPersistedState=\(hasPersistedState) liveActivities=\(activityCount)"
+        )
         if !hasPersistedState {
+            if activityCount > 0 {
+                LogManager.shared.log.debug("reconcileSystemStateIfNeeded: cleaning up orphaned Live Activities")
+            }
             stopLiveActivity()
             cancelNotification()
         }
