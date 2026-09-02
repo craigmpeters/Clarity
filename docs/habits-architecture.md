@@ -459,7 +459,7 @@ The "Generate Art" context-menu item is shown only when `isAvailable` is true. T
 
 ### 12.1 Scope (v1)
 
-- Foreground sync only when the Habits tab is refreshed or the app comes to the foreground.
+- Foreground sync when the Habits tab is refreshed; each sync applies today's value and **backfills any days missed since the last successful sync** (bounded to 30 days), so occurrences exist for days when the app was never opened.
 - No background observer in v1 (v2 item).
 - Clarity remains the canonical source of truth; HealthKit data is treated as a **read-only floor** for the day's amount.
 - **Manual logging writes to HealthKit** so other apps can see Clarity's habit progress.
@@ -481,15 +481,19 @@ Extend `HealthKitService.requestAuthorization` to include the mapped **read and 
 
 ### 12.4 Sync rule
 
-For each active habit with a `healthKitIdentifier`:
+For each active habit with a `healthKitIdentifier`, sync walks each day from the last synced day (or habit creation, bounded to 30 days back) through today:
 
 ```
-let hkValue = HealthKitService.cumulativeToday(for: identifier)
-let effective = max(manualOccurrence.currentAmount, hkValue ?? 0)
-actor.applyHealthKitProgress(habitUUID, value: effective)
+for day in lastSyncedDay...today {
+    let hkValue = HealthKitService.cumulativeValue(for: identifier, on: day)
+    let effective = max(manualOccurrence.currentAmount, hkValue ?? 0)
+    actor.applyHealthKitProgress(habitUUID, value: effective, date: day)
+}
 ```
 
 - **Only raises** the occurrence amount; never lowers a manual log.
+- Backfilled days are stamped `completedAt` at end of that day; today uses the current time.
+- The last synced day is persisted per habit in UserDefaults (`habitHealthKitLastSyncDates`) and re-applied on the next sync, so data recorded later that same day is still picked up.
 - Marks `source = "healthkit"`.
 - Re-evaluates completion and reconciles freezes.
 

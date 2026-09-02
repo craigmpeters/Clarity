@@ -324,14 +324,25 @@ actor ClarityModelActor {
     }
   }
 
-  func applyHealthKitProgress(_ habitUUID: UUID, value: Double) throws -> HabitOccurrenceDTO {
+  func applyHealthKitProgress(_ habitUUID: UUID, value: Double, date: Date = Date()) throws
+    -> HabitOccurrenceDTO
+  {
     try withHabitMutationLock(habitUUID) {
       let habit = try habitByUUID(habitUUID)
-      let occurrence = try todayOccurrence(for: habit, source: "healthkit")
+      let occurrence = try todayOccurrence(for: habit, date: date, source: "healthkit")
       occurrence.currentAmount = max(occurrence.currentAmount, value)
       if occurrence.currentAmount >= habit.dailyTarget {
         occurrence.completed = true
-        occurrence.completedAt = Date.now
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        if calendar.isDateInToday(startOfDay) {
+          occurrence.completedAt = Date.now
+        } else if occurrence.completedAt == nil {
+          // Backfilled day: record completion at the end of that day rather than "now".
+          occurrence.completedAt =
+            calendar.date(byAdding: .day, value: 1, to: startOfDay)?.addingTimeInterval(-1)
+            ?? Date.now
+        }
       }
       occurrence.source = "healthkit"
       reconcileFreezes(habit)

@@ -92,6 +92,65 @@ struct ClarityModelActorHabitTests {
         #expect(applied.currentAmount == 7)
     }
 
+    @Test func applyHealthKitProgressBackfillsPastDay() async throws {
+        // Reproduces the reported bug: HealthKit has step data for a day the app was never
+        // opened. Applying progress with an explicit date must create that day's occurrence.
+        let actor = try await makeActor()
+        let added = try await actor.addHabit(makeDTO(dailyTarget: 10))
+        let calendar = Calendar.current
+        let threeDaysAgo = calendar.date(byAdding: .day, value: -3, to: Date()) ?? Date()
+
+        let applied = try await actor.applyHealthKitProgress(added.uuid, value: 12, date: threeDaysAgo)
+
+        #expect(applied.completed == true)
+        #expect(calendar.isDate(applied.periodStart, inSameDayAs: threeDaysAgo))
+        // Backfilled completion is stamped at the end of that day, not "now".
+        if let completedAt = applied.completedAt {
+            #expect(calendar.isDate(completedAt, inSameDayAs: threeDaysAgo))
+        } else {
+            Issue.record("Backfilled occurrence should have a completedAt date")
+        }
+
+        let history = try await actor.fetchHabitHistory(
+            added.uuid, from: Date.distantPast, to: Date.distantFuture)
+        #expect(history.count == 1)
+        #expect(history.first { calendar.isDate($0.periodStart, inSameDayAs: threeDaysAgo) } != nil)
+    }
+
+    @Test func applyHealthKitProgressTodayStillUsesCurrentTime() async throws {
+        let actor = try await makeActor()
+        let added = try await actor.addHabit(makeDTO(dailyTarget: 10))
+        let before = Date()
+        let applied = try await actor.applyHealthKitProgress(added.uuid, value: 12, date: Date())
+        let after = Date()
+        #expect(applied.completed == true)
+        if let completedAt = applied.completedAt {
+            #expect(completedAt >= before.addingTimeInterval(-1))
+            #expect(completedAt <= after.addingTimeInterval(1))
+        } else {
+            Issue.record("Today's occurrence should have a completedAt date")
+        }
+    }
+
+    @Test func applyHealthKitProgressBackfillDoesNotOverwriteManualCompletion() async throws {
+        let actor = try await makeActor()
+        let added = try await actor.addHabit(makeDTO(dailyTarget: 10))
+        let calendar = Calendar.current
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: Date()) ?? Date()
+
+        // User manually completed yesterday with a lower amount than HealthKit later reports.
+        _ = try await actor.setHabitProgress(added.uuid, date: yesterday, amount: 10)
+
+        let applied = try await actor.applyHealthKitProgress(added.uuid, value: 25, date: yesterday)
+        #expect(applied.currentAmount == 25)
+        #expect(applied.completed == true)
+
+        // A lower HealthKit value must never decrease an existing amount.
+        let lowered = try await actor.applyHealthKitProgress(added.uuid, value: 3, date: yesterday)
+        #expect(lowered.currentAmount == 25)
+        #expect(lowered.completed == true)
+    }
+
     @Test func spendFreezeThrowsWhenNoFreezesAvailable() async throws {
         let actor = try await makeActor()
         let added = try await actor.addHabit(makeDTO(dailyTarget: 1))

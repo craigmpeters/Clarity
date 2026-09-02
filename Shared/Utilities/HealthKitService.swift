@@ -134,12 +134,17 @@ final class HealthKitService {
     // MARK: - Habit-linked quantities
 
     func cumulativeToday(for identifier: String) async -> Double? {
+        await cumulativeValue(for: identifier, on: Date())
+    }
+
+    /// Returns the cumulative value of a habit-linked HealthKit type for the whole
+    /// calendar day containing `date`. Used to backfill days when the app was not opened.
+    func cumulativeValue(for identifier: String, on date: Date) async -> Double? {
         guard isAvailable else { return nil }
 #if canImport(HealthKit)
         guard let type = objectType(for: identifier) else { return nil }
         let calendar = Calendar.current
-        let now = Date()
-        let start = calendar.startOfDay(for: now)
+        let start = calendar.startOfDay(for: date)
         guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return nil }
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
 
