@@ -135,7 +135,8 @@ struct PomodoroLiveActivityView: View {
                         .frame(width: 80, height: 80)
                 }
                 if context.isStale {
-                    MoodButtonRow()
+                // TODO: This does not seem to work, not nessesary for v2.0
+                     // MoodButtonRow()
                 } else {
                     Button(intent: StopPomodoroIntent()) {
                         Label("Stop", systemImage: "stop.fill")
