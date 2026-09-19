@@ -150,6 +150,7 @@ struct TaskRowView: View {
         switch action {
         case .complete:
             Task { await companion.refreshContext() }
+            companion.recordEvent("Task completed: \(task.name ?? "Task")")
             companion.trigger(.taskCompleted(taskName: task.name ?? "task"))
             onComplete()
         case .delete:

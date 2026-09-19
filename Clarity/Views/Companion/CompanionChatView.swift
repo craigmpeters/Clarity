@@ -31,7 +31,7 @@ struct CompanionChatView: View {
                                 }
 
                                 if companion.isGenerating {
-                                    TypingIndicatorRow(
+                                    ChatTypingIndicatorRow(
                                         assetPrefix: companion.personality.assetPrefix,
                                         fallbackEmoji: companion.personality.fallbackEmoji
                                     )
@@ -112,12 +112,17 @@ struct CompanionChatView: View {
 
     @ViewBuilder
     private func messageRow(_ message: ChatMessage, index: Int) -> some View {
-        if let uuid = message.suggestedTaskUUID,
-           let name = message.suggestedTaskName,
-           message.persistentModelID == companion.mostRecentSuggestedTask?.persistentModelID {
-            suggestionRow(uuid: uuid, name: name)
+        if message.sender == .event {
+            EventDividerRow(text: message.text, timestamp: message.timestamp)
+                .frame(maxWidth: .infinity)
+        } else {
+            if let uuid = message.suggestedTaskUUID,
+               let name = message.suggestedTaskName,
+               message.persistentModelID == companion.mostRecentSuggestedTask?.persistentModelID {
+                suggestionRow(uuid: uuid, name: name)
+            }
+            chatBubbleRow(message, index: index)
         }
-        chatBubbleRow(message, index: index)
     }
 
     @ViewBuilder
@@ -275,43 +280,6 @@ struct CompanionChatView: View {
     }
 }
 
-// MARK: - Typing indicator
-
-private struct TypingIndicatorRow: View {
-    let assetPrefix: String
-    let fallbackEmoji: String
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            CompanionFaceView(
-                emotion: .thinking,
-                size: 28,
-                assetPrefix: assetPrefix,
-                fallbackEmoji: fallbackEmoji
-            )
-
-            HStack(spacing: 6) {
-                ForEach(0..<3, id: \.self) { index in
-                    Circle()
-                        .frame(width: 8, height: 8)
-                        .foregroundStyle(.secondary)
-                        .opacity(reduceMotion ? 1.0 : 0.4)
-                        .scaleEffect(reduceMotion ? 1.0 : 0.8)
-                }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(Color(uiColor: .secondarySystemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
-
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
 // MARK: - Previews
 
 #Preview {
@@ -320,6 +288,7 @@ private struct TypingIndicatorRow: View {
         ChatMessage(sender: .companion, text: "Ready to make today count?", emotion: "encouraging"),
         ChatMessage(sender: .user, text: "I have a lot to do today"),
         ChatMessage(sender: .companion, text: "One step at a time. You've got this!", emotion: "encouraging"),
+        ChatMessage.event("Task completed: Write report"),
         ChatMessage(
             sender: .companion,
             text: "Nice work! Want to keep going?",

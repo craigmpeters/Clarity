@@ -107,6 +107,7 @@ struct HabitsIndexView: View {
                 let synced = await HabitHealthKitSync.shared.syncAllHabits()
                 for dto in synced where dto.completed {
                     if let habit = habitDTOs.first(where: { $0.uuid == dto.habitUUID }) {
+                        companion.recordEvent("Habit completed: \(habit.name)")
                         companion.triggerHabitCompleted(habit: habit, completedOccurrence: dto)
                     }
                 }
@@ -117,6 +118,7 @@ struct HabitsIndexView: View {
                 let synced = await HabitHealthKitSync.shared.syncAllHabits()
                 for dto in synced where dto.completed {
                     if let habit = habitDTOs.first(where: { $0.uuid == dto.habitUUID }) {
+                        companion.recordEvent("Habit completed: \(habit.name)")
                         companion.triggerHabitCompleted(habit: habit, completedOccurrence: dto)
                     }
                 }
@@ -203,6 +205,7 @@ struct HabitsIndexView: View {
                     dto = try await store.logHabitProgress(habit.uuid)
                 }
                 if dto.completed {
+                    companion.recordEvent("Habit completed: \(habit.name)")
                     companion.triggerHabitCompleted(habit: habit, completedOccurrence: dto)
                 }
                 await refresh()
@@ -218,6 +221,7 @@ struct HabitsIndexView: View {
             do {
                 let dto = try await store.setHabitProgress(habit.uuid, date: Date(), amount: amount)
                 if dto.completed {
+                    companion.recordEvent("Habit completed: \(habit.name)")
                     companion.triggerHabitCompleted(habit: habit, completedOccurrence: dto)
                 }
                 await refresh()

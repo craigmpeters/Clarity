@@ -481,13 +481,14 @@ final class CompanionService {
     @available(iOS 26.0, *)
     private func updateConversationDigest() async {
         guard modelAvailability.isAvailable else { return }
+        let conversational = chatHistory.filter { $0.sender != .event }
         let tail = CompanionService.recentVerbatimCount
-        guard chatHistory.count > tail else {
+        guard conversational.count > tail else {
             cachedDigest = nil
             return
         }
 
-        let older = Array(chatHistory.prefix(chatHistory.count - tail))
+        let older = Array(conversational.prefix(conversational.count - tail))
         guard !older.isEmpty else {
             cachedDigest = nil
             return
@@ -696,7 +697,8 @@ final class CompanionService {
     }
 
     private func recentConversationBlock(limit: Int) -> String {
-        let recent = Array(chatHistory.suffix(limit))
+        let conversational = chatHistory.filter { $0.sender != .event }
+        let recent = Array(conversational.suffix(limit))
         guard !recent.isEmpty else { return "" }
         return recent.map { message in
             let sender = message.sender == .user ? "User" : displayName
@@ -769,6 +771,18 @@ final class CompanionService {
         let message = ChatMessage(sender: .user, text: text)
         chatStore.append(message)
         chatHistory.append(message)
+    }
+
+    // MARK: - Event recording
+
+    /// Append a system-generated event row to the chat history (e.g. "Completed 'Write report'").
+    /// Events do **not** trigger a companion generation, do not change the visible message,
+    /// and are excluded from the LLM conversation context (recent block + digest + duplicate check).
+    func recordEvent(_ text: String) {
+        let message = ChatMessage.event(text)
+        chatStore.append(message)
+        chatHistory.append(message)
+        log.info("recordEvent: appended event message — \"\(text)\"")
     }
 
     // MARK: - Generation
@@ -874,7 +888,10 @@ final class CompanionService {
 
     @discardableResult
     private func appendCompanionMessage(_ message: CompanionMessage, trigger: CompanionTrigger?) -> Bool {
-        if CompanionOutputMapper.isDuplicate(message, lastChatHistoryMessage: chatHistory.last, trigger: trigger) {
+        // Compare against the last *conversational* message so that an interleaved
+        // event row does not mask a true duplicate companion reply.
+        let lastConversational = chatHistory.last { $0.sender != .event }
+        if CompanionOutputMapper.isDuplicate(message, lastChatHistoryMessage: lastConversational, trigger: trigger) {
             log.debug("appendCompanionMessage: skipping duplicate companion message")
             return false
         }

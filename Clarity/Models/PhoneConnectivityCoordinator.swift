@@ -40,9 +40,30 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
             }
         }
         observePomodoroNotifications()
+        observeFocusFilterChanges()
         // Push current state shortly after launch so a watch that was out of
         // reach (and missed queued transfers) converges once we activate.
         broadcastSnapshot(delay: .seconds(2))
+    }
+
+    /// The App Intents extension posts this Darwin notification when the focus
+    /// filter changes; re-filtered tasks are pushed to the watch right away.
+    private func observeFocusFilterChanges() {
+        let observer = Unmanaged.passUnretained(self).toOpaque()
+        CFNotificationCenterAddObserver(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            observer,
+            { _, observer, _, _, _ in
+                guard let observer else { return }
+                let coordinator = Unmanaged<PhoneConnectivityCoordinator>.fromOpaque(observer).takeUnretainedValue()
+                Task { @MainActor in
+                    coordinator.broadcastSnapshot(delay: .zero)
+                }
+            },
+            FocusFilterSync.changedNotification.rawValue as CFString,
+            nil,
+            .deliverImmediately
+        )
     }
 
     // MARK: SnapshotBuilder

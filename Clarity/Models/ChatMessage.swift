@@ -11,6 +11,7 @@ import SwiftData
 enum ChatSender: String, Codable, Sendable {
     case user
     case companion
+    case event
 }
 
 @Model
@@ -47,5 +48,12 @@ extension ChatMessage {
     var emotion: CompanionEmotion? {
         guard let emotionRaw else { return nil }
         return CompanionEmotion(rawValue: emotionRaw)
+    }
+
+    /// Create a "system event" chat row (e.g. "Completed 'Write report'").
+    /// Events are rendered as centered dividers and are excluded from
+    /// the LLM conversation context.
+    static func event(_ text: String, timestamp: Date = Date()) -> ChatMessage {
+        ChatMessage(timestamp: timestamp, sender: .event, text: text)
     }
 }

@@ -137,6 +137,7 @@ final class ConnectivityTransport: NSObject {
     }
 
     func pushComplicationIfNeeded(_ snapshot: Snapshot) async throws {
+        LogManager.shared.log.debug("Pushing Complication Snapshot")
         let projection = ComplicationProjection(snapshot: snapshot)
         let digest = try complicationDigest(for: projection)
         guard digest != lastComplicationDigest else { return }
@@ -144,9 +145,11 @@ final class ConnectivityTransport: NSObject {
         let data = try makeEncoder().encode(WireMessage.complicationSnapshot(snapshot))
         #if os(iOS)
         if session.isComplicationEnabled {
+            LogManager.shared.log.debug("Complication Enabled")
             _ = session.transferCurrentComplicationUserInfo(["complication": data])
         } else {
             // Smart Stack fallback: still wake the watch, but via userInfo.
+            LogManager.shared.log.debug("Complication Disabled")
             _ = session.transferUserInfo(["complication": data])
         }
         #else

@@ -84,6 +84,7 @@ struct PomodoroView: View {
       if let latest = service.recentSessions.first {
         Task {
           await companion.refreshContext()
+          companion.recordEvent("Task completed: \(latest.taskName)")
           companion.trigger(.pomodoroCompleted(taskName: latest.taskName))
         }
 
