@@ -4,13 +4,19 @@
 import SwiftUI
 
 struct CompanionChatView: View {
-    var companion: CompanionService
+    @Environment(CompanionService.self) private var companion
 
-    @State private var inputText = ""
     @FocusState private var inputFocused: Bool
     @Environment(\.dismiss) private var dismiss
 
     private let bottomID = "bottom"
+
+    private var draftBinding: Binding<String> {
+        Binding(
+            get: { companion.chatDraft },
+            set: { companion.chatDraft = $0 }
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -230,7 +236,7 @@ struct CompanionChatView: View {
 
     private var inputBar: some View {
         HStack(spacing: 10) {
-            TextField("Say something to \(companion.displayName)…", text: $inputText, axis: .vertical)
+            TextField("Say something to \(companion.displayName)…", text: draftBinding, axis: .vertical)
                 .lineLimit(1...4)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
@@ -241,9 +247,9 @@ struct CompanionChatView: View {
             Button(action: sendMessage) {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 32))
-                    .foregroundStyle(inputText.trimmingCharacters(in: .whitespaces).isEmpty || companion.isGenerating ? Color.secondary : Color.accentColor)
+                    .foregroundStyle(companion.chatDraft.trimmingCharacters(in: .whitespaces).isEmpty || companion.isGenerating ? Color.secondary : Color.accentColor)
             }
-            .disabled(inputText.trimmingCharacters(in: .whitespaces).isEmpty || companion.isGenerating)
+            .disabled(companion.chatDraft.trimmingCharacters(in: .whitespaces).isEmpty || companion.isGenerating)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -267,9 +273,9 @@ struct CompanionChatView: View {
     }
 
     private func sendMessage() {
-        let trimmed = inputText.trimmingCharacters(in: .whitespaces)
+        let trimmed = companion.chatDraft.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty, !companion.isGenerating else { return }
-        inputText = ""
+        companion.chatDraft = ""
         companion.chat(trimmed)
     }
 
@@ -297,5 +303,6 @@ struct CompanionChatView: View {
             suggestedTaskName: "Review Q3 report"
         )
     ]
-    return CompanionChatView(companion: service)
+    return CompanionChatView()
+        .environment(service)
 }

@@ -1,15 +1,21 @@
 // CompanionSidebarView.swift
 // Left-hand sidebar used on regular-width layouts (iPad, foldable Duo).
 // Hosts the companion (face + chat), a "Today" summary, and quick habit logging.
-
 import SwiftData
 import SwiftUI
 
 struct CompanionSidebarView: View {
     @Environment(\.modelContext) private var context
     @Environment(CompanionService.self) private var companion
-    @State private var inputText: String = ""
     @FocusState private var inputFocused: Bool
+    @State private var flashMessageID: PersistentIdentifier? = nil
+
+    private var draftBinding: Binding<String> {
+        Binding(
+            get: { companion.chatDraft },
+            set: { companion.chatDraft = $0 }
+        )
+    }
 
     // Live data for the Today summary + habit quick-log section.
     @Query(sort: \ToDoTask.completedAt, order: .reverse)
@@ -47,6 +53,18 @@ struct CompanionSidebarView: View {
                     .padding(.vertical, 8)
                 }
                 .onChange(of: companion.chatHistory.count) { _, _ in
+                    if let last = companion.chatHistory.last,
+                       last.sender == .companion,
+                       companion.isVisible {
+                        let id = last.persistentModelID
+                        flashMessageID = id
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .seconds(1.2))
+                            if flashMessageID == id {
+                                flashMessageID = nil
+                            }
+                        }
+                    }
                     withAnimation(.easeOut(duration: 0.2)) {
                         proxy.scrollTo(bottomID, anchor: .bottom)
                     }
@@ -190,6 +208,7 @@ struct CompanionSidebarView: View {
         if message.sender == .event {
             EventDividerRow(text: message.text, timestamp: message.timestamp)
         } else {
+            let isFlashing = flashMessageID == message.persistentModelID
             HStack(alignment: .bottom, spacing: 6) {
                 if message.sender == .companion {
                     CompanionFaceView(
@@ -206,7 +225,9 @@ struct CompanionSidebarView: View {
                     .background(
                         message.sender == .user
                             ? Color.accentColor
-                            : Color(uiColor: .secondarySystemBackground)
+                            : (isFlashing
+                                ? Color.accentColor.opacity(0.25)
+                                : Color(uiColor: .secondarySystemBackground))
                     )
                     .foregroundStyle(message.sender == .user ? .white : .primary)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -214,6 +235,7 @@ struct CompanionSidebarView: View {
                         maxWidth: .infinity,
                         alignment: message.sender == .user ? .trailing : .leading
                     )
+                    .animation(.easeInOut(duration: 0.25), value: isFlashing)
                 if message.sender == .user {
                     Spacer(minLength: 0)
                 }
@@ -226,7 +248,7 @@ struct CompanionSidebarView: View {
 
     private var inputBar: some View {
         HStack(spacing: 8) {
-            TextField("Say something…", text: $inputText, axis: .vertical)
+            TextField("Say something…", text: draftBinding, axis: .vertical)
                 .lineLimit(1...3)
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 10)
@@ -242,12 +264,12 @@ struct CompanionSidebarView: View {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 26))
                     .foregroundStyle(
-                        inputText.trimmingCharacters(in: .whitespaces).isEmpty || companion.isGenerating
+                        companion.chatDraft.trimmingCharacters(in: .whitespaces).isEmpty || companion.isGenerating
                             ? Color.secondary
                             : Color.accentColor
                     )
             }
-            .disabled(inputText.trimmingCharacters(in: .whitespaces).isEmpty || companion.isGenerating)
+            .disabled(companion.chatDraft.trimmingCharacters(in: .whitespaces).isEmpty || companion.isGenerating)
             .accessibilityLabel("Send")
         }
         .padding(.horizontal, 12)
@@ -256,9 +278,9 @@ struct CompanionSidebarView: View {
     }
 
     private func send() {
-        let trimmed = inputText.trimmingCharacters(in: .whitespaces)
+        let trimmed = companion.chatDraft.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty, !companion.isGenerating else { return }
-        inputText = ""
+        companion.chatDraft = ""
         companion.chat(trimmed)
     }
 
@@ -375,4 +397,19 @@ private struct SidebarHabitRow: View {
     CompanionSidebarView()
         .modelContainer(PreviewData.shared.previewContainer)
         .environment(CompanionService.shared)
+}
+
+#Preview("Sidebar — Narrow + AX5") {
+    CompanionSidebarView()
+        .modelContainer(PreviewData.shared.previewContainer)
+        .environment(CompanionService.shared)
+        .frame(width: 300)
+        .dynamicTypeSize(.accessibility5)
+}
+
+#Preview("Sidebar — Min Width") {
+    CompanionSidebarView()
+        .modelContainer(PreviewData.shared.previewContainer)
+        .environment(CompanionService.shared)
+        .frame(width: 300, height: 800)
 }
