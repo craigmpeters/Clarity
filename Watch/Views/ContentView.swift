@@ -81,6 +81,9 @@ struct ContentView: View {
                 }
             }
             .focusable()
+            .refreshable {
+                await store.requestInitialSnapshot()
+            }
         }
         
         private var currentTasks: [ToDoTaskDTO] {
