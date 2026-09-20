@@ -267,33 +267,64 @@ extension ConnectivityTransport: WCSessionDelegate {
 #endif
 
     nonisolated func session(_ s: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
-        if let data = userInfo["complication"] as? Data,
-           let msg = try? decodeMessage(data) {
-            Task { @MainActor [weak self] in self?.emit(msg) }
+        if let data = userInfo["complication"] as? Data {
+            do {
+                let msg = try decodeMessage(data)
+                LogManager.shared.log.debug("[ConnectivityTransport] didReceiveUserInfo (complication): \(msg)")
+                Task { @MainActor [weak self] in self?.emit(msg) }
+            } catch {
+                LogManager.shared.log.error("[ConnectivityTransport] didReceiveUserInfo (complication) decode failed: \(error)")
+            }
             return
         }
-        guard let data = userInfo["payload"] as? Data,
-              let msg = try? decodeMessage(data) else { return }
-        Task { @MainActor [weak self] in self?.emit(msg) }
+        guard let data = userInfo["payload"] as? Data else { return }
+        do {
+            let msg = try decodeMessage(data)
+            LogManager.shared.log.debug("[ConnectivityTransport] didReceiveUserInfo: \(msg)")
+            Task { @MainActor [weak self] in self?.emit(msg) }
+        } catch {
+            LogManager.shared.log.error("[ConnectivityTransport] didReceiveUserInfo decode failed: \(error)")
+        }
     }
 
     nonisolated func session(_ s: WCSession,
                              didReceiveApplicationContext ctx: [String: Any]) {
-        guard let data = ctx["payload"] as? Data,
-              let msg = try? decodeMessage(data) else { return }
-        Task { @MainActor [weak self] in self?.emit(msg) }
+        guard let data = ctx["payload"] as? Data else { return }
+        do {
+            let msg = try decodeMessage(data)
+            LogManager.shared.log.debug("[ConnectivityTransport] didReceiveApplicationContext: \(msg)")
+            Task { @MainActor [weak self] in self?.emit(msg) }
+        } catch {
+            LogManager.shared.log.error("[ConnectivityTransport] didReceiveApplicationContext decode failed: \(error)")
+        }
+    }
+
+    nonisolated func session(_ s: WCSession,
+                             didFinish userInfoTransfer: WCSessionUserInfoTransfer,
+                             error: Error?) {
+        if let error {
+            LogManager.shared.log.error("[ConnectivityTransport] userInfoTransfer finished with error: \(error)")
+        }
     }
 
     nonisolated func session(_ s: WCSession,
                              didReceiveMessageData data: Data,
                              replyHandler: @escaping (Data) -> Void) {
         let boxed = SendableReplyHandler(replyHandler)
-        guard let msg = try? decodeMessage(data) else {
+        let msg: WireMessage
+        do {
+            msg = try decodeMessage(data)
+        } catch {
+            LogManager.shared.log.error("[ConnectivityTransport] didReceiveMessageData decode failed: \(error)")
             Task { @MainActor in boxed.reply(Data()) }
             return
         }
+        LogManager.shared.log.debug("[ConnectivityTransport] didReceiveMessageData: \(msg)")
         Task { @MainActor [weak self] in
             guard let self else { boxed.reply(Data()); return }
+            // .requestSnapshot is special: the reply payload is the snapshot
+            // itself and PhoneConnectivityCoordinator's handleCommand case for
+            // it is a documented no-op, so we don't emit it into inbound.
             if case .command(.requestSnapshot) = msg,
                let builder = self.snapshotBuilder {
                 let snap = await builder.buildSnapshot()
@@ -302,7 +333,10 @@ extension ConnectivityTransport: WCSessionDelegate {
                     boxed.reply(replyData)
                     return
                 }
+                boxed.reply(Data())
+                return
             }
+            self.emit(msg)
             boxed.reply(Data())
         }
     }

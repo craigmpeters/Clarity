@@ -205,15 +205,32 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
     }
 
     private func startPomodoroFromWatch(_ id: UUID) async {
+        LogManager.shared.log.debug("[PhoneConnectivity] startPomodoroFromWatch \(id)")
         let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
         defaults?.set(id.uuidString, forKey: "pendingStartTimerTaskId")
 
-        let store = try? await ClarityServices.store()
-        if let dto = try? WidgetFileCoordinator.shared.readTaskByUuid(id),
-           let container = store?.modelContainer {
-            PomodoroService.shared.startPomodoro(for: dto, container: container, device: .watchOS)
-            defaults?.removeObject(forKey: "pendingStartTimerTaskId")
+        let store: ClarityModelActor
+        do {
+            store = try await ClarityServices.store()
+        } catch {
+            LogManager.shared.log.error("[PhoneConnectivity] startPomodoroFromWatch: store unavailable: \(error)")
+            return
         }
+        let dto: ToDoTaskDTO
+        do {
+            guard let found = try WidgetFileCoordinator.shared.readTaskByUuid(id) else {
+                LogManager.shared.log.error("[PhoneConnectivity] startPomodoroFromWatch: readTaskByUuid returned nil for \(id) — task missing from widget snapshot")
+                return
+            }
+            dto = found
+        } catch {
+            LogManager.shared.log.error("[PhoneConnectivity] startPomodoroFromWatch: readTaskByUuid threw for \(id): \(error)")
+            return
+        }
+        let container = store.modelContainer
+        PomodoroService.shared.startPomodoro(for: dto, container: container, device: .watchOS)
+        defaults?.removeObject(forKey: "pendingStartTimerTaskId")
+        LogManager.shared.log.info("[PhoneConnectivity] Pomodoro started from watch for \(dto.name) (\(id))")
     }
 
     // MARK: Snapshot broadcast
