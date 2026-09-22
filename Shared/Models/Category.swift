@@ -16,12 +16,20 @@ class Category {
     var name: String?
     var color: CategoryColor?
     var weeklyTarget: Int = 0
+    /// SF Symbol name used to represent this category visually. Optional.
+    var iconName: String?
+    /// Stable identifier safe for use across CloudKit sync and widget/intent boundaries.
+    /// Optional for migration safety — backfilled at app launch.
+    var uuid: UUID?
     @Relationship(inverse: \ToDoTask.categories) var tasks: [ToDoTask]? = []
-    
-    init(name: String, color: CategoryColor = .Red, weeklyTarget: Int = 0) {
+    @Relationship(inverse: \Habit.categories) var habits: [Habit]? = []
+
+    init(name: String, color: CategoryColor = .Red, weeklyTarget: Int = 0, iconName: String? = nil) {
         self.name = name
         self.color = color
         self.weeklyTarget = weeklyTarget
+        self.iconName = iconName
+        self.uuid = UUID()
     }
     
     // Example reusable predicate for SwiftData queries. Adjust as needed.
@@ -89,35 +97,39 @@ class Category {
         
         var contrastingTextColor: Color {
             switch self {
-            case .Yellow, .Cyan, .Pink:
+            case .Yellow, .Cyan, .Pink, .Orange:
                 return .black
-            case .Red, .Blue, .Green, .Brown, .Orange, .Purple:
+            case .Red, .Blue, .Green, .Brown, .Purple:
                 return .white
             }
         }
     }
 }
 
-struct CategoryDTO: Sendable, Codable, Hashable {
+struct CategoryDTO: Sendable, Hashable {
     var id: PersistentIdentifier?
     var name: String
     var color: Category.CategoryColor
     var weeklyTarget: Int
-    
-    init(id: PersistentIdentifier?, name: String, color: Category.CategoryColor, weeklyTarget: Int) {
+    var iconName: String?
+    /// Stable UUID — preferred over PersistentIdentifier for cross-process use (widgets, intents).
+    var uuid: UUID?
+
+    nonisolated init(id: PersistentIdentifier?, name: String, color: Category.CategoryColor, weeklyTarget: Int, iconName: String? = nil, uuid: UUID? = nil) {
         self.id = id
         self.name = name
         self.color = color
         self.weeklyTarget = weeklyTarget
-        
+        self.iconName = iconName
+        self.uuid = uuid
     }
-    
+
     var encodedId: String? {
         guard let id else { return nil }
         guard let data = try? JSONEncoder().encode(id) else { return nil }
         return data.base64EncodedString()
     }
-    
+
     func decodeId(_ encodedId: String) throws -> PersistentIdentifier? {
         guard let data = Data(base64Encoded: encodedId) else {
             throw NSError(domain: "ToDo", code: 0, userInfo: nil)
@@ -126,25 +138,84 @@ struct CategoryDTO: Sendable, Codable, Hashable {
     }
 }
 
+extension Category: Hashable {
+    static func == (lhs: Category, rhs: Category) -> Bool {
+        lhs.uuid == rhs.uuid
+    }
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(uuid)
+    }
+}
+
+extension CategoryDTO: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case id, name, color, weeklyTarget, iconName, uuid
+    }
+
+    nonisolated init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try c.decodeIfPresent(PersistentIdentifier.self, forKey: .id)
+        self.name = try c.decode(String.self, forKey: .name)
+        self.color = try c.decode(Category.CategoryColor.self, forKey: .color)
+        self.weeklyTarget = try c.decodeIfPresent(Int.self, forKey: .weeklyTarget) ?? 0
+        self.iconName = try c.decodeIfPresent(String.self, forKey: .iconName)
+        self.uuid = try c.decodeIfPresent(UUID.self, forKey: .uuid)
+    }
+
+    nonisolated func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encodeIfPresent(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(color, forKey: .color)
+        try c.encode(weeklyTarget, forKey: .weeklyTarget)
+        try c.encodeIfPresent(iconName, forKey: .iconName)
+        try c.encodeIfPresent(uuid, forKey: .uuid)
+    }
+}
+
 extension CategoryDTO {
-    init(from model: Category) {
-        self.init(id: model.persistentModelID, name: model.name!, color: model.color ?? Category.CategoryColor.Red , weeklyTarget: model.weeklyTarget)
+    nonisolated init(from model: Category) {
+        self.init(
+            id: model.persistentModelID,
+            name: model.name ?? "",
+            color: model.color ?? .Red,
+            weeklyTarget: model.weeklyTarget,
+            iconName: model.iconName,
+            uuid: model.uuid
+        )
     }
 }
 
 
-struct CategoryFilterSettings: Codable {
+struct CategoryFilterSettings {
     var Categories: [CategoryEntity]
     var showOrHide: FilterShowOrHide
+}
+
+// Explicit Codable — avoids @MainActor bleed from AppEntity synthesis
+extension CategoryFilterSettings: Codable {
+    enum CodingKeys: String, CodingKey { case Categories, showOrHide }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.Categories = try container.decode([CategoryEntity].self, forKey: .Categories)
+        self.showOrHide = try container.decode(FilterShowOrHide.self, forKey: .showOrHide)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(Categories, forKey: .Categories)
+        try container.encode(showOrHide, forKey: .showOrHide)
+    }
 }
 
 enum FilterShowOrHide: String, Codable, AppEnum {
     case show
     case hide
 
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Show or Hide Categories"
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Show or Hide Categories"
 
-    static var caseDisplayRepresentations: [FilterShowOrHide: DisplayRepresentation] = [
+    static let caseDisplayRepresentations: [FilterShowOrHide: DisplayRepresentation] = [
         .show: "Show",
         .hide: "Hide"
     ]

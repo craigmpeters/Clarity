@@ -64,7 +64,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "4448AD602E579266005CDDDF"
             BuildableName = "Widgets.appex"
-            BlueprintName = "Widgets"
             ReferencedContainer = "container:Clarity.xcodeproj">
          </BuildableReference>
       </RemoteRunnable>

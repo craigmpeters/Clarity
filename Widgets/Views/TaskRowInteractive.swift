@@ -5,6 +5,7 @@
 //
 
 import SwiftUI
+import XCGLogger
 
 struct TaskRowInteractive: View {
     let task: ToDoTaskDTO
@@ -52,7 +53,7 @@ struct TaskRowInteractive: View {
         }
         .task {
             
-            print("Row for \(task.name) — ID: \(task.uuid.uuidString)")
+            LogManager.shared.log.debug("Row for \(task.name) — ID: \(task.uuid.uuidString)")
         }
     }
 }

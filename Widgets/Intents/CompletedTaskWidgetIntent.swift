@@ -12,8 +12,8 @@ import XCGLogger
 
 
 struct CompletedTaskWidgetIntent : WidgetConfigurationIntent {
-    static var title: LocalizedStringResource = "Completed Tasks"
-    static var description = IntentDescription("See your completed tasks")
+    static let title: LocalizedStringResource = "Completed Tasks"
+    static let description = IntentDescription("See your completed tasks")
     
     @Parameter(title: "Category Filter", default: [])
     var categoryFilter: [CategoryEntity]

@@ -1,5 +1,13 @@
-// TaskSplitterView.swift
-// AI-powered task splitting using Foundation Models (iOS 18+)
+//  TaskSplitterService.swift
+//  AI-powered task splitting using Foundation Models (iOS 18+)
+//
+//  TODO: Mitigate FoundationModels crash "Clarity: NO_CRASH_STACK"
+//  - Exception: EXC_BREAKPOINT (SIGTRAP) — Range requires lowerBound <= upperBound
+//  - Crashes inside LanguageModelSession.produceNextEntry; no app code in stack.
+//  - Add validation that `taskName` and the prompt are non-empty before calling respond(to:options:).
+//  - Add timeout/cancellation around LanguageModelSession.respond calls so a hung session cannot outlive the service.
+//  - Recreate the LanguageModelSession on any failure; do not reuse a potentially corrupted session.
+//  - File Feedback Assistant report with Apple; this is primarily a framework bug.
 
 import SwiftUI
 import SwiftData
@@ -19,6 +27,7 @@ struct SplitTaskSuggestion: Identifiable {
 
 // MARK: - AI Task Splitter Service
 @available(iOS 26.0, *)
+@MainActor
 class TaskSplitterService: ObservableObject {
     @Published var isProcessing = false
     @Published var suggestions: [SplitTaskSuggestion] = []
@@ -26,10 +35,8 @@ class TaskSplitterService: ObservableObject {
     
     
     func splitTask(_ taskName: String) async {
-        await MainActor.run {
-            self.isProcessing = true
-            self.error = nil
-        }
+        isProcessing = true
+        self.error = nil
         
         do {
             // Create the prompt for task splitting
@@ -56,21 +63,22 @@ class TaskSplitterService: ObservableObject {
             )
             
             // Parse the response into suggestions
-            let parsedSuggestions = parseResponse(response.content, taskName: taskName)
-            
-            await MainActor.run {
-                self.suggestions = parsedSuggestions
-                self.isProcessing = false
-            }
+            suggestions = parseResponse(response.content, taskName: taskName)
+            isProcessing = false
         } catch {
-            await MainActor.run {
-                self.error = "Failed to generate suggestions: \(error.localizedDescription)"
-                self.isProcessing = false
-            }
+            self.error = "Failed to generate suggestions: \(error.localizedDescription)"
+            isProcessing = false
         }
     }
     
     private func parseResponse(_ text: String, taskName: String) -> [SplitTaskSuggestion] {
+        TaskSplitParser.parse(text, fallbackTaskName: taskName)
+    }
+}
+
+// MARK: - Parsing Helpers
+enum TaskSplitParser {
+    static func parse(_ text: String, fallbackTaskName: String) -> [SplitTaskSuggestion] {
         print("Apple Intelligence Response: \(text) ")
         let lines = text.components(separatedBy: .newlines)
         var suggestions: [SplitTaskSuggestion] = []
@@ -96,7 +104,7 @@ class TaskSplitterService: ObservableObject {
         // If parsing fails, create a simple split
         if suggestions.isEmpty && !text.isEmpty {
             suggestions.append(SplitTaskSuggestion(
-                name: taskName,
+                name: fallbackTaskName,
                 estimatedMinutes: 15
             ))
         }
@@ -107,6 +115,7 @@ class TaskSplitterService: ObservableObject {
 
 // MARK: Pomodoro Suggestion Service
 @available(iOS 26, *)
+@MainActor
 class PomodoroSuggestionService: ObservableObject {
     @Published var isProcessing = false
     @Published var suggestedInterval: TimeInterval = 0
@@ -114,10 +123,8 @@ class PomodoroSuggestionService: ObservableObject {
     
     @available(iOS 26, *)
     func suggestTime(for task: String) async {
-        await MainActor.run {
-            self.isProcessing = true
-            self.error = nil
-        }
+        isProcessing = true
+        self.error = nil
         
         do {
             let prompt = """
@@ -127,6 +134,8 @@ class PomodoroSuggestionService: ObservableObject {
                 - Suggest the amount of time that it would take a typical adult
                 - The amount of time should be divisible by 5 with no remainder
                 - The minimum amount of time it should take is 5 minutes
+                - The maximum amount of time it should take is 25 minutes
+                - Do not always answer 25: pick the shortest duration that realistically fits the task (5, 10, 15, 20 or 25)
                 
                 Format Your response as a simple single number
                 """
@@ -139,18 +148,17 @@ class PomodoroSuggestionService: ObservableObject {
             )
             LogManager.shared.log.info("Apple Intelligence Response: \(response.content) for \(task)")
             
-            let minutes = Int(response.content)
-            await MainActor.run {
-                self.suggestedInterval = TimeInterval((minutes ?? 25) * 60)
-                self.isProcessing = false
-            }
+            // The model can return extra prose or whitespace; pull out the first number.
+            let digits = response.content.components(separatedBy: CharacterSet.decimalDigits.inverted)
+            let minutes = digits.compactMap { Int($0) }.first
+            // Business rule: pomodoros are capped at 25 minutes (service-level guard).
+            suggestedInterval = TimeInterval(min(minutes ?? 25, 25) * 60)
+            isProcessing = false
             
         } catch {
             LogManager.shared.log.error("Cannot Generate Suggested Pomodoro: \(error)")
-            await MainActor.run {
-                self.error = "Failed to generate suggestions: \(error.localizedDescription)"
-                self.isProcessing = false
-            }
+            self.error = "Failed to generate suggestions: \(error.localizedDescription)"
+            isProcessing = false
         }
     }
 }

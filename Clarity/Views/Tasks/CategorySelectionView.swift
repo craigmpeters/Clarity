@@ -59,9 +59,15 @@ struct CategoryChip: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 6) {
-                Circle()
-                    .fill(category.color!.SwiftUIColor)
-                    .frame(width: 10, height: 10)
+                if let iconName = category.iconName, !iconName.isEmpty {
+                    CategoryIcon.image(for: iconName)
+                        .frame(width: 14, height: 14)
+                        .foregroundStyle(category.color!.SwiftUIColor)
+                } else {
+                    Circle()
+                        .fill(category.color!.SwiftUIColor)
+                        .frame(width: 10, height: 10)
+                }
                 
                 Text(category.name!)
                     .font(.caption)
@@ -100,6 +106,7 @@ struct AddCategoryView: View {
     @State private var name = ""
     @State private var selectedColor: Category.CategoryColor = .Red
     @State private var weeklyTarget: Int = 0
+    @State private var selectedIcon: String? = nil
     
     // Callback to notify parent when category is created
     var onCategoryCreated: ((Category) -> Void)?
@@ -160,6 +167,11 @@ struct AddCategoryView: View {
                     }
                     .padding(.vertical, 8)
                 }
+
+                Section("Icon") {
+                    CategoryIconPicker(selectedIcon: $selectedIcon)
+                        .frame(minHeight: 260)
+                }
             }
             .navigationTitle("New Category")
             .navigationBarTitleDisplayMode(.inline)
@@ -182,7 +194,12 @@ struct AddCategoryView: View {
     }
     
     private func saveCategory() {
-        let newCategory = Category(name: name, color: selectedColor, weeklyTarget: weeklyTarget)
+        let newCategory = Category(
+            name: name,
+            color: selectedColor,
+            weeklyTarget: weeklyTarget,
+            iconName: selectedIcon
+        )
         
         modelContext.insert(newCategory)
         

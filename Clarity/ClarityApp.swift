@@ -18,16 +18,13 @@ import Combine
 final class AppState: ObservableObject {
     @Published var showingPomodoro: Bool = false
     @Published var pomodoroUuid: UUID?
+    @Published var selectedTab: Int = 0
 }
 
 @main
 struct ClarityApp: App {
-    private struct Migration {
+    struct Migration {
         static let uuidPopulatedKeyPrefix = "com.clarity.migration.uuidPopulated_"
-
-        static var currentBuild: String {
-            Bundle.main.object(forInfoDictionaryKey: kCFBundleVersionKey as String) as? String ?? "0"
-        }
 
         static func hasRun(forBuild build: String) -> Bool {
             UserDefaults.standard.bool(forKey: uuidPopulatedKeyPrefix + build)
@@ -36,66 +33,123 @@ struct ClarityApp: App {
         static func markRun(forBuild build: String) {
             UserDefaults.standard.set(true, forKey: uuidPopulatedKeyPrefix + build)
         }
+
+        static func reset(forBuild build: String) {
+            UserDefaults.standard.removeObject(forKey: uuidPopulatedKeyPrefix + build)
+        }
     }
     
     init() {}
     
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
-    private let container = try! Containers.liveApp()
+    private let container = ClarityApp.makeContainer()
     @StateObject private var appState = AppState()
+    // Deferred so CompanionService.shared isn't forced during App.init() on the main thread.
+    // The companion's init chain (chat store, digest restore) is deferred until first use.
+    private var companion: CompanionService { CompanionService.shared }
     @State private var store = Store()
     @Environment(\.scenePhase) private var scenePhase
     
-    private func populateUUIDsIfNeeded(modelContext: ModelContext, minimumBuild: String) {
+    private static func makeContainer() -> ModelContainer {
+        let isUITesting = ProcessInfo.processInfo.arguments.contains("--uitesting")
+        let isRunningTests = TestEnvironment.isRunningTests
+        print("ClarityApp.makeContainer: isUITesting=\(isUITesting), isRunningTests=\(isRunningTests), args=\(ProcessInfo.processInfo.arguments)")
+        
+        #if DEBUG
+        if isUITesting {
+            UserDefaults.hasCompletedOnboarding = false
+            if ProcessInfo.processInfo.arguments.contains("--uitesting-skip-onboarding") {
+                UserDefaults.hasCompletedOnboarding = true
+            }
+            UserDefaults.companionEnabled = false
+            UserDefaults.pomodoroAlarmSoundID = "default"
+            do {
+                let container = try Containers.inMemory()
+                UITestDataSeeder.seed(in: container)
+                return container
+            } catch {
+                LogManager.shared.log.error("Failed to create in-memory UI test container: \(error)")
+            }
+        }
+        #endif
+
+        if TestEnvironment.isRunningTests {
+            do {
+                return try Containers.inMemory()
+            } catch {
+                fatalError("Could not create in-memory test container: \(error)")
+            }
+        }
+
+        do {
+            return AppContainer.shared
+        } catch {
+            LogManager.shared.log.error("Failed to create live app container: \(error). Falling back to in-memory container.")
+            do {
+                return try Containers.inMemory()
+            } catch {
+                fatalError("Could not create any model container: \(error)")
+            }
+        }
+    }
+    func populateUUIDsIfNeeded(modelContext: ModelContext, minimumBuild: String) {
         // Only run once per build
-        let currentBuild = Migration.currentBuild
+        let currentBuild = ClarityApp.currentBuild
         guard currentBuild >= minimumBuild, Migration.hasRun(forBuild: currentBuild) == false else { return }
         LogManager.shared.log.debug("Running Populate UUID Migration")
 
-        // Define a dynamic fetch to avoid compile-time dependency on Todo type if not imported here
-        // If you have a concrete model type like `Todo`, replace with a typed FetchDescriptor<Todo>()
-        let fetch = FetchDescriptor<ToDoTask>()
-
         var updatedCount = 0
         do {
-            // Attempt to fetch all models and filter those matching "Todo" entity name
-            // and missing a value for key "uuid"
-            let toDoTasks = try modelContext.fetch(fetch)
-            for task in toDoTasks {
-                if task.uuid == nil {
-                    task.uuid = UUID()
-                    updatedCount += 1
-                }
+            // Backfill ToDoTask.uuid
+            let tasks = try modelContext.fetch(FetchDescriptor<ToDoTask>())
+            for task in tasks where task.uuid == nil {
+                task.uuid = UUID()
+                updatedCount += 1
             }
+
+            // Backfill Category.uuid
+            let categories = try modelContext.fetch(FetchDescriptor<Category>())
+            for category in categories where category.uuid == nil {
+                category.uuid = UUID()
+                updatedCount += 1
+            }
+
             if updatedCount > 0 {
                 try modelContext.save()
+                LogManager.shared.log.debug("UUID migration: backfilled \(updatedCount) records")
             }
             Migration.markRun(forBuild: currentBuild)
         } catch {
             // If anything fails, don't mark as run so we can attempt again next launch
-            print("Migration populateUUIDsIfNeeded error: \(error)")
+            LogManager.shared.log.error("Migration populateUUIDsIfNeeded error: \(error)")
         }
     }
-        
 
     var body: some Scene {
         WindowGroup {
             ContentView().environment(store)
                 .environmentObject(appState)
+                .environment(companion)
                 .modelContainer(container)
                 .onAppear {
+                    guard !TestEnvironment.isRunningTests else { return }
                     appDelegate.appState = appState
                     populateUUIDsIfNeeded(modelContext: container.mainContext, minimumBuild: "1.3.0")
+                    // Prime the shared category snapshot so widgets / App Intents can read
+                    // categories without spinning up a SwiftData container.
+                    let categories = ClarityServices.snapshotCategories()
+                    try? WidgetFileCoordinator.shared.writeCategories(categories)
                     Task { @MainActor in
                         await PomodoroService.shared.restoreIfNeeded(container: container, device: .iPhone)
+                        PomodoroService.shared.syncIfStoppedExternally()
                         if PomodoroService.shared.isActive {
                             appState.showingPomodoro = true
                         }
                     }
                 }
                 .task {
-                    if let id = consumePendingStartTimerTaskId() {
+                    if let id = Self.consumePendingStartTimerTaskId() {
                         appState.pomodoroUuid = id
                         LogManager.shared.log.debug("Starting Pomodero (.task) for \(id.uuidString)")
                         let store = ClarityModelActor(modelContainer: container)
@@ -112,7 +166,11 @@ struct ClarityApp: App {
                 }
                 .onChange(of: scenePhase) { _, newPhase in
                     guard newPhase == .active else { return }
-                    if let id = consumePendingStartTimerTaskId() {
+                    // Keep the App Group category snapshot fresh for widgets / intents.
+                    ClarityServices.writeCategorySnapshot()
+                    // Sync any Pomodoro state that was changed by a widget / Live Activity intent.
+                    PomodoroService.shared.syncIfStoppedExternally()
+                    if let id = Self.consumePendingStartTimerTaskId() {
                         LogManager.shared.log.debug("Starting Pomodero (.onChange Active) for \(id.uuidString)")
                         appState.pomodoroUuid = id
                         let store = ClarityModelActor(modelContainer: container)
@@ -128,38 +186,6 @@ struct ClarityApp: App {
                         }
                     }
                 }
-                .task {
-                    if let id = consumePendingStartTimerTaskId() {
-                        appState.pomodoroUuid = id
-                        let store = ClarityModelActor(modelContainer: container)
-                        do {
-                            if let taskDTO = try await store.fetchTaskByUuid(id) {
-                                PomodoroService.shared.startPomodoro(for: taskDTO, container: container, device: .iPhone)
-                                appState.showingPomodoro = true
-                            }
-                        } catch {
-                            // Log and swallow the error to keep the .task closure non-throwing
-                            print("Failed to fetch task by UUID: \(error)")
-                        }
-                    }
-                }
-                .onChange(of: scenePhase) { _, newPhase in
-                    guard newPhase == .active else { return }
-                    if let id = consumePendingStartTimerTaskId() {
-                        appState.pomodoroUuid = id
-                        let store = ClarityModelActor(modelContainer: container)
-                        Task {
-                            do {
-                                if let taskDTO = try await store.fetchTaskByUuid(id) {
-                                    PomodoroService.shared.startPomodoro(for: taskDTO, container: container, device: .iPhone)
-                                    appState.showingPomodoro = true
-                                }
-                            } catch {
-                                print("Failed to fetch task by UUID (resume): \(error)")
-                            }
-                        }
-                    }
-                } 
         }
     }
     
@@ -167,10 +193,11 @@ struct ClarityApp: App {
             ClarityShortcutsProvider.self
         }
     
-    private func consumePendingStartTimerTaskId(appGroup: String = "group.me.craigpeters.clarity") -> UUID? {
+    static func consumePendingStartTimerTaskId(appGroup: String = "group.me.craigpeters.clarity") -> UUID? {
         let defaults = UserDefaults(suiteName: appGroup)
         guard let idString = defaults?.string(forKey: "pendingStartTimerTaskId"),
               let id = UUID(uuidString: idString) else {
+            defaults?.removeObject(forKey: "pendingStartTimerTaskId")
             return nil
         }
         defaults?.removeObject(forKey: "pendingStartTimerTaskId")
@@ -178,7 +205,20 @@ struct ClarityApp: App {
     }
 }
 
-class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+extension ClarityApp {
+    /// Returns the current build number from the main bundle.
+    static var currentBuild: String {
+        Bundle.main.object(forInfoDictionaryKey: kCFBundleVersionKey as String) as? String ?? "0"
+    }
+
+    /// Returns the build number from the main bundle without a fallback.
+    static var buildNumber: String? {
+        Bundle.main.object(forInfoDictionaryKey: kCFBundleVersionKey as String) as? String
+    }
+}
+
+@MainActor
+class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency UNUserNotificationCenterDelegate {
     private var cancellables = Set<AnyCancellable>()
     private static var remoteLoggerInstalled = false
     
@@ -186,10 +226,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
-        // Migrations are triggered from ClarityApp.onAppear via modelContext
-        ClarityWatchConnectivity.shared.start()
-        ClarityModelActor.onTaskCompleted = { ClarityWatchConnectivity.shared.pushSnapshot() }
-        ClarityModelActor.onTaskMutated = { ClarityWatchConnectivity.shared.pushSnapshot() }
+        if !TestEnvironment.isRunningTests {
+            // Migrations are triggered from ClarityApp.onAppear via modelContext
+            PhoneConnectivityCoordinator.shared.start()
+            ClarityModelActor.onTaskCompleted = { PhoneConnectivityCoordinator.shared.broadcastSnapshot() }
+            ClarityModelActor.onTaskMutated = { PhoneConnectivityCoordinator.shared.broadcastSnapshot() }
+            ClarityModelActor.onHabitMutated = { PhoneConnectivityCoordinator.shared.broadcastSnapshot() }
+        }
         _ = LogManager.shared
         // let url = LogManager.defaultLogFileURL()
         LogManager.shared.log.info("Clarity logger initialized in AppDelegate")
@@ -198,6 +241,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             .sink { [weak self] _ in
                 DispatchQueue.main.async {
                     self?.appState?.showingPomodoro = true
+                    self?.appState?.selectedTab = 2
                     print("⏰ Pomodoro Started - iOS AppDelegate")
                 }
             }

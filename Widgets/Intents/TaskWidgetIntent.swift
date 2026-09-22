@@ -11,8 +11,8 @@ import SwiftUI
 import XCGLogger
 
 struct TaskWidgetIntent: WidgetConfigurationIntent {
-    static var title: LocalizedStringResource = "Task Filter"
-    static var description = IntentDescription("Choose which tasks to display")
+    static let title: LocalizedStringResource = "Task Filter"
+    static let description = IntentDescription("Choose which tasks to display")
     
     @Parameter(title: "Date Filter", default: .all)
     var filter: ToDoTask.TaskFilterOption

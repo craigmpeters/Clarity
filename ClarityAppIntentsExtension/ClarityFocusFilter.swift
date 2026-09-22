@@ -12,8 +12,8 @@ import WidgetKit
 import XCGLogger
 
 struct ClarityFocusFilter: SetFocusFilterIntent {
-    static var title: LocalizedStringResource = "Set Categories"
-    static var description: IntentDescription? = "What categories are displayed during this focus mode"
+    static let title: LocalizedStringResource = "Set Categories"
+    static let description: IntentDescription? = "What categories are displayed during this focus mode"
     
     var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(title: "\(primaryText)")
@@ -63,7 +63,24 @@ struct ClarityFocusFilter: SetFocusFilterIntent {
         }
         let categoryNames = (categories ?? []).map { $0.name }.joined(separator: ", ")
         LogManager.shared.log.debug("Set Categories: \(categoryNames)")
-        WidgetCenter.shared.reloadTimelines(ofKind: "TodoWidget")
+
+        // Rewrite the shared file copy of tasks so it reflects the new filter
+        // (writeTasks applies the focus filter we just persisted above).
+        do {
+            let tasks = try WidgetFileCoordinator.shared.readTasks()
+            try WidgetFileCoordinator.shared.writeTasks(tasks)
+            LogManager.shared.log.debug("Rewrote ClarityWidget.json with focus filter applied (\(tasks.count) tasks read)")
+        } catch {
+            LogManager.shared.log.error("Failed to update task file copy: \(String(describing: error))")
+        }
+
+        // Reload iOS widgets immediately.
+        WidgetCenter.shared.reloadAllTimelines()
+
+        // Notify the iPhone app so it rebroadcasts the filtered snapshot to the
+        // watch right away (no-op if the extension is the only process alive —
+        // the watch will still converge via the file copy and next sync).
+        FocusFilterSync.postChanged()
         return .result()
     }
 }

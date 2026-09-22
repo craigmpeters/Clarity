@@ -5,48 +5,48 @@ import WidgetKit
 #endif
 
 enum ClarityServices {
-    // Cache only for the EXTENSION process
-    private static var cachedExtensionContainer: ModelContainer?
-    private static var cachedStoreTask: Task<ClarityModelActor, Never>?
+    // Cache only for extension and watch app processes.
+    // nonisolated(unsafe): single-writer (no concurrent callers).
+    nonisolated(unsafe) private static var cachedExtensionContainer: ModelContainer?
 
-    // More reliable than checking bundle path
-    private static var isExtension: Bool {
-        Bundle.main.object(forInfoDictionaryKey: "NSExtension") != nil
-    }
-
-    static func sharedContainer() throws -> ModelContainer {
+    nonisolated static func sharedContainer() throws -> ModelContainer {
         let isExtension = Bundle.main.object(forInfoDictionaryKey: "NSExtension") != nil
-        print("🚦 Process type:", isExtension ? "EXTENSION" : "APP")
+#if os(watchOS)
+        let isWatchApp = true
+#else
+        let isWatchApp = false
+#endif
+        print("🚦 Process type:", isExtension ? "EXTENSION" : (isWatchApp ? "WATCH_APP" : "APP"))
 
-        if isExtension {
+        if isExtension || isWatchApp {
             if let c = cachedExtensionContainer { return c }
-            print("🏗️ Creating NON-CloudKit container (EXT)")
-            let c = try Containers.liveExtension()          // cloudKitDatabase: nil
+            print("🏗️ Creating NON-CloudKit container (EXT/WATCH)")
+            let c = try Containers.liveExtension()
             cachedExtensionContainer = c
             return c
         } else {
-            return AppContainer.shared                     // single CloudKit container in app
+            return AppContainer.shared
         }
     }
 
 
-    static func inMemoryContainer() -> ModelContainer {
+    nonisolated static func inMemoryContainer() -> ModelContainer {
         try! Containers.inMemory()
     }
 
     static func store() async throws -> ClarityModelActor {
-        if let task = cachedStoreTask { return await task.value }
         let container = try sharedContainer()
-        let task = Task.detached {
-            await ClarityModelActorFactory.makeBackground(container: container)
-        }
-        cachedStoreTask = task
-        return await task.value
+        return await StoreRegistry.shared.store(for: container)
     }
 
     // -------- Snapshots for widgets / quick reads --------
     
-    static func snapshotCompleted() -> [ToDoTaskDTO] {
+    // TODO: [CRASH-001] Route all snapshot reads through ClarityModelActor to avoid ad-hoc ModelContext
+    // access on a non-actor isolation domain. SwiftData's ModelContext is not thread-safe; creating
+    // contexts here and calling fetch() concurrently with the @ModelActor store can trigger
+    // CoreData performAndWait crashes (signature: NSManagedObjectContext.performAndWait<A>(_:) + 8).
+    // Replace with: let store = try await ClarityServices.store(); return await store.snapshotCompleted().
+    nonisolated static func snapshotCompleted() -> [ToDoTaskDTO] {
         do {
             let container = try sharedContainer()
             let ctx = ModelContext(container)
@@ -62,7 +62,9 @@ enum ClarityServices {
         }
     }
 
-    static func snapshotTasks(filter: ToDoTask.TaskFilter = .all) -> [ToDoTaskDTO] {
+    // TODO: [CRASH-001] Ad-hoc ModelContext.fetch from a nonisolated static method is unsafe when
+    // ClarityModelActor is mutating the same store. Move this to the actor and call via store().
+    nonisolated static func snapshotTasks(filter: ToDoTask.TaskFilter = .all) -> [ToDoTaskDTO] {
         do {
             let container = try sharedContainer()         // <- was Containers.live()
             let ctx = ModelContext(container)
@@ -80,19 +82,8 @@ enum ClarityServices {
         }
     }
     
-    static func snapshotCompletedAsync() async -> [ToDoTaskDTO] {
-        await withUnsafeContinuation { cont in
-            Task.detached{ cont.resume(returning: snapshotCompleted())}
-        }
-    }
-
-    static func snapshotTasksAsync(filter: ToDoTask.TaskFilter = .all) async -> [ToDoTaskDTO] {
-        await withCheckedContinuation { cont in
-            Task.detached { cont.resume(returning: snapshotTasks(filter: filter)) }
-        }
-    }
-
-    static func snapshotCategories() -> [CategoryDTO] {
+    // TODO: [CRASH-001] Same ModelContext isolation issue: this should be a read on the actor.
+    nonisolated static func snapshotCategories() -> [CategoryDTO] {
         do {
             let container = try sharedContainer()
             let ctx = ModelContext(container)
@@ -101,41 +92,38 @@ enum ClarityServices {
         } catch { return [] }
     }
 
-    static func reloadWidgets(kind: String? = nil) {
+    nonisolated static func writeCategorySnapshot() {
+        let categories = snapshotCategories()
+        try? WidgetFileCoordinator.shared.writeCategories(categories)
+    }
+
+    nonisolated static func reloadWidgets(kind: String? = nil) {
         #if canImport(WidgetKit)
         if let kind { WidgetCenter.shared.reloadTimelines(ofKind: kind) }
         else { WidgetCenter.shared.reloadAllTimelines() }
         #endif
     }
 
-    static func fetchWeeklyProgress() -> WeeklyProgress {
+    // TODO: [CRASH-001] Heavy snapshot read across GlobalTargetSettings, Category, and ToDoTask
+    // from a nonisolated context risks concurrent performAndWait with the model actor. Move to actor.
+    nonisolated static func fetchWeeklyProgress() -> WeeklyProgress {
         do {
             let container = try sharedContainer()
             let ctx = ModelContext(container)
 
-            let global = try ctx.fetch(FetchDescriptor<GlobalTargetSettings>()).first
-            let target = global?.weeklyGlobalTarget ?? 0
+            let globalTarget = (try? ctx.fetch(FetchDescriptor<GlobalTargetSettings>()))?.first?.weeklyGlobalTarget ?? 0
+            let categories = (try? ctx.fetch(FetchDescriptor<Category>()))?.map(CategoryDTO.init(from:)) ?? []
+            let completedDTOs = (try? ctx.fetch(
+                FetchDescriptor<ToDoTask>(predicate: #Predicate { $0.completed })
+            ))?.map(ToDoTaskDTO.init(from:)) ?? []
 
-            let cal = Calendar.current
-            let now = Date()
-            var comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
-            comps.weekday = 2 // Monday
-            let weekStart = cal.date(from: comps) ?? now
-
-            let taskDescriptor = FetchDescriptor<ToDoTask>(
-                predicate: #Predicate { task in
-                    if let completed = task.completedAt {
-                        return completed > weekStart
-                    } else {
-                        return false
-                    }
-                }
+            let progress = StatisticsCalculator.weeklyProgress(
+                completedTasks: completedDTOs,
+                categories: categories,
+                globalTarget: globalTarget
             )
-            let count = try ctx.fetch(taskDescriptor).count
-            let progress = WeeklyProgress(completed: count, target: target, error: "", categories: [])
-            
-            try? WidgetFileCoordinator.shared.writeWeeklyProgress(progress)
 
+            try? WidgetFileCoordinator.shared.writeWeeklyProgress(progress)
             return progress
         } catch {
             print(error.localizedDescription)

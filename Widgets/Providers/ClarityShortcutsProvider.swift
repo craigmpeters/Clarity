@@ -1,0 +1,81 @@
+//
+//  ClarityAppIntentsProvider.swift
+//  Clarity
+//
+//  Created by Craig Peters on 03/09/2025.
+//
+
+import AppIntents
+
+/// App Shortcuts Provider for Clarity
+/// This provides shortcuts and ensures proper App Intent discovery
+struct ClarityShortcutsProvider: AppShortcutsProvider {
+    static var appShortcuts: [AppShortcut] {
+        AppShortcut(
+            intent: CreateTaskIntent(),
+            phrases: [
+                "Create a task in \(.applicationName)",
+                "Add a new task in \(.applicationName)",
+                "New task in \(.applicationName)"
+            ],
+            shortTitle: "New Task",
+            systemImageName: "plus.circle"
+        )
+        AppShortcut(
+            intent: CompleteTaskIntent(),
+            phrases: [
+                "Complete task in \(.applicationName)"
+                    
+            ],
+            shortTitle: "Complete Task",
+            systemImageName: "checkmark"
+        )
+        
+        AppShortcut(
+            intent: StartPomodoroIntent(),
+            phrases: ["Start timer in \(.applicationName)",
+                     "Start \(\.$task) timer in \(.applicationName)",
+            "Start a timer for \(\.$task) in \(.applicationName)"],
+            shortTitle: "Start Timer",
+            systemImageName: "timer"
+        )
+        AppShortcut(
+            intent: ListTasksIntent(),
+                    phrases: ["List tasks in \(.applicationName)"],
+                    shortTitle: "List Tasks",
+                    systemImageName: "list.bullet"
+        )
+        AppShortcut(
+            intent: DeleteTaskIntent(),
+            phrases: ["Delete a task in \(.applicationName)",
+                      "Delete \(\.$task) in \(.applicationName)"],
+            shortTitle: "Delete a Task",
+            systemImageName: "trash"
+        )
+        AppShortcut(
+            intent: GetTaskIntent(),
+            phrases: ["View task in \(.applicationName)",
+                      "Get \(\.$task) details in (\(.applicationName))"],
+            shortTitle: "View Task",
+            systemImageName: "checkmark")
+        AppShortcut(
+            intent: LogHabitProgressIntent(),
+            phrases: [
+                "Log progress on \(.applicationName)",
+                "Log progress on a habit in \(.applicationName)"
+            ],
+            shortTitle: "Log Habit Progress",
+            systemImageName: "checklist.checked"
+        )
+//        AppShortcut(
+//            intent: StartPomodoroIntent(),
+//            phrases: [
+//                "Start pomodoro in \(.applicationName)",
+//                "Begin focus session in \(.applicationName)",
+//                "Start timer in \(.applicationName)"
+//            ],
+//            shortTitle: "Start Timer",
+//            systemImageName: "timer"
+//        )
+    }
+}

@@ -1,9 +1,9 @@
 import Foundation
 
-final class DataRepository {
-    static let shared = DataRepository()
+final class DataRepository: @unchecked Sendable {
+    nonisolated static let shared = DataRepository()
     
-    private init() {}
+    nonisolated private init() {}
     
     private var dataStore: [String: Any] = [:]
     

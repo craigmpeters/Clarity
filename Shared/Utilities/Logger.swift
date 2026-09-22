@@ -10,8 +10,21 @@ import Foundation
 import XCGLogger
 import Compression
 
+extension Notification.Name {
+    static let pomodoroCompleted = Notification.Name("pomodoroCompleted")
+    static let pomodoroStarted = Notification.Name("pomodoroStarted")
+    static let focusSettingsChanged = Notification.Name("focusSettingsChanged")
+    static let taskCompleted = Notification.Name("taskCompleted")
+    static let taskUncompleted = Notification.Name("taskUncompleted")
+
+    /// Standard key for the affected task UUID in task-state notifications.
+    static var taskUUIDKey: String { "taskUUID" }
+    /// Key whose presence indicates the task completion has already been handled by an external process (e.g., the Live Activity intent).
+    static var completionHandledExternallyKey: String { "completionHandledExternally" }
+}
+
 extension Logger {
-    static var subsystem = Bundle.main.bundleIdentifier ?? "me.craigpeters.Clarity"
+    static let subsystem = Bundle.main.bundleIdentifier ?? "me.craigpeters.Clarity"
     
     static let WatchConnectivity = Logger(subsystem: subsystem, category: "WatchConnectivity")
     static let LogViewer = Logger(subsystem: subsystem, category: "Settings.LogView")
@@ -23,11 +36,11 @@ extension Logger {
     static let FocusFilter = Logger(subsystem: subsystem, category: "Focus Filter")
 }
 
-final class LogManager {
-    static let shared = LogManager()
-    let log: XCGLogger
+final class LogManager: @unchecked Sendable {
+    nonisolated static let shared = LogManager()
+    nonisolated(unsafe) let log: XCGLogger
     
-    private init() {
+    nonisolated private init() {
         // 1) Create the logger
         let logger = XCGLogger.default
         
@@ -90,13 +103,13 @@ final class LogManager {
     }
     
     /// Preferred log file location in the shared App Group so extensions/widgets can access it.
-    static func sharedLogFileURL() -> URL {
+    nonisolated static func sharedLogFileURL() -> URL {
         let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity")
         return (containerURL ?? fallbackDocumentsDirectory()).appendingPathComponent("clarity.log")
     }
     
     /// Fallback only if the App Group container is unavailable (e.g., misconfigured in development builds).
-    static func fallbackDocumentsDirectory() -> URL {
+    nonisolated static func fallbackDocumentsDirectory() -> URL {
         let fm = FileManager.default
         let docs = fm.urls(for: .documentDirectory, in: .userDomainMask).first!
         return docs

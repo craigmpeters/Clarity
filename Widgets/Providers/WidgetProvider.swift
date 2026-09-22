@@ -1,0 +1,74 @@
+//
+//  WidgetProvider.swift
+//  Clarity
+//
+//  Created by Craig Peters on 03/09/2025.
+//
+
+import AppIntents
+import WidgetKit
+import SwiftUI
+import XCGLogger
+
+struct ClarityWidgetProvider: AppIntentTimelineProvider {
+    
+    func placeholder(in context: Context) -> TaskWidgetEntry {
+        TaskWidgetEntry(date: .now, todos: [], progress: WeeklyProgress(completed: 0, target: 0, error: "", categories: []),filter: .all, showWeeklyProgress: true)
+    }
+    
+    func snapshot(for configuration: TaskWidgetIntent, in context: Context) async -> TaskWidgetEntry {
+        var todos : [ToDoTaskDTO] = []
+        do {
+            todos = try WidgetFileCoordinator.shared.readTasks(with: configuration.filter.toTaskFilter())
+            todos = todos.filter { !$0.completed }
+            todos.sort { $0.due < $1.due }
+        } catch {
+            LogManager.shared.log.error("Failed to read tasks from file DB: \(error)")
+        }
+        todos = ToDoTaskDTO.focusFilter(in: todos)
+        let progress = ClarityServices.fetchWeeklyProgress()
+        return TaskWidgetEntry(date: .now, todos: todos, progress: progress, filter: configuration.filter, showWeeklyProgress: configuration.showWeeklyProgress)
+    }
+    
+    func timeline(for configuration: TaskWidgetIntent, in context: Context) async -> Timeline<TaskWidgetEntry> {
+        // let todos = await ClarityServices.snapshotTasksAsync(filter: configuration.filter.toTaskFilter())
+        var todos : [ToDoTaskDTO] = []
+        do {
+            todos = try WidgetFileCoordinator.shared.readTasks(with: configuration.filter.toTaskFilter())
+            todos = todos.filter { !$0.completed }
+            todos.sort { $0.due < $1.due }
+        } catch {
+            LogManager.shared.log.error("Failed to read tasks from file DB: \(error)")
+        }
+        
+        let selectedCategories: [CategoryEntity] = configuration.categoryFilter
+        if selectedCategories.count > 0 {
+            // If empty display everything
+            let selectedCategoryNames = Set(selectedCategories.map(\.name))
+            todos = todos.filter { task in
+                let taskCategories = Set((task.categories).compactMap(\.name))
+                return !taskCategories.isDisjoint(with: selectedCategoryNames)
+            }
+        }
+
+        let progress = ClarityServices.fetchWeeklyProgress()
+        todos = ToDoTaskDTO.focusFilter(in: todos)
+        let entry = TaskWidgetEntry(date: .now, todos: todos, progress: progress, filter: configuration.filter, showWeeklyProgress: configuration.showWeeklyProgress)
+        
+        let calendar = Calendar.current
+        let now = Date()
+        
+        
+        // Always update at midnight (when day changes)
+        let nextMidnight = calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: now) ?? now)
+        
+        // For frequent updates during the day, update every 15 minutes
+        let next15Minutes = calendar.date(byAdding: .minute, value: 15, to: now) ?? now
+        
+        // Use whichever comes first - this ensures we update at midnight for date changes
+        let nextUpdate = min(nextMidnight, next15Minutes)
+        
+        return Timeline(entries: [entry], policy: .after(nextUpdate))
+    }
+}
+

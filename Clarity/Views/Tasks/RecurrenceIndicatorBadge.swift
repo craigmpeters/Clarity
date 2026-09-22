@@ -1,6 +1,32 @@
 import SwiftUI
 import os
 
+enum RecurrenceDescription {
+    static func forTask(
+        repeating: Bool,
+        interval: ToDoTask.RecurrenceInterval?,
+        customRecurrenceDays: Int,
+        everySpecificDayDay: Int?
+    ) -> String? {
+        guard repeating, let interval else { return nil }
+
+        if interval == .custom {
+            if customRecurrenceDays == 1 {
+                return "Daily"
+            } else {
+                return "Every \(customRecurrenceDays) days"
+            }
+        }
+
+        if interval == .specific {
+            if let symbolIndex = everySpecificDayDay {
+                return Calendar.current.weekdaySymbols[symbolIndex]
+            }
+        }
+        return interval.displayName
+    }
+}
+
 struct RecurrenceIndicatorBadge: View {
     let task: ToDoTask
     var showIcon: Bool = true
@@ -37,25 +63,12 @@ struct RecurrenceIndicatorBadge: View {
     
     
     private var recurrenceDescription: String? {
-        guard task.repeating!, let interval = task.recurrenceInterval else { return nil }
-        
-        if interval == .custom {
-            if task.customRecurrenceDays == 1 {
-                return "Daily"
-            } else {
-                return "Every \(task.customRecurrenceDays) days"
-            }
-        }
-        
-        if interval == .specific {
-            if let symbolIndex = task.everySpecificDayDay {
-                let cal = Calendar.current
-                LogManager.shared.log.verbose("Every Specific Day Symbol Index: \(symbolIndex) Task: \(task.name ?? "")")
-                LogManager.shared.log.verbose("\(cal.weekdaySymbols.description)")
-                return Calendar.current.weekdaySymbols[symbolIndex]
-            }
-        }
-        return interval.displayName
+        RecurrenceDescription.forTask(
+            repeating: task.repeating ?? false,
+            interval: task.recurrenceInterval,
+            customRecurrenceDays: task.customRecurrenceDays,
+            everySpecificDayDay: task.everySpecificDayDay
+        )
     }
     
     var body: some View {

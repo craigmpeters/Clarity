@@ -138,13 +138,13 @@ struct DevelopmentMenuView: View {
     
     private func populateSampleCategories() {
         let categories = [
-            Category(name: "Work", color: .Blue, weeklyTarget: 8),
-            Category(name: "Personal", color: .Green, weeklyTarget: 5),
-            Category(name: "Learning", color: .Purple, weeklyTarget: 3),
-            Category(name: "Health", color: .Red, weeklyTarget: 7),
-            Category(name: "Creative", color: .Orange, weeklyTarget: 2),
-            Category(name: "Urgent", color: .Yellow, weeklyTarget: 0),
-            Category(name: "Planning", color: .Cyan, weeklyTarget: 2)
+            Category(name: "Work", color: .Blue, weeklyTarget: 8, iconName: "briefcase.fill"),
+            Category(name: "Personal", color: .Green, weeklyTarget: 5, iconName: "person.fill"),
+            Category(name: "Learning", color: .Purple, weeklyTarget: 3, iconName: "book.fill"),
+            Category(name: "Health", color: .Red, weeklyTarget: 7, iconName: "heart.fill"),
+            Category(name: "Creative", color: .Orange, weeklyTarget: 2, iconName: "paintbrush.fill"),
+            Category(name: "Urgent", color: .Yellow, weeklyTarget: 0, iconName: "exclamationmark.triangle.fill"),
+            Category(name: "Planning", color: .Cyan, weeklyTarget: 2, iconName: "calendar")
         ]
         
         for category in categories {

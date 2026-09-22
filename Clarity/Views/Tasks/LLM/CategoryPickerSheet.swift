@@ -22,9 +22,15 @@ struct CategoryPickerSheet: View {
                     ForEach(allCategories) { category in
                         Button(action: { toggleCategory(category) }) {
                             HStack {
-                                Circle()
-                                    .fill(category.color!.SwiftUIColor)
-                                    .frame(width: 16, height: 16)
+                                if let iconName = category.iconName, !iconName.isEmpty {
+                                    CategoryIcon.image(for: iconName)
+                                        .frame(width: 16, height: 16)
+                                        .foregroundStyle(category.color!.SwiftUIColor)
+                                } else {
+                                    Circle()
+                                        .fill(category.color!.SwiftUIColor)
+                                        .frame(width: 16, height: 16)
+                                }
                                 
                                 Text(category.name!)
                                     .foregroundStyle(.primary)

@@ -25,6 +25,7 @@ struct TaskFormView: View {
     @State private var everySpecificDayDay: Int = 1
     
     @State private var store: ClarityModelActor?
+    @FocusState private var nameFieldFocused: Bool
     
     private var isEditing: Bool {
         editingTask != nil
@@ -81,27 +82,36 @@ struct TaskFormView: View {
             Form {
                 Section("Task Details") {
                     TextField("Task name", text: $toDoTask.name)
-                        .textFieldStyle(.roundedBorder)
-                }
-                if #available(iOS 26.0, *) {
-                    aiSplitterSection
-                }
-                
-                Section("Task Settings") {
-                    HStack {
-                        Image(systemName: "timer")
-                            .foregroundStyle(.orange)
-                        Text("Duration")
-                        Spacer()
-                        MinutePickerView(selectedTimeInterval: $toDoTask.pomodoroTime, TaskName: $toDoTask.name)
+                        .textFieldStyle(.automatic)
+                        .accessibilityIdentifier("task-form-name")
+                        .submitLabel(.done)
+                        .focused($nameFieldFocused)
+                    VStack {
+                        HStack {
+                            Image(systemName: "timer")
+                                .foregroundStyle(.orange)
+                            Text("Duration")
+                            Spacer()
+                            MinutePickerView(selectedTimeInterval: $toDoTask.pomodoroTime, TaskName: $toDoTask.name)
+                        }
+                        
+                        if #available(iOS 26.0, *) {
+                            HStack {
+                                Text("Suggest a duration")
+                                Spacer()
+                                PomodoroSuggestion(taskSuggestion: $toDoTask.name, suggestedTime: $toDoTask.pomodoroTime)
+                            }
+
+                        }
                     }
+
                     
                     HStack {
                         Image(systemName: "calendar")
                             .foregroundStyle(.red)
                         Text("Start Date")
                         Spacer()
-                                            
+
                         Button(action: { showingDatePicker.toggle() }) {
                             HStack(spacing: 4) {
                                 Text(formatDate(dueDate))
@@ -112,6 +122,7 @@ struct TaskFormView: View {
                             }
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("task-form-date-toggle")
                     }
                                         
                     // Expanded date picker
@@ -139,92 +150,90 @@ struct TaskFormView: View {
 
                     }
                     
-                    Toggle(isOn: Binding<Bool>(
-                        get: { self.toDoTask.repeating },
-                        set: { self.toDoTask.repeating = $0 }
-                    )) {
-                        HStack {
-                            Image(systemName: "repeat")
-                                .foregroundStyle(.blue)
-                            Text("Repeating Task")
-                        }
-                    }
-                    
+                Toggle("Repeating Task", isOn: $toDoTask.repeating)
+                    .accessibilityIdentifier("task-form-repeating-toggle")
+
                     // Show recurrence options when repeating is enabled
                     if toDoTask.repeating {
-                        // Recurrence interval picker
-                        Picker(selection: $selectedRecurrence) {
-                            ForEach(ToDoTask.RecurrenceInterval.allCases, id: \.self) { interval in
-                                Text(interval.displayName)
-                                    .tag(interval)
+                        VStack(alignment: .leading, spacing: 8) {
+                            // Recurrence interval picker
+                            Picker(selection: $selectedRecurrence) {
+                                ForEach(ToDoTask.RecurrenceInterval.allCases, id: \.self) { interval in
+                                    Text(interval.displayName)
+                                        .tag(interval)
+                                }
+                            } label: {
+                                HStack {
+                                    Image(systemName: "calendar.badge.clock")
+                                        .foregroundStyle(.purple)
+                                    Text("Repeat Interval")
+                                }
                             }
-                        } label: {
-                            HStack {
-                                Image(systemName: "calendar.badge.clock")
-                                    .foregroundStyle(.purple)
-                                Text("Repeat Interval")
-                            }
-                        }
-                        .pickerStyle(.wheel)
-                        .frame(maxHeight: 120)
-                        
-                        // Show custom days input if custom is selected
-                        if selectedRecurrence == .custom {
-                            HStack {
-                                Image(systemName: "calendar.badge.plus")
-                                    .foregroundStyle(.indigo)
-                                Text("Every")
+                            .pickerStyle(.wheel)
+                            .frame(maxHeight: 120)
+                            
+                            // Show custom days input if custom is selected
+                            if selectedRecurrence == .custom {
+                                HStack {
+                                    Image(systemName: "calendar.badge.plus")
+                                        .foregroundStyle(.indigo)
+                                    Text("Every")
 
-                                
-                                TextField("Days", value: $customDays, format: .number)
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(width: 60)
-                                    .keyboardType(.numberPad)
-                                    .onChange(of: customDays) { _, newValue in
-                                        // Ensure at least 1 day
-                                        if newValue < 1 {
-                                            customDays = 1
+                                    
+                                    TextField("Days", value: $customDays, format: .number)
+                                        .textFieldStyle(.roundedBorder)
+                                        .frame(width: 60)
+                                        .keyboardType(.numberPad)
+                                        .onChange(of: customDays) { _, newValue in
+                                            // Ensure at least 1 day
+                                            if newValue < 1 {
+                                                customDays = 1
+                                            }
+                                        }
+                                    
+                                    Text(customDays == 1 ? "day" : "days")
+                                    Spacer()
+                                }
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                            }
+                            if selectedRecurrence == .specific {
+                                HStack {
+                                    Image(systemName: "scope")
+                                        .foregroundStyle(.pink)
+                                    Text("Every")
+                                    Picker("Specific Day", selection: $everySpecificDayDay) {
+                                        ForEach(1...7, id: \.self) { value in
+                                            // Map 1...7 to 0...6 for indexing the symbols
+                                            let index = value - 1
+                                            Text(Calendar.current.weekdaySymbols[index]).tag(index)
                                         }
                                     }
-                                
-                                Text(customDays == 1 ? "day" : "days")
-                                Spacer()
-                            }
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                        }
-                        if selectedRecurrence == .specific {
-                            HStack {
-                                Image(systemName: "scope")
-                                    .foregroundStyle(.pink)
-                                Text("Every")
-                                Picker("Specific Day", selection: $everySpecificDayDay) {
-                                    ForEach(1...7, id: \.self) { value in
-                                        // Map 1...7 to 0...6 for indexing the symbols
-                                        let index = value - 1
-                                        Text(Calendar.current.weekdaySymbols[index]).tag(index)
-                                    }
+                                    Spacer()
                                 }
-                                Spacer()
+                                .transition(.opacity.combined(with: .move(edge: .top)))
                             }
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                        }
-                        
-                        // Preview of next occurrence
-                        if let nextDate = getNextOccurrenceDate() {
-                            HStack {
-                                Image(systemName: "arrow.right.circle.fill")
-                                    .foregroundStyle(.green)
-                                Text("Next occurrence")
-                                Spacer()
-                                Text(nextDate, style: .date)
-                                    .foregroundStyle(.secondary)
+                            
+                            // Preview of next occurrence
+                            if let nextDate = getNextOccurrenceDate() {
+                                HStack {
+                                    Image(systemName: "arrow.right.circle.fill")
+                                        .foregroundStyle(.green)
+                                    Text("Next occurrence")
+                                    Spacer()
+                                    Text(nextDate, style: .date)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .font(.subheadline)
+                                .padding(.vertical, 4)
                             }
-                            .font(.subheadline)
-                            .padding(.vertical, 4)
                         }
+                        .accessibilityIdentifier("task-form-recurrence-options")
                     }
-                    
+
                     CategorySelectionView(selectedCategories: $selectedCategories)
+                }
+                if #available(iOS 26.0, *) {
+                    aiSplitterSection
                 }
             }
             .navigationTitle(isEditing ? "Edit Task" : "Add Task")
@@ -234,6 +243,7 @@ struct TaskFormView: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                    .accessibilityIdentifier("task-form-cancel")
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -242,6 +252,7 @@ struct TaskFormView: View {
                     }
                     .disabled(toDoTask.name.isEmpty)
                     .fontWeight(.semibold)
+                    .accessibilityIdentifier("task-form-save")
                 }
             }
             .task {
@@ -298,11 +309,11 @@ struct QuickDateButton: View {
     let title: String
     let date: Date
     @Binding var selectedDate: Date
-    
+
     private var isSelected: Bool {
         Calendar.current.isDate(date, inSameDayAs: selectedDate)
     }
-    
+
     var body: some View {
         Button(action: {
             withAnimation(.easeInOut(duration: 0.2)) {
@@ -318,6 +329,7 @@ struct QuickDateButton: View {
                 .cornerRadius(8)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("quick-date-\(title.lowercased().replacingOccurrences(of: " ", with: "-"))")
     }
 }
 

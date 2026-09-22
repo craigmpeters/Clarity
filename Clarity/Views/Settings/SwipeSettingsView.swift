@@ -101,115 +101,20 @@ struct SwipeSettingsView: View {
 }
 
 struct SwipePreviewTask: View {
-    @Environment(\.modelContext) private var context
     var currentTaskSwipeAndTapOptions: TaskSwipeAndTapOptions
     let task = ToDoTask(name: "Example Habit", pomodoro: true, pomodoroTime: 5 * 60, repeating: true, recurrenceInterval: .daily, customRecurrenceDays: 0, due: Date.now, categories: [])
+
     var body: some View {
-        HStack(spacing:12) {
-            VStack(spacing: 2) {
-                Text(task.due, format: .dateTime.day())
-                    .font(.title3.weight(.bold))
-                Text(task.due, format: .dateTime.month(.abbreviated))
-                    .font(.caption2.weight(.semibold))
-                    .textCase(.uppercase)
-            }
-            .foregroundStyle(dateAccentTextColor(task.due))
-            .frame(width: 56, height: 48)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(dateAccentBackgroundColor(task.due))
-            )
-            VStack(alignment: .leading, spacing: 6) {
-                Text(task.name ?? "")
-                    .font(.headline)
-                    .lineLimit(2)
-                
-                HStack(spacing: 6) {
-                    if task.categories?.count ?? 0 >= 3 {
-                        ForEach(task.categories!) { category in
-                            ZStack {
-                                Circle()
-                                    .fill(category.color?.SwiftUIColor ?? .gray)
-                                    .frame(width: 25, height: 25)
-                                Text(String(category.name!.first!))
-                                    .textCase(.uppercase)
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundStyle(.black)
-                                        .blendMode(.colorBurn)
-                            }
-                            .clipShape(Circle())
-                        }
-                    } else {
-                        ForEach(task.categories!) { category in
-                            Text(category.name!)
-                                .font(.caption2)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 2)
-                                .background(
-                                    Capsule().fill(category.color?.SwiftUIColor ?? .gray.opacity(0.2))
-                                )
-                                .foregroundStyle(category.color!.contrastingTextColor)
-                        }
-                    }
-                    Spacer()
-                    HStack(spacing: 8) {
-                        RecurrenceIndicatorBadge(task: task)
-                        TimerIndicatorBadge(task: task)
-                    }
-                }
-            }
-            .padding(.vertical, 8)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                // performAction(.Tap)
-            }
-            .swipeActions(edge: .trailing,  allowsFullSwipe: false) {
-                Button {
-                    //performAction(.TrailingPrimary)
-                    
-                } label: {
-                    Label(currentTaskSwipeAndTapOptions.primarySwipeTrailing.title, systemImage: currentTaskSwipeAndTapOptions.primarySwipeTrailing.systemImage)
-                }
-                .tint(currentTaskSwipeAndTapOptions.primarySwipeTrailing.color)
-                
-                Button {
-                    //performAction(.TrailingPrimary)
-                    
-                } label: {
-                    Label(currentTaskSwipeAndTapOptions.secondarySwipeTrailing.title, systemImage: currentTaskSwipeAndTapOptions.secondarySwipeTrailing.systemImage)
-                }
-                .tint(currentTaskSwipeAndTapOptions.secondarySwipeTrailing.color)
-                
-            }
-            .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                Button{
-                    // performAction(.LeadingPrimary)
-                } label: {
-                    Label(currentTaskSwipeAndTapOptions.primarySwipeLeading.title, systemImage: currentTaskSwipeAndTapOptions.primarySwipeLeading.systemImage)
-                }
-                .tint(currentTaskSwipeAndTapOptions.primarySwipeLeading.color)
-                Button{
-                    // performAction(.LeadingSecondary)
-                } label: {
-                    Label(currentTaskSwipeAndTapOptions.secondarySwipeLeading.title, systemImage: currentTaskSwipeAndTapOptions.secondarySwipeLeading.systemImage)
-                }
-                .tint(currentTaskSwipeAndTapOptions.secondarySwipeLeading.color)
-            }
-//            .confirmationDialog(
-//                "Are you sure you want to delete \(task.name ?? "task")?",
-//                isPresented: $showingDeleteAlert,
-//                titleVisibility: .visible
-//            ) {
-//                Button("Delete", role: .destructive) {
-//                    withAnimation {
-//                        onDelete()
-//                    }
-//                }
-//                Button("Cancel", role: .cancel) { }
-//            }
-        }
+        TaskRowView(
+            task: task,
+            swipeOptions: currentTaskSwipeAndTapOptions,
+            showDemo: true,
+            onEdit: {},
+            onDelete: {},
+            onComplete: {},
+            onStartTimer: {}
+        )
     }
-    
 }
 
 #Preview {

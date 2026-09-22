@@ -96,13 +96,15 @@ struct FirstRunView: View {
                 // Navigation buttons
                 HStack {
                     if currentPage > 0 {
-                        Button("Back") {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                currentPage -= 1
-                            }
+                    Button("Back") {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            currentPage -= 1
                         }
-                        .buttonStyle(.bordered)
-                        .accessibilityHint("Go to previous page")
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityHint("Go to previous page")
+                    .accessibilityIdentifier("onboarding-back")
+
                     }
                     
                     Spacer()
@@ -121,6 +123,7 @@ struct FirstRunView: View {
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                     .accessibilityHint(currentPage == pages.count - 1 ? "Complete onboarding and start using the app" : "Go to next page")
+                    .accessibilityIdentifier(currentPage == pages.count - 1 ? "onboarding-get-started" : "onboarding-next")
                 }
                 .padding(.horizontal, 32)
             }
