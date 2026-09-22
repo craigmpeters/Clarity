@@ -88,7 +88,6 @@ final class TaskIndexViewModel {
             )
             return
         }
-        guard PomodoroService.shared.startedDevice != .watchOS else { return }
         guard let store else { return }
         guard let id = userInfo[Notification.Name.taskUUIDKey] as? UUID else {
             LogManager.shared.log.warning("Pomodoro completed notification missing taskUUID")

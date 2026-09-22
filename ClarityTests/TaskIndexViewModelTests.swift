@@ -60,7 +60,7 @@ struct TaskIndexViewModelTests {
     #expect(history.filter(\.completed).count == 1, "External-handled notification should not complete again")
   }
 
-  @Test func completeTaskFromPomodoroNotificationSkipsWatchOriginatedCompletions() async throws {
+  @Test func completeTaskFromPomodoroNotificationCompletesWatchOriginatedPomodoro() async throws {
     let store = try await makeActor()
     let task = try await store.addTask(
       ToDoTaskDTO(name: "Watch Stop", due: Date(), uuid: UUID())
@@ -80,7 +80,7 @@ struct TaskIndexViewModelTests {
     await waitForTaskOnMainActor()
 
     let history = try await store.fetchTaskHistory(for: task.uuid)
-    #expect(history.filter(\.completed).isEmpty, "Watch-originated notification should not complete on phone")
+    #expect(history.filter(\.completed).count == 1, "Watch-originated notification should complete on phone")
   }
 
   @Test func completeTaskFromPomodoroNotificationCompletesPhoneOriginatedPomodoro() async throws {
