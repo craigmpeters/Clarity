@@ -130,7 +130,7 @@ struct HabitFormView: View {
             }
             .task {
                 if store == nil {
-                    store = await ClarityModelActorFactory.makeBackground(container: modelContext.container)
+                    store = await StoreRegistry.shared.store(for: modelContext.container)
                 }
                 if let habit = habit {
                     state.load(habit: habit)
