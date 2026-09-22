@@ -92,22 +92,29 @@ struct PomodoroLiveActivityView: View {
     var body: some View {
         switch activityFamily {
         case .small:
-            // watchOS Smart Stack — no image, just text
-            VStack(spacing: 4) {
-                Text(context.state.taskName.isEmpty ? "Pomodoro" : context.state.taskName)
-                    .font(.caption2)
-                    .lineLimit(1)
-                if context.isStale {
-                    Text("Timer Finished!")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                } else {
-                    Text(context.state.endTime, style: .timer)
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .monospacedDigit()
+            HStack {
+                VStack {
+                    Image("clarity-teeny")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                }
+                VStack(spacing: 4) {
+                    Text(context.state.taskName.isEmpty ? "Pomodoro" : context.state.taskName)
+                        .font(.caption2)
+                        .lineLimit(1)
+                    if context.isStale {
+                        Text("Timer Finished!")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                    } else {
+                        Text(context.state.endTime, style: .timer)
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .monospacedDigit()
+                    }
                 }
             }
+            // watchOS Smart Stack — no image, just text
         default:
             // Lock screen / banner UI
             VStack(spacing: 8) {
@@ -204,6 +211,19 @@ private struct MoodButtonRow: View {
 
 #Preview("Dynamic Island Minimal", as: .dynamicIsland(.minimal), using:
     PomodoroAttributes(sessionId: "preview"))
+{
+    PomodoroLiveActivityWidget()
+} contentStates: {
+    PomodoroAttributes.ContentState(
+        taskName: "Complete SwiftUI Project",
+        startTime: Date(),
+        endTime: Date().addingTimeInterval(25 * 60)
+    )
+}
+
+#Preview("Watch", as: .content,
+         using:
+            PomodoroAttributes(sessionId: "preview"))
 {
     PomodoroLiveActivityWidget()
 } contentStates: {

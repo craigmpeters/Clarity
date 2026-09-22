@@ -80,7 +80,7 @@ struct HabitsIndexView: View {
             .refreshable { await refresh() }
             .task {
                 if store == nil {
-                    store = await ClarityModelActorFactory.makeBackground(container: modelContext.container)
+                    store = await StoreRegistry.shared.store(for: modelContext.container)
                 }
                 await refresh()
             }
@@ -100,7 +100,7 @@ struct HabitsIndexView: View {
             }
             .task {
                 if store == nil {
-                    store = await ClarityModelActorFactory.makeBackground(container: modelContext.container)
+                    store = await StoreRegistry.shared.store(for: modelContext.container)
                 }
                 await refresh()
                 checkImagePlaygroundAvailability()

@@ -94,7 +94,7 @@ struct ContentView: View {
     }
     .task {
       if store == nil {
-        let bg = await ClarityModelActorFactory.makeBackground(container: context.container)
+        let bg = await StoreRegistry.shared.store(for: context.container)
         store = bg
         companion.setStore(bg)
         await companion.loadContext(from: bg)
