@@ -4,6 +4,7 @@ import os
 
 struct ContentView: View {
   @Environment(\.modelContext) private var context
+  @Environment(\.horizontalSizeClass) private var hSizeClass
   @EnvironmentObject var appState: AppState
   @Environment(CompanionService.self) private var companion
   @StateObject private var pomodoroService: PomodoroService = .shared
@@ -16,7 +17,7 @@ struct ContentView: View {
 
   var body: some View {
     TabView(selection: $appState.selectedTab) {
-      NavigationStack {
+      TabRootContainer {
         TaskIndexView(
           selectedTask: $selectedTask
         )
@@ -29,7 +30,7 @@ struct ContentView: View {
       .tag(0)
       .accessibilityIdentifier("tab-tasks")
 
-      NavigationStack {
+      TabRootContainer {
         HabitsIndexView()
           .navigationTitle("Habits")
       }
@@ -40,7 +41,9 @@ struct ContentView: View {
       .tag(1)
       .accessibilityIdentifier("tab-habits")
 
-      PomodoroView()
+      TabRootContainer {
+        PomodoroView()
+      }
         .tabItem {
           Image(systemName: "timer")
           Text("Focus")
@@ -49,7 +52,7 @@ struct ContentView: View {
         .accessibilityIdentifier("tab-focus")
         .badge(pomodoroService.isActive ? 1 : 0)
 
-      NavigationStack {
+      TabRootContainer {
         StatsView()
           .navigationTitle("Statistics")
       }
@@ -60,7 +63,7 @@ struct ContentView: View {
       .tag(3)
       .accessibilityIdentifier("tab-stats")
 
-      NavigationStack {
+      TabRootContainer {
         SettingsView()
           .navigationTitle("Settings")
       }
@@ -122,8 +125,10 @@ struct ContentView: View {
       }
     }
     .overlay {
-      CompanionOverlayView(companion: companion)
-        .ignoresSafeArea()
+      if hSizeClass != .regular {
+        CompanionOverlayView(companion: companion)
+          .ignoresSafeArea()
+      }
     }
     .toast(
       isPresented: $showUndoToast,
