@@ -1,10 +1,23 @@
 {
-  "fill" : {
-    "linear-gradient" : [
-      "srgb:0.51765,0.93333,0.49412,1.00000",
-      "display-p3:0.39216,0.81569,0.33725,1.00000"
-    ]
-  },
+  "fill-specializations" : [
+    {
+      "value" : {
+        "linear-gradient" : [
+          "srgb:0.51765,0.93333,0.49412,1.00000",
+          "display-p3:0.39216,0.81569,0.33725,1.00000"
+        ]
+      }
+    },
+    {
+      "appearance" : "dark",
+      "value" : {
+        "linear-gradient" : [
+          "srgb:0.51765,0.93333,0.49412,1.00000",
+          "display-p3:0.39216,0.81569,0.33725,1.00000"
+        ]
+      }
+    }
+  ],
   "groups" : [
     {
       "blend-mode" : "normal",
@@ -22,8 +35,17 @@
       ],
       "layers" : [
         {
+          "fill" : "automatic",
           "glass" : true,
-          "hidden" : false,
+          "hidden-specializations" : [
+            {
+              "value" : false
+            },
+            {
+              "idiom" : "square",
+              "value" : false
+            }
+          ],
           "image-name" : "Clarity Transparent.png",
           "name" : "Clarity Transparent",
           "position" : {
