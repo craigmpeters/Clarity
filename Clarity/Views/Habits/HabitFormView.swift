@@ -134,6 +134,10 @@ struct HabitFormView: View {
                 }
                 if let habit = habit {
                     state.load(habit: habit)
+                } else if let store,
+                          let habits = try? await store.fetchHabits() {
+                    // Creation: reserve HealthKit types already linked to a non-archived habit.
+                    state.takenHealthKitIdentifiers = Set(habits.compactMap(\.healthKitIdentifier))
                 }
             }
         }
@@ -199,7 +203,8 @@ struct HabitFormView: View {
                 if newValue == .nonHealth {
                     state.healthKitIdentifier = nil
                 } else if state.healthKitIdentifier == nil {
-                    state.healthKitIdentifier = state.healthKitOptions.first
+                    state.healthKitIdentifier =
+                        state.firstAvailableHealthKitIdentifier ?? state.healthKitOptions.first
                     state.applyHealthKitDefaultsIfNeeded()
                 }
             }
@@ -207,7 +212,10 @@ struct HabitFormView: View {
             if state.habitType == .health {
                 Picker("HealthKit Type", selection: $state.healthKitIdentifier) {
                     ForEach(state.healthKitTypeOptions) { option in
-                        Label(option.title, systemImage: option.icon).tag(option.id as String?)
+                        let taken = state.isHealthKitTypeTaken(option.id)
+                        Label(option.title, systemImage: option.icon)
+                            .tag(option.id as String?)
+                            .disabled(taken)
                     }
                 }
                 .onChange(of: state.healthKitIdentifier) { _, newValue in

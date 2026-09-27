@@ -105,7 +105,7 @@ struct HabitsIndexView: View {
                 await refresh()
                 checkImagePlaygroundAvailability()
                 let synced = await HabitHealthKitSync.shared.syncAllHabits()
-                for dto in synced where dto.completed {
+                for dto in synced where dto.becameCompleted {
                     if let habit = habitDTOs.first(where: { $0.uuid == dto.habitUUID }) {
                         companion.recordEvent("Habit completed: \(habit.name)")
                         companion.triggerHabitCompleted(habit: habit, completedOccurrence: dto)
@@ -116,7 +116,7 @@ struct HabitsIndexView: View {
             .refreshable {
                 await refresh()
                 let synced = await HabitHealthKitSync.shared.syncAllHabits()
-                for dto in synced where dto.completed {
+                for dto in synced where dto.becameCompleted {
                     if let habit = habitDTOs.first(where: { $0.uuid == dto.habitUUID }) {
                         companion.recordEvent("Habit completed: \(habit.name)")
                         companion.triggerHabitCompleted(habit: habit, completedOccurrence: dto)
@@ -204,7 +204,7 @@ struct HabitsIndexView: View {
                 } else {
                     dto = try await store.logHabitProgress(habit.uuid)
                 }
-                if dto.completed {
+                if dto.becameCompleted {
                     companion.recordEvent("Habit completed: \(habit.name)")
                     companion.triggerHabitCompleted(habit: habit, completedOccurrence: dto)
                 }
@@ -220,7 +220,7 @@ struct HabitsIndexView: View {
         Task {
             do {
                 let dto = try await store.setHabitProgress(habit.uuid, date: Date(), amount: amount)
-                if dto.completed {
+                if dto.becameCompleted {
                     companion.recordEvent("Habit completed: \(habit.name)")
                     companion.triggerHabitCompleted(habit: habit, completedOccurrence: dto)
                 }

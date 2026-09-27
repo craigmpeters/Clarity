@@ -139,6 +139,9 @@ struct HabitOccurrenceDTO: Sendable, Hashable, Codable {
     var periodStart: Date
     var currentAmount: Double
     var completed: Bool
+    /// True only when THIS mutation transitioned the occurrence from incomplete to complete.
+    /// Callers should use this (not `completed`) to decide whether to notify/celebrate.
+    var becameCompleted: Bool
     var completedAt: Date?
     var freezeUsed: Bool
     var source: String?
@@ -150,6 +153,7 @@ struct HabitOccurrenceDTO: Sendable, Hashable, Codable {
         periodStart: Date,
         currentAmount: Double = 0,
         completed: Bool = false,
+        becameCompleted: Bool = false,
         completedAt: Date? = nil,
         freezeUsed: Bool = false,
         source: String? = nil
@@ -160,6 +164,7 @@ struct HabitOccurrenceDTO: Sendable, Hashable, Codable {
         self.periodStart = periodStart
         self.currentAmount = currentAmount
         self.completed = completed
+        self.becameCompleted = becameCompleted
         self.completedAt = completedAt
         self.freezeUsed = freezeUsed
         self.source = source
@@ -168,7 +173,7 @@ struct HabitOccurrenceDTO: Sendable, Hashable, Codable {
 
 extension HabitOccurrenceDTO {
     enum CodingKeys: String, CodingKey {
-        case uuid, habitUUID, periodStart, currentAmount, completed, completedAt, freezeUsed, source
+        case uuid, habitUUID, periodStart, currentAmount, completed, becameCompleted, completedAt, freezeUsed, source
     }
 
     nonisolated init(from decoder: Decoder) throws {
@@ -178,6 +183,7 @@ extension HabitOccurrenceDTO {
         let periodStart = try container.decodeIfPresent(Date.self, forKey: .periodStart) ?? Date()
         let currentAmount = try container.decodeIfPresent(Double.self, forKey: .currentAmount) ?? 0
         let completed = try container.decodeIfPresent(Bool.self, forKey: .completed) ?? false
+        let becameCompleted = try container.decodeIfPresent(Bool.self, forKey: .becameCompleted) ?? false
         let completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
         let freezeUsed = try container.decodeIfPresent(Bool.self, forKey: .freezeUsed) ?? false
         let source = try container.decodeIfPresent(String.self, forKey: .source)
@@ -187,6 +193,7 @@ extension HabitOccurrenceDTO {
             periodStart: periodStart,
             currentAmount: currentAmount,
             completed: completed,
+            becameCompleted: becameCompleted,
             completedAt: completedAt,
             freezeUsed: freezeUsed,
             source: source

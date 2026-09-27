@@ -262,6 +262,7 @@ actor ClarityModelActor {
     try withHabitMutationLock(habitUUID) {
       let habit = try habitByUUID(habitUUID)
       let occurrence = try todayOccurrence(for: habit, source: source)
+      let wasCompleted = occurrence.completed
       let step = amount ?? habit.incrementStep
       occurrence.currentAmount += step
       if occurrence.currentAmount >= habit.dailyTarget {
@@ -271,12 +272,13 @@ actor ClarityModelActor {
       occurrence.source = source
       reconcileFreezes(habit)
       try habitPostMutationPipeline()
-      guard let dto = HabitOccurrenceDTO(from: occurrence) else {
+      guard var dto = HabitOccurrenceDTO(from: occurrence) else {
         throw HabitError.persistenceFailed(
           underlying: NSError(
             domain: "ClarityActor", code: 22,
             userInfo: [NSLocalizedDescriptionKey: "HabitOccurrence missing habit UUID"]))
       }
+      dto.becameCompleted = occurrence.completed && !wasCompleted
       return dto
     }
   }
@@ -304,6 +306,7 @@ actor ClarityModelActor {
     try withHabitMutationLock(habitUUID) {
       let habit = try habitByUUID(habitUUID)
       let occurrence = try todayOccurrence(for: habit, date: date)
+      let wasCompleted = occurrence.completed
       occurrence.currentAmount = max(amount, 0)
       if occurrence.currentAmount >= habit.dailyTarget {
         occurrence.completed = true
@@ -314,12 +317,13 @@ actor ClarityModelActor {
       }
       reconcileFreezes(habit)
       try habitPostMutationPipeline()
-      guard let dto = HabitOccurrenceDTO(from: occurrence) else {
+      guard var dto = HabitOccurrenceDTO(from: occurrence) else {
         throw HabitError.persistenceFailed(
           underlying: NSError(
             domain: "ClarityActor", code: 22,
             userInfo: [NSLocalizedDescriptionKey: "HabitOccurrence missing habit UUID"]))
       }
+      dto.becameCompleted = occurrence.completed && !wasCompleted
       return dto
     }
   }
@@ -330,6 +334,7 @@ actor ClarityModelActor {
     try withHabitMutationLock(habitUUID) {
       let habit = try habitByUUID(habitUUID)
       let occurrence = try todayOccurrence(for: habit, date: date, source: "healthkit")
+      let wasCompleted = occurrence.completed
       occurrence.currentAmount = max(occurrence.currentAmount, value)
       if occurrence.currentAmount >= habit.dailyTarget {
         occurrence.completed = true
@@ -347,12 +352,13 @@ actor ClarityModelActor {
       occurrence.source = "healthkit"
       reconcileFreezes(habit)
       try habitPostMutationPipeline()
-      guard let dto = HabitOccurrenceDTO(from: occurrence) else {
+      guard var dto = HabitOccurrenceDTO(from: occurrence) else {
         throw HabitError.persistenceFailed(
           underlying: NSError(
             domain: "ClarityActor", code: 22,
             userInfo: [NSLocalizedDescriptionKey: "HabitOccurrence missing habit UUID"]))
       }
+      dto.becameCompleted = occurrence.completed && !wasCompleted
       return dto
     }
   }
