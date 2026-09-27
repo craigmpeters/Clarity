@@ -66,16 +66,26 @@ struct PomodoroLiveActivityWidget: Widget {
                         .font(.caption2)
                         .frame(maxWidth: .minimum(50, 50), alignment: .leading)
                 }
-
             } minimal: {
                 if context.isStale {
                     Text("✅")
                 } else {
-                    let elapsed = Date().timeIntervalSince(context.state.startTime)
-                    let total = context.state.endTime.timeIntervalSince(context.state.startTime)
-                    let progress = total > 0 ? min(max(elapsed / total, 0), 1) : 1
-                    ProgressView(timerInterval: context.state.startTime ... context.state.endTime, countsDown: true)
-                    .progressViewStyle(CircularProgressViewStyle(tint: .clarityBlue))
+                    ZStack {
+                        ProgressView(
+                            timerInterval: context.state.startTime...context.state.endTime,
+                            countsDown: true
+                        ) {
+                            EmptyView()
+                        } currentValueLabel: {
+                            EmptyView()
+                        }
+                        .progressViewStyle(CircularProgressViewStyle(tint: .clarityBlue))
+
+                        Image("clarity-teeny")
+                            .resizable()
+                            .scaledToFit()
+                            .padding(4)  // tuned so it sits inside the ring
+                    }
                 }
             }
         }
