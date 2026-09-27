@@ -446,6 +446,17 @@ final class CompanionService {
     /// This can become a user setting later, but is currently fixed at 2.
     static let recentVerbatimCount: Int = 2
 
+    /// Hard cap on the rolling digest's size in characters. A very long digest
+    /// inflates every prompt's instructions and enlarges the FoundationModels
+    /// transcript, which we want to keep small until the rollback crash is
+    /// fixed upstream.
+    static let digestCharacterCap: Int = 800
+
+    /// Hard cap on a single message's contribution to the verbatim recent block.
+    /// Chat messages can be long; we truncate so a small number of long messages
+    /// can't dominate the transcript.
+    static let recentMessageCharacterCap: Int = 400
+
     private var cachedDigest: String? {
         didSet { persistDigest() }
     }
@@ -509,7 +520,8 @@ final class CompanionService {
             let session = LanguageModelSession(instructions: instructions)
             let response = try await session.respond(to: "Summarize the conversation above.", generating: ConversationDigestOutput.self)
             let summary = response.content.text.trimmingCharacters(in: .whitespacesAndNewlines)
-            cachedDigest = summary.isEmpty ? nil : summary
+            let bounded = String(summary.prefix(Self.digestCharacterCap))
+            cachedDigest = bounded.isEmpty ? nil : bounded
         } catch {
             log.warning("updateConversationDigest: failed to generate digest — \(error)")
             // Keep the existing cachedDigest on failure.
@@ -683,7 +695,8 @@ final class CompanionService {
         let historyBlock = recentConversationBlock(limit: Self.recentVerbatimCount)
         var instructions = base + "\n\nValid emotion values: \(emotionList)"
         if let cachedDigest, !cachedDigest.isEmpty {
-            instructions += "\n\nCONVERSATION SO FAR: \(cachedDigest)"
+            let boundedDigest = String(cachedDigest.prefix(Self.digestCharacterCap))
+            instructions += "\n\nCONVERSATION SO FAR: \(boundedDigest)"
         }
         if !historyBlock.isEmpty {
             instructions += "\n\nRECENT MESSAGES:\n\(historyBlock)"
@@ -702,7 +715,8 @@ final class CompanionService {
         guard !recent.isEmpty else { return "" }
         return recent.map { message in
             let sender = message.sender == .user ? "User" : displayName
-            return "\(sender): \(message.text)"
+            let text = String(message.text.prefix(Self.recentMessageCharacterCap))
+            return "\(sender): \(text)"
         }.joined(separator: "\n")
     }
     #endif
@@ -787,11 +801,22 @@ final class CompanionService {
 
     // MARK: - Generation
 
-    // TODO: Mitigate FoundationModels crash "Clarity: NO_CRASH_STACK" (EXC_BREAKPOINT, Range lowerBound > upperBound in LanguageModelSession.produceNextEntry).
-    //   - Validate prompt and context inputs are non-empty and consistent before calling respond(to:generating:).
-    //   - Add timeout/cancellation around the model call so a hung or corrupt session cannot outlive the actor.
-    //   - Ensure session is recreated after any non-retryable GenerationError.
-    //   - File Feedback Assistant report with Apple; this is primarily a framework bug.
+    // TODO: Mitigate FoundationModels crash "Clarity: NO_CRASH_STACK".
+    //   - Exception: EXC_BREAKPOINT (SIGTRAP) — Range requires lowerBound <= upperBound
+    //   - Crashes inside LanguageModelSession.produceNextEntry, and also inside
+    //     LanguageModelSession.rollbackTranscript(to:entryIDCausingRollback:)
+    //     (docs/crashlog.crash, 2026-09-23, iOS 27.0 TestFlight 2.0.0/260).
+    //   - No Clarity code in the crashing stack; this is a framework bug. Feedback
+    //     Assistant report drafted in docs/feedback-report.md.
+    //   - Mitigations applied here: prompt is validated non-empty, the model call is
+    //     raced against a hard timeout, the session is dropped after EVERY error path,
+    //     and transcript-feeding state (digest + verbatim history) is bounded.
+
+    /// Hard ceiling on how long a single FoundationModels request may run. If the
+    /// model hangs (which has been observed alongside the rollback crash), we cancel
+    /// and fall back instead of letting the task outlive the actor.
+    private static let generationTimeout: Duration = .seconds(30)
+
     #if canImport(FoundationModels)
     /// Single generation path for both trigger events and free-form chat.
     @available(iOS 26.0, *)
@@ -799,14 +824,34 @@ final class CompanionService {
         isGenerating = true
         defer { isGenerating = false }
 
-        log.info("generate: prompt — \"\(prompt)\"")
+        // Guard against empty/malformed prompts reaching the model. The
+        // rollbackTranscript crash has not been reproduced with a known-bad
+        // input, but there's no reason to ever send an empty prompt.
+        let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedPrompt.isEmpty else {
+            log.warning("generate: empty prompt after trimming, using fallback")
+            showErrorFallback()
+            return
+        }
+
+        log.info("generate: prompt — \"\(trimmedPrompt)\"")
 
         do {
-            let response = try await currentSession().respond(to: prompt, generating: CompanionOutput.self)
+            let response = try await withGenerationTimeout {
+                try await self.currentSession().respond(to: trimmedPrompt, generating: CompanionOutput.self)
+            }
             show(response.content, trigger: fallbackEvent)
             // Update the rolling digest off the critical path after a successful reply.
             Task { await updateConversationDigest() }
+        } catch is GenerationTimeoutError {
+            // A hung session is presumed corrupt — drop it so the next request starts fresh.
+            log.error("generate: timed out after \(Self.generationTimeout) — dropping session")
+            session = nil
+            showErrorFallback()
         } catch let genError as LanguageModelSession.GenerationError {
+            // Regardless of which specific case this is, never reuse the session
+            // after a GenerationError — the crash signature shows FoundationModels
+            // can leave its transcript in a corrupt state mid-failure.
             switch genError {
             case .assetsUnavailable:
                 log.warning("generate: assets unavailable — marking modelNotReady")
@@ -819,10 +864,13 @@ final class CompanionService {
                 log.warning("generate: context window exceeded — resetting session and retrying")
                 session = nil
                 do {
-                    let response = try await currentSession().respond(to: prompt, generating: CompanionOutput.self)
+                    let response = try await withGenerationTimeout {
+                        try await self.currentSession().respond(to: trimmedPrompt, generating: CompanionOutput.self)
+                    }
                     show(response.content, trigger: fallbackEvent)
                 } catch {
                     log.error("generate: retry after context reset failed — \(error)")
+                    session = nil
                     showErrorFallback()
                 }
 
@@ -838,28 +886,58 @@ final class CompanionService {
                     ]
                 )
                 saveFeedback(feedbackData)
+                session = nil
                 showErrorFallback()
 
             case .refusal(let refusal, _):
                 let explanation = (try? await refusal.explanation)?.content
                 log.warning("generate: model refused — \(explanation ?? "no explanation provided")")
+                session = nil
                 showErrorFallback()
 
             default:
                 log.error("generate: generation error — \(genError)")
+                session = nil
                 showErrorFallback()
             }
         } catch {
+            // Drop the session on every error, not just the model-catalog case, so
+            // that any internal FM state corruption cannot leak into the next call.
+            session = nil
             if isModelCatalogError(error) {
                 log.warning("generate: model catalog unavailable — marking modelNotReady")
                 modelAvailability = .modelNotReady
-                session = nil
             } else {
                 log.error("generate: failed — \(error)")
             }
             showErrorFallback()
         }
     }
+
+    /// Marker error thrown when a generation call exceeds `generationTimeout`.
+    private struct GenerationTimeoutError: Error {}
+
+    /// Race a single FoundationModels call against `Self.generationTimeout`.
+    /// Uses `withThrowingTaskGroup` so that whichever child loses the race is
+    /// cancelled automatically when the group returns.
+    @available(iOS 26.0, *)
+    private func withGenerationTimeout<T: Sendable>(
+        _ operation: @escaping @Sendable () async throws -> T
+    ) async throws -> T {
+        try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask { try await operation() }
+            group.addTask {
+                try await Task.sleep(for: Self.generationTimeout)
+                throw GenerationTimeoutError()
+            }
+            guard let result = try await group.next() else {
+                throw GenerationTimeoutError()
+            }
+            group.cancelAll()
+            return result
+        }
+    }
+
 
     @available(iOS 26.0, *)
     private func saveFeedback(_ data: Data?) {
