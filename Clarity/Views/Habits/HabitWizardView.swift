@@ -67,6 +67,10 @@ struct HabitWizardView: View {
                 if store == nil {
                     store = await StoreRegistry.shared.store(for: modelContext.container)
                 }
+                if let store,
+                   let habits = try? await store.fetchHabits() {
+                    state.takenHealthKitIdentifiers = Set(habits.compactMap(\.healthKitIdentifier))
+                }
             }
         }
     }
@@ -80,7 +84,8 @@ struct HabitWizardView: View {
                         if option == .nonHealth {
                             state.healthKitIdentifier = nil
                         } else if state.healthKitIdentifier == nil {
-                            state.healthKitIdentifier = state.healthKitOptions.first
+                            state.healthKitIdentifier =
+                                state.firstAvailableHealthKitIdentifier ?? state.healthKitOptions.first
                             state.applyHealthKitDefaultsIfNeeded()
                         }
                     } label: {
@@ -106,6 +111,7 @@ struct HabitWizardView: View {
             if state.habitType == .health {
                 Section("Supported Health types") {
                     ForEach(state.healthKitTypeOptions) { option in
+                        let taken = state.isHealthKitTypeTaken(option.id)
                         Button {
                             state.healthKitIdentifier = option.id
                             HabitHealthKitSync.shared.requestAuthorizationIfNeeded(for: option.id)
@@ -113,12 +119,12 @@ struct HabitWizardView: View {
                         } label: {
                             HStack {
                                 Image(systemName: option.icon)
-                                    .foregroundColor(.accentColor)
+                                    .foregroundColor(taken ? .secondary : .accentColor)
                                     .frame(width: 24)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(option.title)
                                         .font(.headline)
-                                    Text(option.id.capitalized)
+                                    Text(taken ? "Already linked to another habit" : option.id.capitalized)
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -130,6 +136,7 @@ struct HabitWizardView: View {
                             }
                         }
                         .buttonStyle(.borderless)
+                        .disabled(taken)
                         .listRowBackground(state.healthKitIdentifier == option.id ? Color.accentColor.opacity(0.1) : Color.clear)
                     }
                 }

@@ -4,6 +4,8 @@
 //  TODO: Mitigate FoundationModels crash "Clarity: NO_CRASH_STACK"
 //  - Exception: EXC_BREAKPOINT (SIGTRAP) — Range requires lowerBound <= upperBound
 //  - Crashes inside LanguageModelSession.produceNextEntry; no app code in stack.
+//  - Also seen inside LanguageModelSession.rollbackTranscript(to:entryIDCausingRollback:)
+//    (docs/crashlog.crash, 2026-09-23, iOS 27.0 TestFlight 2.0.0/260).
 //  - Add validation that `taskName` and the prompt are non-empty before calling respond(to:options:).
 //  - Add timeout/cancellation around LanguageModelSession.respond calls so a hung session cannot outlive the service.
 //  - Recreate the LanguageModelSession on any failure; do not reuse a potentially corrupted session.

@@ -77,6 +77,19 @@ final class HabitFormState {
         HealthKitTypeOption.all
     }
 
+    /// HealthKit identifiers already linked to another non-archived habit.
+    /// Populated by the creation UI from fetched habits; empty by default.
+    var takenHealthKitIdentifiers: Set<String> = []
+
+    func isHealthKitTypeTaken(_ identifier: String) -> Bool {
+        takenHealthKitIdentifiers.contains(identifier)
+    }
+
+    /// The first selectable HealthKit identifier that isn't already taken by another habit.
+    var firstAvailableHealthKitIdentifier: String? {
+        healthKitOptions.first { !takenHealthKitIdentifiers.contains($0) }
+    }
+
     var selectedHealthKitTypeOption: HealthKitTypeOption? {
         guard let identifier = healthKitIdentifier else { return nil }
         return HealthKitTypeOption.all.first { $0.id == identifier }

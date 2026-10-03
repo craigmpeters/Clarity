@@ -161,4 +161,33 @@ struct HabitFormStateTests {
         let dto = s.makeDTO(existing: existing)
         #expect(dto.uuid == existing.uuid)
     }
+
+    // MARK: - HealthKit type uniqueness
+
+    @Test func isHealthKitTypeTakenReflectsTakenSet() {
+        let s = state()
+        #expect(s.isHealthKitTypeTaken("water") == false)
+        s.takenHealthKitIdentifiers = ["water", "steps"]
+        #expect(s.isHealthKitTypeTaken("water") == true)
+        #expect(s.isHealthKitTypeTaken("steps") == true)
+        #expect(s.isHealthKitTypeTaken("workouts") == false)
+        #expect(s.isHealthKitTypeTaken("mindful") == false)
+    }
+
+    @Test func firstAvailableHealthKitIdentifierDefaultsToWaterWhenNothingTaken() {
+        let s = state()
+        #expect(s.firstAvailableHealthKitIdentifier == "water")
+    }
+
+    @Test func firstAvailableHealthKitIdentifierSkipsTaken() {
+        let s = state()
+        s.takenHealthKitIdentifiers = ["water"]
+        #expect(s.firstAvailableHealthKitIdentifier == "steps")
+
+        s.takenHealthKitIdentifiers = ["water", "steps", "workouts"]
+        #expect(s.firstAvailableHealthKitIdentifier == "mindful")
+
+        s.takenHealthKitIdentifiers = ["water", "steps", "workouts", "mindful"]
+        #expect(s.firstAvailableHealthKitIdentifier == nil)
+    }
 }

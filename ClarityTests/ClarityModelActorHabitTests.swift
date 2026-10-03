@@ -272,4 +272,66 @@ struct ClarityModelActorHabitTests {
         // otherwise the streak is still building. Assert non-negative count.
         #expect((fetched?.streakFreezes ?? 0) >= 0)
     }
+
+    // MARK: - becameCompleted
+
+    @Test func logHabitProgressBecameCompletedOnlyOnCrossing() async throws {
+        let actor = try await makeActor()
+        let added = try await actor.addHabit(makeDTO(dailyTarget: 5))
+
+        let crossed = try await actor.logHabitProgress(added.uuid, amount: 5, source: "manual")
+        #expect(crossed.completed == true)
+        #expect(crossed.becameCompleted == true)
+
+        // Re-logging extra progress on an already-complete habit must NOT flag becameCompleted.
+        let extra = try await actor.logHabitProgress(added.uuid, amount: 1, source: "manual")
+        #expect(extra.completed == true)
+        #expect(extra.becameCompleted == false)
+    }
+
+    @Test func logHabitProgressBecameCompletedFalseWhenNotCrossing() async throws {
+        let actor = try await makeActor()
+        let added = try await actor.addHabit(makeDTO(dailyTarget: 5))
+        let partial = try await actor.logHabitProgress(added.uuid, amount: 2, source: "manual")
+        #expect(partial.completed == false)
+        #expect(partial.becameCompleted == false)
+    }
+
+    @Test func setHabitProgressBecameCompletedTracksBothDirections() async throws {
+        let actor = try await makeActor()
+        let added = try await actor.addHabit(makeDTO(dailyTarget: 5))
+
+        let crossed = try await actor.setHabitProgress(added.uuid, date: Date(), amount: 5)
+        #expect(crossed.completed == true)
+        #expect(crossed.becameCompleted == true)
+
+        // Setting another already-complete amount keeps it silent.
+        let stillDone = try await actor.setHabitProgress(added.uuid, date: Date(), amount: 7)
+        #expect(stillDone.completed == true)
+        #expect(stillDone.becameCompleted == false)
+
+        // Lowering back below target uncompletes; not a "became completed" event.
+        let lowered = try await actor.setHabitProgress(added.uuid, date: Date(), amount: 2)
+        #expect(lowered.completed == false)
+        #expect(lowered.becameCompleted == false)
+
+        // Raising again re-fires the transition.
+        let redone = try await actor.setHabitProgress(added.uuid, date: Date(), amount: 6)
+        #expect(redone.completed == true)
+        #expect(redone.becameCompleted == true)
+    }
+
+    @Test func applyHealthKitProgressBecameCompletedOnlyOnFirstCrossing() async throws {
+        let actor = try await makeActor()
+        let added = try await actor.addHabit(makeDTO(dailyTarget: 10))
+
+        let crossed = try await actor.applyHealthKitProgress(added.uuid, value: 12)
+        #expect(crossed.completed == true)
+        #expect(crossed.becameCompleted == true)
+
+        // A repeat sync of the same (already-complete) day must be silent.
+        let resynced = try await actor.applyHealthKitProgress(added.uuid, value: 15)
+        #expect(resynced.completed == true)
+        #expect(resynced.becameCompleted == false)
+    }
 }
