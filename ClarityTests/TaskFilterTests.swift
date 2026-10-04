@@ -39,7 +39,7 @@ struct TaskFilterTests {
             task(name: "not focus", due: date(year: 2026, month: 1, day: 1), categories: [includedCategory]),
             task(name: "both", due: date(year: 2026, month: 1, day: 1), categories: [includedCategory, excludedCategory])
         ]
-        let filterSettings = FocusFilter.Settings(categoryNames: ["excluded"], isHide: true)
+        let filterSettings = FocusFilter.Settings(categoryNames: ["excluded"], isHidden: true)
         let filteredTasks = ToDoTaskDTO.focusFilter(in: tasks, settings: filterSettings)
         #expect(filteredTasks.map(\.name) == ["not focus"])
     }
@@ -50,7 +50,7 @@ struct TaskFilterTests {
             task(name: "not focus", due: date(year: 2026, month: 1, day: 1), categories: [includedCategory]),
             task(name: "both", due: date(year: 2026, month: 1, day: 1), categories: [includedCategory, excludedCategory])
         ]
-        let filterSettings = FocusFilter.Settings(categoryNames: ["excluded"], isHide: false)
+        let filterSettings = FocusFilter.Settings(categoryNames: ["excluded"], isHidden: false)
         let filteredTasks = ToDoTaskDTO.focusFilter(in: tasks, settings: filterSettings)
         #expect(filteredTasks.map(\.name) == ["focus", "both"])
     }
@@ -61,7 +61,7 @@ struct TaskFilterTests {
             uncategorized,
             task(name: "focus", due: date(year: 2026, month: 1, day: 1), categories: [excludedCategory])
         ]
-        let filterSettings = FocusFilter.Settings(categoryNames: ["excluded"], isHide: false)
+        let filterSettings = FocusFilter.Settings(categoryNames: ["excluded"], isHidden: false)
         let filteredTasks = ToDoTaskDTO.focusFilter(in: tasks, settings: filterSettings)
         #expect(filteredTasks.map(\.name) == ["none", "focus"])
     }

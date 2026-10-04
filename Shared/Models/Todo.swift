@@ -294,7 +294,7 @@ extension _FocusFilterRaw: Decodable {
 public nonisolated enum FocusFilter {
     public struct Settings: Equatable, Sendable {
         let categoryNames: [String]
-        let isHide: Bool
+        let isHidden: Bool
     }
 
     nonisolated static func currentSettings() -> Settings? {
@@ -305,38 +305,42 @@ public nonisolated enum FocusFilter {
         }
         let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "me.craigpeters.Clarity", category: "Focus Filter")
         logger.debug("Focus filter active: mode=\(raw.showOrHide), categories=\(raw.Categories)")
-        return Settings(categoryNames: raw.Categories, isHide: raw.showOrHide == "hide")
+        return Settings(categoryNames: raw.Categories, isHidden: raw.showOrHide == "hide")
     }
 
     nonisolated static func apply<T: FocusFilterable>(to tasks: [T], settings: Settings?) -> [T] {
         guard let settings else { return tasks }
         let focusedNames = Set(settings.categoryNames)
-        let isHide = settings.isHide
+        let isHidden = settings.isHidden
 
         func hasAllowedCategory(_ task: T) -> Bool {
             let categoryNames = task.focusCategoryNames
-            if categoryNames.isEmpty { return !isHide }
+            if categoryNames.isEmpty { return !isHidden }
             return categoryNames.contains { focusedNames.contains($0) }
         }
 
-        if isHide {
-            return tasks.filter { !hasAllowedCategory($0) }
+        // Completed tasks are never subject to the focus filter; they are always kept.
+        if isHidden {
+            return tasks.filter { $0.focusIsCompleted || !hasAllowedCategory($0) }
         } else {
-            return tasks.filter { hasAllowedCategory($0) }
+            return tasks.filter { $0.focusIsCompleted || hasAllowedCategory($0) }
         }
     }
 }
 
 nonisolated protocol FocusFilterable {
     var focusCategoryNames: [String] { get }
+    var focusIsCompleted: Bool { get }
 }
 
 nonisolated extension ToDoTaskDTO: FocusFilterable {
     var focusCategoryNames: [String] { categories.map { $0.name } }
+    var focusIsCompleted: Bool { completed }
 }
 
 nonisolated extension ToDoTask: FocusFilterable {
     var focusCategoryNames: [String] { (categories ?? []).compactMap { $0.name } }
+    var focusIsCompleted: Bool { completed }
 }
 
 extension ToDoTask.TaskFilter {
