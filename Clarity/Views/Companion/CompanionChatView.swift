@@ -243,7 +243,7 @@ struct CompanionChatView: View {
     private var inputBar: some View {
         HStack(spacing: 10) {
             TextField(
-                "Say something to \(companion.displayName)…", text: $inputText, axis: .vertical
+                "Say something to \(companion.displayName)…", text: draftBinding, axis: .vertical
             )
             .lineLimit(1...4)
             .padding(.horizontal, 14)
@@ -259,13 +259,14 @@ struct CompanionChatView: View {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 32))
                     .foregroundStyle(
-                        inputText.trimmingCharacters(in: .whitespaces).isEmpty
+                        companion.chatDraft.trimmingCharacters(in: .whitespaces).isEmpty
                             || companion.isGenerating
                             ? Color.secondary : Color.accentColor
                     )
             }
             .disabled(
-                inputText.trimmingCharacters(in: .whitespaces).isEmpty || companion.isGenerating
+                companion.chatDraft.trimmingCharacters(in: .whitespaces).isEmpty
+                    || companion.isGenerating
             )
         }
         .padding(.horizontal, 16)
