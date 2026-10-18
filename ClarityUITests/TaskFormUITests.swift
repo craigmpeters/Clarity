@@ -30,6 +30,7 @@ final class TaskFormUITests: ClarityUITestCase {
         XCTAssertTrue(app.buttons["task-add"].waitForExistence(timeout: 5))
     }
 
+    /// For some reason this occasionally fails when tapping the toggle? Seems to be an issue with Device Hub
     func testRecurringTaskOptions() {
         app.buttons["task-add"].tap()
 

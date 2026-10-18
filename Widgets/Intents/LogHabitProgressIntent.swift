@@ -33,7 +33,9 @@ struct LogHabitProgressIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         guard let uuid = UUID(uuidString: habit.id) else {
-            return .result(dialog: IntentDialog(LocalizedStringResource("Invalid habit identifier.")))
+            return .result(
+                dialog: IntentDialog(LocalizedStringResource("Invalid habit identifier."))
+            )
         }
 
         do {
@@ -48,14 +50,24 @@ struct LogHabitProgressIntent: AppIntent {
             let target = habit.dailyTarget
             let dialog: IntentDialog
             if let unit = habit.unitLabel, !unit.isEmpty {
-                dialog = IntentDialog(LocalizedStringResource("Logged — \(current, format: .number) of \(target, format: .number) \(unit)."))
+                dialog = IntentDialog(
+                    LocalizedStringResource(
+                        "Logged — \(current, format: .number) of \(target, format: .number) \(unit)."
+                    )
+                )
             } else {
-                dialog = IntentDialog(LocalizedStringResource("Logged — \(current, format: .number) of \(target, format: .number)."))
+                dialog = IntentDialog(
+                    LocalizedStringResource(
+                        "Logged — \(current, format: .number) of \(target, format: .number)."
+                    )
+                )
             }
             return .result(dialog: dialog)
         } catch {
             LogManager.shared.log.error("LogHabitProgressIntent error: \(error)")
-            return .result(dialog: IntentDialog(LocalizedStringResource("Couldn’t log habit progress.")))
+            return .result(
+                dialog: IntentDialog(LocalizedStringResource("Couldn’t log habit progress."))
+            )
         }
     }
 }

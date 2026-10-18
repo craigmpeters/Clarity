@@ -5,11 +5,10 @@
 //  Created by Craig Peters on 09/05/2026.
 //
 
-
+import StoreKit
 import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
-import StoreKit
 
 struct AppIconSettingsView: View {
     struct AppIcon: Identifiable, Hashable {
@@ -20,19 +19,31 @@ struct AppIconSettingsView: View {
         // id should match the alternate icon name in Info.plist (CFBundleAlternateIcons). Use "primary" for the default icon.
     }
 
-    // Update this list to match the icons you have configured in your asset catalog and Info.plist.
+    /// Update this list to match the icons you have configured in your asset catalog and Info.plist.
     private let freeIcons: [AppIcon] = [
         .init(id: "Default", displayName: "Default", previewImageName: "Appicon-Preview-Default"),
         .init(id: "Pride", displayName: "Pride", previewImageName: "Appicon-Preview-Pride"),
         .init(id: "Autumn", displayName: "Autumn", previewImageName: "Appicon-Preview-Autumn"),
-        .init(id: "Christmas", displayName: "Christmas", previewImageName: "Appicon-Preview-Christmas"),
-        .init(id: "Valentines", displayName: "Valentines", previewImageName: "Appicon-Preview-Valentines"),
-        .init(id: "NewYear", displayName: "Chinese New Year", previewImageName: "Appicon-Preview-NewYear"),
-        .init(id: "Easter", displayName: "Easter", previewImageName: "Appicon-Preview-Easter")
+        .init(
+            id: "Christmas", displayName: "Christmas", previewImageName: "Appicon-Preview-Christmas"
+        ),
+        .init(
+            id: "Valentines", displayName: "Valentines",
+            previewImageName: "Appicon-Preview-Valentines"
+        ),
+        .init(
+            id: "NewYear", displayName: "Chinese New Year",
+            previewImageName: "Appicon-Preview-NewYear"
+        ),
+        .init(id: "Easter", displayName: "Easter", previewImageName: "Appicon-Preview-Easter"),
+        .init(id: "Green", displayName: "A Green Icon", previewImageName: "Appicon-Preview-Green"),
     ]
 
     private let premiumIcons: [AppIcon] = [
-        .init(id: "Premium", displayName: "Premium", previewImageName: "Appicon-Preview-Premium", requiresPremium: true)
+        .init(
+            id: "Premium", displayName: "Premium", previewImageName: "Appicon-Preview-Premium",
+            requiresPremium: true
+        )
     ]
 
     @Environment(Store.self) private var store
@@ -69,7 +80,9 @@ struct AppIconSettingsView: View {
         .alert("Couldn't Change Icon", isPresented: .constant(errorMessage != nil)) {
             Button("OK") { errorMessage = nil }
         } message: {
-            if let errorMessage { Text(errorMessage) }
+            if let errorMessage {
+                Text(errorMessage)
+            }
         }
         .onChange(of: store.hasBoughtPremium) { _, hasPremium in
             if !hasPremium {
@@ -92,7 +105,8 @@ struct AppIconSettingsView: View {
 
     @ViewBuilder
     private func iconRow(_ icon: AppIcon) -> some View {
-        let isSelected = currentIconName == icon.id || (currentIconName == "primary" && icon.id == "Default")
+        let isSelected =
+            currentIconName == icon.id || (currentIconName == "primary" && icon.id == "Default")
         let isLocked = icon.requiresPremium && !store.hasBoughtPremium
 
         HStack(spacing: 16) {
@@ -139,13 +153,13 @@ struct AppIconSettingsView: View {
     private var footerText: some View {
         Group {
             #if os(iOS)
-            if !UIApplication.shared.supportsAlternateIcons {
-                Text("This device does not support alternate app icons.")
-            } else {
-                Text("Choose a preferred app icon. You can change this anytime.")
-            }
+                if !UIApplication.shared.supportsAlternateIcons {
+                    Text("This device does not support alternate app icons.")
+                } else {
+                    Text("Choose a preferred app icon. You can change this anytime.")
+                }
             #else
-            Text("App icon selection is only available on iOS.")
+                Text("App icon selection is only available on iOS.")
             #endif
         }
         .font(.footnote)
@@ -154,13 +168,13 @@ struct AppIconSettingsView: View {
 
     private func loadCurrentIcon() {
         #if os(iOS)
-        if let name = UIApplication.shared.alternateIconName {
-            currentIconName = name
-        } else {
-            currentIconName = "primary"
-        }
+            if let name = UIApplication.shared.alternateIconName {
+                currentIconName = name
+            } else {
+                currentIconName = "primary"
+            }
         #else
-        currentIconName = "primary"
+            currentIconName = "primary"
         #endif
     }
 
@@ -168,34 +182,34 @@ struct AppIconSettingsView: View {
         let premiumIconIDs = Set(premiumIcons.map(\.id))
         guard premiumIconIDs.contains(currentIconName) else { return }
         #if os(iOS)
-        UIApplication.shared.setAlternateIconName(nil) { error in
-            DispatchQueue.main.async {
-                if error == nil {
-                    currentIconName = "Default"
+            UIApplication.shared.setAlternateIconName(nil) { error in
+                DispatchQueue.main.async {
+                    if error == nil {
+                        currentIconName = "Default"
+                    }
                 }
             }
-        }
         #endif
     }
 
     private func select(icon: AppIcon) {
         guard !isChanging else { return }
         #if os(iOS)
-        guard UIApplication.shared.supportsAlternateIcons else { return }
-        isChanging = true
-        let targetName: String? = (icon.id == "primary") ? nil : icon.id
-        UIApplication.shared.setAlternateIconName(targetName) { error in
-            DispatchQueue.main.async {
-                isChanging = false
-                if let error = error {
-                    errorMessage = error.localizedDescription
-                } else {
-                    currentIconName = icon.id
+            guard UIApplication.shared.supportsAlternateIcons else { return }
+            isChanging = true
+            let targetName: String? = (icon.id == "primary") ? nil : icon.id
+            UIApplication.shared.setAlternateIconName(targetName) { error in
+                DispatchQueue.main.async {
+                    isChanging = false
+                    if let error = error {
+                        errorMessage = error.localizedDescription
+                    } else {
+                        currentIconName = icon.id
+                    }
                 }
             }
-        }
         #else
-        // No-op on non-iOS platforms
+            // No-op on non-iOS platforms
         #endif
     }
 }

@@ -1,5 +1,5 @@
 //
-//  ClarityAppIntentsExtensionExtension.swift
+//  ClarityAppIntentsExtension.swift
 //  ClarityAppIntentsExtension
 //
 //  Created by Craig Peters on 14/12/2025.

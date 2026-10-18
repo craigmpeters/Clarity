@@ -14,7 +14,14 @@ struct TaskRowInteractive: View {
         Grid(horizontalSpacing: 8, verticalSpacing: 0) {
             GridRow {
                 // Column 1: Complete button
-                Button(intent: CompleteTaskIntent(task: TaskEntity(id: task.uuid.uuidString, name: task.name, date: task.due, repeating: task.repeating))) {
+                Button(
+                    intent: CompleteTaskIntent(
+                        task: TaskEntity(
+                            id: task.uuid.uuidString, name: task.name, date: task.due,
+                            repeating: task.repeating
+                        )
+                    )
+                ) {
                     Image(systemName: "circle")
                 }
                 .buttonStyle(.plain)
@@ -42,7 +49,14 @@ struct TaskRowInteractive: View {
                 .gridColumnAlignment(.trailing)
 
                 // Column 4: Play button
-                Button(intent: StartPomodoroIntent(task: TaskEntity(id: task.uuid.uuidString, name: task.name, date: task.due, repeating: task.repeating))) {
+                Button(
+                    intent: StartPomodoroIntent(
+                        task: TaskEntity(
+                            id: task.uuid.uuidString, name: task.name, date: task.due,
+                            repeating: task.repeating
+                        )
+                    )
+                ) {
                     Image(systemName: "play.fill")
                         .font(.caption)
                         .foregroundStyle(.green)
@@ -52,9 +66,7 @@ struct TaskRowInteractive: View {
             }
         }
         .task {
-            
             LogManager.shared.log.debug("Row for \(task.name) — ID: \(task.uuid.uuidString)")
         }
     }
 }
-

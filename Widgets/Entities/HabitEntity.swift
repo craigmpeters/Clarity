@@ -39,20 +39,22 @@ struct HabitQuery: EntityQuery, EntityStringQuery, Sendable {
         let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return all }
         return all.filter {
-            $0.name.localizedCaseInsensitiveContains(trimmed) ||
-            ($0.unitLabel?.localizedCaseInsensitiveContains(trimmed) ?? false)
+            $0.name.localizedCaseInsensitiveContains(trimmed)
+                || ($0.unitLabel?.localizedCaseInsensitiveContains(trimmed) ?? false)
         }
     }
 
     func allEntities() async throws -> [HabitEntity] {
         let habits = try WidgetFileCoordinator.shared.readHabits()
-        return habits.filter { !$0.isArchived }.map { HabitEntity(
-            id: $0.uuid.uuidString,
-            name: $0.name,
-            unitLabel: $0.unitLabel,
-            dailyTarget: $0.dailyTarget,
-            incrementStep: $0.incrementStep,
-            healthKitIdentifier: $0.healthKitIdentifier
-        ) }
+        return habits.filter { !$0.isArchived }.map {
+            HabitEntity(
+                id: $0.uuid.uuidString,
+                name: $0.name,
+                unitLabel: $0.unitLabel,
+                dailyTarget: $0.dailyTarget,
+                incrementStep: $0.incrementStep,
+                healthKitIdentifier: $0.healthKitIdentifier
+            )
+        }
     }
 }

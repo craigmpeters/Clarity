@@ -5,12 +5,11 @@
 //  Created by OpenCode on 13/08/2026.
 //
 
+@testable import Clarity
 import Foundation
 import Testing
-@testable import Clarity
 
 struct TaskSplitParserTests {
-
     @Test func emptyTextReturnsNoSuggestions() {
         let result = TaskSplitParser.parse("", fallbackTaskName: "fallback")
         #expect(result.isEmpty)

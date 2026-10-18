@@ -1,22 +1,26 @@
-//  TaskSplitterService.swift
+//  Intelligence.swift
 //  AI-powered task splitting using Foundation Models (iOS 18+)
 //
 //  TODO: Mitigate FoundationModels crash "Clarity: NO_CRASH_STACK"
 //  - Exception: EXC_BREAKPOINT (SIGTRAP) — Range requires lowerBound <= upperBound
 //  - Crashes inside LanguageModelSession.produceNextEntry; no app code in stack.
+//  - Also seen inside LanguageModelSession.rollbackTranscript(to:entryIDCausingRollback:)
+//    (docs/crashlog.crash, 2026-09-23, iOS 27.0 TestFlight 2.0.0/260).
 //  - Add validation that `taskName` and the prompt are non-empty before calling respond(to:options:).
 //  - Add timeout/cancellation around LanguageModelSession.respond calls so a hung session cannot outlive the service.
 //  - Recreate the LanguageModelSession on any failure; do not reuse a potentially corrupted session.
 //  - File Feedback Assistant report with Apple; this is primarily a framework bug.
 
-import SwiftUI
 import SwiftData
-#if canImport(FoundationModels)
-import FoundationModels
-#endif
+import SwiftUI
 import os
 
+#if canImport(FoundationModels)
+    import FoundationModels
+#endif
+
 // MARK: - Task Splitting Result Model
+
 struct SplitTaskSuggestion: Identifiable {
     let id = UUID()
     var name: String
@@ -26,42 +30,42 @@ struct SplitTaskSuggestion: Identifiable {
 }
 
 // MARK: - AI Task Splitter Service
+
 @available(iOS 26.0, *)
 @MainActor
 class TaskSplitterService: ObservableObject {
     @Published var isProcessing = false
     @Published var suggestions: [SplitTaskSuggestion] = []
     @Published var error: String?
-    
-    
+
     func splitTask(_ taskName: String) async {
         isProcessing = true
-        self.error = nil
-        
+        error = nil
+
         do {
             // Create the prompt for task splitting
             let prompt = """
-            Split this task into smaller, actionable subtasks: "\(taskName)"
-            
-            Requirements:
-            - Break it into 2-6 concrete, specific subtasks
-            - Each subtask should be independently completable
-            - Each task should take around 5 minutes or at most 10 minutes
-            - Order them logically
-            - Do not include any special formatting or Markdown
-            
-            Format your response as:
-            1. [Task name] | [minutes]
-            2. [Task name] | [minutes]
-            """
-            
+                Split this task into smaller, actionable subtasks: "\(taskName)"
+
+                Requirements:
+                - Break it into 2-6 concrete, specific subtasks
+                - Each subtask should be independently completable
+                - Each task should take around 5 minutes or at most 10 minutes
+                - Order them logically
+                - Do not include any special formatting or Markdown
+
+                Format your response as:
+                1. [Task name] | [minutes]
+                2. [Task name] | [minutes]
+                """
+
             let options = GenerationOptions(temperature: 2.0)
             let session = LanguageModelSession()
             let response = try await session.respond(
                 to: prompt,
                 options: options
             )
-            
+
             // Parse the response into suggestions
             suggestions = parseResponse(response.content, taskName: taskName)
             isProcessing = false
@@ -70,91 +74,109 @@ class TaskSplitterService: ObservableObject {
             isProcessing = false
         }
     }
-    
+
     private func parseResponse(_ text: String, taskName: String) -> [SplitTaskSuggestion] {
         TaskSplitParser.parse(text, fallbackTaskName: taskName)
     }
 }
 
 // MARK: - Parsing Helpers
+
 enum TaskSplitParser {
     static func parse(_ text: String, fallbackTaskName: String) -> [SplitTaskSuggestion] {
         print("Apple Intelligence Response: \(text) ")
         let lines = text.components(separatedBy: .newlines)
         var suggestions: [SplitTaskSuggestion] = []
-        
+
         for line in lines {
             // Parse lines like "1. Task name | 25"
-            let cleaned = line
+            let cleaned =
+                line
                 .replacingOccurrences(of: #"^\d+\.\s*"#, with: "", options: .regularExpression)
                 .trimmingCharacters(in: .whitespaces)
-            
-            let parts = cleaned.components(separatedBy: "|").map { $0.trimmingCharacters(in: .whitespaces) }
-            
+
+            let parts = cleaned.components(separatedBy: "|").map {
+                $0.trimmingCharacters(in: .whitespaces)
+            }
+
             if parts.count == 2,
-               !parts[0].isEmpty,
-               let minutes = Int(parts[1].replacingOccurrences(of: "[^0-9]", with: "", options: .regularExpression)) {
-                suggestions.append(SplitTaskSuggestion(
-                    name: parts[0],
-                    estimatedMinutes: min(max(minutes, 5), 25)
-                ))
+                !parts[0].isEmpty,
+                let minutes = Int(
+                    parts[1].replacingOccurrences(
+                        of: "[^0-9]", with: "", options: .regularExpression
+                    )
+                )
+            {
+                suggestions.append(
+                    SplitTaskSuggestion(
+                        name: parts[0],
+                        estimatedMinutes: min(max(minutes, 5), 25)
+                    )
+                )
             }
         }
-        
+
         // If parsing fails, create a simple split
-        if suggestions.isEmpty && !text.isEmpty {
-            suggestions.append(SplitTaskSuggestion(
-                name: fallbackTaskName,
-                estimatedMinutes: 15
-            ))
+        if suggestions.isEmpty, !text.isEmpty {
+            suggestions.append(
+                SplitTaskSuggestion(
+                    name: fallbackTaskName,
+                    estimatedMinutes: 15
+                )
+            )
         }
-        
+
         return suggestions
     }
 }
 
 // MARK: Pomodoro Suggestion Service
+
 @available(iOS 26, *)
 @MainActor
 class PomodoroSuggestionService: ObservableObject {
     @Published var isProcessing = false
     @Published var suggestedInterval: TimeInterval = 0
     @Published var error: String?
-    
+
     @available(iOS 26, *)
     func suggestTime(for task: String) async {
         isProcessing = true
-        self.error = nil
-        
+        error = nil
+
         do {
             let prompt = """
                 Suggest an amount of time, in minutes, it would take to complete the following task: \(task)
-                
+
                 Requirements:
                 - Suggest the amount of time that it would take a typical adult
                 - The amount of time should be divisible by 5 with no remainder
                 - The minimum amount of time it should take is 5 minutes
                 - The maximum amount of time it should take is 25 minutes
                 - Do not always answer 25: pick the shortest duration that realistically fits the task (5, 10, 15, 20 or 25)
-                
+
                 Format Your response as a simple single number
                 """
-            
+
             let options = GenerationOptions(temperature: 0.9)
             let session = LanguageModelSession()
             let response = try await session.respond(
                 to: prompt,
                 options: options
             )
-            LogManager.shared.log.info("Apple Intelligence Response: \(response.content) for \(task)")
-            
+            LogManager.shared.log.info(
+                "Apple Intelligence Response: \(response.content) for \(task)"
+            )
+
             // The model can return extra prose or whitespace; pull out the first number.
-            let digits = response.content.components(separatedBy: CharacterSet.decimalDigits.inverted)
+            let digits = response.content.components(
+                separatedBy: CharacterSet.decimalDigits.inverted
+            )
             let minutes = digits.compactMap { Int($0) }.first
             // Business rule: pomodoros are capped at 25 minutes (service-level guard).
             suggestedInterval = TimeInterval(min(minutes ?? 25, 25) * 60)
             isProcessing = false
-            
+
         } catch {
             LogManager.shared.log.error("Cannot Generate Suggested Pomodoro: \(error)")
             self.error = "Failed to generate suggestions: \(error.localizedDescription)"

@@ -7,10 +7,10 @@
 
 import Foundation
 import Testing
+
 @testable import Clarity
 
 struct HabitDTOTests {
-
     private func habitDTO(
         dailyTarget: Double = 10.0,
         currentAmount: Double = 0.0,
@@ -70,12 +70,13 @@ struct HabitDTOTests {
     }
 
     @Test func decodeWithMissingKeysUsesDefaults() throws {
-        let json = """
-        {
-            "uuid": "550e8400-e29b-41d4-a716-446655440000",
-            "name": "Minimal"
-        }
-        """.data(using: .utf8)!
+        let json = try #require(
+            """
+            {
+                "uuid": "550e8400-e29b-41d4-a716-446655440000",
+                "name": "Minimal"
+            }
+            """.data(using: .utf8))
         let decoded = try JSONDecoder().decode(HabitDTO.self, from: json)
         #expect(decoded.name == "Minimal")
         #expect(decoded.dailyTarget == 1.0)
@@ -99,7 +100,6 @@ struct HabitDTOTests {
 }
 
 struct HabitOccurrenceDTOTests {
-
     private let habitUUID = UUID()
 
     private func occurrenceDTO() -> HabitOccurrenceDTO {
@@ -123,7 +123,7 @@ struct HabitOccurrenceDTOTests {
     }
 
     @Test func decodeWithMissingKeysUsesDefaults() throws {
-        let json = "{}".data(using: .utf8)!
+        let json = try #require("{}".data(using: .utf8))
         let decoded = try JSONDecoder().decode(HabitOccurrenceDTO.self, from: json)
         #expect(decoded.currentAmount == 0.0)
         #expect(decoded.completed == false)

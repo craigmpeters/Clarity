@@ -6,11 +6,13 @@ import UniformTypeIdentifiers
 struct SettingsView: View {
     @State private var showingCategoryManagement = false
     @State private var healthKitEnabled = UserDefaults.healthKitEnabled
-#if INTERNAL
-    @State private var showingShareSheet = false
-    @State private var shareItems: [URL] = []
-#endif
-    
+    @State private var autoUseFreezes =
+        UserDefaults.standard.object(forKey: "autoUseFreezes") as? Bool ?? true
+    #if INTERNAL
+        @State private var showingShareSheet = false
+        @State private var shareItems: [URL] = []
+    #endif
+
     var body: some View {
         Form {
             Section("Categories") {
@@ -23,6 +25,26 @@ struct SettingsView: View {
                 }
                 .foregroundColor(.primary)
                 .accessibilityIdentifier("settings-categories")
+            }
+
+            Section("Habits") {
+                Toggle(isOn: $autoUseFreezes) {
+                    HStack {
+                        Image(systemName: "snowflake")
+                            .foregroundColor(.cyan)
+                        Text("Auto-use Streak Freezes")
+                    }
+                }
+                .onChange(of: autoUseFreezes) { _, new in
+                    UserDefaults.standard.set(new, forKey: "autoUseFreezes")
+                }
+                if autoUseFreezes {
+                    Text(
+                        "When a habit misses a day within the grace window, an available streak freeze is spent automatically to keep the run alive."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
             }
 
             Section("Health") {
@@ -43,9 +65,11 @@ struct SettingsView: View {
                         }
                     }
                     if healthKitEnabled {
-                        Text("After each Pomodoro, you'll be asked how the session made you feel. Responses are saved to the Health app as State of Mind entries.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        Text(
+                            "After each Pomodoro, you'll be asked how the session made you feel. Responses are saved to the Health app as State of Mind entries."
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     }
                 } else {
                     HStack {
@@ -100,40 +124,40 @@ struct SettingsView: View {
                 }
             }
 
-#if INTERNAL
-            Section("Logs") {
-                Button {
-                    let items = logFileURLs()
-                    if !items.isEmpty {
-                        shareItems = items
-                        showingShareSheet = true
+            #if INTERNAL
+                Section("Logs") {
+                    Button {
+                        let items = logFileURLs()
+                        if !items.isEmpty {
+                            shareItems = items
+                            showingShareSheet = true
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "square.and.arrow.up")
+                                .foregroundColor(.blue)
+                            Text("Share Logs (ZIP)")
+                            Spacer()
+                        }
                     }
-                } label: {
-                    HStack {
-                        Image(systemName: "square.and.arrow.up")
-                            .foregroundColor(.blue)
-                        Text("Share Logs (ZIP)")
-                        Spacer()
-                    }
-                }
 
-                Button(role: .destructive) {
-                    clearLogs()
-                } label: {
-                    HStack {
-                        Image(systemName: "trash")
-                            .foregroundColor(.red)
-                        Text("Clear Logs")
-                        Spacer()
+                    Button(role: .destructive) {
+                        clearLogs()
+                    } label: {
+                        HStack {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
+                            Text("Clear Logs")
+                            Spacer()
+                        }
                     }
                 }
-            }
-            .sheet(isPresented: $showingShareSheet, onDismiss: { shareItems = [] }) {
-                if !shareItems.isEmpty {
-                    ActivityView(activityItems: shareItems)
+                .sheet(isPresented: $showingShareSheet, onDismiss: { shareItems = [] }) {
+                    if !shareItems.isEmpty {
+                        ActivityView(activityItems: shareItems)
+                    }
                 }
-            }
-#endif
+            #endif
 
             Section("About") {
                 HStack {
@@ -147,30 +171,33 @@ struct SettingsView: View {
                 HStack {
                     Image(systemName: "questionmark.circle")
                         .foregroundColor(.brown)
-                    Link("Support and Licencing", destination: URL(string: "https://www.craigpeters.me/clarity")!)
+                    Link(
+                        "Support and Licencing",
+                        destination: URL(string: "https://www.craigpeters.me/clarity")!
+                    )
                 }
             }
             // Development tools section - only shows in DEBUG builds
             #if DEBUG
-            DevelopmentSection()
+                DevelopmentSection()
             #endif
 
             #if DEBUG
-//            Section("Connectivity Debug") {
-//                Button("Request Tasks From Phone") {
-//                    #if os(iOS)
-//                    // No-op on iOS; tasks are stored locally
-//                    print("iOS: Tasks are local; nothing to request.")
-//                    #else
-//                    ClarityWatchConnectivity.shared.requestTasksFromPhone()
-//                    #endif
-//                }
-//                Button("Print Last Received Tasks") {
-//                    let tasks = ClarityWatchConnectivity.shared.lastReceivedTasks
-//                    print("Connectivity Debug: Received \(tasks.count) tasks")
-//                    for t in tasks { print("- id: \(t.id), name: \(t.name), due: \(t.due))") }
-//                }
-//            }
+                //            Section("Connectivity Debug") {
+                //                Button("Request Tasks From Phone") {
+                //                    #if os(iOS)
+                //                    // No-op on iOS; tasks are stored locally
+                //                    print("iOS: Tasks are local; nothing to request.")
+                //                    #else
+                //                    ClarityWatchConnectivity.shared.requestTasksFromPhone()
+                //                    #endif
+                //                }
+                //                Button("Print Last Received Tasks") {
+                //                    let tasks = ClarityWatchConnectivity.shared.lastReceivedTasks
+                //                    print("Connectivity Debug: Received \(tasks.count) tasks")
+                //                    for t in tasks { print("- id: \(t.id), name: \(t.name), due: \(t.due))") }
+                //                }
+                //            }
             #endif
         }
         .sheet(isPresented: $showingCategoryManagement) {
@@ -179,7 +206,9 @@ struct SettingsView: View {
     }
 
     private func buildInformation() -> Text {
-        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown Version"
+        let version =
+            Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+            ?? "Unknown Version"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown Build"
 
         return Text("\(version) (\(build))")
@@ -237,7 +266,9 @@ struct CategoryManagementView: View {
             }
         } message: {
             if let category = categoryToDelete {
-                Text("Remove '\(category.name!)' from \(category.tasks!.count) tasks and delete the category?")
+                Text(
+                    "Remove '\(category.name!)' from \(category.tasks!.count) tasks and delete the category?"
+                )
             }
         }
     }
@@ -363,77 +394,85 @@ struct CategoryManagementView: View {
 //    }
 // }
 
-
-
 #if INTERNAL
-private func logsDirectoryURL() -> URL {
-    // Match the App Group used by LogManager
-    let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity")
-    return containerURL ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-}
+    private func logsDirectoryURL() -> URL {
+        // Match the App Group used by LogManager
+        let containerURL = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity"
+        )
+        return containerURL ?? FileManager.default.urls(
+            for: .documentDirectory, in: .userDomainMask
+        )
+        .first!
+    }
 
-private func logFileURLs() -> [URL] {
-    let dir = logsDirectoryURL()
-    let fm = FileManager.default
-    let contents = (try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? []
-    // Include primary log and rotated logs
-    return contents.filter { $0.pathExtension.lowercased() == "log" }
-}
+    private func logFileURLs() -> [URL] {
+        let dir = logsDirectoryURL()
+        let fm = FileManager.default
+        let contents =
+            (try? fm.contentsOfDirectory(
+                at: dir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]
+            )) ?? []
+        // Include primary log and rotated logs
+        return contents.filter { $0.pathExtension.lowercased() == "log" }
+    }
 
-/* Removed:
-private func createLogsZip() -> URL? {
-    let fm = FileManager.default
-    let tempDir = fm.temporaryDirectory
-    let zipURL = tempDir.appendingPathComponent("Clarity-Logs-\(Int(Date().timeIntervalSince1970)).zip")
+    /* Removed:
+     private func createLogsZip() -> URL? {
+         let fm = FileManager.default
+         let tempDir = fm.temporaryDirectory
+         let zipURL = tempDir.appendingPathComponent("Clarity-Logs-\(Int(Date().timeIntervalSince1970)).zip")
 
-    // Remove any existing file at destination
-    try? fm.removeItem(at: zipURL)
+         // Remove any existing file at destination
+         try? fm.removeItem(at: zipURL)
 
-    let files = logFileURLs()
-    guard !files.isEmpty else { return nil }
+         let files = logFileURLs()
+         guard !files.isEmpty else { return nil }
 
-    // Create archive using Apple's Archive framework via FileManager (compression using zip format)
-    // Use a simple approach by creating a temporary folder and zipping it via built-in APIs on iOS 16+ using .zip compression.
-    let tempFolder = tempDir.appendingPathComponent("Logs-\(UUID().uuidString)", isDirectory: true)
-    do {
-        try fm.createDirectory(at: tempFolder, withIntermediateDirectories: true)
-        for file in files {
-            let dst = tempFolder.appendingPathComponent(file.lastPathComponent)
-            try? fm.removeItem(at: dst)
-            try fm.copyItem(at: file, to: dst)
+         // Create archive using Apple's Archive framework via FileManager (compression using zip format)
+         // Use a simple approach by creating a temporary folder and zipping it via built-in APIs on iOS 16+ using .zip compression.
+         let tempFolder = tempDir.appendingPathComponent("Logs-\(UUID().uuidString)", isDirectory: true)
+         do {
+             try fm.createDirectory(at: tempFolder, withIntermediateDirectories: true)
+             for file in files {
+                 let dst = tempFolder.appendingPathComponent(file.lastPathComponent)
+                 try? fm.removeItem(at: dst)
+                 try fm.copyItem(at: file, to: dst)
+             }
+             // Use built-in compression API
+             try fm.zipItem(at: tempFolder, to: zipURL)
+             // Clean temp folder
+             try? fm.removeItem(at: tempFolder)
+             return zipURL
+         } catch {
+             print("Failed to create logs zip: \(error)")
+             try? fm.removeItem(at: tempFolder)
+             try? fm.removeItem(at: zipURL)
+             return nil
+         }
+     }
+     */
+
+    private func clearLogs() {
+        let fm = FileManager.default
+        for url in logFileURLs() {
+            try? fm.removeItem(at: url)
         }
-        // Use built-in compression API
-        try fm.zipItem(at: tempFolder, to: zipURL)
-        // Clean temp folder
-        try? fm.removeItem(at: tempFolder)
-        return zipURL
-    } catch {
-        print("Failed to create logs zip: \(error)")
-        try? fm.removeItem(at: tempFolder)
-        try? fm.removeItem(at: zipURL)
-        return nil
-    }
-}
-*/
-
-private func clearLogs() {
-    let fm = FileManager.default
-    for url in logFileURLs() {
-        try? fm.removeItem(at: url)
-    }
-}
-
-// UIKit wrapper for share sheet
-struct ActivityView: UIViewControllerRepresentable {
-    let activityItems: [Any]
-    let applicationActivities: [UIActivity]? = nil
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: applicationActivities)
     }
 
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
-}
+    /// UIKit wrapper for share sheet
+    struct ActivityView: UIViewControllerRepresentable {
+        let activityItems: [Any]
+        let applicationActivities: [UIActivity]? = nil
+
+        func makeUIViewController(context _: Context) -> UIActivityViewController {
+            UIActivityViewController(
+                activityItems: activityItems, applicationActivities: applicationActivities
+            )
+        }
+
+        func updateUIViewController(_: UIActivityViewController, context _: Context) {}
+    }
 #endif
 
 #Preview {

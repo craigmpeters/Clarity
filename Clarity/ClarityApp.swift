@@ -5,15 +5,16 @@
 //  Created by Craig Peters on 17/08/2025.
 //
 
-import SwiftUI
-import SwiftData
-import UserNotifications
-import BackgroundTasks
 import AppIntents
-#if canImport(WatchConnectivity)
-import WatchConnectivity
-#endif
+import BackgroundTasks
 import Combine
+import SwiftData
+import SwiftUI
+import UserNotifications
+
+#if canImport(WatchConnectivity)
+    import WatchConnectivity
+#endif
 
 final class AppState: ObservableObject {
     @Published var showingPomodoro: Bool = false
@@ -23,8 +24,9 @@ final class AppState: ObservableObject {
 
 @main
 struct ClarityApp: App {
-    struct Migration {
+    enum Migration {
         static let uuidPopulatedKeyPrefix = "com.clarity.migration.uuidPopulated_"
+        static let habitFreezeRepairedKey = "com.clarity.migration.habitFreezeRepaired_v1"
 
         static func hasRun(forBuild build: String) -> Bool {
             UserDefaults.standard.bool(forKey: uuidPopulatedKeyPrefix + build)
@@ -37,41 +39,56 @@ struct ClarityApp: App {
         static func reset(forBuild build: String) {
             UserDefaults.standard.removeObject(forKey: uuidPopulatedKeyPrefix + build)
         }
+
+        static var hasRepairedHabitFreezes: Bool {
+            UserDefaults.standard.bool(forKey: habitFreezeRepairedKey)
+        }
+
+        static func markHabitFreezesRepaired() {
+            UserDefaults.standard.set(true, forKey: habitFreezeRepairedKey)
+        }
     }
-    
+
     init() {}
-    
+
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    
+
     private let container = ClarityApp.makeContainer()
     @StateObject private var appState = AppState()
-    // Deferred so CompanionService.shared isn't forced during App.init() on the main thread.
-    // The companion's init chain (chat store, digest restore) is deferred until first use.
-    private var companion: CompanionService { CompanionService.shared }
+    /// Deferred so CompanionService.shared isn't forced during App.init() on the main thread.
+    /// The companion's init chain (chat store, digest restore) is deferred until first use.
+    private var companion: CompanionService {
+        CompanionService.shared
+    }
+
     @State private var store = Store()
     @Environment(\.scenePhase) private var scenePhase
-    
+
     private static func makeContainer() -> ModelContainer {
         let isUITesting = ProcessInfo.processInfo.arguments.contains("--uitesting")
         let isRunningTests = TestEnvironment.isRunningTests
-        print("ClarityApp.makeContainer: isUITesting=\(isUITesting), isRunningTests=\(isRunningTests), args=\(ProcessInfo.processInfo.arguments)")
-        
+        print(
+            "ClarityApp.makeContainer: isUITesting=\(isUITesting), isRunningTests=\(isRunningTests), args=\(ProcessInfo.processInfo.arguments)"
+        )
+
         #if DEBUG
-        if isUITesting {
-            UserDefaults.hasCompletedOnboarding = false
-            if ProcessInfo.processInfo.arguments.contains("--uitesting-skip-onboarding") {
-                UserDefaults.hasCompletedOnboarding = true
+            if isUITesting {
+                UserDefaults.hasCompletedOnboarding = false
+                if ProcessInfo.processInfo.arguments.contains("--uitesting-skip-onboarding") {
+                    UserDefaults.hasCompletedOnboarding = true
+                }
+                UserDefaults.companionEnabled = false
+                UserDefaults.pomodoroAlarmSoundID = "default"
+                do {
+                    let container = try Containers.inMemory()
+                    UITestDataSeeder.seed(in: container)
+                    return container
+                } catch {
+                    LogManager.shared.log.error(
+                        "Failed to create in-memory UI test container: \(error)"
+                    )
+                }
             }
-            UserDefaults.companionEnabled = false
-            UserDefaults.pomodoroAlarmSoundID = "default"
-            do {
-                let container = try Containers.inMemory()
-                UITestDataSeeder.seed(in: container)
-                return container
-            } catch {
-                LogManager.shared.log.error("Failed to create in-memory UI test container: \(error)")
-            }
-        }
         #endif
 
         if TestEnvironment.isRunningTests {
@@ -85,7 +102,9 @@ struct ClarityApp: App {
         do {
             return AppContainer.shared
         } catch {
-            LogManager.shared.log.error("Failed to create live app container: \(error). Falling back to in-memory container.")
+            LogManager.shared.log.error(
+                "Failed to create live app container: \(error). Falling back to in-memory container."
+            )
             do {
                 return try Containers.inMemory()
             } catch {
@@ -93,10 +112,13 @@ struct ClarityApp: App {
             }
         }
     }
+
     func populateUUIDsIfNeeded(modelContext: ModelContext, minimumBuild: String) {
         // Only run once per build
         let currentBuild = ClarityApp.currentBuild
-        guard currentBuild >= minimumBuild, Migration.hasRun(forBuild: currentBuild) == false else { return }
+        guard currentBuild >= minimumBuild, Migration.hasRun(forBuild: currentBuild) == false else {
+            return
+        }
         LogManager.shared.log.debug("Running Populate UUID Migration")
 
         var updatedCount = 0
@@ -126,6 +148,24 @@ struct ClarityApp: App {
         }
     }
 
+    /// One-time repair for freeze balances wiped by the Saturday streak-reset bug
+    /// (see docs/20261004/clarity-rolling-habits-spec.md §1). Runs once per install;
+    /// the model-actor side is additive-only (balance never decreases) so re-running
+    /// is safe but skipped via a flag.
+    func repairHabitFreezesIfNeeded(container: ModelContainer) async {
+        guard Migration.hasRepairedHabitFreezes == false else { return }
+        let store = ClarityModelActor(modelContainer: container)
+        do {
+            let repaired = try await store.repairFreezesFromHistory()
+            if repaired > 0 {
+                LogManager.shared.log.notice("Habit freeze repair: raised \(repaired) habits")
+            }
+            Migration.markHabitFreezesRepaired()
+        } catch {
+            LogManager.shared.log.error("Habit freeze repair failed: \(error)")
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView().environment(store)
@@ -135,13 +175,18 @@ struct ClarityApp: App {
                 .onAppear {
                     guard !TestEnvironment.isRunningTests else { return }
                     appDelegate.appState = appState
-                    populateUUIDsIfNeeded(modelContext: container.mainContext, minimumBuild: "1.3.0")
+                    populateUUIDsIfNeeded(
+                        modelContext: container.mainContext, minimumBuild: "1.3.0"
+                    )
                     // Prime the shared category snapshot so widgets / App Intents can read
                     // categories without spinning up a SwiftData container.
                     let categories = ClarityServices.snapshotCategories()
                     try? WidgetFileCoordinator.shared.writeCategories(categories)
                     Task { @MainActor in
-                        await PomodoroService.shared.restoreIfNeeded(container: container, device: .iPhone)
+                        await repairHabitFreezesIfNeeded(container: container)
+                        await PomodoroService.shared.restoreIfNeeded(
+                            container: container, device: .iPhone
+                        )
                         PomodoroService.shared.syncIfStoppedExternally()
                         if PomodoroService.shared.isActive {
                             appState.showingPomodoro = true
@@ -151,11 +196,15 @@ struct ClarityApp: App {
                 .task {
                     if let id = Self.consumePendingStartTimerTaskId() {
                         appState.pomodoroUuid = id
-                        LogManager.shared.log.debug("Starting Pomodero (.task) for \(id.uuidString)")
+                        LogManager.shared.log.debug(
+                            "Starting Pomodero (.task) for \(id.uuidString)"
+                        )
                         let store = ClarityModelActor(modelContainer: container)
                         do {
                             if let taskDTO = try await store.fetchTaskByUuid(id) {
-                                PomodoroService.shared.startPomodoro(for: taskDTO, container: container, device: .iPhone)
+                                PomodoroService.shared.startPomodoro(
+                                    for: taskDTO, container: container, device: .iPhone
+                                )
                                 appState.showingPomodoro = true
                             }
                         } catch {
@@ -171,32 +220,41 @@ struct ClarityApp: App {
                     // Sync any Pomodoro state that was changed by a widget / Live Activity intent.
                     PomodoroService.shared.syncIfStoppedExternally()
                     if let id = Self.consumePendingStartTimerTaskId() {
-                        LogManager.shared.log.debug("Starting Pomodero (.onChange Active) for \(id.uuidString)")
+                        LogManager.shared.log.debug(
+                            "Starting Pomodero (.onChange Active) for \(id.uuidString)"
+                        )
                         appState.pomodoroUuid = id
                         let store = ClarityModelActor(modelContainer: container)
                         Task {
                             do {
                                 if let taskDTO = try await store.fetchTaskByUuid(id) {
-                                    PomodoroService.shared.startPomodoro(for: taskDTO, container: container, device: .iPhone)
+                                    PomodoroService.shared.startPomodoro(
+                                        for: taskDTO, container: container, device: .iPhone
+                                    )
                                     appState.showingPomodoro = true
                                 }
                             } catch {
-                                LogManager.shared.log.error("Failed to fetch task by UUID (resume): \(error)")
+                                LogManager.shared.log.error(
+                                    "Failed to fetch task by UUID (resume): \(error)"
+                                )
                             }
                         }
                     }
                 }
         }
     }
-    
+
     static var appShortcuts: AppShortcutsProvider.Type {
-            ClarityShortcutsProvider.self
-        }
-    
-    static func consumePendingStartTimerTaskId(appGroup: String = "group.me.craigpeters.clarity") -> UUID? {
+        ClarityShortcutsProvider.self
+    }
+
+    static func consumePendingStartTimerTaskId(appGroup: String = "group.me.craigpeters.clarity")
+        -> UUID?
+    {
         let defaults = UserDefaults(suiteName: appGroup)
         guard let idString = defaults?.string(forKey: "pendingStartTimerTaskId"),
-              let id = UUID(uuidString: idString) else {
+            let id = UUID(uuidString: idString)
+        else {
             defaults?.removeObject(forKey: "pendingStartTimerTaskId")
             return nil
         }
@@ -218,20 +276,30 @@ extension ClarityApp {
 }
 
 @MainActor
-class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency UNUserNotificationCenterDelegate {
+class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency UNUserNotificationCenterDelegate
+{
     private var cancellables = Set<AnyCancellable>()
     private static var remoteLoggerInstalled = false
-    
+
     weak var appState: AppState?
-    
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+
+    func application(
+        _: UIApplication,
+        didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
         UNUserNotificationCenter.current().delegate = self
         if !TestEnvironment.isRunningTests {
             // Migrations are triggered from ClarityApp.onAppear via modelContext
             PhoneConnectivityCoordinator.shared.start()
-            ClarityModelActor.onTaskCompleted = { PhoneConnectivityCoordinator.shared.broadcastSnapshot() }
-            ClarityModelActor.onTaskMutated = { PhoneConnectivityCoordinator.shared.broadcastSnapshot() }
-            ClarityModelActor.onHabitMutated = { PhoneConnectivityCoordinator.shared.broadcastSnapshot() }
+            ClarityModelActor.onTaskCompleted = {
+                PhoneConnectivityCoordinator.shared.broadcastSnapshot()
+            }
+            ClarityModelActor.onTaskMutated = {
+                PhoneConnectivityCoordinator.shared.broadcastSnapshot()
+            }
+            ClarityModelActor.onHabitMutated = {
+                PhoneConnectivityCoordinator.shared.broadcastSnapshot()
+            }
         }
         _ = LogManager.shared
         // let url = LogManager.defaultLogFileURL()
@@ -246,35 +314,40 @@ class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency UNUserNotifi
                 }
             }
             .store(in: &cancellables)
-        
+
         return true
     }
-    
+
     // Remote change dedup (CloudKit merges)
-    
+
     private static func installRemoteChangeLogger() {
-//        NotificationCenter.default.addObserver(forName: Notification.Name.NSPersistentStoreRemoteChange, object: nil, queue: nil) { _ in
-//            LogManager.shared.log.info("📥 CloudKit remote change received - running dedup")
-//            Task.detached(priority: .utility) {
-//                do {
-//                    let store = try await ClarityServices.store()
-//                    try await store.deduplicateTasksByUUID()
-//                } catch {
-//                    LogManager.shared.log.error("Remote merge dedup failed: \(error.localizedDescription)")
-//                }
-//            }
-//        }
-//        LogManager.shared.log.info("✅ Installed CloudKit remote change dedup observer")
+        //        NotificationCenter.default.addObserver(forName: Notification.Name.NSPersistentStoreRemoteChange, object: nil, queue: nil) { _ in
+        //            LogManager.shared.log.info("📥 CloudKit remote change received - running dedup")
+        //            Task.detached(priority: .utility) {
+        //                do {
+        //                    let store = try await ClarityServices.store()
+        //                    try await store.deduplicateTasksByUUID()
+        //                } catch {
+        //                    LogManager.shared.log.error("Remote merge dedup failed: \(error.localizedDescription)")
+        //                }
+        //            }
+        //        }
+        //        LogManager.shared.log.info("✅ Installed CloudKit remote change dedup observer")
     }
 
-    
-    // This allows notifications to show when app is in foreground
-    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+    /// This allows notifications to show when app is in foreground
+    func userNotificationCenter(
+        _: UNUserNotificationCenter, willPresent _: UNNotification,
+        withCompletionHandler completionHandler:
+            @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
         completionHandler([.banner, .badge, .sound])
     }
-    
-    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+
+    func userNotificationCenter(
+        _: UNUserNotificationCenter, didReceive _: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
         completionHandler()
     }
 }
-

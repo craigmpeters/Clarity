@@ -7,10 +7,10 @@
 
 import Foundation
 import Testing
+
 @testable import Clarity
 
 struct StatisticsCalculatorTests {
-
     private let calendar = Calendar.current
 
     private func date(year: Int, month: Int, day: Int, hour: Int = 12) -> Date {
@@ -54,7 +54,7 @@ struct StatisticsCalculatorTests {
         let tasks = [
             task(name: "same", completedAt: sameDay),
             task(name: "other", completedAt: otherDay),
-            task(name: "nil", completedAt: nil)
+            task(name: "nil", completedAt: nil),
         ]
 
         let filtered = StatisticsCalculator.filter(tasks, for: .today, referenceDate: reference)
@@ -69,7 +69,7 @@ struct StatisticsCalculatorTests {
         let tasks = [
             task(name: "boundary", completedAt: boundary),
             task(name: "justBefore", completedAt: justBefore),
-            task(name: "inside", completedAt: inside)
+            task(name: "inside", completedAt: inside),
         ]
 
         let filtered = StatisticsCalculator.filter(tasks, for: .last7Days, referenceDate: reference)
@@ -82,7 +82,7 @@ struct StatisticsCalculatorTests {
         let thisYear = date(year: 2026, month: 1, day: 1)
         let tasks = [
             task(name: "lastYear", completedAt: lastYear),
-            task(name: "thisYear", completedAt: thisYear)
+            task(name: "thisYear", completedAt: thisYear),
         ]
 
         let filtered = StatisticsCalculator.filter(tasks, for: .thisYear, referenceDate: reference)
@@ -92,10 +92,12 @@ struct StatisticsCalculatorTests {
     @Test func filterAllTimeIncludesTasksWithNilCompletedAt() {
         let tasks = [
             task(name: "nil"),
-            task(name: "set", completedAt: date(year: 2026, month: 1, day: 1))
+            task(name: "set", completedAt: date(year: 2026, month: 1, day: 1)),
         ]
 
-        let filtered = StatisticsCalculator.filter(tasks, for: .allTime, referenceDate: date(year: 2026, month: 1, day: 5))
+        let filtered = StatisticsCalculator.filter(
+            tasks, for: .allTime, referenceDate: date(year: 2026, month: 1, day: 5)
+        )
         #expect(filtered.count == 2)
     }
 
@@ -103,7 +105,7 @@ struct StatisticsCalculatorTests {
         let work = category(name: "Work")
         let tasks = [
             task(name: "in", categories: [work]),
-            task(name: "out", categories: [category(name: "Home")])
+            task(name: "out", categories: [category(name: "Home")]),
         ]
 
         let filtered = StatisticsCalculator.filter(tasks, byCategory: "Work")
@@ -113,7 +115,9 @@ struct StatisticsCalculatorTests {
     // MARK: - Overview metrics
 
     @Test func overviewMetricsEmpty() {
-        let metrics = StatisticsCalculator.overviewMetrics(from: [], referenceDate: date(year: 2026, month: 1, day: 5))
+        let metrics = StatisticsCalculator.overviewMetrics(
+            from: [], referenceDate: date(year: 2026, month: 1, day: 5)
+        )
         #expect(metrics.totalCompleted == 0)
         #expect(metrics.totalFocusTime == 0)
         #expect(metrics.averagePerDay == 0)
@@ -122,10 +126,12 @@ struct StatisticsCalculatorTests {
     @Test func overviewMetricsFocusTimeSumsPomodoroTime() {
         let tasks = [
             task(name: "short", completedAt: date(year: 2026, month: 1, day: 5), pomodoroTime: 600),
-            task(name: "long", completedAt: date(year: 2026, month: 1, day: 5), pomodoroTime: 1200)
+            task(name: "long", completedAt: date(year: 2026, month: 1, day: 5), pomodoroTime: 1200),
         ]
 
-        let metrics = StatisticsCalculator.overviewMetrics(from: tasks, referenceDate: date(year: 2026, month: 1, day: 5))
+        let metrics = StatisticsCalculator.overviewMetrics(
+            from: tasks, referenceDate: date(year: 2026, month: 1, day: 5)
+        )
         #expect(metrics.totalFocusTime == 1800)
     }
 
@@ -134,17 +140,21 @@ struct StatisticsCalculatorTests {
             task(name: "t\(index)", completedAt: date(year: 2026, month: 1, day: 5))
         }
 
-        let metrics = StatisticsCalculator.overviewMetrics(from: tasks, referenceDate: date(year: 2026, month: 1, day: 5))
+        let metrics = StatisticsCalculator.overviewMetrics(
+            from: tasks, referenceDate: date(year: 2026, month: 1, day: 5)
+        )
         #expect(metrics.averagePerDay == 3.0)
     }
 
     @Test func overviewMetricsAveragePerDayMultiDay() {
         let tasks = [
             task(name: "d1", completedAt: date(year: 2026, month: 1, day: 1)),
-            task(name: "d5", completedAt: date(year: 2026, month: 1, day: 5))
+            task(name: "d5", completedAt: date(year: 2026, month: 1, day: 5)),
         ]
 
-        let metrics = StatisticsCalculator.overviewMetrics(from: tasks, referenceDate: date(year: 2026, month: 1, day: 5))
+        let metrics = StatisticsCalculator.overviewMetrics(
+            from: tasks, referenceDate: date(year: 2026, month: 1, day: 5)
+        )
         #expect(metrics.averagePerDay == 0.5)
     }
 
@@ -162,7 +172,7 @@ struct StatisticsCalculatorTests {
         let tasks = [
             task(name: "h9a", completedAt: h9),
             task(name: "h9b", completedAt: h9),
-            task(name: "h10", completedAt: h10)
+            task(name: "h10", completedAt: h10),
         ]
 
         let data = StatisticsCalculator.hourlyData(from: tasks)
@@ -181,7 +191,7 @@ struct StatisticsCalculatorTests {
         let tasks = [
             task(name: "d1", completedAt: d1),
             task(name: "d1b", completedAt: d1),
-            task(name: "d2", completedAt: d2)
+            task(name: "d2", completedAt: d2),
         ]
 
         let data = StatisticsCalculator.dailyData(from: tasks)
@@ -193,8 +203,11 @@ struct StatisticsCalculatorTests {
     @Test func dailyDataUncategorizedPaths() {
         let d = date(year: 2026, month: 1, day: 5)
         let tasks = [
-            task(name: "emptyCat", completedAt: d, categories: [category(name: "", color: Clarity.Category.CategoryColor.Red)]),
-            task(name: "noCat", completedAt: d, categories: [])
+            task(
+                name: "emptyCat", completedAt: d,
+                categories: [category(name: "", color: Clarity.Category.CategoryColor.Red)]
+            ),
+            task(name: "noCat", completedAt: d, categories: []),
         ]
 
         let data = StatisticsCalculator.dailyData(from: tasks)
@@ -225,7 +238,9 @@ struct StatisticsCalculatorTests {
     }
 
     @Test func categoryDataUncategorizedRedundantPass() {
-        let tasks = [task(name: "noCat", completedAt: date(year: 2026, month: 1, day: 5), categories: [])]
+        let tasks = [
+            task(name: "noCat", completedAt: date(year: 2026, month: 1, day: 5), categories: [])
+        ]
 
         let data = StatisticsCalculator.categoryData(from: tasks, categories: [])
         #expect(data.count == 1)
@@ -238,7 +253,7 @@ struct StatisticsCalculatorTests {
         let tasks = [
             task(name: "a", categories: [category(name: "A")]),
             task(name: "a2", categories: [category(name: "A")]),
-            task(name: "b", categories: [category(name: "B")])
+            task(name: "b", categories: [category(name: "B")]),
         ]
 
         let data = StatisticsCalculator.categoryData(from: tasks, categories: [])
@@ -253,7 +268,7 @@ struct StatisticsCalculatorTests {
         let tasks = [
             task(name: "t1", completedAt: date(year: 2026, month: 1, day: 5)),
             task(name: "t2", completedAt: date(year: 2026, month: 1, day: 4)),
-            task(name: "t3", completedAt: date(year: 2026, month: 1, day: 3))
+            task(name: "t3", completedAt: date(year: 2026, month: 1, day: 3)),
         ]
 
         let streak = StatisticsCalculator.streakData(from: tasks, referenceDate: ref)
@@ -265,7 +280,7 @@ struct StatisticsCalculatorTests {
         let ref = date(year: 2026, month: 1, day: 5)
         let tasks = [
             task(name: "t1", completedAt: date(year: 2026, month: 1, day: 4)),
-            task(name: "t2", completedAt: date(year: 2026, month: 1, day: 3))
+            task(name: "t2", completedAt: date(year: 2026, month: 1, day: 3)),
         ]
 
         let streak = StatisticsCalculator.streakData(from: tasks, referenceDate: ref)
@@ -277,10 +292,12 @@ struct StatisticsCalculatorTests {
             task(name: "d1", completedAt: date(year: 2026, month: 1, day: 1)),
             task(name: "d1b", completedAt: date(year: 2026, month: 1, day: 1, hour: 15)),
             task(name: "d2", completedAt: date(year: 2026, month: 1, day: 2)),
-            task(name: "d4", completedAt: date(year: 2026, month: 1, day: 4))
+            task(name: "d4", completedAt: date(year: 2026, month: 1, day: 4)),
         ]
 
-        let streak = StatisticsCalculator.streakData(from: tasks, referenceDate: date(year: 2026, month: 1, day: 5))
+        let streak = StatisticsCalculator.streakData(
+            from: tasks, referenceDate: date(year: 2026, month: 1, day: 5)
+        )
         #expect(streak.longest == 2)
         #expect(streak.current == 1)
     }
@@ -288,7 +305,7 @@ struct StatisticsCalculatorTests {
     // MARK: - Weekly progress
 
     @Test func weeklyProgressIsMondayBased() {
-        let monday = date(year: 2026, month: 1, day: 5) // Monday
+        let monday = date(year: 2026, month: 1, day: 5)  // Monday
         let tasks = [task(name: "mon", completedAt: monday)]
 
         let progress = StatisticsCalculator.weeklyProgress(
@@ -366,10 +383,12 @@ struct StatisticsCalculatorTests {
         let tasks = [
             task(name: "today", completedAt: ref),
             task(name: "yesterday", completedAt: date(year: 2026, month: 1, day: 4)),
-            task(name: "uncategorized", completedAt: ref, categories: [])
+            task(name: "uncategorized", completedAt: ref, categories: []),
         ]
 
-        let summary = StatisticsCalculator.summary(from: tasks, timeframe: .today, referenceDate: ref)
+        let summary = StatisticsCalculator.summary(
+            from: tasks, timeframe: .today, referenceDate: ref
+        )
         #expect(summary.filteredTasks.count == 2)
         #expect(summary.overview.totalCompleted == 2)
         #expect(summary.categoryData.contains { $0.categoryName == "Uncategorized" })

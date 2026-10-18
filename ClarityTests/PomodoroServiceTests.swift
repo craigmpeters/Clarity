@@ -3,12 +3,11 @@
 //  ClarityTests
 //
 
+@testable import Clarity
 import Foundation
 import Testing
-@testable import Clarity
 
 struct PomodoroServiceTests {
-
     @Test @MainActor func recordCompletedSessionKeepsActualEndTimeForShortSessions() {
         let service = PomodoroService()
         let start = Date()
@@ -46,9 +45,9 @@ struct PomodoroServiceTests {
         #expect(session?.endTime == expectedEnd)
     }
 
-    @Test @MainActor func notificationIdentifierIsDerivedFromTaskUUID() {
+    @Test @MainActor func notificationIdentifierIsDerivedFromTaskUUID() throws {
         let service = PomodoroService()
-        let taskUUID = UUID(uuidString: "A1B2C3D4-E5F6-7890-ABCD-EF1234567890")!
+        let taskUUID = try #require(UUID(uuidString: "A1B2C3D4-E5F6-7890-ABCD-EF1234567890"))
         service.toDoTask = ToDoTaskDTO(
             name: "Test task",
             pomodoroTime: 1500,

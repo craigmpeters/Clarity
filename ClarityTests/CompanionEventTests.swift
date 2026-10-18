@@ -9,11 +9,11 @@
 
 import Foundation
 import Testing
+
 @testable import Clarity
 
 @MainActor
 struct CompanionEventTests {
-
     // MARK: - Model basics
 
     @Test func eventFactoryProducesEventSenderWithEmptySuggestionFields() {

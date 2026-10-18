@@ -5,8 +5,8 @@
 //  Created by Craig Peters on 04/05/2026.
 //
 
-import SwiftUI
 import StoreKit
+import SwiftUI
 
 struct PremiumSettings: View {
     @Environment(Store.self) private var store: Store
@@ -117,9 +117,11 @@ struct PremiumSettings: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Everything is free")
                     .font(.subheadline.bold())
-                Text("All core functionality in Clarity — tasks, categories, Pomodoro, widgets, and everything else — is completely free. Premium is purely cosmetic and entirely optional.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                Text(
+                    "All core functionality in Clarity — tasks, categories, Pomodoro, widgets, and everything else — is completely free. Premium is purely cosmetic and entirely optional."
+                )
+                .font(.footnote)
+                .foregroundStyle(.secondary)
             }
         }
         .padding(16)

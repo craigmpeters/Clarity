@@ -7,10 +7,10 @@
 
 import Foundation
 import Testing
+
 @testable import Clarity
 
 struct PomodoroAlarmSoundTests {
-
     @Test func defaultSoundRoundTrip() {
         let original = PomodoroAlarmSound.default
         #expect(PomodoroAlarmSound.from(persistenceID: original.persistenceID) == original)
@@ -56,7 +56,9 @@ struct PomodoroAlarmSoundTests {
     }
 
     @Test func displayNameStripsCafExtension() {
-        #expect(PomodoroAlarmSound.custom(filename: "pomodoro_bell.caf").displayName == "pomodoro_bell")
+        #expect(
+            PomodoroAlarmSound.custom(filename: "pomodoro_bell.caf").displayName == "pomodoro_bell"
+        )
     }
 
     @Test func displayNameLeavesNonCafFilenameUnchanged() {

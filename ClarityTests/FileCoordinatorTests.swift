@@ -8,11 +8,10 @@
 import Compression
 import Foundation
 import Testing
+
 @testable import Clarity
 
 struct FileCoordinatorTests {
-    
-
     private func makeEncoder() -> JSONEncoder {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
@@ -23,40 +22,56 @@ struct FileCoordinatorTests {
     private func compress(_ data: Data) throws -> Data {
         var compressed = Data()
         let filter = try OutputFilter(.compress, using: .zlib) { chunk in
-            if let chunk { compressed.append(chunk) }
+            if let chunk {
+                compressed.append(chunk)
+            }
         }
         try filter.write(data)
         try filter.finalize()
         return compressed
     }
 
-    private func task(name: String, due: Date = Date(timeIntervalSince1970: 1_000_000), categories: [CategoryDTO] = [], completed: Bool = false) -> ToDoTaskDTO {
-        ToDoTaskDTO(name: name, due: due, categories: categories, uuid: UUID(), completed: completed)
+    private func task(
+        name: String, due: Date = Date(timeIntervalSince1970: 1_000_000),
+        categories: [CategoryDTO] = [], completed: Bool = false
+    ) -> ToDoTaskDTO {
+        ToDoTaskDTO(
+            name: name, due: due, categories: categories, uuid: UUID(), completed: completed
+        )
     }
-    
-    @Test func focusFilterWorksOnFileCoordinator () throws {
+
+    @Test func focusFilterWorksOnFileCoordinator() throws {
         let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
-        let filterData = """
-        {"Categories": [{"name": "included"}], "showOrHide": "show"}
-        """.data(using: .utf8)!
+        let filterData = try #require(
+            """
+            {"Categories": [{"name": "included"}], "showOrHide": "show"}
+            """.data(using: .utf8))
         defaults?.set(filterData, forKey: "ClarityFocusFilter")
         defer { defaults?.removeObject(forKey: "ClarityFocusFilter") }
         let due = Date(timeIntervalSince1970: 1_000_000)
         let tasks = [
-            task(name: "Write task", due: due, categories: [CategoryDTO(id: nil, name: "excluded", color: .Blue, weeklyTarget: 1)], completed: false),
-            task(name: "Write task", due: due, categories: [CategoryDTO(id: nil, name: "included", color: .Blue, weeklyTarget: 1)], completed: false),
+            task(
+                name: "Write task", due: due,
+                categories: [CategoryDTO(id: nil, name: "excluded", color: .Blue, weeklyTarget: 1)],
+                completed: false
+            ),
+            task(
+                name: "Write task", due: due,
+                categories: [CategoryDTO(id: nil, name: "included", color: .Blue, weeklyTarget: 1)],
+                completed: false
+            ),
         ]
-        
+
         try WidgetFileCoordinator.shared.writeTasks(tasks)
         let read = try WidgetFileCoordinator.shared.readTasks()
-        #expect(read.count  == 1)
+        #expect(read.count == 1)
     }
 
     @Test func writeAndReadTasksRoundTrip() throws {
         let due = Date(timeIntervalSince1970: 1_000_000)
         let tasks = [
             task(name: "Write task", due: due, completed: true),
-            task(name: "Read task", due: due, completed: false)
+            task(name: "Read task", due: due, completed: false),
         ]
 
         try WidgetFileCoordinator.shared.writeTasks(tasks)
@@ -71,7 +86,7 @@ struct FileCoordinatorTests {
         let due = Date(timeIntervalSince1970: 1_000_000)
         let tasks = [
             task(name: "Applied A", due: due, completed: false),
-            task(name: "Applied B", due: due, completed: true)
+            task(name: "Applied B", due: due, completed: true),
         ]
 
         let compressed = try compress(makeEncoder().encode(tasks))
@@ -87,7 +102,7 @@ struct FileCoordinatorTests {
         let due = Date(timeIntervalSince1970: 1_000_000)
         let tasks = [
             task(name: "Compressed A", due: due, completed: false),
-            task(name: "Compressed B", due: due, completed: true)
+            task(name: "Compressed B", due: due, completed: true),
         ]
 
         let compressed = try compress(makeEncoder().encode(tasks))

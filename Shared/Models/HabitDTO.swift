@@ -24,6 +24,12 @@ struct HabitDTO: Sendable, Hashable, Codable {
     var isArchived: Bool
     var artworkFilename: String?
     var categories: [CategoryDTO]
+    /// Rolling-window size in days. Nil on disk / in JSON means
+    /// `HabitConfig.defaultWindowDays`.
+    var windowDays: Int?
+    /// Pause range; both ends inclusive at the calendar-day level.
+    var pausedFrom: Date?
+    var pausedUntil: Date?
 
     nonisolated init(
         id: PersistentIdentifier? = nil,
@@ -39,7 +45,10 @@ struct HabitDTO: Sendable, Hashable, Codable {
         healthKitIdentifier: String? = nil,
         isArchived: Bool = false,
         artworkFilename: String? = nil,
-        categories: [CategoryDTO] = []
+        categories: [CategoryDTO] = [],
+        windowDays: Int? = nil,
+        pausedFrom: Date? = nil,
+        pausedUntil: Date? = nil
     ) {
         self.id = id
         self.uuid = uuid
@@ -55,11 +64,25 @@ struct HabitDTO: Sendable, Hashable, Codable {
         self.isArchived = isArchived
         self.artworkFilename = artworkFilename
         self.categories = categories
+        self.windowDays = windowDays
+        self.pausedFrom = pausedFrom
+        self.pausedUntil = pausedUntil
     }
 
-    var isTargetReached: Bool { currentAmount >= dailyTarget }
-    var progressFraction: Double { min(currentAmount / max(dailyTarget, 1), 1.0) }
-    var periodDescription: String { HabitFormatter.progressDescription(amount: currentAmount, target: dailyTarget, unit: unitLabel, healthKitIdentifier: healthKitIdentifier) }
+    var isTargetReached: Bool {
+        currentAmount >= dailyTarget
+    }
+
+    var progressFraction: Double {
+        min(currentAmount / max(dailyTarget, 1), 1.0)
+    }
+
+    var periodDescription: String {
+        HabitFormatter.progressDescription(
+            amount: currentAmount, target: dailyTarget, unit: unitLabel,
+            healthKitIdentifier: healthKitIdentifier
+        )
+    }
 
     // Mutable value used for inline editing in the UI, not persisted in the DTO itself.
     var currentAmount: Double = 0
@@ -67,10 +90,16 @@ struct HabitDTO: Sendable, Hashable, Codable {
     var completedAt: Date?
     var freezeUsed: Bool = false
     var source: String? = nil
-    var periodStart: Date = Date()
+    var periodStart: Date = .init()
     var currentStreak: Int = 0
     /// Rolling 7-day completion window: index 0 is 6 days ago, index 6 is today.
     var weekCompletionBitmap: [Bool] = []
+    // Rolling-window metrics, populated by `HabitProgressEngine` and shipped to the
+    // watch / widgets as runtime-only fields. Never persisted.
+    var windowCredit: Double = 0
+    var windowDenominator: Int = 0
+    var strength: Double = 0
+    var freezeProgressDays: Int = 0
 }
 
 extension HabitDTO {
@@ -78,6 +107,7 @@ extension HabitDTO {
         case uuid, name, created, unitLabel, dailyTarget, incrementStep
         case weeklyFrequency, streakFreezes, freezesSpent, healthKitIdentifier
         case isArchived, artworkFilename, categories
+        case windowDays, pausedFrom, pausedUntil
     }
 
     nonisolated init(from decoder: Decoder) throws {
@@ -91,10 +121,16 @@ extension HabitDTO {
         let weeklyFrequency = try container.decodeIfPresent(Int.self, forKey: .weeklyFrequency) ?? 7
         let streakFreezes = try container.decodeIfPresent(Int.self, forKey: .streakFreezes) ?? 0
         let freezesSpent = try container.decodeIfPresent(Int.self, forKey: .freezesSpent) ?? 0
-        let healthKitIdentifier = try container.decodeIfPresent(String.self, forKey: .healthKitIdentifier)
+        let healthKitIdentifier = try container.decodeIfPresent(
+            String.self, forKey: .healthKitIdentifier
+        )
         let isArchived = try container.decodeIfPresent(Bool.self, forKey: .isArchived) ?? false
         let artworkFilename = try container.decodeIfPresent(String.self, forKey: .artworkFilename)
-        let categories = try container.decodeIfPresent([CategoryDTO].self, forKey: .categories) ?? []
+        let categories =
+            try container.decodeIfPresent([CategoryDTO].self, forKey: .categories) ?? []
+        let windowDays = try container.decodeIfPresent(Int.self, forKey: .windowDays)
+        let pausedFrom = try container.decodeIfPresent(Date.self, forKey: .pausedFrom)
+        let pausedUntil = try container.decodeIfPresent(Date.self, forKey: .pausedUntil)
         self.init(
             uuid: uuid,
             name: name,
@@ -108,7 +144,10 @@ extension HabitDTO {
             healthKitIdentifier: healthKitIdentifier,
             isArchived: isArchived,
             artworkFilename: artworkFilename,
-            categories: categories
+            categories: categories,
+            windowDays: windowDays,
+            pausedFrom: pausedFrom,
+            pausedUntil: pausedUntil
         )
     }
 
@@ -127,7 +166,10 @@ extension HabitDTO {
             healthKitIdentifier: model.healthKitIdentifier,
             isArchived: model.isArchived,
             artworkFilename: model.artworkFilename,
-            categories: (model.categories ?? []).map(CategoryDTO.init(from:))
+            categories: (model.categories ?? []).map(CategoryDTO.init(from:)),
+            windowDays: model.windowDays,
+            pausedFrom: model.pausedFrom,
+            pausedUntil: model.pausedUntil
         )
     }
 }
@@ -139,6 +181,9 @@ struct HabitOccurrenceDTO: Sendable, Hashable, Codable {
     var periodStart: Date
     var currentAmount: Double
     var completed: Bool
+    /// True only when THIS mutation transitioned the occurrence from incomplete to complete.
+    /// Callers should use this (not `completed`) to decide whether to notify/celebrate.
+    var becameCompleted: Bool
     var completedAt: Date?
     var freezeUsed: Bool
     var source: String?
@@ -150,6 +195,7 @@ struct HabitOccurrenceDTO: Sendable, Hashable, Codable {
         periodStart: Date,
         currentAmount: Double = 0,
         completed: Bool = false,
+        becameCompleted: Bool = false,
         completedAt: Date? = nil,
         freezeUsed: Bool = false,
         source: String? = nil
@@ -160,6 +206,7 @@ struct HabitOccurrenceDTO: Sendable, Hashable, Codable {
         self.periodStart = periodStart
         self.currentAmount = currentAmount
         self.completed = completed
+        self.becameCompleted = becameCompleted
         self.completedAt = completedAt
         self.freezeUsed = freezeUsed
         self.source = source
@@ -168,7 +215,8 @@ struct HabitOccurrenceDTO: Sendable, Hashable, Codable {
 
 extension HabitOccurrenceDTO {
     enum CodingKeys: String, CodingKey {
-        case uuid, habitUUID, periodStart, currentAmount, completed, completedAt, freezeUsed, source
+        case uuid, habitUUID, periodStart, currentAmount, completed, becameCompleted, completedAt,
+            freezeUsed, source
     }
 
     nonisolated init(from decoder: Decoder) throws {
@@ -178,6 +226,8 @@ extension HabitOccurrenceDTO {
         let periodStart = try container.decodeIfPresent(Date.self, forKey: .periodStart) ?? Date()
         let currentAmount = try container.decodeIfPresent(Double.self, forKey: .currentAmount) ?? 0
         let completed = try container.decodeIfPresent(Bool.self, forKey: .completed) ?? false
+        let becameCompleted =
+            try container.decodeIfPresent(Bool.self, forKey: .becameCompleted) ?? false
         let completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
         let freezeUsed = try container.decodeIfPresent(Bool.self, forKey: .freezeUsed) ?? false
         let source = try container.decodeIfPresent(String.self, forKey: .source)
@@ -187,6 +237,7 @@ extension HabitOccurrenceDTO {
             periodStart: periodStart,
             currentAmount: currentAmount,
             completed: completed,
+            becameCompleted: becameCompleted,
             completedAt: completedAt,
             freezeUsed: freezeUsed,
             source: source
@@ -195,7 +246,9 @@ extension HabitOccurrenceDTO {
 
     nonisolated init?(from model: HabitOccurrence) {
         guard let habitUUID = model.habit?.uuid else {
-            Logger(subsystem: "me.craigpeters.Clarity", category: "HabitDTO").error("HabitOccurrence missing habit UUID; skipping DTO conversion")
+            Logger(subsystem: "me.craigpeters.Clarity", category: "HabitDTO").error(
+                "HabitOccurrence missing habit UUID; skipping DTO conversion"
+            )
             return nil
         }
         self.init(

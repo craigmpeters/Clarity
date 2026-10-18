@@ -40,18 +40,18 @@ final class TaskSwipeUITests: ClarityUITestCase {
         ).firstMatch
         scrollToCell(taskCell, in: app)
         assertExists(taskCell)
-        
+
         taskCell.swipeRight()
         let completeButton = app.buttons["Complete Task"]
         assertExists(completeButton, timeout: 3)
         completeButton.tap()
-        
+
         _ = taskCell.waitForNonExistence(timeout: 5)
 
         switchToTab("Focus")
         let section = app.otherElements["recentlyCompletedSection"]
         // TODO: Does not test fully yet
-//        XCTAssertTrue(section.waitForExistence(timeout: 10))
-//        XCTAssertTrue(section.staticTexts["Watch WWDC"].waitForExistence(timeout: 5))
+        //        XCTAssertTrue(section.waitForExistence(timeout: 10))
+        //        XCTAssertTrue(section.staticTexts["Watch WWDC"].waitForExistence(timeout: 5))
     }
 }

@@ -1,15 +1,17 @@
-import SwiftUI
-import SwiftData
 import Combine
+import SwiftData
+import SwiftUI
 
 @MainActor
 @Observable
 final class HabitFormState {
     enum HabitType: String, CaseIterable, Identifiable {
-        case health = "health"
+        case health
         case nonHealth = "non-health"
 
-        var id: String { rawValue }
+        var id: String {
+            rawValue
+        }
 
         var localizedTitle: String {
             switch self {
@@ -27,7 +29,7 @@ final class HabitFormState {
     }
 
     struct HealthKitTypeOption: Identifiable, Hashable, Sendable {
-        let id: String // the healthKitIdentifier
+        let id: String  // the healthKitIdentifier
         let title: String
         let icon: String
 
@@ -35,7 +37,9 @@ final class HabitFormState {
             HealthKitTypeOption(id: "water", title: "Water", icon: "drop.fill"),
             HealthKitTypeOption(id: "steps", title: "Steps", icon: "figure.walk"),
             HealthKitTypeOption(id: "workouts", title: "Exercise Minutes", icon: "flame.fill"),
-            HealthKitTypeOption(id: "mindful", title: "Mindful Minutes", icon: "brain.head.profile")
+            HealthKitTypeOption(
+                id: "mindful", title: "Mindful Minutes", icon: "brain.head.profile"
+            ),
         ]
     }
 
@@ -45,8 +49,12 @@ final class HabitFormState {
     var incrementStep: Double = 1
     var incrementCount: Int = 1
     var weeklyFrequency: Int = 7
+    /// Rolling-window size in days over which the target applies.
+    /// `weeklyFrequency` is the number of days within `windowDays` we aim to
+    /// hit the daily target. Defaults to `HabitConfig.defaultWindowDays` (7).
+    var windowDays: Int = HabitConfig.defaultWindowDays
     var selectedCategories: [CategoryDTO] = []
-    var healthKitIdentifier: String? = nil
+    var healthKitIdentifier: String?
 
     var didEditUnit = false
     var didEditIncrement = false
@@ -77,6 +85,19 @@ final class HabitFormState {
         HealthKitTypeOption.all
     }
 
+    /// HealthKit identifiers already linked to another non-archived habit.
+    /// Populated by the creation UI from fetched habits; empty by default.
+    var takenHealthKitIdentifiers: Set<String> = []
+
+    func isHealthKitTypeTaken(_ identifier: String) -> Bool {
+        takenHealthKitIdentifiers.contains(identifier)
+    }
+
+    /// The first selectable HealthKit identifier that isn't already taken by another habit.
+    var firstAvailableHealthKitIdentifier: String? {
+        healthKitOptions.first { !takenHealthKitIdentifiers.contains($0) }
+    }
+
     var selectedHealthKitTypeOption: HealthKitTypeOption? {
         guard let identifier = healthKitIdentifier else { return nil }
         return HealthKitTypeOption.all.first { $0.id == identifier }
@@ -88,7 +109,9 @@ final class HabitFormState {
     }
 
     var displayUnit: String {
-        if !unitLabel.isEmpty { return unitLabel }
+        if !unitLabel.isEmpty {
+            return unitLabel
+        }
         return localeNaturalUnit ?? ""
     }
 
@@ -98,7 +121,9 @@ final class HabitFormState {
 
     var formattedTotal: String {
         if let identifier = healthKitIdentifier {
-            return HabitFormatter.formattedHealthKitMeasurement(value: dailyTarget, identifier: identifier)
+            return HabitFormatter.formattedHealthKitMeasurement(
+                value: dailyTarget, identifier: identifier
+            )
         }
         if !unitLabel.isEmpty {
             return "\(HabitFormatter.formatted(dailyTarget)) \(unitLabel)"
@@ -126,6 +151,7 @@ final class HabitFormState {
         incrementCount = Int(round(habit.dailyTarget / max(habit.incrementStep, 1)))
         incrementCount = max(incrementCount, 1)
         weeklyFrequency = habit.weeklyFrequency
+        windowDays = habit.windowDays ?? HabitConfig.defaultWindowDays
         selectedCategories = habit.categories
         healthKitIdentifier = habit.healthKitIdentifier
         habitType = habit.healthKitIdentifier == nil ? .nonHealth : .health
@@ -155,7 +181,10 @@ final class HabitFormState {
 
     func makeDTO(existing: HabitDTO?) -> HabitDTO {
         let target = clampedTarget(dailyTarget, identifier: healthKitIdentifier)
-        let step = max(min(incrementStep, HabitConfig.maxIncrementStep), HabitConfig.incrementStepRange.lowerBound)
+        let step = max(
+            min(incrementStep, HabitConfig.maxIncrementStep),
+            HabitConfig.incrementStepRange.lowerBound
+        )
         let trimmedUnit = unitLabel.trimmingCharacters(in: .whitespacesAndNewlines)
         // For Health-linked habits, store unitLabel only when the user has explicitly
         // overridden the locale-natural unit. Otherwise leave it nil so the UI renders
@@ -164,7 +193,9 @@ final class HabitFormState {
             guard habitType == .health, let identifier = healthKitIdentifier else {
                 return trimmedUnit.isEmpty ? nil : trimmedUnit
             }
-            let natural = HabitFormatter.healthKitUnitString(for: identifier).trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            let natural = HabitFormatter.healthKitUnitString(for: identifier).trimmingCharacters(
+                in: .whitespacesAndNewlines
+            ).lowercased()
             let candidate = trimmedUnit.lowercased()
             return candidate.isEmpty || candidate == natural ? nil : trimmedUnit
         }()
@@ -177,7 +208,10 @@ final class HabitFormState {
             incrementStep: step,
             weeklyFrequency: weeklyFrequency,
             healthKitIdentifier: healthKitIdentifier,
-            categories: selectedCategories
+            categories: selectedCategories,
+            windowDays: windowDays,
+            pausedFrom: existing?.pausedFrom,
+            pausedUntil: existing?.pausedUntil
         )
     }
 

@@ -7,14 +7,18 @@
 
 import Foundation
 import Testing
+
 @testable import Clarity
 
 struct TaskFilterTests {
-
     private let calendar = Calendar.current
-    
-    private let excludedCategory = CategoryDTO(id: nil, name: "excluded", color: .Blue, weeklyTarget: 1)
-    private let includedCategory = CategoryDTO(id: nil, name: "included", color: .Red, weeklyTarget: 1)
+
+    private let excludedCategory = CategoryDTO(
+        id: nil, name: "excluded", color: .Blue, weeklyTarget: 1
+    )
+    private let includedCategory = CategoryDTO(
+        id: nil, name: "included", color: .Red, weeklyTarget: 1
+    )
 
     private func date(year: Int, month: Int, day: Int, hour: Int = 12) -> Date {
         var components = DateComponents()
@@ -28,29 +32,47 @@ struct TaskFilterTests {
     private func task(name: String, due: Date) -> ToDoTaskDTO {
         ToDoTaskDTO(name: name, due: due, categories: [], uuid: UUID())
     }
-    
+
     private func task(name: String, due: Date, categories: [CategoryDTO]) -> ToDoTaskDTO {
         ToDoTaskDTO(name: name, due: due, categories: categories, uuid: UUID())
     }
-    
+
     @Test func focusFilterHideExcludesMatchingCategory() {
         let tasks = [
-            task(name: "focus", due: date(year: 2026, month: 1, day: 1), categories: [excludedCategory]),
-            task(name: "not focus", due: date(year: 2026, month: 1, day: 1), categories: [includedCategory]),
-            task(name: "both", due: date(year: 2026, month: 1, day: 1), categories: [includedCategory, excludedCategory])
+            task(
+                name: "focus", due: date(year: 2026, month: 1, day: 1),
+                categories: [excludedCategory]
+            ),
+            task(
+                name: "not focus", due: date(year: 2026, month: 1, day: 1),
+                categories: [includedCategory]
+            ),
+            task(
+                name: "both", due: date(year: 2026, month: 1, day: 1),
+                categories: [includedCategory, excludedCategory]
+            ),
         ]
-        let filterSettings = FocusFilter.Settings(categoryNames: ["excluded"], isHide: true)
+        let filterSettings = FocusFilter.Settings(categoryNames: ["excluded"], isHidden: true)
         let filteredTasks = ToDoTaskDTO.focusFilter(in: tasks, settings: filterSettings)
         #expect(filteredTasks.map(\.name) == ["not focus"])
     }
 
     @Test func focusFilterShowIncludesOnlyMatchingCategory() {
         let tasks = [
-            task(name: "focus", due: date(year: 2026, month: 1, day: 1), categories: [excludedCategory]),
-            task(name: "not focus", due: date(year: 2026, month: 1, day: 1), categories: [includedCategory]),
-            task(name: "both", due: date(year: 2026, month: 1, day: 1), categories: [includedCategory, excludedCategory])
+            task(
+                name: "focus", due: date(year: 2026, month: 1, day: 1),
+                categories: [excludedCategory]
+            ),
+            task(
+                name: "not focus", due: date(year: 2026, month: 1, day: 1),
+                categories: [includedCategory]
+            ),
+            task(
+                name: "both", due: date(year: 2026, month: 1, day: 1),
+                categories: [includedCategory, excludedCategory]
+            ),
         ]
-        let filterSettings = FocusFilter.Settings(categoryNames: ["excluded"], isHide: false)
+        let filterSettings = FocusFilter.Settings(categoryNames: ["excluded"], isHidden: false)
         let filteredTasks = ToDoTaskDTO.focusFilter(in: tasks, settings: filterSettings)
         #expect(filteredTasks.map(\.name) == ["focus", "both"])
     }
@@ -59,17 +81,26 @@ struct TaskFilterTests {
         let uncategorized = task(name: "none", due: date(year: 2026, month: 1, day: 1))
         let tasks = [
             uncategorized,
-            task(name: "focus", due: date(year: 2026, month: 1, day: 1), categories: [excludedCategory])
+            task(
+                name: "focus", due: date(year: 2026, month: 1, day: 1),
+                categories: [excludedCategory]
+            ),
         ]
-        let filterSettings = FocusFilter.Settings(categoryNames: ["excluded"], isHide: false)
+        let filterSettings = FocusFilter.Settings(categoryNames: ["excluded"], isHidden: false)
         let filteredTasks = ToDoTaskDTO.focusFilter(in: tasks, settings: filterSettings)
         #expect(filteredTasks.map(\.name) == ["none", "focus"])
     }
 
     @Test func focusFilterNoSettingsReturnsAllTasks() {
         let tasks = [
-            task(name: "focus", due: date(year: 2026, month: 1, day: 1), categories: [excludedCategory]),
-            task(name: "not focus", due: date(year: 2026, month: 1, day: 1), categories: [includedCategory])
+            task(
+                name: "focus", due: date(year: 2026, month: 1, day: 1),
+                categories: [excludedCategory]
+            ),
+            task(
+                name: "not focus", due: date(year: 2026, month: 1, day: 1),
+                categories: [includedCategory]
+            ),
         ]
         let filteredTasks = ToDoTaskDTO.focusFilter(in: tasks, settings: nil)
         #expect(filteredTasks.count == 2)
@@ -100,23 +131,24 @@ struct TaskFilterTests {
         #expect(ToDoTask.TaskFilter.today.matches(dto: t, at: now, calendar: calendar))
     }
 
-    @Test func tomorrowMatchesNextCalendarDay() {
+    @Test func tomorrowMatchesNextCalendarDay() throws {
         let now = date(year: 2026, month: 1, day: 5)
-        let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now))!
+        let tomorrow = try #require(
+            calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)))
         let t = task(name: "tomorrow", due: tomorrow)
         #expect(ToDoTask.TaskFilter.tomorrow.matches(dto: t, at: now, calendar: calendar))
     }
 
-    @Test func thisWeekIncludesStartOfWeek() {
-        let now = date(year: 2026, month: 1, day: 5) // Monday
-        let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)!.start
+    @Test func thisWeekIncludesStartOfWeek() throws {
+        let now = date(year: 2026, month: 1, day: 5)  // Monday
+        let weekStart = try #require(calendar.dateInterval(of: .weekOfYear, for: now)?.start)
         let t = task(name: "weekStart", due: weekStart)
         #expect(ToDoTask.TaskFilter.thisWeek.matches(dto: t, at: now, calendar: calendar))
     }
 
-    @Test func thisWeekExcludesJustOutsideWeek() {
+    @Test func thisWeekExcludesJustOutsideWeek() throws {
         let now = date(year: 2026, month: 1, day: 5)
-        let weekEnd = calendar.dateInterval(of: .weekOfYear, for: now)!.end
+        let weekEnd = try #require(calendar.dateInterval(of: .weekOfYear, for: now)?.end)
         let justOutside = weekEnd.addingTimeInterval(1)
         let t = task(name: "outside", due: justOutside)
         #expect(ToDoTask.TaskFilter.thisWeek.matches(dto: t, at: now, calendar: calendar) == false)
@@ -124,11 +156,26 @@ struct TaskFilterTests {
 
     @Test func recurrenceIntervalNextDateCalculations() {
         let d = date(year: 2026, month: 1, day: 5)
-        #expect(ToDoTask.RecurrenceInterval.daily.nextDate(from: d) == calendar.date(byAdding: .day, value: 1, to: d))
-        #expect(ToDoTask.RecurrenceInterval.everyOtherDay.nextDate(from: d) == calendar.date(byAdding: .day, value: 2, to: d))
-        #expect(ToDoTask.RecurrenceInterval.weekly.nextDate(from: d) == calendar.date(byAdding: .weekOfYear, value: 1, to: d))
-        #expect(ToDoTask.RecurrenceInterval.biweekly.nextDate(from: d) == calendar.date(byAdding: .weekOfYear, value: 2, to: d))
-        #expect(ToDoTask.RecurrenceInterval.monthly.nextDate(from: d) == calendar.date(byAdding: .month, value: 1, to: d))
+        #expect(
+            ToDoTask.RecurrenceInterval.daily.nextDate(from: d)
+                == calendar.date(byAdding: .day, value: 1, to: d)
+        )
+        #expect(
+            ToDoTask.RecurrenceInterval.everyOtherDay.nextDate(from: d)
+                == calendar.date(byAdding: .day, value: 2, to: d)
+        )
+        #expect(
+            ToDoTask.RecurrenceInterval.weekly.nextDate(from: d)
+                == calendar.date(byAdding: .weekOfYear, value: 1, to: d)
+        )
+        #expect(
+            ToDoTask.RecurrenceInterval.biweekly.nextDate(from: d)
+                == calendar.date(byAdding: .weekOfYear, value: 2, to: d)
+        )
+        #expect(
+            ToDoTask.RecurrenceInterval.monthly.nextDate(from: d)
+                == calendar.date(byAdding: .month, value: 1, to: d)
+        )
         #expect(ToDoTask.RecurrenceInterval.custom.nextDate(from: d) == d)
         #expect(ToDoTask.RecurrenceInterval.specific.nextDate(from: d) == d)
     }
@@ -148,7 +195,9 @@ struct TaskFilterTests {
         // ToDoTaskDTO has no completedAt setter in the convenience init, so we cannot test this
         // with completedAt directly. The matches function uses completedAt, so this test documents
         // the limitation of the DTO init.
-        #expect(ToDoTask.CompletedTaskFilter.Today.matches(t, calendar: calendar, now: now) == false)
+        #expect(
+            ToDoTask.CompletedTaskFilter.Today.matches(t, calendar: calendar, now: now) == false
+        )
     }
 
     @Test func completedTaskFilterMonthAlwaysReturnsTrue() {

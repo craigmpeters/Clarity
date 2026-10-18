@@ -28,14 +28,14 @@ struct TaskDetailEntity: TransientAppEntity {
     init() {}
 
     init(from dto: ToDoTaskDTO, lastCompletedAt: Date? = nil) {
-        self.id = dto.uuid.uuidString
-        self.name = dto.name
-        self.due = dto.due
-        self.created = dto.created
-        self.repeating = dto.repeating
-        self.recurrence = dto.recurrenceInterval?.displayName
-        self.pomodoroTime = dto.pomodoroTime
-        self.categories = dto.categories.map { $0.name }
+        id = dto.uuid.uuidString
+        name = dto.name
+        due = dto.due
+        created = dto.created
+        repeating = dto.repeating
+        recurrence = dto.recurrenceInterval?.displayName
+        pomodoroTime = dto.pomodoroTime
+        categories = dto.categories.map { $0.name }
         self.lastCompletedAt = lastCompletedAt
     }
 }

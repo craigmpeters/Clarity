@@ -8,10 +8,10 @@
 import Foundation
 import SwiftData
 import Testing
+
 @testable import Clarity
 
 struct SwiftDataHostCheckTests {
-
     @Test func inMemoryContainerCanInsertAndFetchCategory() async throws {
         ClarityModelActor.widgetCoordinator = NoOpWidgetCoordinator()
         let container = try Containers.inMemory()

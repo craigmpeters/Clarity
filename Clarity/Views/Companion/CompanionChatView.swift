@@ -24,7 +24,7 @@ struct CompanionChatView: View {
                 companionHeader
                     .padding(.top, 8)
                     .padding(.bottom, 4)
-//                    .background(Color(uiColor: .systemBackground))
+                //                    .background(Color(uiColor: .systemBackground))
 
                 ScrollViewReader { proxy in
                     ZStack(alignment: .top) {
@@ -107,7 +107,7 @@ struct CompanionChatView: View {
         LinearGradient(
             colors: [
                 Color(uiColor: .systemBackground),
-                Color(uiColor: .systemBackground).opacity(0)
+                Color(uiColor: .systemBackground).opacity(0),
             ],
             startPoint: .top,
             endPoint: .bottom
@@ -123,8 +123,9 @@ struct CompanionChatView: View {
                 .frame(maxWidth: .infinity)
         } else {
             if let uuid = message.suggestedTaskUUID,
-               let name = message.suggestedTaskName,
-               message.persistentModelID == companion.mostRecentSuggestedTask?.persistentModelID {
+                let name = message.suggestedTaskName,
+                message.persistentModelID == companion.mostRecentSuggestedTask?.persistentModelID
+            {
                 suggestionRow(uuid: uuid, name: name)
             }
             chatBubbleRow(message, index: index)
@@ -179,7 +180,6 @@ struct CompanionChatView: View {
         }
     }
 
-    @ViewBuilder
     private func suggestionRow(uuid: UUID, name: String) -> some View {
         HStack(spacing: 0) {
             Button {
@@ -190,7 +190,10 @@ struct CompanionChatView: View {
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(width: 56, height: 56)
-                    .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 17, style: .continuous))
+                    .background(
+                        Color.accentColor,
+                        in: RoundedRectangle(cornerRadius: 17, style: .continuous)
+                    )
             }
             .buttonStyle(.plain)
 
@@ -209,7 +212,10 @@ struct CompanionChatView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 14)
-        .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(
+            Color.accentColor.opacity(0.12),
+            in: RoundedRectangle(cornerRadius: 20, style: .continuous)
+        )
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -236,20 +242,31 @@ struct CompanionChatView: View {
 
     private var inputBar: some View {
         HStack(spacing: 10) {
-            TextField("Say something to \(companion.displayName)…", text: draftBinding, axis: .vertical)
-                .lineLimit(1...4)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .focused($inputFocused)
-                .onSubmit { sendMessage() }
+            TextField(
+                "Say something to \(companion.displayName)…", text: $inputText, axis: .vertical
+            )
+            .lineLimit(1...4)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                Color(uiColor: .secondarySystemBackground),
+                in: RoundedRectangle(cornerRadius: 20, style: .continuous)
+            )
+            .focused($inputFocused)
+            .onSubmit { sendMessage() }
 
             Button(action: sendMessage) {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 32))
-                    .foregroundStyle(companion.chatDraft.trimmingCharacters(in: .whitespaces).isEmpty || companion.isGenerating ? Color.secondary : Color.accentColor)
+                    .foregroundStyle(
+                        inputText.trimmingCharacters(in: .whitespaces).isEmpty
+                            || companion.isGenerating
+                            ? Color.secondary : Color.accentColor
+                    )
             }
-            .disabled(companion.chatDraft.trimmingCharacters(in: .whitespaces).isEmpty || companion.isGenerating)
+            .disabled(
+                inputText.trimmingCharacters(in: .whitespaces).isEmpty || companion.isGenerating
+            )
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -293,7 +310,9 @@ struct CompanionChatView: View {
     service.chatHistory = [
         ChatMessage(sender: .companion, text: "Ready to make today count?", emotion: "encouraging"),
         ChatMessage(sender: .user, text: "I have a lot to do today"),
-        ChatMessage(sender: .companion, text: "One step at a time. You've got this!", emotion: "encouraging"),
+        ChatMessage(
+            sender: .companion, text: "One step at a time. You've got this!", emotion: "encouraging"
+        ),
         ChatMessage.event("Task completed: Write report"),
         ChatMessage(
             sender: .companion,
@@ -301,7 +320,7 @@ struct CompanionChatView: View {
             emotion: "happy",
             suggestedTaskUUID: UUID(),
             suggestedTaskName: "Review Q3 report"
-        )
+        ),
     ]
     return CompanionChatView()
         .environment(service)

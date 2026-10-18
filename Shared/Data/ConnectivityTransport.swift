@@ -14,7 +14,7 @@ import WatchConnectivity
 import XCGLogger
 
 #if canImport(CryptoKit)
-import CryptoKit
+    import CryptoKit
 #endif
 
 // MARK: - WCSession abstraction
@@ -22,18 +22,23 @@ import CryptoKit
 @preconcurrency protocol WCSessionProtocol: AnyObject {
     var activationState: WCSessionActivationState { get }
     #if os(iOS)
-    var isComplicationEnabled: Bool { get }
+        var isComplicationEnabled: Bool {
+            get
+        }
     #endif
 
     func activate()
     func updateApplicationContext(_ context: [String: Any]) throws
     func transferUserInfo(_ userInfo: [String: Any]) -> WCSessionUserInfoTransfer
     #if os(iOS)
-    func transferCurrentComplicationUserInfo(_ userInfo: [String: Any]) -> WCSessionUserInfoTransfer
+        func transferCurrentComplicationUserInfo(_ userInfo: [String: Any])
+            -> WCSessionUserInfoTransfer
     #endif
-    func sendMessageData(_ data: Data,
-                         replyHandler: ((Data) -> Void)?,
-                         errorHandler: ((Error) -> Void)?)
+    func sendMessageData(
+        _ data: Data,
+        replyHandler: ((Data) -> Void)?,
+        errorHandler: ((Error) -> Void)?
+    )
 }
 
 extension WCSession: WCSessionProtocol {}
@@ -52,7 +57,7 @@ final class ConnectivityTransport: NSObject {
 
     private let session: WCSessionProtocol
     private var outboundQueue: [Data] = []
-    private var lastComplicationDigest: Data? = nil
+    private var lastComplicationDigest: Data?
     private var snapshotBuilder: SnapshotBuilder?
     private var inboundContinuation: AsyncStream<WireMessage>.Continuation?
 
@@ -61,11 +66,11 @@ final class ConnectivityTransport: NSObject {
     private init(session: WCSessionProtocol) {
         self.session = session
         var cont: AsyncStream<WireMessage>.Continuation!
-        self.inbound = AsyncStream { continuation in
+        inbound = AsyncStream { continuation in
             cont = continuation
         }
         super.init()
-        self.inboundContinuation = cont
+        inboundContinuation = cont
     }
 
     // MARK: Configuration
@@ -100,9 +105,13 @@ final class ConnectivityTransport: NSObject {
         case .startPomodoro, .stopPomodoro:
             do {
                 try await sendImmediate(data)
-                LogManager.shared.log.debug("[ConnectivityTransport] sent command immediately: \(command)")
+                LogManager.shared.log.debug(
+                    "[ConnectivityTransport] sent command immediately: \(command)"
+                )
             } catch {
-                LogManager.shared.log.debug("[ConnectivityTransport] immediate send failed for \(command), queueing: \(error.localizedDescription)")
+                LogManager.shared.log.debug(
+                    "[ConnectivityTransport] immediate send failed for \(command), queueing: \(error.localizedDescription)"
+                )
                 enqueueReliable(data)
             }
         default:
@@ -131,8 +140,7 @@ final class ConnectivityTransport: NSObject {
     }
 
     func transferHabitArtwork(fileURL: URL, habitUUID: UUID) {
-        guard session.activationState == .activated else { return }
-        guard let wcSession = session as? WCSession else { return }
+        guard session.activationState == .activated, let wcSession = session as? WCSession else { return }
         _ = wcSession.transferFile(fileURL, metadata: ["habitArtwork": habitUUID.uuidString])
     }
 
@@ -144,29 +152,34 @@ final class ConnectivityTransport: NSObject {
         lastComplicationDigest = digest
         let data = try makeEncoder().encode(WireMessage.complicationSnapshot(snapshot))
         #if os(iOS)
-        if session.isComplicationEnabled {
-            LogManager.shared.log.debug("Complication Enabled")
-            _ = session.transferCurrentComplicationUserInfo(["complication": data])
-        } else {
-            // Smart Stack fallback: still wake the watch, but via userInfo.
-            LogManager.shared.log.debug("Complication Disabled")
-            _ = session.transferUserInfo(["complication": data])
-        }
+            if session.isComplicationEnabled {
+                LogManager.shared.log.debug("Complication Enabled")
+                _ = session.transferCurrentComplicationUserInfo(["complication": data])
+            } else {
+                // Smart Stack fallback: still wake the watch, but via userInfo.
+                LogManager.shared.log.debug("Complication Disabled")
+                _ = session.transferUserInfo(["complication": data])
+            }
         #else
-        _ = session.transferUserInfo(["complication": data])
+            _ = session.transferUserInfo(["complication": data])
         #endif
     }
 
     func fetchSnapshot() async throws -> Snapshot {
         let requestData = try makeEncoder().encode(WireMessage.command(.requestSnapshot))
         let reply: Data = try await withCheckedThrowingContinuation { cont in
-            session.sendMessageData(requestData,
+            session.sendMessageData(
+                requestData,
                 replyHandler: { cont.resume(returning: $0) },
-                errorHandler: { cont.resume(throwing: $0) })
+                errorHandler: { cont.resume(throwing: $0) }
+            )
         }
         let msg = try makeDecoder().decode(WireMessage.self, from: reply)
-        guard case .snapshot(let snap) = msg else {
-            throw NSError(domain: "ConnectivityTransport", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unexpected reply"])
+        guard case let .snapshot(snap) = msg else {
+            throw NSError(
+                domain: "ConnectivityTransport", code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Unexpected reply"]
+            )
         }
         return snap
     }
@@ -177,12 +190,17 @@ final class ConnectivityTransport: NSObject {
     /// session is not yet activated or the counterpart is unreachable.
     private func sendImmediate(_ data: Data) async throws {
         guard session.activationState == .activated else {
-            throw NSError(domain: "ConnectivityTransport", code: 2, userInfo: [NSLocalizedDescriptionKey: "WCSession not activated"])
+            throw NSError(
+                domain: "ConnectivityTransport", code: 2,
+                userInfo: [NSLocalizedDescriptionKey: "WCSession not activated"]
+            )
         }
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-            session.sendMessageData(data,
+            session.sendMessageData(
+                data,
                 replyHandler: { _ in cont.resume() },
-                errorHandler: { cont.resume(throwing: $0) })
+                errorHandler: { cont.resume(throwing: $0) }
+            )
         }
     }
 
@@ -223,9 +241,9 @@ final class ConnectivityTransport: NSObject {
     private func complicationDigest(for projection: ComplicationProjection) throws -> Data {
         let data = try makeEncoder().encode(projection)
         #if canImport(CryptoKit)
-        return Data(SHA256.hash(data: data))
+            return Data(SHA256.hash(data: data))
         #else
-        return data
+            return data
         #endif
     }
 }
@@ -233,47 +251,58 @@ final class ConnectivityTransport: NSObject {
 // MARK: - WCSessionDelegate
 
 extension ConnectivityTransport: WCSessionDelegate {
-
-    nonisolated func session(_ s: WCSession,
-                             activationDidCompleteWith state: WCSessionActivationState,
-                             error: Error?) {
-        LogManager.shared.log.verbose("[ConnectivityTransport] activationDidCompleteWith state=\(state.rawValue), error=\(String(describing: error))")
+    nonisolated func session(
+        _: WCSession,
+        activationDidCompleteWith state: WCSessionActivationState,
+        error: Error?
+    ) {
+        LogManager.shared.log.verbose(
+            "[ConnectivityTransport] activationDidCompleteWith state=\(state.rawValue), error=\(String(describing: error))"
+        )
         Task { @MainActor [weak self] in
             self?.flushOutboundIfActivated()
         }
     }
 
-    nonisolated func session(_ s: WCSession, didReceive file: WCSessionFile) {
+    nonisolated func session(_: WCSession, didReceive file: WCSessionFile) {
         guard let metadata = file.metadata,
-              let uuidString = metadata["habitArtwork"] as? String else { return }
+              let uuidString = metadata["habitArtwork"] as? String
+        else { return }
         let filename = "\(uuidString).png"
-        guard let destination = WidgetFileCoordinator.shared.habitArtworkURL(filename: filename) else { return }
+        guard let destination = WidgetFileCoordinator.shared.habitArtworkURL(filename: filename)
+        else { return }
         do {
             if FileManager.default.fileExists(atPath: destination.path) {
                 try FileManager.default.removeItem(at: destination)
             }
             try FileManager.default.copyItem(at: file.fileURL, to: destination)
         } catch {
-            LogManager.shared.log.error("[ConnectivityTransport] failed to copy habit artwork: \(error)")
+            LogManager.shared.log.error(
+                "[ConnectivityTransport] failed to copy habit artwork: \(error)"
+            )
         }
     }
 
-#if os(iOS)
-    nonisolated func sessionDidBecomeInactive(_ s: WCSession) {}
+    #if os(iOS)
+        nonisolated func sessionDidBecomeInactive(_: WCSession) {}
 
-    nonisolated func sessionDidDeactivate(_ s: WCSession) {
-        s.activate()
-    }
-#endif
+        nonisolated func sessionDidDeactivate(_ s: WCSession) {
+            s.activate()
+        }
+    #endif
 
-    nonisolated func session(_ s: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
+    nonisolated func session(_: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
         if let data = userInfo["complication"] as? Data {
             do {
                 let msg = try decodeMessage(data)
-                LogManager.shared.log.debug("[ConnectivityTransport] didReceiveUserInfo (complication): \(msg)")
+                LogManager.shared.log.debug(
+                    "[ConnectivityTransport] didReceiveUserInfo (complication): \(msg)"
+                )
                 Task { @MainActor [weak self] in self?.emit(msg) }
             } catch {
-                LogManager.shared.log.error("[ConnectivityTransport] didReceiveUserInfo (complication) decode failed: \(error)")
+                LogManager.shared.log.error(
+                    "[ConnectivityTransport] didReceiveUserInfo (complication) decode failed: \(error)"
+                )
             }
             return
         }
@@ -283,50 +312,70 @@ extension ConnectivityTransport: WCSessionDelegate {
             LogManager.shared.log.debug("[ConnectivityTransport] didReceiveUserInfo: \(msg)")
             Task { @MainActor [weak self] in self?.emit(msg) }
         } catch {
-            LogManager.shared.log.error("[ConnectivityTransport] didReceiveUserInfo decode failed: \(error)")
+            LogManager.shared.log.error(
+                "[ConnectivityTransport] didReceiveUserInfo decode failed: \(error)"
+            )
         }
     }
 
-    nonisolated func session(_ s: WCSession,
-                             didReceiveApplicationContext ctx: [String: Any]) {
+    nonisolated func session(
+        _: WCSession,
+        didReceiveApplicationContext ctx: [String: Any]
+    ) {
         guard let data = ctx["payload"] as? Data else { return }
         do {
             let msg = try decodeMessage(data)
-            LogManager.shared.log.debug("[ConnectivityTransport] didReceiveApplicationContext: \(msg)")
+            LogManager.shared.log.debug(
+                "[ConnectivityTransport] didReceiveApplicationContext: \(msg)"
+            )
             Task { @MainActor [weak self] in self?.emit(msg) }
         } catch {
-            LogManager.shared.log.error("[ConnectivityTransport] didReceiveApplicationContext decode failed: \(error)")
+            LogManager.shared.log.error(
+                "[ConnectivityTransport] didReceiveApplicationContext decode failed: \(error)"
+            )
         }
     }
 
-    nonisolated func session(_ s: WCSession,
-                             didFinish userInfoTransfer: WCSessionUserInfoTransfer,
-                             error: Error?) {
+    nonisolated func session(
+        _: WCSession,
+        didFinish _: WCSessionUserInfoTransfer,
+        error: Error?
+    ) {
         if let error {
-            LogManager.shared.log.error("[ConnectivityTransport] userInfoTransfer finished with error: \(error)")
+            LogManager.shared.log.error(
+                "[ConnectivityTransport] userInfoTransfer finished with error: \(error)"
+            )
         }
     }
 
-    nonisolated func session(_ s: WCSession,
-                             didReceiveMessageData data: Data,
-                             replyHandler: @escaping (Data) -> Void) {
+    nonisolated func session(
+        _: WCSession,
+        didReceiveMessageData data: Data,
+        replyHandler: @escaping (Data) -> Void
+    ) {
         let boxed = SendableReplyHandler(replyHandler)
         let msg: WireMessage
         do {
             msg = try decodeMessage(data)
         } catch {
-            LogManager.shared.log.error("[ConnectivityTransport] didReceiveMessageData decode failed: \(error)")
+            LogManager.shared.log.error(
+                "[ConnectivityTransport] didReceiveMessageData decode failed: \(error)"
+            )
             Task { @MainActor in boxed.reply(Data()) }
             return
         }
         LogManager.shared.log.debug("[ConnectivityTransport] didReceiveMessageData: \(msg)")
         Task { @MainActor [weak self] in
-            guard let self else { boxed.reply(Data()); return }
+            guard let self else {
+                boxed.reply(Data())
+                return
+            }
             // .requestSnapshot is special: the reply payload is the snapshot
             // itself and PhoneConnectivityCoordinator's handleCommand case for
             // it is a documented no-op, so we don't emit it into inbound.
             if case .command(.requestSnapshot) = msg,
-               let builder = self.snapshotBuilder {
+               let builder = self.snapshotBuilder
+            {
                 let snap = await builder.buildSnapshot()
                 let replyMsg = WireMessage.snapshot(snap)
                 if let replyData = try? self.makeEncoder().encode(replyMsg) {
@@ -348,8 +397,13 @@ extension ConnectivityTransport: WCSessionDelegate {
 /// This is the only @unchecked Sendable in the module.
 private nonisolated struct SendableReplyHandler: @unchecked Sendable {
     let handler: (Data) -> Void
-    init(_ handler: @escaping (Data) -> Void) { self.handler = handler }
-    func reply(_ data: Data) { handler(data) }
+    init(_ handler: @escaping (Data) -> Void) {
+        self.handler = handler
+    }
+
+    func reply(_ data: Data) {
+        handler(data)
+    }
 }
 
 private nonisolated func decodeMessage(_ data: Data) throws -> WireMessage {

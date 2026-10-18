@@ -5,8 +5,8 @@
 //  Created by Craig Peters on 08/08/2026.
 //
 
-import SwiftUI
 import ImageIO
+import SwiftUI
 
 struct WatchHabitsView: View {
     @State private var store = WatchSnapshotStore.shared
@@ -28,7 +28,9 @@ struct WatchHabitsView: View {
                     WatchHabitPage(
                         habit: habit,
                         occurrence: store.occurrence(for: habit.uuid),
-                        isOptimisticallyIncremented: store.isHabitOptimisticallyIncremented(habit.uuid)
+                        isOptimisticallyIncremented: store.isHabitOptimisticallyIncremented(
+                            habit.uuid
+                        )
                     ) {
                         store.logHabitProgress(habit)
                     }
@@ -36,17 +38,20 @@ struct WatchHabitsView: View {
                 }
             }
             .tabViewStyle(.verticalPage)
-//            .navigationTitle(selectedHabit?.name ?? "Habits")
-//            .toolbar {
-//                ToolbarItem(placement: .topBarTrailing) {
-//                    NavigationLink(destination: ContentView()) {
-//                        Image(systemName: "list.bullet")
-//                    }
-//                }
-//            }
+            //            .navigationTitle(selectedHabit?.name ?? "Habits")
+            //            .toolbar {
+            //                ToolbarItem(placement: .topBarTrailing) {
+            //                    NavigationLink(destination: ContentView()) {
+            //                        Image(systemName: "list.bullet")
+            //                    }
+            //                }
+            //            }
             .overlay {
                 if habits.isEmpty {
-                    ContentUnavailableView("No Habits", systemImage: "checklist", description: Text("Add habits on your iPhone"))
+                    ContentUnavailableView(
+                        "No Habits", systemImage: "checklist",
+                        description: Text("Add habits on your iPhone")
+                    )
                 }
             }
         }
@@ -78,18 +83,42 @@ struct WatchHabitPage: View {
                     .frame(maxWidth: .infinity)
                     .allowsTightening(true)
 
-                Text(HabitFormatter.progressDescription(amount: effectiveAmount, target: habit.dailyTarget, unit: habit.unitLabel, healthKitIdentifier: habit.healthKitIdentifier))
-                    .font(.subheadline)
+                Text(
+                    HabitFormatter.progressDescription(
+                        amount: effectiveAmount, target: habit.dailyTarget, unit: habit.unitLabel,
+                        healthKitIdentifier: habit.healthKitIdentifier
+                    )
+                )
+                .font(.subheadline)
+
+                // Rolling meter + strength (engine-derived; populated by phone via
+                // PhoneConnectivityCoordinator.enrichHabitsForWatch).
+                let windowDays = habit.windowDays ?? HabitConfig.defaultWindowDays
+                Text(
+                    "\(Int(habit.windowCredit.rounded())) of \(habit.weeklyFrequency) in last \(windowDays)d"
+                )
+                .font(.caption)
+                .foregroundColor(.secondary)
+                if habit.strength > 0 {
+                    Text("Strength \(Int((habit.strength * 100).rounded()))%")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
 
                 HStack(spacing: 4) {
-                    ForEach(Array(habit.weekCompletionBitmap.enumerated()), id: \.offset) { index, completed in
+                    ForEach(Array(habit.weekCompletionBitmap.enumerated()), id: \.offset) {
+                        index, completed in
                         Circle()
                             .fill(completed ? Color.accentColor : Color.secondary.opacity(0.2))
                             .frame(width: 6, height: 6)
-                            .accessibilityLabel(dotAccessibilityLabel(index: index, completed: completed))
+                            .accessibilityLabel(
+                                dotAccessibilityLabel(index: index, completed: completed)
+                            )
                     }
                 }
-                .accessibilityLabel("Recent progress: \(habit.weekCompletionBitmap.filter(\.self).count) of last 7 days completed")
+                .accessibilityLabel(
+                    "Recent progress: \(habit.weekCompletionBitmap.filter(\.self).count) of last 7 days completed"
+                )
             }
 
             .padding(8)
@@ -105,7 +134,9 @@ struct WatchHabitPage: View {
                 .background(.blue, in: Capsule())
                 .disabled(isOptimisticallyIncremented)
                 .accessibilityLabel("Log progress for \(habit.name)")
-                .accessibilityHint("Adds \(HabitFormatter.formatted(habit.incrementStep)) to today's amount")
+                .accessibilityHint(
+                    "Adds \(HabitFormatter.formatted(habit.incrementStep)) to today's amount"
+                )
             }
         }
     }
@@ -140,8 +171,9 @@ struct WatchHabitArtworkBackground: View {
 
     var body: some View {
         if let filename = filename,
-           let url = WidgetFileCoordinator.shared.habitArtworkURL(filename: filename),
-           let cgImage = loadCGImage(from: url) {
+            let url = WidgetFileCoordinator.shared.habitArtworkURL(filename: filename),
+            let cgImage = loadCGImage(from: url)
+        {
             Image(decorative: cgImage, scale: 1.0)
                 .resizable()
                 .aspectRatio(contentMode: .fill)

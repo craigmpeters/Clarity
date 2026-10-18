@@ -5,10 +5,10 @@
 
 import Foundation
 import Testing
+
 @testable import Clarity
 
 struct ConsistencyScorerTests {
-
     private let scorer = ConsistencyScorer()
 
     @Test func perfectHistoryIsVeryConsistent() {
@@ -25,12 +25,12 @@ struct ConsistencyScorerTests {
         #expect(scorer.band(for: score) == .fallingOff)
     }
 
-    @Test func singleRecentMissDentsButDoesNotCrater() {
+    @Test func singleRecentMissDentsButDoesNotCrater() throws {
         // 29 perfect then one miss: score should still be in the top band.
         var periods = Array(repeating: true, count: 29)
         periods.append(false)
         let score = scorer.score(periods: periods)
-        #expect(score! >= 0.8, "score \(score!) should stay in 'very consistent' band")
+        #expect(try #require(score) >= 0.8, "score \(score!) should stay in 'very consistent' band")
         #expect(scorer.band(for: score) == .veryConsistentLately)
     }
 
@@ -39,11 +39,11 @@ struct ConsistencyScorerTests {
         #expect(scorer.band(for: nil) == .notEnoughHistory)
     }
 
-    @Test func decayBoundarySanity() {
+    @Test func decayBoundarySanity() throws {
         let low = ConsistencyScorer(decay: 0.90)
         let high = ConsistencyScorer(decay: 0.95)
         let periods = Array(repeating: true, count: 20) + [false]
-        #expect(low.score(periods: periods)! < high.score(periods: periods)!)
+        #expect(try #require(low.score(periods: periods)) < #require(high.score(periods: periods)))
     }
 
     @Test func decayIsClampedToValidRange() {
@@ -63,26 +63,26 @@ struct ConsistencyScorerTests {
     @Test func taskPeriodsBuildsDailyWindow() {
         let now = Date()
         let completions = [
-            now.addingTimeInterval(-2 * 86_400),
-            now.addingTimeInterval(-1 * 86_400)
+            now.addingTimeInterval(-2 * 86400),
+            now.addingTimeInterval(-1 * 86400),
         ]
         let periods = ConsistencyScorer.taskPeriods(completions: completions, now: now)
-        #expect(periods.count == 91) // today + last 90 days
+        #expect(periods.count == 91)  // today + last 90 days
         #expect(periods[periods.count - 3] == true)
         #expect(periods[periods.count - 2] == true)
         #expect(periods[periods.count - 1] == false)
     }
 
-    @Test func habitPeriodsAcrossYearBoundary() {
+    @Test func habitPeriodsAcrossYearBoundary() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.firstWeekday = 1
         // Saturday Jan 3 2026, inside the Sunday-start week that spans the year boundary.
         var components = DateComponents(year: 2026, month: 1, day: 3)
-        let now = calendar.date(from: components)!
+        let now = try #require(calendar.date(from: components))
         // Two completions in the week spanning Dec 28 2025 – Jan 3 2026.
-        let occurrences = [
-            calendar.date(from: DateComponents(year: 2025, month: 12, day: 31))!,
-            calendar.date(from: DateComponents(year: 2026, month: 1, day: 3))!
+        let occurrences = try [
+            #require(calendar.date(from: DateComponents(year: 2025, month: 12, day: 31))),
+            #require(calendar.date(from: DateComponents(year: 2026, month: 1, day: 3))),
         ]
         let periods = ConsistencyScorer.habitPeriods(
             occurrences: occurrences,
@@ -93,7 +93,7 @@ struct ConsistencyScorerTests {
         #expect(periods.last == true)
     }
 
-    @Test func habitPeriodsUseSundayStartCalendar() {
+    @Test func habitPeriodsUseSundayStartCalendar() throws {
         // Simulate a Monday-start locale by setting firstWeekday = 2 on the current calendar.
         var currentCalendar = Calendar.current
         currentCalendar.firstWeekday = 2
@@ -102,8 +102,8 @@ struct ConsistencyScorerTests {
         calendar.firstWeekday = 1
         // Pick a Sunday; completions are on that Sunday and the following Saturday, so they fall in the same
         // Sunday-start week and should produce exactly one completed period when weeklyFrequency is 2.
-        let sunday = calendar.date(from: DateComponents(year: 2026, month: 1, day: 4))!
-        let saturday = calendar.date(byAdding: .day, value: 6, to: sunday)!
+        let sunday = try #require(calendar.date(from: DateComponents(year: 2026, month: 1, day: 4)))
+        let saturday = try #require(calendar.date(byAdding: .day, value: 6, to: sunday))
         let occurrences = [sunday, saturday]
         let periods = ConsistencyScorer.habitPeriods(
             occurrences: occurrences,
@@ -115,9 +115,11 @@ struct ConsistencyScorerTests {
 
     @Test func taskPeriodsRespectsFirstDueDate() {
         let now = Date()
-        let firstDue = now.addingTimeInterval(-10 * 86_400)
-        let completions = [now.addingTimeInterval(-20 * 86_400)]
-        let periods = ConsistencyScorer.taskPeriods(completions: completions, now: now, firstDueDate: firstDue)
+        let firstDue = now.addingTimeInterval(-10 * 86400)
+        let completions = [now.addingTimeInterval(-20 * 86400)]
+        let periods = ConsistencyScorer.taskPeriods(
+            completions: completions, now: now, firstDueDate: firstDue
+        )
         #expect(periods.count == 11)
     }
 }

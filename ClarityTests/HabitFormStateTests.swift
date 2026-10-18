@@ -5,13 +5,12 @@
 //  Unit tests for the habit creation/editing form state.
 //
 
+@testable import Clarity
 import Foundation
 import Testing
-@testable import Clarity
 
 @MainActor
 struct HabitFormStateTests {
-
     private func state() -> HabitFormState {
         HabitFormState()
     }
@@ -49,7 +48,7 @@ struct HabitFormStateTests {
 
     @Test func targetOutOfRangeWhenExceedsHealthKitCap() {
         let s = healthState(identifier: "water")
-        s.incrementStep = 10_000
+        s.incrementStep = 10000
         s.incrementCount = 10
         #expect(s.dailyTarget == 100_000)
         #expect(s.isTargetOutOfRange == true)
@@ -123,11 +122,11 @@ struct HabitFormStateTests {
     @Test func makeDTOClampsTargetAndStep() {
         let s = state()
         s.name = "Clamp Test"
-        s.incrementStep = 50_000
+        s.incrementStep = 50000
         s.incrementCount = 1
         let dto = s.makeDTO(existing: nil)
-        #expect(dto.dailyTarget == 10_000)
-        #expect(dto.incrementStep == 10_000)
+        #expect(dto.dailyTarget == 10000)
+        #expect(dto.incrementStep == 10000)
     }
 
     @Test func makeDTONilsUnitLabelForHealthLinkedHabit() {
@@ -160,5 +159,34 @@ struct HabitFormStateTests {
         s.name = "Renamed"
         let dto = s.makeDTO(existing: existing)
         #expect(dto.uuid == existing.uuid)
+    }
+
+    // MARK: - HealthKit type uniqueness
+
+    @Test func isHealthKitTypeTakenReflectsTakenSet() {
+        let s = state()
+        #expect(s.isHealthKitTypeTaken("water") == false)
+        s.takenHealthKitIdentifiers = ["water", "steps"]
+        #expect(s.isHealthKitTypeTaken("water") == true)
+        #expect(s.isHealthKitTypeTaken("steps") == true)
+        #expect(s.isHealthKitTypeTaken("workouts") == false)
+        #expect(s.isHealthKitTypeTaken("mindful") == false)
+    }
+
+    @Test func firstAvailableHealthKitIdentifierDefaultsToWaterWhenNothingTaken() {
+        let s = state()
+        #expect(s.firstAvailableHealthKitIdentifier == "water")
+    }
+
+    @Test func firstAvailableHealthKitIdentifierSkipsTaken() {
+        let s = state()
+        s.takenHealthKitIdentifiers = ["water"]
+        #expect(s.firstAvailableHealthKitIdentifier == "steps")
+
+        s.takenHealthKitIdentifiers = ["water", "steps", "workouts"]
+        #expect(s.firstAvailableHealthKitIdentifier == "mindful")
+
+        s.takenHealthKitIdentifiers = ["water", "steps", "workouts", "mindful"]
+        #expect(s.firstAvailableHealthKitIdentifier == nil)
     }
 }

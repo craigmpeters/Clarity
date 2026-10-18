@@ -5,8 +5,8 @@
 //  Created by Craig Peters on 28/09/2025.
 //
 
-import SwiftUI
 import Foundation
+import SwiftUI
 import WatchKit
 import XCGLogger
 
@@ -43,7 +43,7 @@ struct PomodoroView: View {
     }
 
     init(_ pomodoro: PomodoroDTO) {
-        self.interval = pomodoro.toDoTask.pomodoroTime
+        interval = pomodoro.toDoTask.pomodoroTime
         self.pomodoro = pomodoro
     }
 
@@ -76,7 +76,9 @@ struct PomodoroView: View {
                             .font(.system(size: 38, weight: .bold, design: .monospaced))
                             .foregroundColor(.primary)
                         Button(action: {
-                            LogManager.shared.log.debug("Attempting to Stop Pomodoro for \(pomodoro.toDoTask.name)")
+                            LogManager.shared.log.debug(
+                                "Attempting to Stop Pomodoro for \(pomodoro.toDoTask.name)"
+                            )
                             WatchSnapshotStore.shared.stopPomodoro()
                             dismiss()
                         }) {

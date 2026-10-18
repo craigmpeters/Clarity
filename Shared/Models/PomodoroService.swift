@@ -6,16 +6,16 @@
 //
 
 @preconcurrency import ActivityKit
+import AppIntents
 import Combine
 import Foundation
 import SwiftData
 import UserNotifications
-import AppIntents
 import XCGLogger
 
 @MainActor final class PomodoroService: ObservableObject {
     static let shared = PomodoroService()
-    
+
     @Published var isActive: Bool = false
     var toDoTask: ToDoTaskDTO?
     var startedDevice: DeviceType = .iPhone
@@ -31,15 +31,15 @@ import XCGLogger
         }
         return "pomodoro-generic"
     }
-    
+
     var formattedTime: String {
         let time = remainingTime
         let minutes = Int(time) / 60
         let seconds = Int(time) % 60
-        
+
         return String(format: "%02d:%02d", minutes, seconds)
     }
-    
+
     private var activity: Activity<PomodoroAttributes>?
     private var cancellables = Set<AnyCancellable>()
     private var timer: Timer?
@@ -53,21 +53,25 @@ import XCGLogger
     private var calculatedProgress: Double {
         guard remainingTime > 0 else { return 0 }
         let totalTime: TimeInterval? = {
-            if let t = toDoTask?.pomodoroTime  { return t }
-            if let s = startTime, let e = endTime { return e.timeIntervalSince(s) }
+            if let t = toDoTask?.pomodoroTime {
+                return t
+            }
+            if let s = startTime, let e = endTime {
+                return e.timeIntervalSince(s)
+            }
             return nil
         }()
         guard let total = totalTime, total > 0 else { return 0 }
         return 1.0 - (remainingTime / total)
     }
-    
+
     /// A single completed Pomodoro session, stored for display in the history list.
     struct CompletedSession: Codable, Identifiable {
         let id: UUID
         let taskName: String
         let taskUUID: UUID?
         let startTime: Date
-        let endTime: Date   // actual end (may be early)
+        let endTime: Date  // actual end (may be early)
         var moodLogged: Bool = false
         var moodEmoji: String? = nil
     }
@@ -78,7 +82,7 @@ import XCGLogger
     private let sessionHistoryKey = "completedPomodoroSessions"
     private let externalStopFlagKey = "pomodoroWasStoppedExternally"
     private let appGroupID = "group.me.craigpeters.clarity"
-    
+
     private struct PersistedPomodoro: Codable {
         let taskUUID: UUID?
         let taskName: String?
@@ -86,46 +90,48 @@ import XCGLogger
         let endTime: Date
         let startedDevice: String
     }
-    
+
     private func appGroupDefaults() -> UserDefaults? {
         UserDefaults(suiteName: appGroupID)
     }
-    
+
     enum DeviceType {
         case iPhone
         case watchOS
     }
-    
+
     // MARK: Preview Support
 
-#if DEBUG
-    /// Creates a `PomodoroService` with a running timer pre-seeded for SwiftUI previews.
-    /// Bypasses Live Activities, notifications, and persistence entirely.
-    @MainActor
-    static func makePreview(taskName: String = "SwiftUI documentation reading",
-                            totalMinutes: Int = 25,
-                            elapsedMinutes: Int = 10) -> PomodoroService {
-        let svc = PomodoroService()
-        let totalSeconds = TimeInterval(totalMinutes * 60)
-        let elapsed = TimeInterval(elapsedMinutes * 60)
-        let now = Date()
-        svc.toDoTask = ToDoTaskDTO(
-            name: taskName,
-            pomodoroTime: totalSeconds,
-            due: now,
-            completed: false
-        )
-        svc.startTime = now.addingTimeInterval(-elapsed)
-        svc.endTime   = now.addingTimeInterval(totalSeconds - elapsed)
-        svc.remainingTime = totalSeconds - elapsed
-        svc.progress  = elapsed / totalSeconds
-        svc.isActive  = true
-        return svc
-    }
-#endif
+    #if DEBUG
+        /// Creates a `PomodoroService` with a running timer pre-seeded for SwiftUI previews.
+        /// Bypasses Live Activities, notifications, and persistence entirely.
+        @MainActor
+        static func makePreview(
+            taskName: String = "SwiftUI documentation reading",
+            totalMinutes: Int = 25,
+            elapsedMinutes: Int = 10
+        ) -> PomodoroService {
+            let svc = PomodoroService()
+            let totalSeconds = TimeInterval(totalMinutes * 60)
+            let elapsed = TimeInterval(elapsedMinutes * 60)
+            let now = Date()
+            svc.toDoTask = ToDoTaskDTO(
+                name: taskName,
+                pomodoroTime: totalSeconds,
+                due: now,
+                completed: false
+            )
+            svc.startTime = now.addingTimeInterval(-elapsed)
+            svc.endTime = now.addingTimeInterval(totalSeconds - elapsed)
+            svc.remainingTime = totalSeconds - elapsed
+            svc.progress = elapsed / totalSeconds
+            svc.isActive = true
+            return svc
+        }
+    #endif
 
     // MARK: Public Functions
-    
+
     @MainActor
     func startPomodoro(for toDoTask: ToDoTaskDTO, container: ModelContainer, device: DeviceType) {
         LogManager.shared.log.info("Starting Pomodoro for \(toDoTask.name)")
@@ -140,7 +146,9 @@ import XCGLogger
         startLiveActivity()
         persistState()
         if let end = endTime {
-            let alarmSound = PomodoroAlarmSound.from(persistenceID: UserDefaults.pomodoroAlarmSoundID)
+            let alarmSound = PomodoroAlarmSound.from(
+                persistenceID: UserDefaults.pomodoroAlarmSoundID
+            )
             let notif = NotificationContent(
                 title: "Pomodoro Finished",
                 body: "Task '\(toDoTask.name)' is done!",
@@ -150,7 +158,7 @@ import XCGLogger
         }
         NotificationCenter.default.post(name: .pomodoroStarted, object: nil)
     }
-    
+
     func endPomodoro() async {
         // Always attempt to clean up system resources even if the in-memory state is
         // already inactive. A process restart or external stop can leave the persisted
@@ -190,16 +198,20 @@ import XCGLogger
         guard wasActive else { return }
 
         // Record the completed session for the history list
-        recordCompletedSession(taskName: sessionTaskName, taskUUID: toDoTask?.uuid, startTime: sessionStart, endTime: sessionEnd, pomodoroTime: toDoTask?.pomodoroTime ?? 0)
+        recordCompletedSession(
+            taskName: sessionTaskName, taskUUID: toDoTask?.uuid, startTime: sessionStart,
+            endTime: sessionEnd, pomodoroTime: toDoTask?.pomodoroTime ?? 0
+        )
 
         // Post a single completion notification with the task UUID so observers
         // don't have to rely on the now-cleared in-memory task state.
-        let userInfo: [AnyHashable: Any] = completedTaskUUID.map { [Notification.Name.taskUUIDKey: $0] } ?? [:]
+        let userInfo: [AnyHashable: Any] =
+            completedTaskUUID.map { [Notification.Name.taskUUIDKey: $0] } ?? [:]
         NotificationCenter.default.post(name: .pomodoroCompleted, object: nil, userInfo: userInfo)
     }
-    
+
     @MainActor
-    func restoreIfNeeded(container: ModelContainer, device: DeviceType) async {
+    func restoreIfNeeded(container: ModelContainer, device _: DeviceType) async {
         loadSessionHistory()
         // UI tests launch fresh each time; avoid restoring a timer that leaks across test launches.
         if ProcessInfo.processInfo.arguments.contains("--uitesting") {
@@ -214,18 +226,23 @@ import XCGLogger
         }
         do {
             let persisted = try JSONDecoder().decode(PersistedPomodoro.self, from: data)
-            LogManager.shared.log.debug("Restoring Pomodoro with task: \(persisted.taskName ?? "Task Unknown")")
+            LogManager.shared.log.debug(
+                "Restoring Pomodoro with task: \(persisted.taskName ?? "Task Unknown")"
+            )
             guard persisted.endTime > Date() else {
                 LogManager.shared.log.debug("Pomodoro already completed, not restoring")
                 let store = ClarityModelActor(modelContainer: container)
                 let lastCompleted = await store.fetchLastCompletedTask()
                 if let uuid = persisted.taskUUID {
-                    let alreadyCompleted = lastCompleted?.uuid == uuid
+                    let alreadyCompleted =
+                        lastCompleted?.uuid == uuid
                         && (lastCompleted?.completedAt ?? .distantPast) > persisted.startTime
                     if alreadyCompleted {
                         LogManager.shared.log.debug("Task already completed")
                     } else {
-                        LogManager.shared.log.debug("Completing task after restoring UUID: \(uuid.uuidString)")
+                        LogManager.shared.log.debug(
+                            "Completing task after restoring UUID: \(uuid.uuidString)"
+                        )
                         try await store.completeTask(uuid, startedAt: persisted.startTime)
                     }
                 }
@@ -235,54 +252,59 @@ import XCGLogger
                 LogManager.shared.log.debug("restoreIfNeeded: expired pomodoro cleaned up")
                 return
             }
-            
+
             // rebuild state
             self.container = container
-            self.isActive = true
-            self.startedDevice = (persisted.startedDevice == "watchOS") ? .watchOS : .iPhone
-            self.startTime = persisted.startTime
-            self.endTime = persisted.endTime
-            
+            isActive = true
+            startedDevice = (persisted.startedDevice == "watchOS") ? .watchOS : .iPhone
+            startTime = persisted.startTime
+            endTime = persisted.endTime
+
             // Find Task
             if let uuid = persisted.taskUUID {
                 let store = ClarityModelActor(modelContainer: container)
                 if let dto = try? await store.fetchTaskByUuid(uuid) {
-                    self.toDoTask = dto
+                    toDoTask = dto
                 } else {
-                    self.toDoTask = nil
+                    toDoTask = nil
                     LogManager.shared.log.debug("Failed to find task with UUID: \(uuid)")
                 }
             }
-            
+
             // Attach to Activity
             let existingActivities = Activity<PomodoroAttributes>.activities
-            LogManager.shared.log.debug("restoreIfNeeded: found \(existingActivities.count) existing Live Activities")
+            LogManager.shared.log.debug(
+                "restoreIfNeeded: found \(existingActivities.count) existing Live Activities"
+            )
             if let existing = existingActivities.first {
-                self.activity = existing
-                LogManager.shared.log.debug("restoreIfNeeded: attached to existing Live Activity id=\(existing.id) state=\(existing.activityState)")
+                activity = existing
+                LogManager.shared.log.debug(
+                    "restoreIfNeeded: attached to existing Live Activity id=\(existing.id) state=\(existing.activityState)"
+                )
             } else {
-                LogManager.shared.log.debug("restoreIfNeeded: no Live Activity found, creating new one")
+                LogManager.shared.log.debug(
+                    "restoreIfNeeded: no Live Activity found, creating new one"
+                )
                 startLiveActivity()
             }
-            
+
             // Recompute time/progress and resume timer
-            self.remainingTime = max(0, self.endTime?.timeIntervalSinceNow ?? 0)
-            self.progress = self.calculatedProgress
+            remainingTime = max(0, endTime?.timeIntervalSinceNow ?? 0)
+            progress = calculatedProgress
             startTimer()
 
             // Update UI
             NotificationCenter.default.post(name: .pomodoroStarted, object: nil)
             LogManager.shared.log.info("Restored active pomodoro from persisted state")
-            
+
         } catch {
             LogManager.shared.log.error("Failed to decode Pomodoro state: \(error)")
             clearPersistedState()
         }
-        
     }
-    
+
     // MARK: Live Activities
-    
+
     private func startLiveActivity() {
         let attributes = PomodoroAttributes(sessionId: UUID().uuidString)
         guard let task = toDoTask else {
@@ -297,7 +319,9 @@ import XCGLogger
         // Clean up any pre-existing activities before requesting a new one.
         let existing = Activity<PomodoroAttributes>.activities
         if !existing.isEmpty {
-            LogManager.shared.log.debug("startLiveActivity: \(existing.count) pre-existing Live Activities found, ending them first")
+            LogManager.shared.log.debug(
+                "startLiveActivity: \(existing.count) pre-existing Live Activities found, ending them first"
+            )
             for old in existing {
                 Task {
                     try? await old.end(
@@ -320,15 +344,21 @@ import XCGLogger
                 content: activityContent,
                 pushType: nil
             )
-            LogManager.shared.log.debug("startLiveActivity: started Live Activity id=\(activity?.id ?? "nil") for task: \(task.name)")
+            LogManager.shared.log.debug(
+                "startLiveActivity: started Live Activity id=\(activity?.id ?? "nil") for task: \(task.name)"
+            )
         } catch {
-            LogManager.shared.log.error("startLiveActivity: failed to start Live Activity: \(error.localizedDescription)")
+            LogManager.shared.log.error(
+                "startLiveActivity: failed to start Live Activity: \(error.localizedDescription)"
+            )
         }
     }
-    
+
     private func stopLiveActivity(naturally: Bool = false) {
         let all = Activity<PomodoroAttributes>.activities
-        LogManager.shared.log.debug("stopLiveActivity(naturally: \(naturally)): found \(all.count) Live Activities")
+        LogManager.shared.log.debug(
+            "stopLiveActivity(naturally: \(naturally)): found \(all.count) Live Activities"
+        )
 
         guard !all.isEmpty else {
             LogManager.shared.log.debug("stopLiveActivity: no Live Activity to stop")
@@ -386,15 +416,15 @@ import XCGLogger
             self.activity = nil
         }
     }
-    
+
     // #MARK: Notifications
-    
+
     struct NotificationContent {
         var title: String
         var body: String
         var sound: UNNotificationSound = .default
     }
-    
+
     func scheduleNotification(date: Date, notification: NotificationContent) {
         let content = UNMutableNotificationContent()
         let identifier = notificationIdentifier
@@ -404,25 +434,33 @@ import XCGLogger
         content.userInfo = ["pomodoro": identifier]
 
         let trigger = UNCalendarNotificationTrigger(
-            dateMatching: Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date), repeats: false
+            dateMatching: Calendar.current.dateComponents(
+                [.year, .month, .day, .hour, .minute, .second], from: date
+            ), repeats: false
         )
 
-        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        let request = UNNotificationRequest(
+            identifier: identifier, content: content, trigger: trigger
+        )
 
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
                 LogManager.shared.log.error("Error scheduling notification: \(error)")
             } else {
-                LogManager.shared.log.debug("Notification scheduled successfully for \(date.ISO8601Format())")
+                LogManager.shared.log.debug(
+                    "Notification scheduled successfully for \(date.ISO8601Format())"
+                )
             }
         }
     }
 
     func cancelNotification() {
         LogManager.shared.log.debug("Cancelling Notification")
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [notificationIdentifier])
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [
+            notificationIdentifier
+        ])
     }
-    
+
     // MARK: Pomodoro Timer Function
 
     private func startTimer() {
@@ -444,8 +482,9 @@ import XCGLogger
         }
         RunLoop.main.add(timer!, forMode: .common)
     }
-    
+
     // MARK: Persistence
+
     @MainActor
     private func persistState() {
         guard isActive, let start = startTime, let end = endTime else {
@@ -501,26 +540,34 @@ import XCGLogger
             remainingTime = 0
             progress = 0
             loadSessionHistory()
-            let userInfo: [AnyHashable: Any] = recentSessions.first?.taskUUID.map {
-                [
-                    Notification.Name.taskUUIDKey: $0,
-                    Notification.Name.completionHandledExternallyKey: true
-                ]
-            } ?? [:]
-            NotificationCenter.default.post(name: .pomodoroCompleted, object: nil, userInfo: userInfo)
+            let userInfo: [AnyHashable: Any] =
+                recentSessions.first?.taskUUID.map {
+                    [
+                        Notification.Name.taskUUIDKey: $0,
+                        Notification.Name.completionHandledExternallyKey: true,
+                    ]
+                } ?? [:]
+            NotificationCenter.default.post(
+                name: .pomodoroCompleted, object: nil, userInfo: userInfo
+            )
             LogManager.shared.log.debug("PomodoroService: reset after external stop (was active)")
         } else {
             loadSessionHistory()
             // The session was completed by the Live Activity intent while the app process
             // was not active; surface the mood sheet so the user can log how it went.
-            let userInfo: [AnyHashable: Any] = recentSessions.first?.taskUUID.map {
-                [
-                    Notification.Name.taskUUIDKey: $0,
-                    Notification.Name.completionHandledExternallyKey: true
-                ]
-            } ?? [:]
-            NotificationCenter.default.post(name: .pomodoroCompleted, object: nil, userInfo: userInfo)
-            LogManager.shared.log.debug("PomodoroService: loaded history and posted completion after external stop")
+            let userInfo: [AnyHashable: Any] =
+                recentSessions.first?.taskUUID.map {
+                    [
+                        Notification.Name.taskUUIDKey: $0,
+                        Notification.Name.completionHandledExternallyKey: true,
+                    ]
+                } ?? [:]
+            NotificationCenter.default.post(
+                name: .pomodoroCompleted, object: nil, userInfo: userInfo
+            )
+            LogManager.shared.log.debug(
+                "PomodoroService: loaded history and posted completion after external stop"
+            )
         }
     }
 
@@ -537,7 +584,10 @@ import XCGLogger
 
     /// Appends a newly completed session and persists the updated list.
     @MainActor
-    func recordCompletedSession(taskName: String, taskUUID: UUID?, startTime: Date, endTime: Date, pomodoroTime: TimeInterval) {
+    func recordCompletedSession(
+        taskName: String, taskUUID: UUID?, startTime: Date, endTime: Date,
+        pomodoroTime: TimeInterval
+    ) {
         let recordedEndTime = {
             if startTime.addingTimeInterval(pomodoroTime) > endTime {
                 return endTime
@@ -561,7 +611,7 @@ import XCGLogger
     @MainActor
     func loadSessionHistory() {
         guard let data = appGroupDefaults()?.data(forKey: sessionHistoryKey),
-              let sessions = try? JSONDecoder().decode([CompletedSession].self, from: data)
+            let sessions = try? JSONDecoder().decode([CompletedSession].self, from: data)
         else { return }
         let cutoff = Date().addingTimeInterval(-12 * 3600)
         recentSessions = sessions.filter { $0.endTime >= cutoff }
@@ -590,11 +640,12 @@ import XCGLogger
         )
         if !hasPersistedState {
             if activityCount > 0 {
-                LogManager.shared.log.debug("reconcileSystemStateIfNeeded: cleaning up orphaned Live Activities")
+                LogManager.shared.log.debug(
+                    "reconcileSystemStateIfNeeded: cleaning up orphaned Live Activities"
+                )
             }
             stopLiveActivity()
             cancelNotification()
         }
     }
-
 }
