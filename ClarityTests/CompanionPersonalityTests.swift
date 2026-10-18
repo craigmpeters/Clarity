@@ -7,13 +7,15 @@
 
 import Foundation
 import Testing
+
 @testable import Clarity
 
 struct CompanionPersonalityTests {
-
     private let otto = OttoPersonality()
     private let goose = GoosePersonality()
-    private let allPersonalities: [any CompanionPersonality] = [OttoPersonality(), GoosePersonality()]
+    private let allPersonalities: [any CompanionPersonality] = [
+        OttoPersonality(), GoosePersonality(),
+    ]
 
     @Test func allPersonalitiesHaveUniqueIds() {
         let ids = allPersonalities.map(\.id)
@@ -44,7 +46,9 @@ struct CompanionPersonalityTests {
 
     @Test func systemInstructionsContainNameAndContext() {
         for personality in allPersonalities {
-            let instructions = personality.systemInstructions(name: "CustomName", contextBlock: "CONTEXT_BLOCK")
+            let instructions = personality.systemInstructions(
+                name: "CustomName", contextBlock: "CONTEXT_BLOCK"
+            )
             #expect(instructions.contains("CustomName"))
             #expect(instructions.contains("CONTEXT_BLOCK"))
         }
@@ -59,7 +63,7 @@ struct CompanionPersonalityTests {
             .streakMilestone(days: 30),
             .lowMoodDetected(averageValence: 0.3),
             .habitSuggestion(categories: ["A", "B", "C", "D", "E"], completedCount: 7),
-            .habitCompleted(habitName: "Walk", state: .milestone(streak: 7))
+            .habitCompleted(habitName: "Walk", state: .milestone(streak: 7)),
         ]
 
         for trigger in triggers {
@@ -86,17 +90,25 @@ struct CompanionPersonalityTests {
     }
 
     @Test func promptForSuggestionTruncatesCategoriesToThree() {
-        let prompt = otto.prompt(for: .habitSuggestion(categories: ["1", "2", "3", "4", "5"], completedCount: 1))
+        let prompt = otto.prompt(
+            for: .habitSuggestion(categories: ["1", "2", "3", "4", "5"], completedCount: 1)
+        )
         #expect(prompt.contains("1, 2, 3"))
         #expect(prompt.contains("4") == false)
         #expect(prompt.contains("5") == false)
     }
 
     @Test func promptSuggestionInstructionMatchesAllowance() {
-        #expect(otto.prompt(for: .taskCompleted(taskName: "T")).contains("isSuggestingTask to true"))
-        #expect(otto.prompt(for: .pomodoroCompleted(taskName: "T")).contains("isSuggestingTask to true"))
+        #expect(
+            otto.prompt(for: .taskCompleted(taskName: "T")).contains("isSuggestingTask to true")
+        )
+        #expect(
+            otto.prompt(for: .pomodoroCompleted(taskName: "T")).contains("isSuggestingTask to true")
+        )
         #expect(otto.prompt(for: .appLaunch).contains("isSuggestingTask to false"))
-        #expect(otto.prompt(for: .taskUncompleted(taskName: "T")).contains("isSuggestingTask to false"))
+        #expect(
+            otto.prompt(for: .taskUncompleted(taskName: "T")).contains("isSuggestingTask to false")
+        )
     }
 
     @Test func fallbackMessageEmotionsForOtto() {
@@ -106,7 +118,10 @@ struct CompanionPersonalityTests {
         #expect(otto.fallbackMessage(for: .pomodoroCompleted(taskName: "T")).emotion == .happy)
         #expect(otto.fallbackMessage(for: .streakMilestone(days: 7)).emotion == .encouraging)
         #expect(otto.fallbackMessage(for: .lowMoodDetected(averageValence: 0.0)).emotion == .caring)
-        #expect(otto.fallbackMessage(for: .habitSuggestion(categories: [], completedCount: 0)).emotion == .determined)
+        #expect(
+            otto.fallbackMessage(for: .habitSuggestion(categories: [], completedCount: 0)).emotion
+                == .determined
+        )
     }
 
     @Test func fallbackMessageEmotionsForGoose() {
@@ -115,8 +130,13 @@ struct CompanionPersonalityTests {
         #expect(goose.fallbackMessage(for: .taskUncompleted(taskName: "T")).emotion == .silly)
         #expect(goose.fallbackMessage(for: .pomodoroCompleted(taskName: "T")).emotion == .happy)
         #expect(goose.fallbackMessage(for: .streakMilestone(days: 7)).emotion == .silly)
-        #expect(goose.fallbackMessage(for: .lowMoodDetected(averageValence: 0.0)).emotion == .caring)
-        #expect(goose.fallbackMessage(for: .habitSuggestion(categories: [], completedCount: 0)).emotion == .determined)
+        #expect(
+            goose.fallbackMessage(for: .lowMoodDetected(averageValence: 0.0)).emotion == .caring
+        )
+        #expect(
+            goose.fallbackMessage(for: .habitSuggestion(categories: [], completedCount: 0)).emotion
+                == .determined
+        )
     }
 
     @Test func errorFallbackWithTaskIncludesNameAndSuggestedTask() {
@@ -155,10 +175,11 @@ struct CompanionPersonalityTests {
     }
 }
 
-private extension HabitStreakState {
-    var streak: Int {
+extension HabitStreakState {
+    fileprivate var streak: Int {
         switch self {
-        case .continued(let streak), .milestone(let streak), .saved(let streak), .restarted(let streak):
+        case .continued(let streak), .milestone(let streak), .saved(let streak),
+            .restarted(let streak):
             return streak
         }
     }

@@ -7,27 +7,23 @@
 
 import AppIntents
 
-
-struct GetTaskIntent : AppIntent {
-    
+struct GetTaskIntent: AppIntent {
     static let title: LocalizedStringResource = "Get Task Details"
     static let description = IntentDescription("Get Details about a task")
-    
+
     static var parameterSummary: some ParameterSummary {
         Summary("Get \(\.$task) details in Clarity")
     }
 
-    
     @Parameter(title: "Task")
     var task: TaskEntity
-    
+
     init() {} // required
-    
+
     init(task: TaskEntity) {
         self.task = task
     }
-    
-    
+
     func perform() async throws -> some IntentResult & ReturnsValue<TaskDetailEntity> {
         let store = try await ClarityServices.store()
         let uuid = UUID(uuidString: task.id)!
@@ -37,6 +33,4 @@ struct GetTaskIntent : AppIntent {
         let lastCompletedAt = try await store.fetchLastCompletedAt(uuid: uuid)
         return .result(value: TaskDetailEntity(from: dto, lastCompletedAt: lastCompletedAt))
     }
-    
-    
 }

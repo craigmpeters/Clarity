@@ -18,16 +18,18 @@ struct NotificationSettingsView: View {
         NavigationView {
             Form {
                 Section(header: Text("Notifications"), footer: footerText) {
-                        NavigationLink(destination: PomodoroSoundSettingsView()) {
-                            Image(systemName: "timer")
-                                .foregroundColor(.red)
-                            Text("Pomodoro Alarm Sound")
-                            Spacer()
-                        }
-                    Toggle(isOn: Binding(
-                        get: { notificationsEnabled },
-                        set: { _ in }
-                    )) {
+                    NavigationLink(destination: PomodoroSoundSettingsView()) {
+                        Image(systemName: "timer")
+                            .foregroundColor(.red)
+                        Text("Pomodoro Alarm Sound")
+                        Spacer()
+                    }
+                    Toggle(
+                        isOn: Binding(
+                            get: { notificationsEnabled },
+                            set: { _ in }
+                        )
+                    ) {
                         Text("Notifications Enabled")
                     }
                     .disabled(true)
@@ -66,24 +68,26 @@ struct NotificationSettingsView: View {
                 Button("Cancel", role: .cancel) {}
                 Button("Open Settings") { openAppSettings() }
             } message: {
-                Text("Notifications are currently disabled. You can enable them in the Settings app.")
+                Text(
+                    "Notifications are currently disabled. You can enable them in the Settings app."
+                )
             }
         }
-        
     }
 
+    @ViewBuilder
     private var footerText: some View {
-        Group {
-            switch authorizationStatus {
-            case .notDetermined:
-                Text("We\'ll ask for permission to send you notifications.")
-            case .denied:
-                Text("Notifications are turned off. Use the button above to open Settings and enable notifications for this app.")
-            case .authorized, .provisional, .ephemeral:
-                Text("Notifications are allowed. You can change this in Settings at any time.")
-            @unknown default:
-                Text("Notification status unknown.")
-            }
+        switch authorizationStatus {
+        case .notDetermined:
+            Text("We\'ll ask for permission to send you notifications.")
+        case .denied:
+            Text(
+                "Notifications are turned off. Use the button above to open Settings and enable notifications for this app."
+            )
+        case .authorized, .provisional, .ephemeral:
+            Text("Notifications are allowed. You can change this in Settings at any time.")
+        @unknown default:
+            Text("Notification status unknown.")
         }
     }
 
@@ -92,7 +96,10 @@ struct NotificationSettingsView: View {
         let settings = await center.notificationSettings()
         await MainActor.run {
             authorizationStatus = settings.authorizationStatus
-            notificationsEnabled = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional || settings.authorizationStatus == .ephemeral
+            notificationsEnabled =
+                settings.authorizationStatus == .authorized
+                || settings.authorizationStatus == .provisional
+                || settings.authorizationStatus == .ephemeral
         }
     }
 
@@ -101,7 +108,9 @@ struct NotificationSettingsView: View {
         Task {
             let center = UNUserNotificationCenter.current()
             do {
-                let granted = try await center.requestAuthorization(options: [.alert, .badge, .sound])
+                let granted = try await center.requestAuthorization(options: [
+                    .alert, .badge, .sound,
+                ])
                 await refreshAuthorization()
                 if !granted {
                     await MainActor.run { showSettingsAlert = true }

@@ -27,7 +27,7 @@ struct CreateReminderSchemaIntent {
     @Parameter(title: "Images", supportedTypeIdentifiers: ["public.image"])
     var images: [IntentFile]
 
-    // Required schema properties that Clarity does not persist.
+    /// Required schema properties that Clarity does not persist.
     @Parameter(title: "Note")
     var note: AttributedString?
 
@@ -49,7 +49,7 @@ struct CreateReminderSchemaIntent {
     @Parameter(title: "Section")
     var section: ReminderSectionEntity?
 
-    // Custom routing parameter: defaults to Task when not supplied by Siri.
+    /// Custom routing parameter: defaults to Task when not supplied by Siri.
     @Parameter(title: "Kind")
     var kind: ReminderKind?
 
@@ -63,7 +63,9 @@ struct CreateReminderSchemaIntent {
         let category = ReminderSchemaCategory.resolve(targetList, from: allCategories)
 
         let due = ReminderSchemaDate.date(from: dueDate)
-        let (interval, customDays, specificDay) = ReminderSchemaRecurrence.recurrenceInterval(from: recurrence)
+        let (interval, customDays, specificDay) = ReminderSchemaRecurrence.recurrenceInterval(
+            from: recurrence
+        )
         let kind = self.kind ?? .task
 
         switch kind {

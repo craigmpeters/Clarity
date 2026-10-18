@@ -9,7 +9,6 @@ import AppIntents
 import SwiftUI
 import XCGLogger
 
-
 struct TaskEntity: AppEntity, Identifiable, Sendable {
     static let typeDisplayRepresentation: TypeDisplayRepresentation = "Task"
     static let defaultQuery = TaskQuery()
@@ -26,24 +25,25 @@ struct TaskEntity: AppEntity, Identifiable, Sendable {
 
 struct TaskQuery: EntityQuery, Sendable {
     func entities(for identifiers: [String]) async throws -> [TaskEntity] {
-        try await allEntities().filter( { identifiers.contains($0.id)})
+        try await allEntities().filter { identifiers.contains($0.id) }
     }
-    
+
     func suggestedEntities() async throws -> [TaskEntity] {
         try await allEntities()
     }
 
     func allEntities() async throws -> [TaskEntity] {
-        //let tasks = ClarityServices.snapshotTasks()
-        var tasks : [ToDoTaskDTO] = []
+        // let tasks = ClarityServices.snapshotTasks()
+        var tasks: [ToDoTaskDTO] = []
         do {
             tasks = try WidgetFileCoordinator.shared.readTasks()
             tasks = tasks.filter { !$0.completed }
         } catch {
             LogManager.shared.log.error("Failed to read tasks from file DB: \(error)")
         }
-        return tasks.map { TaskEntity(id: $0.uuid.uuidString, name: $0.name, date: $0.due, repeating: $0.repeating) }
-
+        return tasks.map {
+            TaskEntity(id: $0.uuid.uuidString, name: $0.name, date: $0.due, repeating: $0.repeating)
+        }
     }
 }
 
@@ -52,7 +52,7 @@ extension TaskQuery {
         let all = try await allEntities()
         let now = Date()
         let calendar = Calendar.current
-        
+
         switch filter {
         case .today:
             return all.filter { calendar.isDate($0.date, inSameDayAs: now) }
@@ -64,11 +64,9 @@ extension TaskQuery {
         case .thisWeek:
             return all.filter { calendar.isDate($0.date, equalTo: now, toGranularity: .weekOfYear) }
         case .overdue:
-            return all.filter { $0.date <  Calendar.current.startOfDay(for: now) }
+            return all.filter { $0.date < Calendar.current.startOfDay(for: now) }
         case .all:
             return all
         }
     }
 }
-
-

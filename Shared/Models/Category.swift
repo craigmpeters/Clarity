@@ -5,14 +5,14 @@
 //  Created by Craig Peters on 28/08/2025.
 //
 
+import AppIntents
 import Foundation
 import SwiftData
 import SwiftUI
-import AppIntents
 
 @Model
 class Category {
-    //TODO: Guard against existing categories on create
+    // TODO: Guard against existing categories on create
     var name: String?
     var color: CategoryColor?
     var weeklyTarget: Int = 0
@@ -29,56 +29,56 @@ class Category {
         self.color = color
         self.weeklyTarget = weeklyTarget
         self.iconName = iconName
-        self.uuid = UUID()
+        uuid = UUID()
     }
-    
+
     // Example reusable predicate for SwiftData queries. Adjust as needed.
     // Use as: let results = try modelContext.fetch(FetchDescriptor<Category>(predicate: Category.nameIsNotEmpty))
-//    static var focusFilter: Predicate<Category> {
-//        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
-//        if let data = defaults?.data(forKey: "ClarityFocusFilter") {
-//            if let settings = try? JSONDecoder().decode(CategoryFilterSettings.self, from: data) {
-//                // Build a predicate based on settings. This example filters by category name.
-//                // Adjust to use IDs if your CategoryEntity contains identifiers.
-//                let names = Set(settings.Categories.compactMap { $0.name })
-//                switch settings.showOrHide {
-//                case .show:
-//                    return #Predicate<Category> { category in
-//                        if let name = category.name {
-//                            return names.contains(name)
-//                        } else {
-//                            return false
-//                        }
-//                    }
-//                case .hide:
-//                    return #Predicate<Category> { category in
-//                        if let name = category.name {
-//                            return !names.contains(name)
-//                        } else {
-//                            return true
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//        // Fallback: include everything that has a non-empty name
-//        return #Predicate<Category> { category in
-//            category.name != nil && category.name != ""
-//        }
-//    }
-    
+    //    static var focusFilter: Predicate<Category> {
+    //        let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
+    //        if let data = defaults?.data(forKey: "ClarityFocusFilter") {
+    //            if let settings = try? JSONDecoder().decode(CategoryFilterSettings.self, from: data) {
+    //                // Build a predicate based on settings. This example filters by category name.
+    //                // Adjust to use IDs if your CategoryEntity contains identifiers.
+    //                let names = Set(settings.Categories.compactMap { $0.name })
+    //                switch settings.showOrHide {
+    //                case .show:
+    //                    return #Predicate<Category> { category in
+    //                        if let name = category.name {
+    //                            return names.contains(name)
+    //                        } else {
+    //                            return false
+    //                        }
+    //                    }
+    //                case .hide:
+    //                    return #Predicate<Category> { category in
+    //                        if let name = category.name {
+    //                            return !names.contains(name)
+    //                        } else {
+    //                            return true
+    //                        }
+    //                    }
+    //                }
+    //            }
+    //        }
+    //        // Fallback: include everything that has a non-empty name
+    //        return #Predicate<Category> { category in
+    //            category.name != nil && category.name != ""
+    //        }
+    //    }
+
     enum CategoryColor: String, CaseIterable, Codable {
-        case Red = "Red"
-        case Blue = "Blue"
-        case Green = "Green"
-        case Yellow = "Yellow"
-        case Brown = "Brown"
-        case Cyan = "Cyan"
-        case Pink = "Pink"
-        case Purple = "Purple"
-        case Orange = "Orange"
-        
-        var SwiftUIColor : Color {
+        case Red
+        case Blue
+        case Green
+        case Yellow
+        case Brown
+        case Cyan
+        case Pink
+        case Purple
+        case Orange
+
+        var SwiftUIColor: Color {
             switch self {
             case .Red: return .red
             case .Blue: return .blue
@@ -86,15 +86,17 @@ class Category {
             case .Yellow: return .yellow
             case .Brown: return .brown
             case .Cyan: return .cyan
-            case .Pink: return
-                // Barbie pink - vibrant!
-                Color(red: 1.0, green: 0.08, blue: 0.58)
-            case .Purple: return
-                Color(red: 0.58, green: 0.0, blue: 0.83)
+            case .Pink:
+                return
+                    // Barbie pink - vibrant!
+                    Color(red: 1.0, green: 0.08, blue: 0.58)
+            case .Purple:
+                return
+                    Color(red: 0.58, green: 0.0, blue: 0.83)
             case .Orange: return .orange
             }
         }
-        
+
         var contrastingTextColor: Color {
             switch self {
             case .Yellow, .Cyan, .Pink, .Orange:
@@ -115,7 +117,10 @@ struct CategoryDTO: Sendable, Hashable {
     /// Stable UUID — preferred over PersistentIdentifier for cross-process use (widgets, intents).
     var uuid: UUID?
 
-    nonisolated init(id: PersistentIdentifier?, name: String, color: Category.CategoryColor, weeklyTarget: Int, iconName: String? = nil, uuid: UUID? = nil) {
+    nonisolated init(
+        id: PersistentIdentifier?, name: String, color: Category.CategoryColor, weeklyTarget: Int,
+        iconName: String? = nil, uuid: UUID? = nil
+    ) {
         self.id = id
         self.name = name
         self.color = color
@@ -125,8 +130,7 @@ struct CategoryDTO: Sendable, Hashable {
     }
 
     var encodedId: String? {
-        guard let id else { return nil }
-        guard let data = try? JSONEncoder().encode(id) else { return nil }
+        guard let id, let data = try? JSONEncoder().encode(id) else { return nil }
         return data.base64EncodedString()
     }
 
@@ -142,6 +146,7 @@ extension Category: Hashable {
     static func == (lhs: Category, rhs: Category) -> Bool {
         lhs.uuid == rhs.uuid
     }
+
     func hash(into hasher: inout Hasher) {
         hasher.combine(uuid)
     }
@@ -154,12 +159,12 @@ extension CategoryDTO: Codable {
 
     nonisolated init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        self.id = try c.decodeIfPresent(PersistentIdentifier.self, forKey: .id)
-        self.name = try c.decode(String.self, forKey: .name)
-        self.color = try c.decode(Category.CategoryColor.self, forKey: .color)
-        self.weeklyTarget = try c.decodeIfPresent(Int.self, forKey: .weeklyTarget) ?? 0
-        self.iconName = try c.decodeIfPresent(String.self, forKey: .iconName)
-        self.uuid = try c.decodeIfPresent(UUID.self, forKey: .uuid)
+        id = try c.decodeIfPresent(PersistentIdentifier.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        color = try c.decode(Category.CategoryColor.self, forKey: .color)
+        weeklyTarget = try c.decodeIfPresent(Int.self, forKey: .weeklyTarget) ?? 0
+        iconName = try c.decodeIfPresent(String.self, forKey: .iconName)
+        uuid = try c.decodeIfPresent(UUID.self, forKey: .uuid)
     }
 
     nonisolated func encode(to encoder: any Encoder) throws {
@@ -186,20 +191,19 @@ extension CategoryDTO {
     }
 }
 
-
 struct CategoryFilterSettings {
     var Categories: [CategoryEntity]
     var showOrHide: FilterShowOrHide
 }
 
-// Explicit Codable — avoids @MainActor bleed from AppEntity synthesis
+/// Explicit Codable — avoids @MainActor bleed from AppEntity synthesis
 extension CategoryFilterSettings: Codable {
     enum CodingKeys: String, CodingKey { case Categories, showOrHide }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.Categories = try container.decode([CategoryEntity].self, forKey: .Categories)
-        self.showOrHide = try container.decode(FilterShowOrHide.self, forKey: .showOrHide)
+        Categories = try container.decode([CategoryEntity].self, forKey: .Categories)
+        showOrHide = try container.decode(FilterShowOrHide.self, forKey: .showOrHide)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -217,7 +221,6 @@ enum FilterShowOrHide: String, Codable, AppEnum {
 
     static let caseDisplayRepresentations: [FilterShowOrHide: DisplayRepresentation] = [
         .show: "Show",
-        .hide: "Hide"
+        .hide: "Hide",
     ]
 }
-

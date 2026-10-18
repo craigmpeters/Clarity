@@ -5,22 +5,20 @@
 //  Created by Craig Peters on 01/12/2025.
 //
 
-import Foundation
 import AppIntents
-
+import Foundation
 
 // MARK: - The Intent that lists tasks
+
 struct ListTasksIntent: AppIntent {
     static let title: LocalizedStringResource = "List Tasks"
     static let description = IntentDescription("Returns a list of your tasks")
 
-    
     @Parameter(title: "Only Repeating Tasks", default: false)
     var repeatingOnly: Bool
-    
+
     @Parameter(title: "Filter", default: .today)
     var filter: ToDoTask.TaskFilterOption
-
 
     func perform() async throws -> some IntentResult & ReturnsValue<[TaskEntity]> {
         let tasks = try await TaskQuery().entities(matching: filter)

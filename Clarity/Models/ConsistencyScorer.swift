@@ -45,7 +45,7 @@ struct ConsistencyScorer: Sendable {
     var minPeriods: Int = 3
 
     init(decay: Double = 0.92, minPeriods: Int = 3) {
-        self._decay = max(0.90, min(0.95, decay))
+        _decay = max(0.90, min(0.95, decay))
         self.minPeriods = minPeriods
     }
 
@@ -91,7 +91,7 @@ extension ConsistencyScorer {
         firstDueDate: Date? = nil
     ) -> [Bool] {
         let calendar = Calendar.current
-        let windowStart = now.addingTimeInterval(-90 * 86_400)
+        let windowStart = now.addingTimeInterval(-90 * 86400)
         let start = firstDueDate.map { max($0, windowStart) } ?? windowStart
         guard start <= now else { return [] }
 
@@ -112,42 +112,42 @@ extension ConsistencyScorer {
         return periods
     }
 
-    /// Build a habit consistency score from completed weekly periods.
+    /// Build a habit consistency score from completed daily occurrences over the
+    /// trailing 13-week window. Daily completions are bucketed; each bucket scores
+    /// `true` if at least one occurrence completed that day. This is intentionally
+    /// per-day (matching the rolling engine in `HabitProgressEngine`), NOT
+    /// per-calendar-week as the streak calculator used to do.
     ///
     /// - Parameters:
     ///   - occurrences: completed habit occurrences, in chronological order
-    ///   - weeklyFrequency: required completions per week
+    ///   - weeklyFrequency: required completions per 7-day window (interpreted as
+    ///     target days per trailing 7 days for the habit)
     ///   - now: reference date for the rolling window
     static func habitPeriods(
         occurrences: [Date],
-        weeklyFrequency: Int,
+        weeklyFrequency _: Int,
         now: Date = Date()
     ) -> [Bool] {
-        // Use the same Sunday-start Gregorian calendar as HabitStreakCalculator so
-        // consistency periods align with streak boundaries. If the calendar used here
-        // drifts from HabitStreakCalculator.streakCalendar(), habit scores will be wrong.
         var calendar = Calendar(identifier: .gregorian)
-        calendar.firstWeekday = 1 // Sunday
+        calendar.firstWeekday = 1  // match streak calendar for any downstream consumers
 
-        let windowStart = now.addingTimeInterval(-13 * 7 * 86_400)
-        let start = calendar.startOfDay(for: windowStart)
+        let windowStart = calendar.startOfDay(
+            for: now.addingTimeInterval(-13 * 7 * 86400)
+        )
 
-        var completionsByWeek: [DateComponents: Int] = [:]
-        for date in occurrences where date >= start && date <= now {
-            let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
-            completionsByWeek[components, default: 0] += 1
+        var dailyCompletions: Set<DateComponents> = []
+        for date in occurrences where date >= windowStart && date <= now {
+            dailyCompletions.insert(calendar.dateComponents([.year, .month, .day], from: date))
         }
 
         var periods: [Bool] = []
-        var currentWeekStart = calendar.dateInterval(of: .weekOfYear, for: start)?.start ?? start
-        let endWeekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
-        while currentWeekStart <= now {
-            let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: currentWeekStart)
-            periods.append((completionsByWeek[components] ?? 0) >= weeklyFrequency)
-            guard currentWeekStart < endWeekStart,
-                  let nextWeek = calendar.date(byAdding: .weekOfYear, value: 1, to: currentWeekStart)
-            else { break }
-            currentWeekStart = nextWeek
+        var cursor = windowStart
+        let end = calendar.startOfDay(for: now)
+        while cursor <= end {
+            let components = calendar.dateComponents([.year, .month, .day], from: cursor)
+            periods.append(dailyCompletions.contains(components))
+            guard let next = calendar.date(byAdding: .day, value: 1, to: cursor) else { break }
+            cursor = next
         }
         return periods
     }

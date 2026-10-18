@@ -8,14 +8,16 @@
 import Foundation
 import SwiftData
 import Testing
+
 @testable import Clarity
 
 @MainActor
 struct CompanionChatStoreTests {
-
     private func makeStore() throws -> CompanionChatStore {
         let schema = Schema([ChatMessage.self])
-        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, allowsSave: true)
+        let configuration = ModelConfiguration(
+            schema: schema, isStoredInMemoryOnly: true, allowsSave: true
+        )
         let container = try ModelContainer(for: schema, configurations: [configuration])
         return CompanionChatStore(container: container)
     }
@@ -43,7 +45,9 @@ struct CompanionChatStoreTests {
         let store = try makeStore()
         let now = Date()
         for i in 0..<5 {
-            store.append(message(timestamp: now.addingTimeInterval(-Double(5 - i) * 60), text: "\(i)"))
+            store.append(
+                message(timestamp: now.addingTimeInterval(-Double(5 - i) * 60), text: "\(i)")
+            )
         }
 
         #expect(store.fetchRecent(limit: 2).map(\.text) == ["3", "4"])
@@ -85,9 +89,20 @@ struct CompanionChatStoreTests {
         let now = Date()
         let firstID = UUID()
         let secondID = UUID()
-        store.append(taskMessage(timestamp: now.addingTimeInterval(-120), text: "older", taskUUID: firstID, taskName: "First task"))
-        store.append(taskMessage(timestamp: now.addingTimeInterval(-60), text: "middle", taskUUID: nil, taskName: nil))
-        store.append(taskMessage(timestamp: now, text: "newest", taskUUID: secondID, taskName: "Latest task"))
+        store.append(
+            taskMessage(
+                timestamp: now.addingTimeInterval(-120), text: "older", taskUUID: firstID,
+                taskName: "First task"
+            )
+        )
+        store.append(
+            taskMessage(
+                timestamp: now.addingTimeInterval(-60), text: "middle", taskUUID: nil, taskName: nil
+            )
+        )
+        store.append(
+            taskMessage(timestamp: now, text: "newest", taskUUID: secondID, taskName: "Latest task")
+        )
 
         let latest = store.fetchMostRecentTaskMessage()
         #expect(latest?.suggestedTaskUUID == secondID)
@@ -97,9 +112,21 @@ struct CompanionChatStoreTests {
     @Test func fetchMostRecentTaskMessageIgnoresEmptyOrNilTaskNames() throws {
         let store = try makeStore()
         let now = Date()
-        store.append(taskMessage(timestamp: now.addingTimeInterval(-120), text: "older", taskUUID: UUID(), taskName: ""))
-        store.append(taskMessage(timestamp: now.addingTimeInterval(-60), text: "middle", taskUUID: UUID(), taskName: nil))
-        store.append(taskMessage(timestamp: now, text: "newest", taskUUID: UUID(), taskName: "Real task"))
+        store.append(
+            taskMessage(
+                timestamp: now.addingTimeInterval(-120), text: "older", taskUUID: UUID(),
+                taskName: ""
+            )
+        )
+        store.append(
+            taskMessage(
+                timestamp: now.addingTimeInterval(-60), text: "middle", taskUUID: UUID(),
+                taskName: nil
+            )
+        )
+        store.append(
+            taskMessage(timestamp: now, text: "newest", taskUUID: UUID(), taskName: "Real task")
+        )
 
         let latest = store.fetchMostRecentTaskMessage()
         #expect(latest?.suggestedTaskName == "Real task")
@@ -136,25 +163,25 @@ struct CompanionChatStoreTests {
     }
 
     // TODO: Fix this so it works consistently
-//    @Test func enforceCapKeepsExactlyOneHundred() throws {
-//        let store = try makeStore()
-//        let now = Date()
-//        for i in 0..<100 {
-//            store.append(message(timestamp: now.addingTimeInterval(Double(i)), text: "\(i)"))
-//        }
-//        #expect(store.fetchRecent(limit: 200).count == 100)
-//        #expect(store.fetchRecent(limit: 200).first?.text == "0")
-//    }
-//
-//    @Test func enforceCapTrimsOldestOverOneHundred() throws {
-//        let store = try makeStore()
-//        let now = Date()
-//        for i in 0..<101 {
-//            store.append(message(timestamp: now.addingTimeInterval(Double(i)), text: "\(i)"))
-//        }
-//        let recent = store.fetchRecent(limit: 200)
-//        #expect(recent.count == 100)
-//        #expect(recent.first?.text == "1")
-//        #expect(recent.last?.text == "100")
-//    }
+    //    @Test func enforceCapKeepsExactlyOneHundred() throws {
+    //        let store = try makeStore()
+    //        let now = Date()
+    //        for i in 0..<100 {
+    //            store.append(message(timestamp: now.addingTimeInterval(Double(i)), text: "\(i)"))
+    //        }
+    //        #expect(store.fetchRecent(limit: 200).count == 100)
+    //        #expect(store.fetchRecent(limit: 200).first?.text == "0")
+    //    }
+    //
+    //    @Test func enforceCapTrimsOldestOverOneHundred() throws {
+    //        let store = try makeStore()
+    //        let now = Date()
+    //        for i in 0..<101 {
+    //            store.append(message(timestamp: now.addingTimeInterval(Double(i)), text: "\(i)"))
+    //        }
+    //        let recent = store.fetchRecent(limit: 200)
+    //        #expect(recent.count == 100)
+    //        #expect(recent.first?.text == "1")
+    //        #expect(recent.last?.text == "100")
+    //    }
 }

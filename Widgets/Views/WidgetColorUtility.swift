@@ -5,10 +5,9 @@
 //  Created by Craig Peters on 03/09/2025.
 //
 
-
 import SwiftUI
 
-struct WidgetColorUtility {
+enum WidgetColorUtility {
     static func colorFromString(_ colorName: String) -> Color {
         switch colorName {
         case "Red": return .red

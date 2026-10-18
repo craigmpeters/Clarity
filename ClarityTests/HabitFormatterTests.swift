@@ -7,10 +7,10 @@
 
 import Foundation
 import Testing
+
 @testable import Clarity
 
 struct HabitFormatterTests {
-
     @Test func formattedRoundsAndTrimsFractions() {
         #expect(HabitFormatter.formatted(1.0) == "1")
         #expect(HabitFormatter.formatted(1.234) == "1.23")
@@ -37,19 +37,36 @@ struct HabitFormatterTests {
     }
 
     @Test func formattedHealthKitMeasurementForSteps() {
-        #expect(HabitFormatter.formattedHealthKitMeasurement(value: 1000.0, identifier: "steps").contains("steps"))
+        #expect(
+            HabitFormatter.formattedHealthKitMeasurement(value: 1000.0, identifier: "steps")
+                .contains(
+                    "steps"
+                )
+        )
     }
 
     @Test func formattedHealthKitMeasurementForStepsRoundsDownToWholeNumber() {
-        let result = HabitFormatter.formattedHealthKitMeasurement(value: 1234.56, identifier: "steps")
+        let result = HabitFormatter.formattedHealthKitMeasurement(
+            value: 1234.56, identifier: "steps"
+        )
         #expect(result.contains("1,234") || result.contains("1234"))
         #expect(!result.contains("1,235") && !result.contains("1235"))
         #expect(!result.contains("."))
     }
 
     @Test func formattedHealthKitMeasurementForWorkoutsAndMindful() {
-        #expect(HabitFormatter.formattedHealthKitMeasurement(value: 30.0, identifier: "workouts").contains("min"))
-        #expect(HabitFormatter.formattedHealthKitMeasurement(value: 15.0, identifier: "mindful").contains("min"))
+        #expect(
+            HabitFormatter.formattedHealthKitMeasurement(value: 30.0, identifier: "workouts")
+                .contains(
+                    "min"
+                )
+        )
+        #expect(
+            HabitFormatter.formattedHealthKitMeasurement(value: 15.0, identifier: "mindful")
+                .contains(
+                    "min"
+                )
+        )
     }
 
     @Test func formattedHealthKitMeasurementForWaterIsVolume() {
@@ -61,23 +78,31 @@ struct HabitFormatterTests {
     }
 
     @Test func formattedHealthKitMeasurementForUnknownIdentifierReturnsBareNumber() {
-        let result = HabitFormatter.formattedHealthKitMeasurement(value: 42.0, identifier: "unknown")
+        let result = HabitFormatter.formattedHealthKitMeasurement(
+            value: 42.0, identifier: "unknown"
+        )
         #expect(result == HabitFormatter.formatted(42.0))
     }
 
     @Test func progressDescriptionWithUnit() {
-        let result = HabitFormatter.progressDescription(amount: 500.0, target: 1000.0, unit: "glasses")
+        let result = HabitFormatter.progressDescription(
+            amount: 500.0, target: 1000.0, unit: "glasses"
+        )
         #expect(result == "500 / 1,000 glasses" || result == "500 / 1000 glasses")
     }
 
     @Test func progressDescriptionWithNilUnitAndHealthIdentifierUsesHKFormatting() {
-        let result = HabitFormatter.progressDescription(amount: 30.0, target: 60.0, unit: nil, healthKitIdentifier: "workouts")
+        let result = HabitFormatter.progressDescription(
+            amount: 30.0, target: 60.0, unit: nil, healthKitIdentifier: "workouts"
+        )
         #expect(result.contains("min"))
     }
 
     @Test func progressDescriptionUnitTakesPrecedenceOverHealthIdentifier() {
         // PINNED: when both unit and healthKitIdentifier are supplied, the explicit unit wins.
-        let result = HabitFormatter.progressDescription(amount: 30.0, target: 60.0, unit: "glasses", healthKitIdentifier: "workouts")
+        let result = HabitFormatter.progressDescription(
+            amount: 30.0, target: 60.0, unit: "glasses", healthKitIdentifier: "workouts"
+        )
         #expect(result.contains("glasses"))
         #expect(result.contains("min") == false)
     }

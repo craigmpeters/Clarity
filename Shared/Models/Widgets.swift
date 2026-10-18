@@ -6,6 +6,7 @@
 //
 
 import WidgetKit
+
 struct WatchDueEntry: TimelineEntry {
     let date: Date
     let todos: [ToDoTaskDTO]
@@ -20,11 +21,10 @@ struct WatchCompleteEntry: TimelineEntry {
     let progress: WeeklyProgress
 }
 
-struct TaskProgress : TimelineEntry {
+struct TaskProgress: TimelineEntry {
     let date: Date
     let task: [ToDoTaskDTO]
 }
-
 
 public struct WatchUserInfo: Sendable {
     var tasks: [ToDoTaskDTO]
@@ -33,12 +33,13 @@ public struct WatchUserInfo: Sendable {
 
 extension WatchUserInfo: Codable {
     enum CodingKeys: String, CodingKey { case tasks, progress }
-    nonisolated public init(from decoder: any Decoder) throws {
+    public nonisolated init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        self.tasks = try c.decode([ToDoTaskDTO].self, forKey: .tasks)
-        self.progress = try c.decode(WeeklyProgress.self, forKey: .progress)
+        tasks = try c.decode([ToDoTaskDTO].self, forKey: .tasks)
+        progress = try c.decode(WeeklyProgress.self, forKey: .progress)
     }
-    nonisolated public func encode(to encoder: any Encoder) throws {
+
+    public nonisolated func encode(to encoder: any Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(tasks, forKey: .tasks)
         try c.encode(progress, forKey: .progress)
@@ -54,14 +55,15 @@ public struct WatchWidgetData: Sendable {
 
 extension WatchWidgetData: Codable {
     enum CodingKeys: String, CodingKey { case due, completed, progress, target }
-    nonisolated public init(from decoder: any Decoder) throws {
+    public nonisolated init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        self.due = try c.decode(Int.self, forKey: .due)
-        self.completed = try c.decode(Int.self, forKey: .completed)
-        self.progress = try c.decode(Int.self, forKey: .progress)
-        self.target = try c.decode(Int.self, forKey: .target)
+        due = try c.decode(Int.self, forKey: .due)
+        completed = try c.decode(Int.self, forKey: .completed)
+        progress = try c.decode(Int.self, forKey: .progress)
+        target = try c.decode(Int.self, forKey: .target)
     }
-    nonisolated public func encode(to encoder: any Encoder) throws {
+
+    public nonisolated func encode(to encoder: any Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(due, forKey: .due)
         try c.encode(completed, forKey: .completed)
@@ -69,5 +71,3 @@ extension WatchWidgetData: Codable {
         try c.encode(target, forKey: .target)
     }
 }
-
-

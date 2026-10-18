@@ -12,7 +12,6 @@ import Testing
 @testable import Clarity
 
 struct ReminderSchemaSupportTests {
-
     // MARK: - ReminderSchemaID
 
     @available(iOS 27, macOS 27, *)
@@ -24,8 +23,8 @@ struct ReminderSchemaSupportTests {
         #expect(taskID == "task-\(uuid.uuidString)")
         #expect(habitID == "habit-\(uuid.uuidString)")
 
-        #expect(ReminderSchemaID.decode(taskID)! == (kind: .task, uuid: uuid))
-        #expect(ReminderSchemaID.decode(habitID)! == (kind: .habit, uuid: uuid))
+        #expect(ReminderSchemaID.decode(taskID) == (kind: .task, uuid: uuid))
+        #expect(ReminderSchemaID.decode(habitID) == (kind: .habit, uuid: uuid))
     }
 
     @available(iOS 27, macOS 27, *)
@@ -47,7 +46,10 @@ struct ReminderSchemaSupportTests {
                 specificDay: appWeekday
             )
             let (_, _, decodedSpecificDay) = ReminderSchemaRecurrence.recurrenceInterval(from: rule)
-            #expect(decodedSpecificDay == appWeekday, "app weekday \(appWeekday) should round-trip unchanged")
+            #expect(
+                decodedSpecificDay == appWeekday,
+                "app weekday \(appWeekday) should round-trip unchanged"
+            )
         }
     }
 
@@ -56,8 +58,8 @@ struct ReminderSchemaSupportTests {
         // Negative and repeated values wrap to the valid 0...6 index the same way the app does.
         let cases: [Int: Int] = [
             -1: 6,  // Saturday via backward wrap
-            7: 0,   // Sunday via forward wrap
-            8: 1    // Monday via forward wrap
+            7: 0,  // Sunday via forward wrap
+            8: 1,  // Monday via forward wrap
         ]
         for (input, expected) in cases {
             let rule = ReminderSchemaRecurrence.recurrenceRule(
@@ -73,7 +75,7 @@ struct ReminderSchemaSupportTests {
     @available(iOS 27, macOS 27, *)
     @Test func recurrenceRoundTripForAllIntervals() {
         let intervals: [ToDoTask.RecurrenceInterval] = [
-            .daily, .everyOtherDay, .weekly, .biweekly, .monthly, .specific, .custom
+            .daily, .everyOtherDay, .weekly, .biweekly, .monthly, .specific, .custom,
         ]
 
         for interval in intervals {
@@ -82,7 +84,8 @@ struct ReminderSchemaSupportTests {
                 customDays: 3,
                 specificDay: 2
             )
-            let (decodedInterval, decodedCustomDays, decodedSpecificDay) = ReminderSchemaRecurrence.recurrenceInterval(from: rule)
+            let (decodedInterval, decodedCustomDays, decodedSpecificDay) =
+                ReminderSchemaRecurrence.recurrenceInterval(from: rule)
 
             switch interval {
             case .daily:
@@ -107,7 +110,9 @@ struct ReminderSchemaSupportTests {
 
     @available(iOS 27, macOS 27, *)
     @Test func recurrenceNilRuleDefaultsToDaily() {
-        let (interval, customDays, specificDay) = ReminderSchemaRecurrence.recurrenceInterval(from: nil)
+        let (interval, customDays, specificDay) = ReminderSchemaRecurrence.recurrenceInterval(
+            from: nil
+        )
         #expect(interval == .daily)
         #expect(customDays == 1)
         #expect(specificDay == nil)

@@ -1,3 +1,4 @@
+import Compression
 //
 //  FileCoordinator.swift
 //  Clarity
@@ -5,26 +6,26 @@
 //  Created by Craig Peters on 06/12/2025.
 //
 import Foundation
-import os
 import SwiftData
-import Compression
 import XCGLogger
+import os
+
 #if canImport(WidgetKit)
-import WidgetKit
+    import WidgetKit
 #endif
 
-
-// File payload is an array of tasks. Adjust if your schema differs.
+/// File payload is an array of tasks. Adjust if your schema differs.
 public typealias ToDoTaskList = [ToDoTaskDTO]
 
 // MARK: - File Presenter to observe external changes
+
 final class WidgetFilePresenter: NSObject, NSFilePresenter, @unchecked Sendable {
     nonisolated let presentedItemURL: URL?
     nonisolated let presentedItemOperationQueue: OperationQueue
 
     nonisolated init(url: URL) {
-        self.presentedItemURL = url
-        self.presentedItemOperationQueue = OperationQueue.main
+        presentedItemURL = url
+        presentedItemOperationQueue = OperationQueue.main
         super.init()
         NSFileCoordinator.addFilePresenter(self)
     }
@@ -33,7 +34,7 @@ final class WidgetFilePresenter: NSObject, NSFilePresenter, @unchecked Sendable 
         NSFileCoordinator.removeFilePresenter(self)
     }
 
-    nonisolated func presentedSubitemDidChange(at url: URL) { /* not used */ }
+    nonisolated func presentedSubitemDidChange(at _: URL) { /* not used */  }
 
     nonisolated func presentedItemDidChange() {
         // No-op: file change observation not used in this app
@@ -41,8 +42,9 @@ final class WidgetFilePresenter: NSObject, NSFilePresenter, @unchecked Sendable 
 }
 
 // MARK: - Coordinator for safe reads/writes via App Group
+
 public final class WidgetFileCoordinator: @unchecked Sendable {
-    nonisolated public static let shared = WidgetFileCoordinator()
+    public nonisolated static let shared = WidgetFileCoordinator()
 
     private let appGroupID = "group.me.craigpeters.clarity"
     private let fileName = "ClarityWidget.json"
@@ -50,89 +52,102 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
     private let categoriesFileName = "ClarityCategories.json"
     private let habitsFileName = "ClarityHabits.json"
     private let habitArtworkDirectoryName = "HabitArtwork"
-    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Clarity", category: "WidgetFileCoordinator")
+    private let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "Clarity", category: "WidgetFileCoordinator"
+    )
 
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
     private let queue = DispatchQueue(label: "WidgetFileCoordinator.serial")
 
-    nonisolated(unsafe) private var presenter: WidgetFilePresenter?
+    private nonisolated(unsafe) var presenter: WidgetFilePresenter?
 
-    nonisolated private init() {
+    private nonisolated init() {
         let enc = JSONEncoder()
         enc.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
         enc.dateEncodingStrategy = .iso8601
-        self.encoder = enc
+        encoder = enc
 
         let dec = JSONDecoder()
         dec.dateDecodingStrategy = .iso8601
-        self.decoder = dec
+        decoder = dec
 
         // Ensure directory and file exist, set up file presenter
         if let url = fileURL() {
             createDirectoryIfNeeded(url.deletingLastPathComponent())
             createFileIfNeeded(at: url)
-            self.presenter = WidgetFilePresenter(url: url)
+            presenter = WidgetFilePresenter(url: url)
         } else {
             LogManager.shared.log.error("Failed to resolve App Group container URL.")
         }
     }
 
     // MARK: URL Helpers
-    nonisolated private func containerURL() -> URL? {
+
+    private nonisolated func containerURL() -> URL? {
         FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID)
     }
 
-    nonisolated private func fileURL() -> URL? {
+    private nonisolated func fileURL() -> URL? {
         containerURL()?.appendingPathComponent(fileName)
     }
 
-    nonisolated private func createDirectoryIfNeeded(_ dir: URL) {
+    private nonisolated func createDirectoryIfNeeded(_ dir: URL) {
         var isDir: ObjCBool = false
-        if !FileManager.default.fileExists(atPath: dir.path, isDirectory: &isDir) || !isDir.boolValue {
-            do { try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true) } catch {
-                LogManager.shared.log.error("Failed to create directory: \(error.localizedDescription)")
+        if !FileManager.default.fileExists(atPath: dir.path, isDirectory: &isDir)
+            || !isDir.boolValue
+        {
+            do {
+                try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            } catch {
+                LogManager.shared.log.error(
+                    "Failed to create directory: \(error.localizedDescription)"
+                )
             }
         }
     }
 
-    nonisolated private func createFileIfNeeded(at url: URL) {
+    private nonisolated func createFileIfNeeded(at url: URL) {
         if !FileManager.default.fileExists(atPath: url.path) {
             do {
                 let tasks: ToDoTaskList = ClarityServices.snapshotTasks(filter: .all)
                 let data = try encoder.encode(tasks)
                 FileManager.default.createFile(atPath: url.path, contents: data)
             } catch {
-                LogManager.shared.log.error("Failed to create initial file: \(error.localizedDescription)")
+                LogManager.shared.log.error(
+                    "Failed to create initial file: \(error.localizedDescription)"
+                )
             }
         }
     }
-    
+
     nonisolated func readTasks(With filter: ToDoTask.CompletedTaskFilter) throws -> ToDoTaskList {
         let tasks = try readTasks()
-        return tasks
-            .filter { filter.matches($0)}
+        return
+            tasks
+            .filter { filter.matches($0) }
     }
-    
+
     nonisolated func readTasks(with filter: ToDoTask.TaskFilter) throws -> ToDoTaskList {
         let now = Date()
         let tasks = try readTasks()
-        return tasks
+        return
+            tasks
             .filter { filter.matches(dto: $0, at: now) }
     }
 
     // MARK: Reading
-    
+
     public nonisolated func readTaskById(id: PersistentIdentifier) throws -> ToDoTaskDTO? {
         do {
-            let tasks = ToDoTaskDTO.focusFilter(in: try readTasks())
+            let tasks = try ToDoTaskDTO.focusFilter(in: readTasks())
             return tasks.first { $0.id == id }
         } catch {
             LogManager.shared.log.error("Cannot find Task: \(error.localizedDescription)")
             return nil
         }
     }
-    
+
     public nonisolated func readTaskHistory(id: UUID) throws -> [ToDoTaskDTO]? {
         do {
             return try readTasks().filter { $0.uuid == id }
@@ -141,19 +156,24 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
             return nil
         }
     }
-    
+
     public nonisolated func readTaskByUuid(_ id: UUID) throws -> ToDoTaskDTO? {
         do {
-            let tasks = ToDoTaskDTO.focusFilter(in: try readTasks())
-            return tasks.first { $0.uuid == id}
+            let tasks = try ToDoTaskDTO.focusFilter(in: readTasks())
+            return tasks.first { $0.uuid == id }
         } catch {
             LogManager.shared.log.error("Cannot find task: \(error.localizedDescription)")
             return nil
         }
     }
-    
+
     public nonisolated func readTasks() throws -> ToDoTaskList {
-        guard let url = fileURL() else { throw NSError(domain: "WidgetFileCoordinator", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing App Group URL"]) }
+        guard let url = fileURL() else {
+            throw NSError(
+                domain: "WidgetFileCoordinator", code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Missing App Group URL"]
+            )
+        }
 
         var readError: NSError?
         var result: ToDoTaskList = []
@@ -165,7 +185,9 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
         var innerError: NSError?
         var innerResult: ToDoTaskList = []
 
-        coordinator.coordinate(readingItemAt: url, options: .withoutChanges, error: &coordinationError) { readURL in
+        coordinator.coordinate(
+            readingItemAt: url, options: .withoutChanges, error: &coordinationError
+        ) { readURL in
             do {
                 let data = try Data(contentsOf: readURL, options: [.mappedIfSafe])
                 if data.isEmpty {
@@ -179,35 +201,55 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
         }
 
         // Copy inner values back after coordination completes
-        if let coordinationError { readError = coordinationError }
-        if let innerError { readError = innerError }
+        if let coordinationError {
+            readError = coordinationError
+        }
+        if let innerError {
+            readError = innerError
+        }
         result = innerResult
-        LogManager.shared.log.debug("Found \(result.count) tasks of which \(result.filter(\.completed).count) are completed")
+        LogManager.shared.log.debug(
+            "Found \(result.count) tasks of which \(result.filter(\.completed).count) are completed"
+        )
 
-        if let readError { throw readError }
+        if let readError {
+            throw readError
+        }
         return result
     }
 
     // MARK: Writing (atomic)
+
     public nonisolated func writeTasks(_ tasks: ToDoTaskList) throws {
-        guard let url = fileURL() else { throw NSError(domain: "WidgetFileCoordinator", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing App Group URL"]) }
+        guard let url = fileURL() else {
+            throw NSError(
+                domain: "WidgetFileCoordinator", code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Missing App Group URL"]
+            )
+        }
 
         var writeError: NSError?
         let coordinator = NSFileCoordinator(filePresenter: presenter)
-        LogManager.shared.log.debug("Found \(tasks.count) tasks of which \(tasks.filter(\.completed).count) are completed")
+        LogManager.shared.log.debug(
+            "Found \(tasks.count) tasks of which \(tasks.filter(\.completed).count) are completed"
+        )
 
         // Use separate inner error to avoid overlapping access with the error pointer borrowed by NSFileCoordinator
         var coordinationError: NSError?
         var innerError: NSError?
-        
+
         // Apply Focus Filter
         let tasks = ToDoTaskDTO.focusFilter(in: tasks)
 
-        coordinator.coordinate(writingItemAt: url, options: .forReplacing, error: &coordinationError) { writeURL in
+        coordinator.coordinate(
+            writingItemAt: url, options: .forReplacing, error: &coordinationError
+        ) { writeURL in
             do {
                 let data = try encoder.encode(tasks)
                 // Write atomically to a temporary file, then replace
-                let tmp = writeURL.deletingLastPathComponent().appendingPathComponent(".tmp_\(UUID().uuidString)")
+                let tmp = writeURL.deletingLastPathComponent().appendingPathComponent(
+                    ".tmp_\(UUID().uuidString)"
+                )
                 try data.write(to: tmp, options: .atomic)
                 // Replace the destination with the temp file
                 try _ = FileManager.default.replaceItemAt(writeURL, withItemAt: tmp)
@@ -217,19 +259,26 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
         }
 
         // Copy inner error back after coordination completes
-        if let coordinationError { writeError = coordinationError }
-        if let innerError { writeError = innerError }
+        if let coordinationError {
+            writeError = coordinationError
+        }
+        if let innerError {
+            writeError = innerError
+        }
 
-        if let writeError { throw writeError }
+        if let writeError {
+            throw writeError
+        }
         notifyWidgetReload()
     }
 
-    // Async convenience wrappers
+    /// Async convenience wrappers
     public nonisolated func readTasksAsync() async throws -> ToDoTaskList {
         try await withCheckedThrowingContinuation { cont in
             queue.async {
-                do { cont.resume(returning: try self.readTasks()) }
-                catch { cont.resume(throwing: error) }
+                do { try cont.resume(returning: self.readTasks()) } catch {
+                    cont.resume(throwing: error)
+                }
             }
         }
     }
@@ -237,22 +286,29 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
     public nonisolated func writeTasksAsync(_ tasks: ToDoTaskList) async throws {
         try await withCheckedThrowingContinuation { cont in
             queue.async {
-                do { try self.writeTasks(tasks); cont.resume() }
-                catch { cont.resume(throwing: error) }
+                do {
+                    try self.writeTasks(tasks)
+                    cont.resume()
+                } catch { cont.resume(throwing: error) }
             }
         }
     }
-    
+
     // MARK: Compressed Data
+
     public nonisolated func compressedData() throws -> Data {
         // Read tasks from file and compress the JSON payload (zlib/deflate)
         let tasks = try readTasks()
-        LogManager.shared.log.debug("Compress: Found \(tasks.count) of which \(tasks.filter(\.completed).count) are completed")
+        LogManager.shared.log.debug(
+            "Compress: Found \(tasks.count) of which \(tasks.filter(\.completed).count) are completed"
+        )
         let json = try encoder.encode(tasks)
         // Compress using OutputFilter (.compress) with zlib settings
         var compressed = Data()
         let filter = try OutputFilter(.compress, using: .zlib) { chunk in
-            if let chunk { compressed.append(chunk) }
+            if let chunk {
+                compressed.append(chunk)
+            }
         }
         try filter.write(json)
         try filter.finalize()
@@ -265,85 +321,103 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
     public nonisolated func decodeCompressedData(_ data: Data) throws -> ToDoTaskList {
         var output = Data()
         let filter = try OutputFilter(.decompress, using: .zlib) { chunk in
-            if let chunk { output.append(chunk) }
+            if let chunk {
+                output.append(chunk)
+            }
         }
         try filter.write(data)
         try filter.finalize()
         let tasks = try decoder.decode(ToDoTaskList.self, from: output)
-        LogManager.shared.log.debug("Decompress: Found \(tasks.count) of which \(tasks.filter(\.completed).count) are completed")
+        LogManager.shared.log.debug(
+            "Decompress: Found \(tasks.count) of which \(tasks.filter(\.completed).count) are completed"
+        )
         return tasks
     }
-        
-        
-        public nonisolated func writeLogFile(fileName: String, data: Data) throws {
-            let unzipped = try unzipData(data)
-            let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity")
-            let fileURL = (containerURL ?? LogManager.fallbackDocumentsDirectory()).appendingPathComponent(fileName)
-            try unzipped.write(to: fileURL, options: .atomic)
+
+    public nonisolated func writeLogFile(fileName: String, data: Data) throws {
+        let unzipped = try unzipData(data)
+        let containerURL = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity"
+        )
+        let fileURL = (containerURL ?? LogManager.fallbackDocumentsDirectory())
+            .appendingPathComponent(fileName)
+        try unzipped.write(to: fileURL, options: .atomic)
+    }
+
+    nonisolated func logFileURLs() -> [URL] {
+        let dir = LogManager.sharedLogFileURL().deletingLastPathComponent()
+        let fm = FileManager.default
+        let contents =
+            (try? fm.contentsOfDirectory(
+                at: dir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]
+            )) ?? []
+        // Include primary log and rotated logs
+        return contents.filter { $0.pathExtension.lowercased() == "log" }
+    }
+
+    /// Collects logs into a list of data which is then compressed
+    public nonisolated func collectlogs() -> Data {
+        let urls = logFileURLs()
+        let fm = FileManager.default
+
+        // Sort URLs by modification date (oldest first)
+        let sortedURLs: [URL] = urls.sorted { a, b in
+            let aDate =
+                (try? fm.attributesOfItem(atPath: a.path)[.modificationDate] as? Date)
+                ?? .distantPast
+            let bDate =
+                (try? fm.attributesOfItem(atPath: b.path)[.modificationDate] as? Date)
+                ?? .distantPast
+            return aDate < bDate
         }
-        
-        nonisolated func logFileURLs() -> [URL] {
-            let dir = LogManager.sharedLogFileURL().deletingLastPathComponent()
-            let fm = FileManager.default
-            let contents = (try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? []
-            // Include primary log and rotated logs
-            return contents.filter { $0.pathExtension.lowercased() == "log" }
-        }
-        
-        /// Collects logs into a list of data which is then compressed
-        public nonisolated func collectlogs() -> Data {
-            let urls = logFileURLs()
-            let fm = FileManager.default
 
-            // Sort URLs by modification date (oldest first)
-            let sortedURLs: [URL] = urls.sorted { a, b in
-                let aDate = (try? fm.attributesOfItem(atPath: a.path)[.modificationDate] as? Date) ?? .distantPast
-                let bDate = (try? fm.attributesOfItem(atPath: b.path)[.modificationDate] as? Date) ?? .distantPast
-                return aDate < bDate
-            }
-
-            // Concatenate as text with separators to preserve readability/order
-            var combinedText = ""
-            for (idx, url) in sortedURLs.enumerated() {
-                do {
-                    let text = try String(contentsOf: url, encoding: .utf8)
-                    let header = "\n\n===== BEGIN LOG (\(idx + 1))/\(sortedURLs.count): \(url.lastPathComponent) =====\n"
-                    let footer = "\n===== END LOG: \(url.lastPathComponent) =====\n"
-                    combinedText.append(header)
-                    combinedText.append(text)
-                    combinedText.append(footer)
-                } catch {
-                    LogManager.shared.log.error("Cannot read log file: \(error.localizedDescription)")
-                }
-            }
-
-            // Compress the concatenated text
-            let payload = Data(combinedText.utf8)
+        // Concatenate as text with separators to preserve readability/order
+        var combinedText = ""
+        for (idx, url) in sortedURLs.enumerated() {
             do {
-                return try zipData(with: [payload])
+                let text = try String(contentsOf: url, encoding: .utf8)
+                let header =
+                    "\n\n===== BEGIN LOG (\(idx + 1))/\(sortedURLs.count): \(url.lastPathComponent) =====\n"
+                let footer = "\n===== END LOG: \(url.lastPathComponent) =====\n"
+                combinedText.append(header)
+                combinedText.append(text)
+                combinedText.append(footer)
             } catch {
-                LogManager.shared.log.error("Compression failed: \(error.localizedDescription)")
-                return Data()
+                LogManager.shared.log.error("Cannot read log file: \(error.localizedDescription)")
             }
         }
-        
-        nonisolated private func zipData(with data: [Data]) throws -> Data {
-            var compressed = Data()
-            let filter = try OutputFilter(.compress, using: .zlib) { chunk in
-                if let chunk { compressed.append(chunk) }
-            }
-            // Concatenate all data parts into a single buffer. Alternatively, we could stream them one by one.
-            let combined = data.reduce(into: Data()) { $0.append($1) }
-            try filter.write(combined)
-            try filter.finalize()
-            return compressed
+
+        // Compress the concatenated text
+        let payload = Data(combinedText.utf8)
+        do {
+            return try zipData(with: [payload])
+        } catch {
+            LogManager.shared.log.error("Compression failed: \(error.localizedDescription)")
+            return Data()
         }
-        
-        /// Decompresses zlib-compressed data produced by `zipData(with:)`.
-    nonisolated private func unzipData(_ compressed: Data) throws -> Data {
+    }
+
+    private nonisolated func zipData(with data: [Data]) throws -> Data {
+        var compressed = Data()
+        let filter = try OutputFilter(.compress, using: .zlib) { chunk in
+            if let chunk {
+                compressed.append(chunk)
+            }
+        }
+        // Concatenate all data parts into a single buffer. Alternatively, we could stream them one by one.
+        let combined = data.reduce(into: Data()) { $0.append($1) }
+        try filter.write(combined)
+        try filter.finalize()
+        return compressed
+    }
+
+    /// Decompresses zlib-compressed data produced by `zipData(with:)`.
+    private nonisolated func unzipData(_ compressed: Data) throws -> Data {
         var output = Data()
         let filter = try OutputFilter(.decompress, using: .zlib) { chunk in
-            if let chunk { output.append(chunk) }
+            if let chunk {
+                output.append(chunk)
+            }
         }
         try filter.write(compressed)
         try filter.finalize()
@@ -356,18 +430,22 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
         let tasks = try decodeCompressedData(data)
         try writeTasks(tasks)
     }
-    
+
     // MARK: Snapshot (tasks + progress bundled)
 
     /// Compresses a `WatchUserInfo` (tasks + weekly progress) into a single Data payload.
     public nonisolated func compressedSnapshot() throws -> Data {
         let tasks = try readTasks()
-        let progress = readWeeklyProgress() ?? WeeklyProgress(completed: 0, target: 0, error: nil, categories: [])
+        let progress =
+            readWeeklyProgress()
+            ?? WeeklyProgress(completed: 0, target: 0, error: nil, categories: [])
         let snapshot = WatchUserInfo(tasks: tasks, progress: progress)
         let json = try encoder.encode(snapshot)
         var compressed = Data()
         let filter = try OutputFilter(.compress, using: .zlib) { chunk in
-            if let chunk { compressed.append(chunk) }
+            if let chunk {
+                compressed.append(chunk)
+            }
         }
         try filter.write(json)
         try filter.finalize()
@@ -378,7 +456,9 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
     public nonisolated func decodeCompressedSnapshot(_ data: Data) throws -> WatchUserInfo {
         var output = Data()
         var filter = try OutputFilter(.decompress, using: .zlib) { chunk in
-            if let chunk { output.append(chunk) }
+            if let chunk {
+                output.append(chunk)
+            }
         }
         try filter.write(data)
         try filter.finalize()
@@ -386,7 +466,8 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
     }
 
     // MARK: Weekly Progress
-    nonisolated private func weeklyProgressURL() -> URL? {
+
+    private nonisolated func weeklyProgressURL() -> URL? {
         containerURL()?.appendingPathComponent(weeklyProgressFileName)
     }
 
@@ -399,13 +480,14 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
 
     public nonisolated func readWeeklyProgress() -> WeeklyProgress? {
         guard let url = weeklyProgressURL(),
-              let data = try? Data(contentsOf: url) else { return nil }
+            let data = try? Data(contentsOf: url)
+        else { return nil }
         return try? decoder.decode(WeeklyProgress.self, from: data)
     }
 
     // MARK: Categories
 
-    nonisolated private func categoriesURL() -> URL? {
+    private nonisolated func categoriesURL() -> URL? {
         containerURL()?.appendingPathComponent(categoriesFileName)
     }
 
@@ -417,13 +499,14 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
 
     nonisolated func readCategories() -> [CategoryDTO] {
         guard let url = categoriesURL(),
-              let data = try? Data(contentsOf: url) else { return [] }
+            let data = try? Data(contentsOf: url)
+        else { return [] }
         return (try? decoder.decode([CategoryDTO].self, from: data)) ?? []
     }
 
     // MARK: Habits
 
-    nonisolated private func habitsURL() -> URL? {
+    private nonisolated func habitsURL() -> URL? {
         containerURL()?.appendingPathComponent(habitsFileName)
     }
 
@@ -443,7 +526,10 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
         guard let destination = habitArtworkURL(filename: filename) else { return nil }
         let coordinator = NSFileCoordinator(filePresenter: nil)
         var error: NSError?
-        coordinator.coordinate(readingItemAt: sourceURL, options: .withoutChanges, writingItemAt: destination, options: .forReplacing, error: &error) { readURL, writeURL in
+        coordinator.coordinate(
+            readingItemAt: sourceURL, options: .withoutChanges, writingItemAt: destination,
+            options: .forReplacing, error: &error
+        ) { readURL, writeURL in
             if FileManager.default.fileExists(atPath: writeURL.path) {
                 try? FileManager.default.removeItem(at: writeURL)
             }
@@ -461,15 +547,24 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
     }
 
     nonisolated func writeHabits(_ habits: [HabitDTO]) throws {
-        guard let url = habitsURL() else { throw NSError(domain: "WidgetFileCoordinator", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing App Group URL"]) }
+        guard let url = habitsURL() else {
+            throw NSError(
+                domain: "WidgetFileCoordinator", code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Missing App Group URL"]
+            )
+        }
         let data = try encoder.encode(habits)
         var writeError: NSError?
         let coordinator = NSFileCoordinator(filePresenter: nil)
         var coordinationError: NSError?
         var innerError: NSError?
-        coordinator.coordinate(writingItemAt: url, options: .forReplacing, error: &coordinationError) { writeURL in
+        coordinator.coordinate(
+            writingItemAt: url, options: .forReplacing, error: &coordinationError
+        ) { writeURL in
             do {
-                let tmp = writeURL.deletingLastPathComponent().appendingPathComponent(".tmp_habits_\(UUID().uuidString)")
+                let tmp = writeURL.deletingLastPathComponent().appendingPathComponent(
+                    ".tmp_habits_\(UUID().uuidString)"
+                )
                 try data.write(to: tmp, options: .atomic)
                 if FileManager.default.fileExists(atPath: writeURL.path) {
                     _ = try FileManager.default.replaceItemAt(writeURL, withItemAt: tmp)
@@ -480,20 +575,33 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
                 innerError = error as NSError
             }
         }
-        if let coordinationError { writeError = coordinationError }
-        if let innerError { writeError = innerError }
-        if let writeError { throw writeError }
+        if let coordinationError {
+            writeError = coordinationError
+        }
+        if let innerError {
+            writeError = innerError
+        }
+        if let writeError {
+            throw writeError
+        }
         notifyWidgetReload()
     }
 
     nonisolated func readHabits() throws -> [HabitDTO] {
-        guard let url = habitsURL() else { throw NSError(domain: "WidgetFileCoordinator", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing App Group URL"]) }
+        guard let url = habitsURL() else {
+            throw NSError(
+                domain: "WidgetFileCoordinator", code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Missing App Group URL"]
+            )
+        }
         var readError: NSError?
         let coordinator = NSFileCoordinator(filePresenter: nil)
         var coordinationError: NSError?
         var innerError: NSError?
         var innerResult: [HabitDTO] = []
-        coordinator.coordinate(readingItemAt: url, options: .withoutChanges, error: &coordinationError) { readURL in
+        coordinator.coordinate(
+            readingItemAt: url, options: .withoutChanges, error: &coordinationError
+        ) { readURL in
             do {
                 let data = try Data(contentsOf: readURL, options: [.mappedIfSafe])
                 if data.isEmpty {
@@ -505,17 +613,23 @@ public final class WidgetFileCoordinator: @unchecked Sendable {
                 innerError = error as NSError
             }
         }
-        if let coordinationError { readError = coordinationError }
-        if let innerError { readError = innerError }
-        if let readError { throw readError }
+        if let coordinationError {
+            readError = coordinationError
+        }
+        if let innerError {
+            readError = innerError
+        }
+        if let readError {
+            throw readError
+        }
         return innerResult
     }
 
     // MARK: Widget refresh hook
-    nonisolated private func notifyWidgetReload() {
+
+    private nonisolated func notifyWidgetReload() {
         #if canImport(WidgetKit)
-        WidgetCenter.shared.reloadAllTimelines()
+            WidgetCenter.shared.reloadAllTimelines()
         #endif
     }
 }
-

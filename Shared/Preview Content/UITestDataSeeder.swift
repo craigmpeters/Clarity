@@ -7,8 +7,8 @@
 //  container when launched with the --uitesting argument.
 //
 
-import SwiftData
 import Foundation
+import SwiftData
 
 @MainActor
 enum UITestDataSeeder {
@@ -29,9 +29,14 @@ enum UITestDataSeeder {
             Category(name: "Personal", color: .Green, weeklyTarget: 5, iconName: "person.fill"),
             Category(name: "Learning", color: .Purple, weeklyTarget: 3, iconName: "book.fill"),
             Category(name: "Health", color: .Red, weeklyTarget: 7, iconName: "heart.fill"),
-            Category(name: "Creative", color: .Orange, weeklyTarget: 2, iconName: "paintbrush.fill"),
-            Category(name: "Urgent", color: .Yellow, weeklyTarget: 0, iconName: "exclamationmark.triangle.fill"),
-            Category(name: "Planning", color: .Cyan, weeklyTarget: 2, iconName: "calendar")
+            Category(
+                name: "Creative", color: .Orange, weeklyTarget: 2, iconName: "paintbrush.fill"
+            ),
+            Category(
+                name: "Urgent", color: .Yellow, weeklyTarget: 0,
+                iconName: "exclamationmark.triangle.fill"
+            ),
+            Category(name: "Planning", color: .Cyan, weeklyTarget: 2, iconName: "calendar"),
         ]
         for category in categories {
             context.insert(category)
@@ -61,16 +66,34 @@ enum UITestDataSeeder {
         let learning = categories.first { $0.name == "Learning" }
 
         let sampleTasks = [
-            ("Review quarterly reports", 5, Date().addingTimeInterval(-86400), [work].compactMap { $0 }),
+            (
+                "Review quarterly reports", 5, Date().addingTimeInterval(-86400),
+                [work].compactMap { $0 }
+            ),
             ("Team standup meeting prep", 5, Date(), [work].compactMap { $0 }),
             ("Grocery shopping", 5, Date(), [personal].compactMap { $0 }),
             ("SwiftUI documentation reading", 5, Date(), [learning].compactMap { $0 }),
-            ("Client presentation slides", 5, Date().addingTimeInterval(86400), [work].compactMap { $0 }),
-            ("Doctor appointment", 5, Date().addingTimeInterval(86400), [personal].compactMap { $0 }),
-            ("Code review session", 5, Date().addingTimeInterval(86400 * 2), [work].compactMap { $0 }),
-            ("Weekend hiking preparation", 5, Date().addingTimeInterval(86400 * 3), [personal].compactMap { $0 }),
-            ("iOS 18 features research", 5, Date().addingTimeInterval(86400 * 4), [learning].compactMap { $0 }),
-            ("Watch WWDC", 5, Date().addingTimeInterval(86400 * 4), [learning].compactMap { $0 })
+            (
+                "Client presentation slides", 5, Date().addingTimeInterval(86400),
+                [work].compactMap { $0 }
+            ),
+            (
+                "Doctor appointment", 5, Date().addingTimeInterval(86400),
+                [personal].compactMap { $0 }
+            ),
+            (
+                "Code review session", 5, Date().addingTimeInterval(86400 * 2),
+                [work].compactMap { $0 }
+            ),
+            (
+                "Weekend hiking preparation", 5, Date().addingTimeInterval(86400 * 3),
+                [personal].compactMap { $0 }
+            ),
+            (
+                "iOS 18 features research", 5, Date().addingTimeInterval(86400 * 4),
+                [learning].compactMap { $0 }
+            ),
+            ("Watch WWDC", 5, Date().addingTimeInterval(86400 * 4), [learning].compactMap { $0 }),
         ]
 
         for (name, minutes, dueDate, taskCategories) in sampleTasks {
@@ -100,10 +123,12 @@ enum UITestDataSeeder {
         let calendar = Calendar.current
         let now = Date()
 
-        for dayOffset in 0..<30 {
-            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: now) else { continue }
-            let taskCount = Int.random(in: 1...3)
-            for taskIndex in 0..<taskCount {
+        for dayOffset in 0 ..< 30 {
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: now) else {
+                continue
+            }
+            let taskCount = Int.random(in: 1 ... 3)
+            for taskIndex in 0 ..< taskCount {
                 let task = ToDoTask(
                     name: "Stats Task \(dayOffset)-\(taskIndex)",
                     pomodoroTime: TimeInterval(5 * 60),
@@ -111,7 +136,7 @@ enum UITestDataSeeder {
                     categories: []
                 )
                 task.completed = true
-                task.completedAt = date.addingTimeInterval(Double.random(in: 0...86400))
+                task.completedAt = date.addingTimeInterval(Double.random(in: 0 ... 86400))
                 context.insert(task)
             }
         }
@@ -138,23 +163,21 @@ enum UITestDataSeeder {
                 incrementStep: 5,
                 weeklyFrequency: 5,
                 categories: [personal].compactMap { $0 }
-            )
+            ),
         ]
         for habit in habits {
             addOccurrence(habit, context)
             context.insert(habit)
         }
     }
-    
+
     private static func addOccurrence(_ habit: Habit, _ context: ModelContext) {
         let total = habit.incrementStep * 2.0
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: Date())
-        let new =  HabitOccurrence(habit:habit, periodStart: startOfDay, currentAmount: total)
+        let new = HabitOccurrence(habit: habit, periodStart: startOfDay, currentAmount: total)
         context.insert(new)
     }
-    
-    
 
     private static func fetchCategories(from context: ModelContext) -> [Category] {
         (try? context.fetch(FetchDescriptor<Category>())) ?? []

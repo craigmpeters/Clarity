@@ -8,12 +8,12 @@
 import Foundation
 import SwiftData
 import Testing
+
 @testable import Clarity
 
 @MainActor
 @Suite(.serialized)
 struct ClarityAppShellTests {
-
     private let appGroup = "group.me.craigpeters.clarity.test"
     private let pendingKey = "pendingStartTimerTaskId"
 
@@ -27,7 +27,7 @@ struct ClarityAppShellTests {
         ClarityApp.Migration.reset(forBuild: "1.10.0")
     }
 
-    @Test func consumePendingStartTimerTaskIdReadsAndClearsValidUUID() throws {
+    @Test func consumePendingStartTimerTaskIdReadsAndClearsValidUUID() {
         defer { cleanup() }
         let id = UUID()
         testDefaults?.set(id.uuidString, forKey: pendingKey)
@@ -37,19 +37,19 @@ struct ClarityAppShellTests {
         #expect(testDefaults?.string(forKey: pendingKey) == nil)
     }
 
-    @Test func consumePendingStartTimerTaskIdReturnsNilWhenMissing() throws {
+    @Test func consumePendingStartTimerTaskIdReturnsNilWhenMissing() {
         defer { cleanup() }
         #expect(ClarityApp.consumePendingStartTimerTaskId(appGroup: appGroup) == nil)
     }
 
-    @Test func consumePendingStartTimerTaskIdReturnsNilAndClearsMalformedValue() throws {
+    @Test func consumePendingStartTimerTaskIdReturnsNilAndClearsMalformedValue() {
         defer { cleanup() }
         testDefaults?.set("not-a-uuid", forKey: pendingKey)
         #expect(ClarityApp.consumePendingStartTimerTaskId(appGroup: appGroup) == nil)
         #expect(testDefaults?.string(forKey: pendingKey) == nil)
     }
 
-    @Test func migrationHasRunAndMarkRunRoundTrip() throws {
+    @Test func migrationHasRunAndMarkRunRoundTrip() {
         defer { cleanup() }
         let build = "1.3.0"
         #expect(ClarityApp.Migration.hasRun(forBuild: build) == false)
@@ -57,7 +57,7 @@ struct ClarityAppShellTests {
         #expect(ClarityApp.Migration.hasRun(forBuild: build) == true)
     }
 
-    @Test func migrationHasRunPerBuild() throws {
+    @Test func migrationHasRunPerBuild() {
         defer { cleanup() }
         ClarityApp.Migration.markRun(forBuild: "1.3.0")
         #expect(ClarityApp.Migration.hasRun(forBuild: "1.10.0") == false)

@@ -5,16 +5,17 @@
 //  Created by Craig Peters on 02/09/2025.
 //
 
-import SwiftUI
-import SwiftData
 import Foundation
+import SwiftData
+import SwiftUI
 
 // MARK: - Category Picker Sheet
+
 struct CategoryPickerSheet: View {
     @Binding var selectedCategories: [CategoryDTO]
     @Query private var allCategories: [Category]
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         NavigationView {
             Form {
@@ -31,12 +32,12 @@ struct CategoryPickerSheet: View {
                                         .fill(category.color!.SwiftUIColor)
                                         .frame(width: 16, height: 16)
                                 }
-                                
+
                                 Text(category.name!)
                                     .foregroundStyle(.primary)
-                                
+
                                 Spacer()
-                                
+
                                 if selectedCategories.contains(where: { $0.id == category.id }) {
                                     Image(systemName: "checkmark")
                                         .foregroundStyle(.blue)
@@ -57,7 +58,7 @@ struct CategoryPickerSheet: View {
             }
         }
     }
-    
+
     private func toggleCategory(_ category: Category) {
         if let index = selectedCategories.firstIndex(where: { $0.id == category.id }) {
             selectedCategories.remove(at: index)

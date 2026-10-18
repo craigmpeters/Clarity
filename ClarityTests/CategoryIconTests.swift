@@ -7,10 +7,10 @@
 
 import Foundation
 import Testing
+
 @testable import Clarity
 
 struct CategoryIconTests {
-
     @Test func suggestedIconNameMatchesWork() {
         #expect(CategoryIcon.suggestedIconName(for: "Work") == "briefcase.fill")
     }
@@ -25,7 +25,9 @@ struct CategoryIconTests {
     }
 
     @Test func suggestedIconNameMatchesSubstrings() {
-        #expect(CategoryIcon.suggestedIconName(for: "Mindfulness practice") == "figure.mind.and.body")
+        #expect(
+            CategoryIcon.suggestedIconName(for: "Mindfulness practice") == "figure.mind.and.body"
+        )
         #expect(CategoryIcon.suggestedIconName(for: "Home cleaning") == "house.fill")
     }
 

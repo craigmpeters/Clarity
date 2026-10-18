@@ -41,9 +41,9 @@ struct LiveWidgetCoordinator: WidgetCoordination {
 }
 
 struct NoOpWidgetCoordinator: WidgetCoordination {
-    nonisolated func writeCategories(_ categories: [CategoryDTO]) throws {}
-    nonisolated func writeHabits(_ habits: [HabitDTO]) throws {}
-    nonisolated func writeTasks(_ tasks: ToDoTaskList) throws {}
+    nonisolated func writeCategories(_: [CategoryDTO]) throws {}
+    nonisolated func writeHabits(_: [HabitDTO]) throws {}
+    nonisolated func writeTasks(_: ToDoTaskList) throws {}
     nonisolated func reloadAllTimelines() {}
-    nonisolated func reloadTimelines(ofKind kind: String) {}
+    nonisolated func reloadTimelines(ofKind _: String) {}
 }

@@ -17,6 +17,11 @@ enum WatchCommand: Sendable {
     case requestSnapshot
     case sendLogs(Data)
     case logHabitProgress(UUID, amount: Double?)
+    /// Timestamped variant: queued taps replayed after midnight still credit the day
+    /// the user actually tapped. New watch builds send this; the legacy
+    /// `logHabitProgress(UUID, amount:)` case remains so already-queued commands
+    /// still decode (and are attributed to "now", which was the legacy behaviour).
+    case logHabitProgressAt(UUID, amount: Double?, timestamp: Date)
 }
 
 nonisolated extension WatchCommand: Codable {}
@@ -49,13 +54,16 @@ extension Snapshot: Codable {
 
     nonisolated init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        self.revision = try c.decode(Int.self, forKey: .revision)
-        self.tasks = try c.decode([ToDoTaskDTO].self, forKey: .tasks)
-        self.habits = try c.decodeIfPresent([HabitDTO].self, forKey: .habits) ?? []
-        let occurrencesArray = try c.decodeIfPresent([HabitOccurrenceDTO].self, forKey: .habitOccurrences) ?? []
-        self.habitOccurrences = Dictionary(uniqueKeysWithValues: occurrencesArray.map { ($0.habitUUID, $0) })
-        self.progress = try c.decode(WeeklyProgress.self, forKey: .progress)
-        self.activePomodoro = try c.decodeIfPresent(PomodoroDTO.self, forKey: .activePomodoro)
+        revision = try c.decode(Int.self, forKey: .revision)
+        tasks = try c.decode([ToDoTaskDTO].self, forKey: .tasks)
+        habits = try c.decodeIfPresent([HabitDTO].self, forKey: .habits) ?? []
+        let occurrencesArray =
+            try c.decodeIfPresent([HabitOccurrenceDTO].self, forKey: .habitOccurrences) ?? []
+        habitOccurrences = Dictionary(
+            uniqueKeysWithValues: occurrencesArray.map { ($0.habitUUID, $0) }
+        )
+        progress = try c.decode(WeeklyProgress.self, forKey: .progress)
+        activePomodoro = try c.decodeIfPresent(PomodoroDTO.self, forKey: .activePomodoro)
     }
 
     nonisolated func encode(to encoder: any Encoder) throws {
@@ -82,9 +90,9 @@ struct ComplicationProjection: Sendable, Hashable {
             .filter { !$0.completed }
             .sorted { $0.due < $1.due }
         let top = incomplete.first
-        self.topTaskName = top?.name
-        self.topTaskDue = top?.due
-        self.isPomodoroActive = snapshot.activePomodoro != nil
+        topTaskName = top?.name
+        topTaskDue = top?.due
+        isPomodoroActive = snapshot.activePomodoro != nil
     }
 }
 

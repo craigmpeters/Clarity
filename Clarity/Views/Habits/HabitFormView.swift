@@ -1,5 +1,5 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct HabitFormView: View {
     @Environment(\.dismiss) private var dismiss
@@ -50,46 +50,52 @@ struct HabitFormView: View {
                         TextField("Amount", value: $state.incrementStep, format: .number)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
-                        .onChange(of: state.incrementStep) { _, newValue in
-                            let upper = min(HabitConfig.maxIncrementStep, HabitConfig.dailyTargetRange(for: state.healthKitIdentifier).upperBound)
-                            state.incrementStep = max(min(newValue, upper), HabitConfig.incrementStepRange.lowerBound)
-                            state.didEditIncrement = true
-                        }
+                            .onChange(of: state.incrementStep) { _, newValue in
+                                let upper = min(
+                                    HabitConfig.maxIncrementStep,
+                                    HabitConfig.dailyTargetRange(for: state.healthKitIdentifier)
+                                        .upperBound
+                                )
+                                state.incrementStep = max(
+                                    min(newValue, upper), HabitConfig.incrementStepRange.lowerBound
+                                )
+                                state.didEditIncrement = true
+                            }
                         Text(state.displayUnit)
                             .foregroundColor(.secondary)
                     }
 
-                HStack {
-                    Text("Number of increments")
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    HStack(spacing: 16) {
-                        Button {
-                            state.incrementCount = max(state.incrementCount - 1, 1)
-                            state.didEditCount = true
-                        } label: {
-                            Image(systemName: "minus")
-                                .frame(width: 24, height: 24)
-                        }
-                        .disabled(state.incrementCount <= 1)
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
+                    HStack {
+                        Text("Number of increments")
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        HStack(spacing: 16) {
+                            Button {
+                                state.incrementCount = max(state.incrementCount - 1, 1)
+                                state.didEditCount = true
+                            } label: {
+                                Image(systemName: "minus")
+                                    .frame(width: 24, height: 24)
+                            }
+                            .disabled(state.incrementCount <= 1)
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
 
-                        Text("\(state.incrementCount)")
-                            .monospacedDigit()
-                            .frame(minWidth: 24)
+                            Text("\(state.incrementCount)")
+                                .monospacedDigit()
+                                .frame(minWidth: 24)
 
-                        Button {
-                            state.incrementCount += 1
-                            state.didEditCount = true
-                        } label: {
-                            Image(systemName: "plus")
-                                .frame(width: 24, height: 24)
+                            Button {
+                                state.incrementCount += 1
+                                state.didEditCount = true
+                            } label: {
+                                Image(systemName: "plus")
+                                    .frame(width: 24, height: 24)
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
                         }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
                     }
-                }
 
                     HStack {
                         Text("Total daily target")
@@ -102,9 +108,19 @@ struct HabitFormView: View {
                     Text("Daily Amount")
                 }
 
-                Section("Days per Week") {
-                    Stepper(value: $state.weeklyFrequency, in: 1...7) {
-                        Text("^[\(state.weeklyFrequency) days](inflect: true)")
+                Section("Schedule") {
+                    Stepper(value: $state.weeklyFrequency, in: 1...state.windowDays) {
+                        Text("\(state.weeklyFrequency) of last \(state.windowDays) days")
+                    }
+                    Picker("Window", selection: $state.windowDays) {
+                        ForEach(HabitConfig.supportedWindowDays, id: \.self) { days in
+                            Text("Last \(days) days").tag(days)
+                        }
+                    }
+                    .onChange(of: state.windowDays) { _, newWindow in
+                        if state.weeklyFrequency > newWindow {
+                            state.weeklyFrequency = newWindow
+                        }
                     }
                 }
 
@@ -135,7 +151,8 @@ struct HabitFormView: View {
                 if let habit = habit {
                     state.load(habit: habit)
                 } else if let store,
-                          let habits = try? await store.fetchHabits() {
+                    let habits = try? await store.fetchHabits()
+                {
                     // Creation: reserve HealthKit types already linked to a non-archived habit.
                     state.takenHealthKitIdentifiers = Set(habits.compactMap(\.healthKitIdentifier))
                 }
@@ -157,7 +174,8 @@ struct HabitFormView: View {
                 await MainActor.run { dismiss() }
             } catch {
                 LogManager.shared.log.error("Failed to save habit: \(error)")
-                let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                let message =
+                    (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                 await MainActor.run {
                     saveError = message
                     showError = true
@@ -226,4 +244,3 @@ struct HabitFormView: View {
         }
     }
 }
-

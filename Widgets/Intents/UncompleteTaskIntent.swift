@@ -1,21 +1,22 @@
 import AppIntents
-import SwiftData
 import OSLog
+import SwiftData
 import XCGLogger
+
 #if canImport(WidgetKit)
-import WidgetKit
+    import WidgetKit
 #endif
 
 struct UncompleteTaskIntent: AppIntent {
     static let title: LocalizedStringResource = "Uncomplete Task"
     static let description = IntentDescription("Mark a completed task as incomplete")
     static let openAppWhenRun = false
-    
+
     @Parameter(title: "Task")
     var task: TaskEntity
 
     init() {}
-    
+
     init(task: TaskEntity) {
         self.task = task
     }
@@ -27,16 +28,16 @@ struct UncompleteTaskIntent: AppIntent {
     func perform() async throws -> some IntentResult & ProvidesDialog {
         do {
             let store = try await ClarityServices.store()
-            
+
             guard let taskUUID = UUID(uuidString: task.id) else {
                 return .result(dialog: "Invalid task identifier.")
             }
-            
+
             // Fetch DTO and ensure it's completed
             guard let dto = try await store.fetchTaskByUuid(taskUUID) else {
                 return .result(dialog: "Task not found.")
             }
-            
+
             guard dto.completed else {
                 return .result(dialog: "Task is not completed.")
             }

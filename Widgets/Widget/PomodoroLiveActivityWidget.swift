@@ -1,5 +1,5 @@
 //
-//  PomodoroExtensionLiveActivity.swift
+//  PomodoroLiveActivityWidget.swift
 //  PomodoroExtension
 //
 //  Created by Craig Peters on 21/08/2025.
@@ -12,7 +12,6 @@ import SwiftUI
 import WidgetKit
 
 struct PomodoroLiveActivityWidget: Widget {
-    
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: PomodoroAttributes.self) { context in
             PomodoroLiveActivityView(context: context)
@@ -72,7 +71,7 @@ struct PomodoroLiveActivityWidget: Widget {
                 } else {
                     ZStack {
                         ProgressView(
-                            timerInterval: context.state.startTime...context.state.endTime,
+                            timerInterval: context.state.startTime ... context.state.endTime,
                             countsDown: true
                         ) {
                             EmptyView()
@@ -84,7 +83,7 @@ struct PomodoroLiveActivityWidget: Widget {
                         Image("clarity-teeny")
                             .resizable()
                             .scaledToFit()
-                            .padding(4)  // tuned so it sits inside the ring
+                            .padding(4) // tuned so it sits inside the ring
                     }
                 }
             }
@@ -124,7 +123,7 @@ struct PomodoroLiveActivityView: View {
                     }
                 }
             }
-            // watchOS Smart Stack — no image, just text
+        // watchOS Smart Stack — no image, just text
         default:
             // Lock screen / banner UI
             VStack(spacing: 8) {
@@ -152,8 +151,8 @@ struct PomodoroLiveActivityView: View {
                         .frame(width: 80, height: 80)
                 }
                 if context.isStale {
-                // TODO: This does not seem to work, not nessesary for v2.0
-                     // MoodButtonRow()
+                    // TODO: This does not seem to work, not nessesary for v2.0
+                    // MoodButtonRow()
                 } else {
                     Button(intent: StopPomodoroIntent()) {
                         Label("Stop", systemImage: "stop.fill")
@@ -199,7 +198,10 @@ private struct MoodButtonRow: View {
     )
 }
 
-#Preview("Dynamic Island Compact", as: .dynamicIsland(.compact), using: PomodoroAttributes(sessionId: "preview")) {
+#Preview(
+    "Dynamic Island Compact", as: .dynamicIsland(.compact),
+    using: PomodoroAttributes(sessionId: "preview")
+) {
     PomodoroLiveActivityWidget()
 } contentStates: {
     PomodoroAttributes.ContentState(
@@ -209,7 +211,10 @@ private struct MoodButtonRow: View {
     )
 }
 
-#Preview("Dynamic Island Expanded", as: .dynamicIsland(.expanded), using: PomodoroAttributes(sessionId: "preview")) {
+#Preview(
+    "Dynamic Island Expanded", as: .dynamicIsland(.expanded),
+    using: PomodoroAttributes(sessionId: "preview")
+) {
     PomodoroLiveActivityWidget()
 } contentStates: {
     PomodoroAttributes.ContentState(
@@ -219,9 +224,11 @@ private struct MoodButtonRow: View {
     )
 }
 
-#Preview("Dynamic Island Minimal", as: .dynamicIsland(.minimal), using:
-    PomodoroAttributes(sessionId: "preview"))
-{
+#Preview(
+    "Dynamic Island Minimal", as: .dynamicIsland(.minimal),
+    using:
+    PomodoroAttributes(sessionId: "preview")
+) {
     PomodoroLiveActivityWidget()
 } contentStates: {
     PomodoroAttributes.ContentState(
@@ -231,10 +238,11 @@ private struct MoodButtonRow: View {
     )
 }
 
-#Preview("Watch", as: .content,
-         using:
-            PomodoroAttributes(sessionId: "preview"))
-{
+#Preview(
+    "Watch", as: .content,
+    using:
+    PomodoroAttributes(sessionId: "preview")
+) {
     PomodoroLiveActivityWidget()
 } contentStates: {
     PomodoroAttributes.ContentState(

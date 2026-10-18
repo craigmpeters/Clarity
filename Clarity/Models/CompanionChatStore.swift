@@ -13,8 +13,7 @@ private nonisolated(unsafe) let log = LogManager.shared.log
 
 @MainActor
 final class CompanionChatStore {
-
-    static let retentionInterval: TimeInterval = 48 * 60 * 60 // 48 hours
+    static let retentionInterval: TimeInterval = 48 * 60 * 60  // 48 hours
     static let messageCap = 100
 
     private let container: ModelContainer
@@ -22,7 +21,9 @@ final class CompanionChatStore {
 
     init() {
         let schema = Schema([ChatMessage.self])
-        let isTestRun = TestEnvironment.isRunningTests || ProcessInfo.processInfo.arguments.contains("--uitesting")
+        let isTestRun =
+            TestEnvironment.isRunningTests
+            || ProcessInfo.processInfo.arguments.contains("--uitesting")
         let config = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: isTestRun,
@@ -33,10 +34,16 @@ final class CompanionChatStore {
         do {
             container = try ModelContainer(for: schema, configurations: [config])
             inMemory = isTestRun
-            log.info("CompanionChatStore: \(isTestRun ? "in-memory" : "persisted") container created")
+            log.info(
+                "CompanionChatStore: \(isTestRun ? "in-memory" : "persisted") container created"
+            )
         } catch {
-            log.error("CompanionChatStore: failed to create container — \(error). Falling back to in-memory.")
-            let memoryConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, allowsSave: true)
+            log.error(
+                "CompanionChatStore: failed to create container — \(error). Falling back to in-memory."
+            )
+            let memoryConfig = ModelConfiguration(
+                schema: schema, isStoredInMemoryOnly: true, allowsSave: true
+            )
             do {
                 container = try ModelContainer(for: schema, configurations: [memoryConfig])
                 inMemory = true
@@ -50,7 +57,7 @@ final class CompanionChatStore {
     /// Create a store backed by an explicit container (used by previews/tests).
     init(container: ModelContainer) {
         self.container = container
-        self.inMemory = false
+        inMemory = false
     }
 
     var context: ModelContext {
@@ -70,7 +77,7 @@ final class CompanionChatStore {
             return []
         }
     }
-    
+
     func fetchMostRecentTaskMessage() -> ChatMessage? {
         let context = context
         var descriptor = FetchDescriptor<ChatMessage>(

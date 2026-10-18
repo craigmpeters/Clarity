@@ -23,9 +23,9 @@ Habits can optionally be **Health-linked**: a Health habit reads today's cumulat
 | Decision | Choice |
 | --- | --- |
 | Separation | Dedicated `Habit` and `HabitOccurrence` models; `ToDoTask` untouched |
-| Frequency | Unified engine — every Habit has a **daily target** and a **weeklyFrequency** (1–7) = "hit the daily target X days per week" |
-| Streaks | Consecutive successful weeks; a week succeeds if completed/frozen days ≥ `weeklyFrequency` |
-| Freeze | Auto-earn +1 per 7-day streak, cap 3, **manual spend**, grace = **end of next period** |
+| Frequency | Unified engine — every Habit has a **daily target** and a **`weeklyFrequency`** reinterpreted as the **target days per rolling `windowDays` window** (default 7, allowed 7/14/30) |
+| Streaks | Literal consecutive on-track days ending **yesterday** plus 1 if today is completed. A day is on-track if completed / frozen / paused, OR if its trailing window credit meets the target. A single miss breaks the run only when no freeze is left to cover it. |
+| Freeze | Earned from completed-day history (+1/7 per completed day, +1/7 per fully-complete window, cap 3, independent of streak). Spent manually via spendFreeze, or auto-spent on a missed day when the global `autoUseFreezes` setting is on (default true). Balance is additive-only and NEVER reset by a streak break. |
 | HealthKit | `healthKitIdentifier` stored on the model; v1 = foreground sync (read floor) + **manual delta writes to HealthKit**; full background observer is v2. Clarity store remains canonical. Supported set is fixed at 4 types: `water`, `steps`, `workouts`, `mindful` |
 | Units | **Locale-natural units via `Measurement`/`MeasurementFormatter`.** Canonical value stored in a fixed base unit per type; display unit derived from `Locale.current` (e.g. water → mL in UK, fl oz in US). No per-locale hardcoded unit strings |
 | Image Playground | Gated by availability; no system picker sheet — background generation only |
@@ -199,49 +199,80 @@ No changes to `completeTask`, `uncompleteTask`, `createNextOccurrence`, or any `
 
 ---
 
-## 5. Streak Engine
+## 5. Rolling Habit Progress Engine
 
-### 5.1 New file: `Shared/Models/HabitStreakCalculator.swift`
+### 5.1 New file: `Shared/Models/HabitProgressEngine.swift`
 
-Pure, `nonisolated` function over `[HabitOccurrenceDTO]`:
+Pure, `nonisolated` evaluator over `[HabitOccurrenceDTO]`. Every call injects `now` and a `Calendar`; nothing reads `Date()` or `Calendar.current` internally so tests are deterministic.
 
 ```swift
-struct HabitStreakResult {
-    let current: Int
-    let longest: Int
-    let freezesEarned: Int
+struct HabitProgressResult: Sendable, Hashable, Codable {
+    let windowCredit: Double
+    let windowDenominator: Int
+    let windowTarget: Int
+    let strength: Double
+    let currentStreak: Int
+    let longestStreak: Int
+    let freezesAvailable: Int
+    let freezeProgressDays: Int
     let atRisk: Bool
-    let missedPeriod: Date?     // the period that can be frozen
+    let missedDay: Date?
 }
 
-static func streak(
-    occurrences: [HabitOccurrenceDTO],
-    frequency: Int,
-    freezes: Int,
-    referenceDate: Date = Date()
-) -> HabitStreakResult
+enum HabitProgressEngine {
+    static func evaluate(
+        occurrences: [HabitOccurrenceDTO],
+        dailyTarget: Double,
+        targetDaysPerWindow: Int,
+        windowDays: Int,
+        freezesSpent: Int,
+        pauseRanges: [ClosedRange<Date>],
+        now: Date,
+        calendar: Calendar
+    ) -> HabitProgressResult
+}
 ```
 
-Algorithm:
+### 5.2 Day states
 
-1. Bucket occurrences by day, keeping the latest if duplicates exist.
-2. A day counts if its occurrence is `completed` or `freezeUsed`.
-3. A week succeeds if counted days ≥ `weeklyFrequency`.
-4. Streak = consecutive successful weeks ending at the current week. An in-progress week **preserves** the existing streak until it actually fails.
-5. `freezesEarned` = 1 per **7-day** streak (e.g. a 7-day streak = 1 freeze), capped at `HabitConfig.maxFreezes` in the model.
-6. `atRisk` = last week failed, we are within the **end of the next period** grace window, and `freezes > 0`.
-7. `missedPeriod` = the end-of-week date of the failed week that can be frozen.
+Each calendar day classifies as one of: `completed`, `partial(credit)` (0 < credit < 1), `missed`, `frozen` (`freezeUsed == true`), `paused` (within a pause range, neutral), or `pending` (today, not yet complete; never counts as missed).
 
-### 5.2 Unit tests
+### 5.3 Rolling meter
 
-`ClarityTests/HabitStreakCalculatorTests.swift` covers:
-- Daily habit streaks (7/7)
-- 3×/week habit streaks (3/7)
-- Freeze usage preserving streaks
-- Missed periods ending streaks after grace window
-- Edge cases around week boundaries
-- Freeze-earn cap at `maxFreezes`
-- Grace window = end of next period
+Sum of per-day credits over the last `windowDays` (default 7) ending today. Frozen & paused days are removed from the denominator. The target is `weeklyFrequency` reinterpreted as "target days per window". Display is the primary UI on the habit row.
+
+### 5.4 Streak (rolling)
+
+A past day `D` is **on track** when it is `completed` / `frozen` / `paused`, OR when the trailing `[D-windowDays+1 ... D]` window's credit meets `targetDaysPerWindow`. `currentStreak` is consecutive on-track days ending yesterday, +1 if today is completed. `longestStreak` is the all-time maximum. `atRisk` means yesterday was a genuine miss, a freeze is still spendable, and we are inside the grace window.
+
+### 5.5 Strength (Loop-style EMA)
+
+```
+freq      = targetDaysPerWindow / windowDays
+multiplier = 0.5 ^ (sqrt(freq) / 13.0)
+strength  = strength * multiplier + credit * (1 - multiplier)  // per day
+```
+
+Frozen / paused days carry the previous strength forward. A single miss decays ~5 points from a perfect score; strength never resets to 0.
+
+### 5.6 Freezes
+
+- **Earn:** `+1/HabitConfig.freezeEarnDaysPerFreeze` (default 7) per completed day. Bonus `+1/<same>` once per window when the trailing `windowDays` is fully complete.
+- **Cap:** `HabitConfig.maxFreezes = 3` stored freezes.
+- **Persist the balance.** `Habit.streakFreezes` is never re-derived from the streak — `reconcileFreezes(_:)` synthesises `available = min(completedDays / freezeEarnDaysPerFreeze - freezesSpent, maxFreezes)` from completed-day history and only raises. Spend is the only way the balance goes down.
+- **Spend (manual).** `ClarityModelActor.spendFreeze(_:)` requires `streakFreezes > 0` and a missed day inside the grace window (`gracePeriodDays = 7` after the day-after-missed-Sunday-start).
+- **Spend (auto).** New API `ClarityModelActor.autoSpendFreezeIfNeeded(_:)` marks a missed day `freezeUsed = true` (without touching `completed`) when the global `autoUseFreezes` UserDefault is on (default true). Triggered from the post-progress pipeline.
+- **Repair.** `ClarityModelActor.repairFreezesFromHistory()` is additive-only and is invoked once per install from `ClarityApp.repairHabitFreezesIfNeeded` to recover any balances lost to the retired Saturday streak-reset bug.
+
+### 5.7 Compatibility adapter
+
+`Shared/Models/HabitStreakCalculator.swift` keeps its old surface (`streak(occurrences:frequency:freezes:referenceDate:)`) and now delegates to `HabitProgressEngine.evaluate` with rolling semantics. The legacy `freezes` parameter is reinterpreted as the user's persisted bank balance so the adapter's `atRisk` gates against the bank, not the engine-derived lifetime credit. This lets existing call sites migrate incrementally (already replaced in `HabitsIndexView`, `StatsView`, `CompanionService`, and `PhoneConnectivityCoordinator`).
+
+### 5.8 Unit tests
+
+`ClarityTests/HabitProgressEngineTests.swift` covers: cross-week boundary continuity, BST edge (24 Oct 2026), one-miss-with-freeze, one-miss-no-freeze, 5-of-7 tolerance, partial-credit contribution, freeze earning & cap-at-3, pause ranges, empty history, future-dated occurrences, same-day duplicates, and a 1000-day perf sanity check.
+
+`ClarityTests/HabitStreakCalculatorTests.swift` is the adapter-level regression suite that pins the rolling behaviour of `HabitStreakCalculator` against `HabitProgressEngine`.
 
 ---
 

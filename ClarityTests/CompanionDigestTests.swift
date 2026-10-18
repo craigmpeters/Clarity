@@ -5,12 +5,12 @@
 
 import Foundation
 import Testing
+
 @testable import Clarity
 
 @MainActor
 struct CompanionDigestTests {
-
-    @Test func digestIsNilWhenModelUnavailable() async {
+    @Test func digestIsNilWhenModelUnavailable() {
         let service = CompanionService.shared
         service.clearTestableDigest()
         service.chatHistory = []
@@ -25,7 +25,9 @@ struct CompanionDigestTests {
         service.setTestableDigest("previous summary")
 
         // Simulate a fresh instance by restoring directly from UserDefaults.
-        UserDefaults.standard.set("restored summary", forKey: "me.craigpeters.clarity.companionDigest")
+        UserDefaults.standard.set(
+            "restored summary", forKey: "me.craigpeters.clarity.companionDigest"
+        )
         service.restoreTestableDigest()
         #expect(service.testableDigest == "restored summary")
 
@@ -40,7 +42,7 @@ struct CompanionDigestTests {
         // Two messages with a tail of 2 means there are no "older" messages, so the digest should clear.
         service.chatHistory = [
             ChatMessage(sender: .user, text: "hello"),
-            ChatMessage(sender: .companion, text: "hi")
+            ChatMessage(sender: .companion, text: "hi"),
         ]
 
         // Directly invoke the internal update logic path by simulating the count guard.

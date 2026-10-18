@@ -10,7 +10,7 @@ import SwiftUI
 struct SwipeActionsDemoView: View {
     @State private var currentDemoIndex = 0
     @State var showingInstructions = true
-    
+
     private let swipeActions = [
         SwipeActionDemo(
             title: "Start Pomodoro Timer",
@@ -35,21 +35,21 @@ struct SwipeActionsDemoView: View {
             color: .red,
             icon: "trash",
             description: "Remove tasks you no longer need"
-        )
+        ),
     ]
-    
+
     var body: some View {
         VStack(spacing: 32) {
             // Instructions
             VStack(spacing: 8) {
                 Text("Essential Gestures")
                     .font(.title2.bold())
-                
+
                 Text("Learn these powerful swipe actions")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
-            
+
             // Demo area
             VStack(spacing: 24) {
                 // Current action description
@@ -58,28 +58,31 @@ struct SwipeActionsDemoView: View {
                         Image(systemName: swipeActions[currentDemoIndex].icon)
                             .foregroundStyle(swipeActions[currentDemoIndex].color)
                             .font(.title2)
-                        
+
                         Text(swipeActions[currentDemoIndex].title)
                             .font(.headline)
                     }
-                    
+
                     Text(swipeActions[currentDemoIndex].description)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
-                
+
                 // Interactive demo task
                 InteractiveTaskDemo(
                     action: swipeActions[currentDemoIndex],
                     onActionTriggered: nextDemo
                 )
-                
+
                 // Progress indicators
                 HStack(spacing: 8) {
                     ForEach(0..<swipeActions.count, id: \.self) { index in
                         Circle()
-                            .fill(currentDemoIndex == index ? Color.blue : Color.secondary.opacity(0.3))
+                            .fill(
+                                currentDemoIndex == index
+                                    ? Color.blue : Color.secondary.opacity(0.3)
+                            )
                             .frame(width: 6, height: 6)
                             .animation(.easeInOut(duration: 0.3), value: currentDemoIndex)
                     }
@@ -89,7 +92,7 @@ struct SwipeActionsDemoView: View {
             .padding(.vertical, 20)
             .background(Color(.secondarySystemBackground))
             .cornerRadius(16)
-            
+
             // Auto-advance hint
             Text("Try the gesture or wait to see the next one")
                 .font(.caption2)
@@ -100,18 +103,18 @@ struct SwipeActionsDemoView: View {
             startAutoAdvance()
         }
     }
-    
+
     private func nextDemo() {
         withAnimation(.easeInOut(duration: 0.5)) {
             currentDemoIndex = (currentDemoIndex + 1) % swipeActions.count
         }
-        
+
         // Continue auto-advance after user interaction
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             startAutoAdvance()
         }
     }
-    
+
     private func startAutoAdvance() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
             nextDemo()
@@ -126,7 +129,7 @@ struct SwipeActionDemo {
     let color: Color
     let icon: String
     let description: String
-    
+
     enum SwipeDirection {
         case left, right
     }
@@ -135,7 +138,7 @@ struct SwipeActionDemo {
 struct InteractiveTaskDemo: View {
     let action: SwipeActionDemo
     let onActionTriggered: () -> Void
-    
+
     let swipeOptions = TaskSwipeAndTapOptions()
     let exampleTask = ToDoTask(
         name: "Sample Task",
@@ -144,13 +147,15 @@ struct InteractiveTaskDemo: View {
         repeating: true,
         recurrenceInterval: .daily,
         everySpecificDayDay: nil,
-        categories: [Category(name: "Work", color: .Blue, weeklyTarget: 8, iconName: "briefcase.fill")].compactMap { $0 }
+        categories: [
+            Category(name: "Work", color: .Blue, weeklyTarget: 8, iconName: "briefcase.fill")
+        ].compactMap { $0 }
     )
-    
+
     @State private var offset: CGFloat = 0
     @State private var hasTriggered = false
     @State private var showingHint = false
-    
+
     var body: some View {
         ZStack {
             // Background actions
@@ -214,7 +219,11 @@ struct InteractiveTaskDemo: View {
                     }
                     .padding(.horizontal)
                     .padding(.bottom, 4)
-                    .transition(.opacity.combined(with: .move(edge: action.direction == .right ? .leading : .trailing)))
+                    .transition(
+                        .opacity.combined(
+                            with: .move(edge: action.direction == .right ? .leading : .trailing)
+                        )
+                    )
                 }
             }
             .padding()
@@ -228,20 +237,20 @@ struct InteractiveTaskDemo: View {
                         let translation = value.translation.width
 
                         // Constrain swipe direction and limit distance
-                        if action.direction == .left && translation < 0 {
+                        if action.direction == .left, translation < 0 {
                             offset = max(translation, -100)
-                        } else if action.direction == .right && translation > 0 {
+                        } else if action.direction == .right, translation > 0 {
                             offset = min(translation, 100)
                         }
 
                         // Trigger action if swiped far enough
                         let threshold: CGFloat = 60
-                        if !hasTriggered && abs(offset) > threshold {
+                        if !hasTriggered, abs(offset) > threshold {
                             hasTriggered = true
                             triggerAction()
                         }
                     }
-                    .onEnded { value in
+                    .onEnded { _ in
                         withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                             offset = 0
                         }
@@ -258,24 +267,24 @@ struct InteractiveTaskDemo: View {
             offset = 0
             hasTriggered = false
             showingHint = false
-            
+
             // Show hint for new action
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 showSwipeHint()
             }
         }
     }
-    
+
     private func showSwipeHint() {
         withAnimation(.easeInOut(duration: 0.5)) {
             showingHint = true
         }
-        
+
         // Auto-demonstrate after showing hint
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             demonstrateSwipe()
         }
-        
+
         // Hide hint after demonstration
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             withAnimation(.easeOut(duration: 0.3)) {
@@ -283,31 +292,31 @@ struct InteractiveTaskDemo: View {
             }
         }
     }
-    
+
     private func demonstrateSwipe() {
         let targetOffset: CGFloat = action.direction == .left ? -70 : 70
-        
+
         withAnimation(.easeInOut(duration: 1)) {
             offset = targetOffset
         }
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                 offset = 0
             }
         }
     }
-    
+
     private func triggerAction() {
         // Haptic feedback
         let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
         impactFeedback.impactOccurred()
-        
+
         // Visual feedback
         withAnimation(.easeOut(duration: 0.2)) {
             offset = 0
         }
-        
+
         // Notify parent
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             onActionTriggered()

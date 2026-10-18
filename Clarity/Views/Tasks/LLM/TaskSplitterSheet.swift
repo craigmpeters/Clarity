@@ -3,23 +3,22 @@ import SwiftUI
 
 @available(iOS 26.0, *)
 struct TaskSplitterSheet: View {
-    
     // Swiftdata Queries
     @Query private var allCategories: [Category]
     @Query private var allTasks: [ToDoTask]
     @Environment(\.modelContext) private var context
-    
+
     let taskName: String
     @Binding var isPresented: Bool
-    
+
     @StateObject private var splitter = TaskSplitterService()
     @State private var suggestions: [SplitTaskSuggestion] = []
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var applyCategoriesToAll = false
     @State private var globalCategories: [CategoryDTO] = []
     @State private var store: ClarityModelActor?
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
@@ -34,21 +33,23 @@ struct TaskSplitterSheet: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
                 .background(Color(.systemBackground))
-                
+
                 Divider()
                 // Category application toggle
                 if !allCategories.isEmpty && !suggestions.isEmpty {
                     VStack(spacing: 12) {
                         Toggle("Apply categories to all tasks", isOn: $applyCategoriesToAll)
                             .font(.subheadline)
-                        
+
                         if applyCategoriesToAll {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
-                                    ForEach(allCategories) {  category in
+                                    ForEach(allCategories) { category in
                                         CategoryChip(
                                             category: category,
-                                            isSelected: globalCategories.contains { $0.id == category.id }
+                                            isSelected: globalCategories.contains {
+                                                $0.id == category.id
+                                            }
                                         ) {
                                             toggleGlobalCategory(CategoryDTO(from: category))
                                         }
@@ -59,10 +60,10 @@ struct TaskSplitterSheet: View {
                     }
                     .padding()
                     .background(Color(.secondarySystemBackground))
-                    
+
                     Divider()
                 }
-                
+
                 // Content
                 if splitter.isProcessing {
                     Spacer()
@@ -78,10 +79,12 @@ struct TaskSplitterSheet: View {
                     ScrollView {
                         VStack(spacing: 12) {
                             ForEach($suggestions) { $suggestion in
-                                SuggestionRow(suggestion: $suggestion,
-                                              allCategories: allCategories,
-                                              applyGlobalCategories: applyCategoriesToAll,
-                                              globalCategories: globalCategories)
+                                SuggestionRow(
+                                    suggestion: $suggestion,
+                                    allCategories: allCategories,
+                                    applyGlobalCategories: applyCategoriesToAll,
+                                    globalCategories: globalCategories
+                                )
                             }
                         }
                         .padding()
@@ -102,29 +105,28 @@ struct TaskSplitterSheet: View {
                     .padding()
                     Spacer()
                 }
-                
+
                 Divider()
-                
+
                 // Actions
                 HStack(spacing: 12) {
                     Button("Cancel") {
                         dismiss()
                     }
                     .buttonStyle(.bordered)
-                    
+
                     Spacer()
-                    
+
                     if !suggestions.isEmpty {
                         Text("\(suggestions.filter(\.isSelected).count) selected")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    
+
                     Button("Create Tasks") {
                         Task {
                             await createSelectedTasks()
                         }
-                        
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(suggestions.filter(\.isSelected).isEmpty)
@@ -154,17 +156,18 @@ struct TaskSplitterSheet: View {
             suggestions = splitter.suggestions
         }
     }
-    
+
     private func createSelectedTasks() async {
         let selected = suggestions.filter(\.isSelected)
-            
+
         for (index, suggestion) in selected.enumerated() {
-            let dueDate = Calendar.current.date(
-                byAdding: .day,
-                value: index,
-                to: Date()
-            ) ?? Date()
-                
+            let dueDate =
+                Calendar.current.date(
+                    byAdding: .day,
+                    value: index,
+                    to: Date()
+                ) ?? Date()
+
             let task = ToDoTaskDTO(
                 name: suggestion.name,
                 pomodoroTime: TimeInterval(suggestion.estimatedMinutes * 60),
@@ -173,7 +176,7 @@ struct TaskSplitterSheet: View {
             )
             _ = try? await store?.addTask(task)
         }
-        
+
         await MainActor.run { dismiss() }
     }
 
@@ -183,11 +186,10 @@ struct TaskSplitterSheet: View {
         } else {
             globalCategories.append(category)
         }
-        
+
         // Update all selected suggestions with global categories
         for index in suggestions.indices where suggestions[index].isSelected {
             suggestions[index].selectedCategories = globalCategories
         }
     }
 }
-

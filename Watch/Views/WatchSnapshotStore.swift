@@ -14,7 +14,7 @@ import XCGLogger
 final class WatchSnapshotStore {
     static let shared = WatchSnapshotStore()
 
-    private(set) var snapshot: Snapshot = Snapshot(
+    private(set) var snapshot: Snapshot = .init(
         revision: 0,
         tasks: [],
         habits: [],
@@ -28,8 +28,10 @@ final class WatchSnapshotStore {
 
     private var lastAppliedRevision: Int = 0
     private var consumerTask: Task<Void, Never>?
-    private var logger : XCGLogger { LogManager.shared.log }
-    
+    private var logger: XCGLogger {
+        LogManager.shared.log
+    }
+
     private init() {}
 
     func start() {
@@ -44,7 +46,9 @@ final class WatchSnapshotStore {
     private func apply(_ msg: WireMessage) {
         switch msg {
         case .snapshot(let s), .complicationSnapshot(let s):
-            logger.debug("Received snapshot rev=\(s.revision) (last applied=\(lastAppliedRevision)) tasks=\(s.tasks.count) habits=\(s.habits.count) activePomodoro=\(s.activePomodoro != nil)")
+            logger.debug(
+                "Received snapshot rev=\(s.revision) (last applied=\(lastAppliedRevision)) tasks=\(s.tasks.count) habits=\(s.habits.count) activePomodoro=\(s.activePomodoro != nil)"
+            )
             guard s.revision > lastAppliedRevision else { return }
             lastAppliedRevision = s.revision
             snapshot = s
@@ -56,7 +60,9 @@ final class WatchSnapshotStore {
         case .event(let evt):
             switch evt {
             case .pomodoroStarted(let dto):
-                if let end = dto.endTime, end <= Date() { return }
+                if let end = dto.endTime, end <= Date() {
+                    return
+                }
                 activePomodoro = dto
             case .pomodoroStopped:
                 activePomodoro = nil
@@ -83,7 +89,12 @@ final class WatchSnapshotStore {
 
     func logHabitProgress(_ habit: HabitDTO, amount: Double? = nil) {
         optimisticallyIncrementedHabits.insert(habit.uuid)
-        Task { try? await ConnectivityTransport.shared.send(.logHabitProgress(habit.uuid, amount: amount)) }
+        let tappedAt = Date()
+        Task {
+            try? await ConnectivityTransport.shared.send(
+                .logHabitProgressAt(habit.uuid, amount: amount, timestamp: tappedAt)
+            )
+        }
     }
 
     func isHabitOptimisticallyIncremented(_ uuid: UUID) -> Bool {
@@ -137,19 +148,30 @@ final class WatchSnapshotStore {
             let snap = try await ConnectivityTransport.shared.fetchSnapshot()
             apply(.snapshot(snap))
         } catch {
-            LogManager.shared.log.debug("[WatchSnapshotStore] fetchSnapshot failed: \(error). Falling back to cached snapshot.")
+            LogManager.shared.log.debug(
+                "[WatchSnapshotStore] fetchSnapshot failed: \(error). Falling back to cached snapshot."
+            )
             let tasks = (try? WidgetFileCoordinator.shared.readTasks()) ?? []
             let habits: [HabitDTO]
             do {
                 habits = try WidgetFileCoordinator.shared.readHabits()
             } catch {
-                LogManager.shared.log.error("[WatchSnapshotStore] readHabits failed: \(error). Using empty habits.")
+                LogManager.shared.log.error(
+                    "[WatchSnapshotStore] readHabits failed: \(error). Using empty habits."
+                )
                 habits = []
             }
-            let progress = WidgetFileCoordinator.shared.readWeeklyProgress() ?? WeeklyProgress(completed: 0, target: 0, error: nil, categories: [])
-            snapshot = Snapshot(revision: 0, tasks: tasks, habits: habits, habitOccurrences: [:], progress: progress, activePomodoro: nil)
+            let progress =
+                WidgetFileCoordinator.shared.readWeeklyProgress()
+                ?? WeeklyProgress(completed: 0, target: 0, error: nil, categories: [])
+            snapshot = Snapshot(
+                revision: 0, tasks: tasks, habits: habits, habitOccurrences: [:],
+                progress: progress,
+                activePomodoro: nil
+            )
             if let data = try? JSONEncoder().encode(snapshot),
-               let string = String(data: data, encoding: .utf8) {
+                let string = String(data: data, encoding: .utf8)
+            {
                 logger.debug(string)
             } else {
                 logger.debug("Failed to encode fallback snapshot")

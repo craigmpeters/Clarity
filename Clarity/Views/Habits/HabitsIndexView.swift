@@ -1,5 +1,5 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct HabitsIndexView: View {
     @Environment(\.modelContext) private var modelContext
@@ -20,50 +20,57 @@ struct HabitsIndexView: View {
     var body: some View {
         List {
             if !atRiskHabits.isEmpty {
-                    Section("Streak at Risk") {
-                        ForEach(atRiskHabits, id: \.uuid) { habit in
-                            HabitRowView(
-                                habit: habit,
-                                occurrence: occurrences[habit.uuid],
-                                recentOccurrences: recentOccurrences[habit.uuid] ?? [],
-                                streak: streaks[habit.uuid] ?? HabitStreakResult(current: 0, longest: 0, freezesEarned: 0, atRisk: false, missedPeriod: nil),
-                                onIncrement: { increment(habit) },
-                                onLogAmount: { loggingHabit = habit },
-                                onEdit: { editingHabit = habit },
-                                onArchive: { archive(habit) },
-                                onDelete: { habitToDelete = habit },
-                                onCompleteAnyway: { completeAnyway(habit) },
-                                onUseFreeze: { useFreeze(habit) },
-                                onGenerateArt: { generateArt(habit) },
-                                isGeneratingArt: generatingArtHabitIDs.contains(habit.uuid),
-                                isImagePlaygroundAvailable: isImagePlaygroundAvailable
-                            )
-                        }
-                    }
-                }
-
-                Section("Today") {
-                    ForEach(todayHabits, id: \.uuid) { habit in
+                Section("Streak at Risk") {
+                    ForEach(atRiskHabits, id: \.uuid) { habit in
                         HabitRowView(
                             habit: habit,
                             occurrence: occurrences[habit.uuid],
                             recentOccurrences: recentOccurrences[habit.uuid] ?? [],
-                            streak: streaks[habit.uuid] ?? HabitStreakResult(current: 0, longest: 0, freezesEarned: 0, atRisk: false, missedPeriod: nil),
+                            streak: streaks[habit.uuid]
+                                ?? HabitStreakResult(
+                                    current: 0, longest: 0, freezesEarned: 0, atRisk: false,
+                                    missedPeriod: nil
+                                ),
                             onIncrement: { increment(habit) },
                             onLogAmount: { loggingHabit = habit },
                             onEdit: { editingHabit = habit },
                             onArchive: { archive(habit) },
                             onDelete: { habitToDelete = habit },
-                                onCompleteAnyway: { completeAnyway(habit) },
-                                onUseFreeze: { useFreeze(habit) },
-                                onGenerateArt: { generateArt(habit) },
-                                isGeneratingArt: generatingArtHabitIDs.contains(habit.uuid),
-                                isImagePlaygroundAvailable: isImagePlaygroundAvailable
-                            )
-
+                            onCompleteAnyway: { completeAnyway(habit) },
+                            onUseFreeze: { useFreeze(habit) },
+                            onGenerateArt: { generateArt(habit) },
+                            isGeneratingArt: generatingArtHabitIDs.contains(habit.uuid),
+                            isImagePlaygroundAvailable: isImagePlaygroundAvailable
+                        )
                     }
                 }
             }
+
+            Section("Today") {
+                ForEach(todayHabits, id: \.uuid) { habit in
+                    HabitRowView(
+                        habit: habit,
+                        occurrence: occurrences[habit.uuid],
+                        recentOccurrences: recentOccurrences[habit.uuid] ?? [],
+                        streak: streaks[habit.uuid]
+                            ?? HabitStreakResult(
+                                current: 0, longest: 0, freezesEarned: 0, atRisk: false,
+                                missedPeriod: nil
+                            ),
+                        onIncrement: { increment(habit) },
+                        onLogAmount: { loggingHabit = habit },
+                        onEdit: { editingHabit = habit },
+                        onArchive: { archive(habit) },
+                        onDelete: { habitToDelete = habit },
+                        onCompleteAnyway: { completeAnyway(habit) },
+                        onUseFreeze: { useFreeze(habit) },
+                        onGenerateArt: { generateArt(habit) },
+                        isGeneratingArt: generatingArtHabitIDs.contains(habit.uuid),
+                        isImagePlaygroundAvailable: isImagePlaygroundAvailable
+                    )
+                }
+            }
+        }
         .navigationTitle("Habits")
         .accessibilityIdentifier("habit-list")
         .toolbar {
@@ -77,75 +84,81 @@ struct HabitsIndexView: View {
             }
         }
 
-            .refreshable { await refresh() }
-            .task {
-                if store == nil {
-                    store = await StoreRegistry.shared.store(for: modelContext.container)
+        .refreshable { await refresh() }
+        .task {
+            if store == nil {
+                store = await StoreRegistry.shared.store(for: modelContext.container)
+            }
+            await refresh()
+        }
+        .sheet(isPresented: $showingForm) {
+            HabitWizardView()
+        }
+        .sheet(item: $editingHabit) { habit in
+            HabitFormView(habit: habit)
+        }
+        .sheet(item: $loggingHabit) { habit in
+            LogHabitAmountSheet(
+                habit: habit, initialAmount: occurrences[habit.uuid]?.currentAmount ?? 0
+            ) { amount in
+                setAmount(habit, amount: amount)
+            }
+        }
+        .onChange(of: habits) { _, _ in
+            Task { await refresh() }
+        }
+        .task {
+            if store == nil {
+                store = await StoreRegistry.shared.store(for: modelContext.container)
+            }
+            await refresh()
+            checkImagePlaygroundAvailability()
+            let synced = await HabitHealthKitSync.shared.syncAllHabits()
+            for dto in synced where dto.becameCompleted {
+                if let habit = habitDTOs.first(where: { $0.uuid == dto.habitUUID }) {
+                    companion.recordEvent("Habit completed: \(habit.name)")
+                    companion.triggerHabitCompleted(habit: habit, completedOccurrence: dto)
                 }
-                await refresh()
             }
-            .sheet(isPresented: $showingForm) {
-                HabitWizardView()
-            }
-            .sheet(item: $editingHabit) { habit in
-                HabitFormView(habit: habit)
-            }
-            .sheet(item: $loggingHabit) { habit in
-                LogHabitAmountSheet(habit: habit, initialAmount: occurrences[habit.uuid]?.currentAmount ?? 0) { amount in
-                    setAmount(habit, amount: amount)
+            await refresh()
+        }
+        .refreshable {
+            await refresh()
+            let synced = await HabitHealthKitSync.shared.syncAllHabits()
+            for dto in synced where dto.becameCompleted {
+                if let habit = habitDTOs.first(where: { $0.uuid == dto.habitUUID }) {
+                    companion.recordEvent("Habit completed: \(habit.name)")
+                    companion.triggerHabitCompleted(habit: habit, completedOccurrence: dto)
                 }
             }
-            .onChange(of: habits) { _, _ in
-                Task { await refresh() }
-            }
-            .task {
-                if store == nil {
-                    store = await StoreRegistry.shared.store(for: modelContext.container)
-                }
-                await refresh()
-                checkImagePlaygroundAvailability()
-                let synced = await HabitHealthKitSync.shared.syncAllHabits()
-                for dto in synced where dto.becameCompleted {
-                    if let habit = habitDTOs.first(where: { $0.uuid == dto.habitUUID }) {
-                        companion.recordEvent("Habit completed: \(habit.name)")
-                        companion.triggerHabitCompleted(habit: habit, completedOccurrence: dto)
+            await refresh()
+        }
+        .confirmationDialog(
+            "Delete Habit?",
+            isPresented: Binding(
+                get: { habitToDelete != nil },
+                set: {
+                    if !$0 {
+                        habitToDelete = nil
                     }
                 }
-                await refresh()
-            }
-            .refreshable {
-                await refresh()
-                let synced = await HabitHealthKitSync.shared.syncAllHabits()
-                for dto in synced where dto.becameCompleted {
-                    if let habit = habitDTOs.first(where: { $0.uuid == dto.habitUUID }) {
-                        companion.recordEvent("Habit completed: \(habit.name)")
-                        companion.triggerHabitCompleted(habit: habit, completedOccurrence: dto)
-                    }
-                }
-                await refresh()
-            }
-            .confirmationDialog(
-                "Delete Habit?",
-                isPresented: Binding(
-                    get: { habitToDelete != nil },
-                    set: { if !$0 { habitToDelete = nil } }
-                ),
-                titleVisibility: .visible
-            ) {
-                Button("Delete", role: .destructive) {
-                    if let habit = habitToDelete {
-                        delete(habit)
-                    }
-                    habitToDelete = nil
-                }
-                Button("Cancel", role: .cancel) {
-                    habitToDelete = nil
-                }
-            } message: {
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
                 if let habit = habitToDelete {
-                    Text("Are you sure you want to delete \"\(habit.name)\"? This cannot be undone.")
+                    delete(habit)
                 }
+                habitToDelete = nil
             }
+            Button("Cancel", role: .cancel) {
+                habitToDelete = nil
+            }
+        } message: {
+            if let habit = habitToDelete {
+                Text("Are you sure you want to delete \"\(habit.name)\"? This cannot be undone.")
+            }
+        }
     }
 
     private var activeHabits: [HabitDTO] {
@@ -167,17 +180,33 @@ struct HabitsIndexView: View {
             await MainActor.run {
                 habitDTOs = fetched
             }
-            try await withThrowingTaskGroup(of: (UUID, HabitOccurrenceDTO?, [HabitOccurrenceDTO], HabitStreakResult).self) { group in
+            try await withThrowingTaskGroup(
+                of: (UUID, HabitOccurrenceDTO?, [HabitOccurrenceDTO], HabitStreakResult).self
+            ) { group in
                 for habit in fetched {
                     group.addTask {
                         let calendar = HabitStreakCalculator.streakCalendar()
                         let now = Date()
                         let today = calendar.startOfDay(for: now)
-                        let rollingStart = calendar.date(byAdding: .day, value: -6, to: today) ?? today
-                        let history = try await store.fetchHabitHistory(habit.uuid, from: rollingStart, to: now)
-                        let todayOccurrence = history.first { calendar.isDate($0.periodStart, inSameDayAs: now) }
-                        let allHistory = try await store.fetchHabitHistory(habit.uuid, from: Date.distantPast, to: now)
-                        let streak = HabitStreakCalculator.streak(occurrences: allHistory, frequency: habit.weeklyFrequency, freezes: habit.streakFreezes)
+                        let rollingStart =
+                            calendar.date(byAdding: .day, value: -6, to: today) ?? today
+                        let history = try await store.fetchHabitHistory(
+                            habit.uuid, from: rollingStart, to: now
+                        )
+                        let todayOccurrence = history.first {
+                            calendar.isDate($0.periodStart, inSameDayAs: now)
+                        }
+                        let allHistory = try await store.fetchHabitHistory(
+                            habit.uuid, from: Date.distantPast, to: now
+                        )
+                        let streak = HabitStreakCalculator.streak(
+                            occurrences: allHistory,
+                            frequency: habit.weeklyFrequency,
+                            freezes: habit.streakFreezes,
+                            dailyTarget: habit.dailyTarget,
+                            windowDays: habit.windowDays ?? HabitConfig.defaultWindowDays,
+                            freezesSpent: habit.freezesSpent
+                        )
                         return (habit.uuid, todayOccurrence, history, streak)
                     }
                 }
@@ -273,30 +302,30 @@ struct HabitsIndexView: View {
 
     private func checkImagePlaygroundAvailability() {
         #if os(iOS) && canImport(ImagePlayground)
-        if #available(iOS 26.0, *) {
-            isImagePlaygroundAvailable = HabitArtService().isAvailable
-        } else {
-            isImagePlaygroundAvailable = false
-        }
+            if #available(iOS 26.0, *) {
+                isImagePlaygroundAvailable = HabitArtService().isAvailable
+            } else {
+                isImagePlaygroundAvailable = false
+            }
         #else
-        isImagePlaygroundAvailable = false
+            isImagePlaygroundAvailable = false
         #endif
     }
 
     private func generateArt(_ habit: HabitDTO) {
         #if os(iOS) && canImport(ImagePlayground)
-        guard #available(iOS 26.0, *) else { return }
-        Task { @MainActor in
-            generatingArtHabitIDs.insert(habit.uuid)
-            defer { generatingArtHabitIDs.remove(habit.uuid) }
-            do {
-                let service = HabitArtService()
-                let url = try await service.generate(for: habit)
-                saveArtwork(url, for: habit)
-            } catch {
-                LogManager.shared.log.error("Failed to generate habit art: \(error)")
+            guard #available(iOS 26.0, *) else { return }
+            Task { @MainActor in
+                generatingArtHabitIDs.insert(habit.uuid)
+                defer { generatingArtHabitIDs.remove(habit.uuid) }
+                do {
+                    let service = HabitArtService()
+                    let url = try await service.generate(for: habit)
+                    saveArtwork(url, for: habit)
+                } catch {
+                    LogManager.shared.log.error("Failed to generate habit art: \(error)")
+                }
             }
-        }
         #endif
     }
 
@@ -304,13 +333,19 @@ struct HabitsIndexView: View {
         guard let store = store else { return }
         Task { @MainActor in
             do {
-                guard let filename = try WidgetFileCoordinator.shared.copyArtwork(from: url, for: habit.uuid) else {
+                guard
+                    let filename = try WidgetFileCoordinator.shared.copyArtwork(
+                        from: url, for: habit.uuid
+                    )
+                else {
                     LogManager.shared.log.error("Failed to copy artwork to app group")
                     return
                 }
                 _ = try await store.updateHabitArtwork(habit.uuid, filename: filename)
                 #if os(iOS)
-                PhoneConnectivityCoordinator.shared.transferHabitArtwork(filename: filename, for: habit.uuid)
+                    PhoneConnectivityCoordinator.shared.transferHabitArtwork(
+                        filename: filename, for: habit.uuid
+                    )
                 #endif
                 await refresh()
             } catch {
@@ -356,10 +391,9 @@ struct LogHabitAmountSheet: View {
 }
 
 #if DEBUG
-#Preview() {
-    HabitsIndexView()
-        .modelContainer(PreviewData.shared.previewContainer)
-        .environment(CompanionService.shared)
-    
-}
+    #Preview() {
+        HabitsIndexView()
+            .modelContainer(PreviewData.shared.previewContainer)
+            .environment(CompanionService.shared)
+    }
 #endif

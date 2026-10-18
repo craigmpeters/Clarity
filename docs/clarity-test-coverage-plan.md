@@ -26,8 +26,8 @@ Scope: `ClarityTests` unit-test target for the iOS app (`Clarity.app`) which inc
 
 ## Business assumptions (correct if wrong)
 
-1. A habit week runs **Sunday → Saturday** (`firstWeekday = 1`), succeeds when completed or frozen days ≥ `weeklyFrequency`, freezes are earned at **+1 per 7-day streak capped at 3**, and the grace period is **7 days**.
-2. `HabitStreakResult.longest` resetting to 0 on a break is intentional (it tracks the current streak's longest, not all-time).
+1. Habit streak / strength / freeze balances are computed by `HabitProgressEngine` over a trailing `windowDays` (default 7, allowed 7/14/30). The persisted `weeklyFrequency` field is reinterpreted as the target days per window. Freezes are earned at **+1 per `freezeEarnIntervalDays` completed days** (default 7), capped at `maxFreezes` (default 3), and the grace period is **7 days** (`gracePeriodDays`). Engine evaluation never depends on the calendar week boundary — only on the trailing `windowDays` window ending today.
+2. `HabitStreakResult.longest` is the true all-time maximum across the habit's full history (it does not reset on a break). The legacy "reset on break" behaviour was a spec misunderstanding; the current implementation is pinned by `HabitProgressEngineTests`.
 3. `CompletedTaskFilter.Month` matching everything is a placeholder, not the intended rule.
 4. Health-linked habit identifiers are exactly `water` / `steps` / `workouts` / `mindful` with canonical base units mL / count / minutes.
 
@@ -245,20 +245,23 @@ Test cases:
 - Round-trip set/get for each property.
 - `resetOnboardingState()` removes both onboarding keys and leaves others intact.
 
-### Step 14: `HabitStreakCalculatorGapTests.swift`
+### Step 14: `HabitStreakCalculatorGapTests.swift` (replaced by `HabitProgressEngineTests.swift`)
 
-Extend the existing `HabitStreakCalculatorTests.swift` or add a companion file.
+The legacy calendar-week gap tests were retired along with the calendar-week semantics. New rolling-engine coverage lives in `HabitProgressEngineTests.swift`:
 
-Target: `Shared/Models/HabitStreakCalculator.swift`.
-
-Test cases:
-- Same-day duplicate occurrences: most recent wins.
-- `frequency` clamping: `0` → `1`, `8` → `7`, negative → `1`.
-- Empty occurrences → zeros.
-- **Pin** `longest` resets to 0 after streak break.
-- `atRisk` boundary exactly at `missedPeriod` (included) and exactly at `graceEnd` (included).
-- `missedPeriod` value correctness.
-- Mixed `habitUUID` occurrences: **pin** the calculator does not filter by habit (caller's responsibility).
+- Cross-Saturday/Sunday boundary continuity (no reset on week boundary).
+- BST end (`2026-10-25`) without duplicated or skipped day.
+- Daily habit, one miss + freeze available → frozen, streak preserved, balance decremented.
+- Daily habit, one miss, no freeze → `current` resets, `longest` retained, strength decays ~5%.
+- 5-of-7 habit tolerates two misses in window; three breaks the run.
+- Partial credit (e.g. 720 / 2500 mL water) → credit ≈ 0.288.
+- Freeze earning: 7 non-consecutive completed days = 1 freeze; perfect-window bonus; cap at `maxFreezes`.
+- Streak reset NEVER lowers `freezesAvailable`.
+- Pause range: neutral, no freeze earned, strength carried forward.
+- Edge cases: empty history, single occurrence, future-dated occurrence ignored, same-day duplicates (latest wins).
+- Late-processed watch tap credits the tap's actual day (via `WatchCommand.logHabitProgressAt` timestamp).
+- Perf: 1,000 days evaluates well under 500 ms.
+- Old `HabitDTO` JSON without new keys decodes with defaults.
 
 ### Step 15: `ConnectivityWireTests.swift`
 

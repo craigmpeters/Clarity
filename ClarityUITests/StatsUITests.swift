@@ -11,7 +11,9 @@ final class StatsUITests: ClarityUITestCase {
         XCTAssertTrue(app.staticTexts["Daily Average"].exists)
 
         XCTAssertTrue(app.staticTexts["Habits"].exists)
-        XCTAssertTrue(app.staticTexts["Drink Water"].exists || app.staticTexts["No active habits yet."].exists)
+        XCTAssertTrue(
+            app.staticTexts["Drink Water"].exists || app.staticTexts["No active habits yet."].exists
+        )
     }
 
     func testExportMenuOpens() {

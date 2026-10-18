@@ -3,7 +3,7 @@ import UserNotifications
 /// Represents the available alarm sounds for a Pomodoro completion notification.
 enum PomodoroAlarmSound: Equatable {
     case `default`
-    case preset(name: String)   // "chime", "bell", "ding"
+    case preset(name: String)  // "chime", "bell", "ding"
     case custom(filename: String)
 
     // MARK: Display
@@ -16,8 +16,7 @@ enum PomodoroAlarmSound: Equatable {
             return name.prefix(1).uppercased() + name.dropFirst()
         case .custom(let filename):
             // Strip the .caf extension for display
-            let base = filename.hasSuffix(".caf") ? String(filename.dropLast(4)) : filename
-            return base
+            return filename.hasSuffix(".caf") ? String(filename.dropLast(4)) : filename
         }
     }
 
@@ -29,15 +28,15 @@ enum PomodoroAlarmSound: Equatable {
             return .default
         case .preset(let name):
             #if os(watchOS)
-            return .default
+                return .default
             #else
-            return UNNotificationSound(named: UNNotificationSoundName("pomodoro_\(name).caf"))
+                return UNNotificationSound(named: UNNotificationSoundName("pomodoro_\(name).caf"))
             #endif
         case .custom(let filename):
             #if os(watchOS)
-            return .default
+                return .default
             #else
-            return UNNotificationSound(named: UNNotificationSoundName(filename))
+                return UNNotificationSound(named: UNNotificationSoundName(filename))
             #endif
         }
     }
@@ -76,6 +75,6 @@ enum PomodoroAlarmSound: Equatable {
     static let allPresets: [PomodoroAlarmSound] = [
         .preset(name: "chime"),
         .preset(name: "bell"),
-        .preset(name: "ding")
+        .preset(name: "ding"),
     ]
 }

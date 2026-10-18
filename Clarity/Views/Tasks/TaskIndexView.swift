@@ -11,7 +11,8 @@ struct TaskIndexView: View {
     @State private var swipeOptions: TaskSwipeAndTapOptions?
 
     @Query(sort: \Category.name, order: .forward) private var allCategories: [Category]
-    @Query(filter: #Predicate<ToDoTask> { !$0.completed }, sort: \ToDoTask.due, order: .forward) private var allTasks: [ToDoTask]
+    @Query(filter: #Predicate<ToDoTask> { !$0.completed }, sort: \ToDoTask.due, order: .forward)
+    private var allTasks: [ToDoTask]
     @Query private var taskSwipeAndTapOptions: [TaskSwipeAndTapOptions]
 
     var body: some View {
@@ -23,7 +24,12 @@ struct TaskIndexView: View {
                 onEdit: { viewModel.editTask(ToDoTaskDTO(from: task)) },
                 onDelete: { viewModel.deleteTask(ToDoTaskDTO(from: task)) },
                 onComplete: { viewModel.completeTask(ToDoTaskDTO(from: task)) },
-                onStartTimer: { viewModel.startTimer(for: ToDoTaskDTO(from: task), selectedTask: &selectedTask, container: context.container) }
+                onStartTimer: {
+                    viewModel.startTimer(
+                        for: ToDoTaskDTO(from: task), selectedTask: &selectedTask,
+                        container: context.container
+                    )
+                }
             )
         }
         .id(viewModel.refreshTrigger)
@@ -57,16 +63,21 @@ struct TaskIndexView: View {
             LogManager.shared.log.debug("Finishing task on phone from Pomodoro completion")
             viewModel.completeTaskFromPomodoroNotification(userInfo: notification.userInfo)
         }
-        .sheet(isPresented: $viewModel.showingTaskForm, onDismiss: {
-            viewModel.taskToEdit = nil
-        }) {
+        .sheet(
+            isPresented: $viewModel.showingTaskForm,
+            onDismiss: {
+                viewModel.taskToEdit = nil
+            }
+        ) {
             TaskFormView(task: viewModel.taskToEdit)
         }
     }
 
     private func requestNotificationPermission() async {
         do {
-            _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
+            _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [
+                .alert, .badge, .sound,
+            ])
         } catch {
             LogManager.shared.log.error("Error requesting notification permission: \(error)")
         }
@@ -84,12 +95,12 @@ struct TaskIndexView: View {
 }
 
 #if DEBUG
-#Preview {
-    @Previewable @State var selectedTask: ToDoTaskDTO? = nil
-    TaskIndexView(
-        selectedTask: .constant(selectedTask)
-    )
-    .modelContainer(PreviewData.shared.previewContainer)
-    .environment(CompanionService.shared)
-}
+    #Preview {
+        @Previewable @State var selectedTask: ToDoTaskDTO? = nil
+        TaskIndexView(
+            selectedTask: .constant(selectedTask)
+        )
+        .modelContainer(PreviewData.shared.previewContainer)
+        .environment(CompanionService.shared)
+    }
 #endif

@@ -16,7 +16,7 @@ struct CompanionOverlayView: View {
     @State private var isDragging = false
     @State private var autoDismissTask: Task<Void, Never>? = nil
     @State private var showingChat = false
-    
+
     @State private var companionEnabled = UserDefaults.companionEnabled
 
     private let bubbleSize: CGFloat = 72
@@ -27,10 +27,16 @@ struct CompanionOverlayView: View {
             ZStack(alignment: .bottomTrailing) {
                 if companion.isVisible && companionEnabled, let message = companion.currentMessage {
                     expandedCard(message: message, geo: geo)
-                        .transition(.asymmetric(
-                            insertion: .scale(scale: 0.6, anchor: .bottomTrailing).combined(with: .opacity),
-                            removal: .scale(scale: 0.8, anchor: .bottomTrailing).combined(with: .opacity)
-                        ))
+                        .transition(
+                            .asymmetric(
+                                insertion: .scale(scale: 0.6, anchor: .bottomTrailing).combined(
+                                    with: .opacity
+                                ),
+                                removal: .scale(scale: 0.8, anchor: .bottomTrailing).combined(
+                                    with: .opacity
+                                )
+                            )
+                        )
                 } else {
                     idleBubble(geo: geo)
                         .accessibilityIdentifier("companion-bubble")
@@ -41,7 +47,9 @@ struct CompanionOverlayView: View {
         }
         .allowsHitTesting(true)
         .animation(.spring(response: 0.4, dampingFraction: 0.75), value: companion.isVisible)
-        .animation(.spring(response: 0.4, dampingFraction: 0.75), value: companion.currentMessage?.emotion)
+        .animation(
+            .spring(response: 0.4, dampingFraction: 0.75), value: companion.currentMessage?.emotion
+        )
         .sheet(isPresented: $showingChat) {
             CompanionChatView(companion: companion)
         }
@@ -148,7 +156,6 @@ struct CompanionOverlayView: View {
         .buttonStyle(.plain)
     }
 
-    @ViewBuilder
     private func speechBubble(text: String, isRightSide: Bool) -> some View {
         Text(text)
             .font(.subheadline)

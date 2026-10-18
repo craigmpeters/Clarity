@@ -15,7 +15,7 @@ extension UserDefaults {
             UserDefaults.standard.set(newValue, forKey: "hasCompletedOnboarding")
         }
     }
-    
+
     /// Tracks whether the user has seen the swipe gestures tutorial
     static var hasSeenSwipeGesturesTooltip: Bool {
         get {
@@ -25,7 +25,7 @@ extension UserDefaults {
             UserDefaults.standard.set(newValue, forKey: "hasSeenSwipeGesturesTooltip")
         }
     }
-    
+
     /// The persistence ID of the selected Pomodoro alarm sound (see PomodoroAlarmSound)
     static var pomodoroAlarmSoundID: String {
         get {
@@ -61,7 +61,9 @@ extension UserDefaults {
     static var companionEnabled: Bool {
         get {
             // Default to true on first launch
-            if UserDefaults.standard.object(forKey: "me.craigpeters.clarity.companionEnabled") == nil {
+            if UserDefaults.standard.object(forKey: "me.craigpeters.clarity.companionEnabled")
+                == nil
+            {
                 return true
             }
             return UserDefaults.standard.bool(forKey: "me.craigpeters.clarity.companionEnabled")
@@ -84,10 +86,13 @@ extension UserDefaults {
     /// The ID of the selected companion personality (see CompanionPersonality.id).
     static var companionPersonalityID: String {
         get {
-            UserDefaults.standard.string(forKey: "me.craigpeters.clarity.companionPersonalityID") ?? "otto"
+            UserDefaults.standard.string(forKey: "me.craigpeters.clarity.companionPersonalityID")
+                ?? "otto"
         }
         set {
-            UserDefaults.standard.set(newValue, forKey: "me.craigpeters.clarity.companionPersonalityID")
+            UserDefaults.standard.set(
+                newValue, forKey: "me.craigpeters.clarity.companionPersonalityID"
+            )
         }
     }
 

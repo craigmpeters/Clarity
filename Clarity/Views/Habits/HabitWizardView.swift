@@ -1,5 +1,5 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct HabitWizardView: View {
     @Environment(\.dismiss) private var dismiss
@@ -68,182 +68,205 @@ struct HabitWizardView: View {
                     store = await StoreRegistry.shared.store(for: modelContext.container)
                 }
                 if let store,
-                   let habits = try? await store.fetchHabits() {
+                    let habits = try? await store.fetchHabits()
+                {
                     state.takenHealthKitIdentifiers = Set(habits.compactMap(\.healthKitIdentifier))
                 }
             }
         }
     }
 
+    @ViewBuilder
     private var typeStep: some View {
-        Group {
-            Section("Is this a Health habit?") {
-                ForEach(HabitFormState.HabitType.allCases) { option in
-                    Button {
-                        state.habitType = option
-                        if option == .nonHealth {
-                            state.healthKitIdentifier = nil
-                        } else if state.healthKitIdentifier == nil {
-                            state.healthKitIdentifier =
-                                state.firstAvailableHealthKitIdentifier ?? state.healthKitOptions.first
-                            state.applyHealthKitDefaultsIfNeeded()
+        Section("Is this a Health habit?") {
+            ForEach(HabitFormState.HabitType.allCases) { option in
+                Button {
+                    state.habitType = option
+                    if option == .nonHealth {
+                        state.healthKitIdentifier = nil
+                    } else if state.healthKitIdentifier == nil {
+                        state.healthKitIdentifier =
+                            state.firstAvailableHealthKitIdentifier
+                            ?? state.healthKitOptions.first
+                        state.applyHealthKitDefaultsIfNeeded()
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: option.localizedIcon)
+                            .foregroundColor(option == .health ? .red : .accentColor)
+                            .frame(width: 24)
+                        Text(option.localizedTitle)
+                            .font(.headline)
+                        Spacer()
+                        if state.habitType == option {
+                            Image(systemName: "checkmark")
+                                .foregroundColor(.accentColor)
                         }
+                    }
+                }
+                .buttonStyle(.borderless)
+                .listRowBackground(
+                    state.habitType == option ? Color.accentColor.opacity(0.1) : Color.clear
+                )
+            }
+        }
+        .listRowSeparator(.hidden)
+
+        if state.habitType == .health {
+            Section("Supported Health types") {
+                ForEach(state.healthKitTypeOptions) { option in
+                    let taken = state.isHealthKitTypeTaken(option.id)
+                    Button {
+                        state.healthKitIdentifier = option.id
+                        HabitHealthKitSync.shared.requestAuthorizationIfNeeded(for: option.id)
+                        state.applyHealthKitDefaultsIfNeeded()
                     } label: {
                         HStack {
-                            Image(systemName: option.localizedIcon)
-                                .foregroundColor(option == .health ? .red : .accentColor)
+                            Image(systemName: option.icon)
+                                .foregroundColor(taken ? .secondary : .accentColor)
                                 .frame(width: 24)
-                            Text(option.localizedTitle)
-                                .font(.headline)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(option.title)
+                                    .font(.headline)
+                                Text(
+                                    taken
+                                        ? "Already linked to another habit"
+                                        : option.id.capitalized
+                                )
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            }
                             Spacer()
-                            if state.habitType == option {
+                            if state.healthKitIdentifier == option.id {
                                 Image(systemName: "checkmark")
                                     .foregroundColor(.accentColor)
                             }
                         }
                     }
                     .buttonStyle(.borderless)
-                    .listRowBackground(state.habitType == option ? Color.accentColor.opacity(0.1) : Color.clear)
+                    .disabled(taken)
+                    .listRowBackground(
+                        state.healthKitIdentifier == option.id
+                            ? Color.accentColor.opacity(0.1) : Color.clear
+                    )
                 }
             }
             .listRowSeparator(.hidden)
-
-            if state.habitType == .health {
-                Section("Supported Health types") {
-                    ForEach(state.healthKitTypeOptions) { option in
-                        let taken = state.isHealthKitTypeTaken(option.id)
-                        Button {
-                            state.healthKitIdentifier = option.id
-                            HabitHealthKitSync.shared.requestAuthorizationIfNeeded(for: option.id)
-                            state.applyHealthKitDefaultsIfNeeded()
-                        } label: {
-                            HStack {
-                                Image(systemName: option.icon)
-                                    .foregroundColor(taken ? .secondary : .accentColor)
-                                    .frame(width: 24)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(option.title)
-                                        .font(.headline)
-                                    Text(taken ? "Already linked to another habit" : option.id.capitalized)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                Spacer()
-                                if state.healthKitIdentifier == option.id {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.accentColor)
-                                }
-                            }
-                        }
-                        .buttonStyle(.borderless)
-                        .disabled(taken)
-                        .listRowBackground(state.healthKitIdentifier == option.id ? Color.accentColor.opacity(0.1) : Color.clear)
-                    }
-                }
-                .listRowSeparator(.hidden)
-            }
         }
     }
 
+    @ViewBuilder
     private var amountStep: some View {
-        Group {
-            Section("Habit Name") {
-                    TextField("e.g. Drink Water", text: $state.name)
-                        .accessibilityIdentifier("habit-wizard-name")
+        Section("Habit Name") {
+            TextField("e.g. Drink Water", text: $state.name)
+                .accessibilityIdentifier("habit-wizard-name")
+        }
 
-            }
-
-            Section("Unit") {
-                if state.habitType == .health, let option = state.selectedHealthKitTypeOption {
-                    HStack {
-                        Image(systemName: option.icon)
-                            .foregroundColor(.accentColor)
-                            .frame(width: 24)
-                        Text(option.title)
-                            .font(.headline)
-                        Spacer()
-                        Text(option.id.capitalized)
-                            .foregroundColor(.secondary)
-                    }
-
-                    if !state.availableUnits.isEmpty {
-                        Picker("Unit", selection: $state.unitLabel) {
-                            ForEach(state.availableUnits, id: \.self) { unit in
-                                Text(unit).tag(unit)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                    }
-                } else {
-                    TextField("e.g. glasses, pages, minutes", text: $state.unitLabel)
-                }
-            }
-
-            Section {
+        Section("Unit") {
+            if state.habitType == .health, let option = state.selectedHealthKitTypeOption {
                 HStack {
-                    Text("Increment size")
-                        .foregroundColor(.secondary)
+                    Image(systemName: option.icon)
+                        .foregroundColor(.accentColor)
+                        .frame(width: 24)
+                    Text(option.title)
+                        .font(.headline)
                     Spacer()
-                    TextField("Amount", value: $state.incrementStep, format: .number)
-                        .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.trailing)
-                        .onChange(of: state.incrementStep) { _, newValue in
-                            let upper = min(HabitConfig.maxIncrementStep, HabitConfig.dailyTargetRange(for: state.healthKitIdentifier).upperBound)
-                            state.incrementStep = max(min(newValue, upper), HabitConfig.incrementStepRange.lowerBound)
-                            state.didEditIncrement = true
-                        }
-                    Text(state.displayUnit)
+                    Text(option.id.capitalized)
                         .foregroundColor(.secondary)
                 }
 
-                HStack {
-                    Text("Number of increments")
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    HStack(spacing: 16) {
-                        Button {
-                            state.incrementCount = max(state.incrementCount - 1, 1)
-                            state.didEditCount = true
-                        } label: {
-                            Image(systemName: "minus")
-                                .frame(width: 24, height: 24)
+                if !state.availableUnits.isEmpty {
+                    Picker("Unit", selection: $state.unitLabel) {
+                        ForEach(state.availableUnits, id: \.self) { unit in
+                            Text(unit).tag(unit)
                         }
-                        .disabled(state.incrementCount <= 1)
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-
-                        Text("\(state.incrementCount)")
-                            .monospacedDigit()
-                            .frame(minWidth: 24)
-
-                        Button {
-                            state.incrementCount += 1
-                            state.didEditCount = true
-                        } label: {
-                            Image(systemName: "plus")
-                                .frame(width: 24, height: 24)
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
                     }
+                    .pickerStyle(.menu)
                 }
-            } header: {
-                Text("Daily Amount")
+            } else {
+                TextField("e.g. glasses, pages, minutes", text: $state.unitLabel)
             }
+        }
+
+        Section {
+            HStack {
+                Text("Increment size")
+                    .foregroundColor(.secondary)
+                Spacer()
+                TextField("Amount", value: $state.incrementStep, format: .number)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .onChange(of: state.incrementStep) { _, newValue in
+                        let upper = min(
+                            HabitConfig.maxIncrementStep,
+                            HabitConfig.dailyTargetRange(for: state.healthKitIdentifier)
+                                .upperBound
+                        )
+                        state.incrementStep = max(
+                            min(newValue, upper), HabitConfig.incrementStepRange.lowerBound
+                        )
+                        state.didEditIncrement = true
+                    }
+                Text(state.displayUnit)
+                    .foregroundColor(.secondary)
+            }
+
+            HStack {
+                Text("Number of increments")
+                    .foregroundColor(.secondary)
+                Spacer()
+                HStack(spacing: 16) {
+                    Button {
+                        state.incrementCount = max(state.incrementCount - 1, 1)
+                        state.didEditCount = true
+                    } label: {
+                        Image(systemName: "minus")
+                            .frame(width: 24, height: 24)
+                    }
+                    .disabled(state.incrementCount <= 1)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+
+                    Text("\(state.incrementCount)")
+                        .monospacedDigit()
+                        .frame(minWidth: 24)
+
+                    Button {
+                        state.incrementCount += 1
+                        state.didEditCount = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .frame(width: 24, height: 24)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            }
+        } header: {
+            Text("Daily Amount")
         }
     }
 
+    @ViewBuilder
     private var scheduleStep: some View {
-        Group {
-            Section("Days per Week") {
-                Stepper(value: $state.weeklyFrequency, in: 1...7) {
-                    Text("^[\(state.weeklyFrequency) days](inflect: true)")
+        Section("Target days") {
+            Stepper(value: $state.weeklyFrequency, in: 1...state.windowDays) {
+                Text("\(state.weeklyFrequency) of last \(state.windowDays) days")
+            }
+            Picker("Window", selection: $state.windowDays) {
+                ForEach(HabitConfig.supportedWindowDays, id: \.self) { days in
+                    Text("Last \(days) days").tag(days)
                 }
             }
-
-            Section("Categories") {
-                CategorySelectionView(selectedCategories: $state.selectedCategories)
+            .onChange(of: state.windowDays) { _, newWindow in
+                if state.weeklyFrequency > newWindow {
+                    state.weeklyFrequency = newWindow
+                }
             }
+        }
+
+        Section("Categories") {
+            CategorySelectionView(selectedCategories: $state.selectedCategories)
         }
     }
 
@@ -279,10 +302,10 @@ struct HabitWizardView: View {
                         .fontWeight(.semibold)
                 }
                 HStack {
-                    Text("Days per week")
+                    Text("Target days")
                         .foregroundColor(.secondary)
                     Spacer()
-                    Text("^[\(state.weeklyFrequency) days](inflect: true)")
+                    Text("\(state.weeklyFrequency) of last \(state.windowDays) days")
                         .fontWeight(.semibold)
                 }
                 if let option = state.selectedHealthKitTypeOption {
@@ -313,7 +336,8 @@ struct HabitWizardView: View {
                 await MainActor.run { dismiss() }
             } catch {
                 LogManager.shared.log.error("Failed to save habit: \(error)")
-                let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                let message =
+                    (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                 await MainActor.run {
                     saveError = message
                     showError = true

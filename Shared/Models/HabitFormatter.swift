@@ -70,12 +70,15 @@ enum HabitFormatter {
     static func formattedHealthKitMeasurement(value: Double, identifier: String) -> String {
         switch identifier {
         case "water":
-            let measurement = Measurement(value: value, unit: UnitVolume.milliliters).converted(to: preferredWaterUnit)
+            let measurement = Measurement(value: value, unit: UnitVolume.milliliters).converted(
+                to: preferredWaterUnit
+            )
             return makeMeasurementFormatter().string(from: measurement)
         case "steps":
             return "\(formattedWhole(value)) steps"
         case "workouts", "mindful":
-            return "\(formatted(value)) \(makeMeasurementFormatter().string(from: UnitDuration.minutes))"
+            return
+                "\(formatted(value)) \(makeMeasurementFormatter().string(from: UnitDuration.minutes))"
         default:
             return formatted(value)
         }
@@ -86,9 +89,12 @@ enum HabitFormatter {
         return "\(formatted(amount)) / \(formatted(target))\(unitSuffix)"
     }
 
-    static func progressDescription(amount: Double, target: Double, unit: String?, healthKitIdentifier: String?) -> String {
+    static func progressDescription(
+        amount: Double, target: Double, unit: String?, healthKitIdentifier: String?
+    ) -> String {
         if let identifier = healthKitIdentifier, unit == nil {
-            return "\(formattedHealthKitMeasurement(value: amount, identifier: identifier)) / \(formattedHealthKitMeasurement(value: target, identifier: identifier))"
+            return
+                "\(formattedHealthKitMeasurement(value: amount, identifier: identifier)) / \(formattedHealthKitMeasurement(value: target, identifier: identifier))"
         }
         return progressDescription(amount: amount, target: target, unit: unit)
     }

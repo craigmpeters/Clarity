@@ -6,13 +6,15 @@
 //
 
 import Foundation
-import Testing
 import SwiftData
+import Testing
+
 @testable import Clarity
 
 struct DTOCodableTests {
-
-    private func categoryDTO(name: String = "Work", color: Clarity.Category.CategoryColor = .Red, weeklyTarget: Int = 5) -> CategoryDTO {
+    private func categoryDTO(
+        name: String = "Work", color: Clarity.Category.CategoryColor = .Red, weeklyTarget: Int = 5
+    ) -> CategoryDTO {
         CategoryDTO(id: nil, name: name, color: color, weeklyTarget: weeklyTarget, uuid: UUID())
     }
 
@@ -37,12 +39,13 @@ struct DTOCodableTests {
     }
 
     @Test func toDoTaskDTODecodeWithMissingKeysUsesDefaults() throws {
-        let json = """
-        {
-            "name": "Minimal",
-            "due": 0
-        }
-        """.data(using: .utf8)!
+        let json = try #require(
+            """
+            {
+                "name": "Minimal",
+                "due": 0
+            }
+            """.data(using: .utf8))
         let decoded = try JSONDecoder().decode(ToDoTaskDTO.self, from: json)
         #expect(decoded.name == "Minimal")
         #expect(decoded.pomodoro == true)
@@ -66,12 +69,13 @@ struct DTOCodableTests {
     }
 
     @Test func categoryDTODecodeWithMissingKeysUsesDefaults() throws {
-        let json = """
-        {
-            "name": "Minimal",
-            "color": "Red"
-        }
-        """.data(using: .utf8)!
+        let json = try #require(
+            """
+            {
+                "name": "Minimal",
+                "color": "Red"
+            }
+            """.data(using: .utf8))
         let decoded = try JSONDecoder().decode(CategoryDTO.self, from: json)
         #expect(decoded.name == "Minimal")
         #expect(decoded.weeklyTarget == 0)

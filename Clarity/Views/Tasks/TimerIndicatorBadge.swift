@@ -9,12 +9,11 @@ import SwiftUI
 
 struct TimerIndicatorBadge: View {
     let task: ToDoTask
-    
-    
+
     private var pomodoroDescription: String {
-        return String(Int(task.pomodoroTime / 60 ))
+        return String(Int(task.pomodoroTime / 60))
     }
-    
+
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "timer")
@@ -28,10 +27,10 @@ struct TimerIndicatorBadge: View {
         .cornerRadius(6)
     }
 }
+
 #if DEBUG
-#Preview {
-    let task = PreviewData.shared.getToDoTask()
-    TimerIndicatorBadge(task: task)
-    
-}
+    #Preview {
+        let task = PreviewData.shared.getToDoTask()
+        TimerIndicatorBadge(task: task)
+    }
 #endif

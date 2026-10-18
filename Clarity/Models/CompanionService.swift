@@ -2,8 +2,9 @@
 // On-device AI companion using Foundation Models
 
 import SwiftUI
+
 #if canImport(FoundationModels)
-import FoundationModels
+    import FoundationModels
 #endif
 
 private nonisolated(unsafe) let log = LogManager.shared.log
@@ -33,22 +34,28 @@ enum CompanionModelAvailability: Sendable, Equatable {
     case deviceNotEligible
     case appleIntelligenceNotEnabled
     case modelNotReady
-    case unsupported   // FoundationModels not importable (older OS)
+    case unsupported  // FoundationModels not importable (older OS)
 
-    var isAvailable: Bool { self == .available }
+    var isAvailable: Bool {
+        self == .available
+    }
 
     var userFacingReason: String {
         switch self {
         case .available:
             return ""
         case .deviceNotEligible:
-            return "This device doesn't support Apple Intelligence. Your companion will use preset responses instead."
+            return
+                "This device doesn't support Apple Intelligence. Your companion will use preset responses instead."
         case .appleIntelligenceNotEnabled:
-            return "Apple Intelligence is turned off. Enable it in Settings → Apple Intelligence & Siri to unlock personalised responses."
+            return
+                "Apple Intelligence is turned off. Enable it in Settings → Apple Intelligence & Siri to unlock personalised responses."
         case .modelNotReady:
-            return "The Apple Intelligence model is still downloading. Your companion will use preset responses until it's ready."
+            return
+                "The Apple Intelligence model is still downloading. Your companion will use preset responses until it's ready."
         case .unsupported:
-            return "Apple Intelligence requires iOS 26 or later. Your companion will use preset responses instead."
+            return
+                "Apple Intelligence requires iOS 26 or later. Your companion will use preset responses instead."
         }
     }
 }
@@ -97,7 +104,7 @@ enum HabitStreakState: Sendable, Equatable {
             referenceDate: completedAt
         )
         let streak = result.current
-        let milestoneStreaks: Set<Int> = [7, 30, 100, 365]
+        let milestoneStreaks: Set = [7, 30, 100, 365]
 
         if milestoneStreaks.contains(streak) {
             return .milestone(streak: streak)
@@ -105,15 +112,20 @@ enum HabitStreakState: Sendable, Equatable {
         if result.atRisk {
             return .saved(streak: streak)
         }
-        if streak == 0 && hasPriorActivity(occurrences: completedOccurrences, referenceDate: completedAt) {
+        if streak == 0
+            && hasPriorActivity(occurrences: completedOccurrences, referenceDate: completedAt)
+        {
             return .restarted(streak: streak)
         }
         return .continued(streak: streak)
     }
 
-    private static func hasPriorActivity(occurrences: [HabitOccurrenceDTO], referenceDate: Date) -> Bool {
+    private static func hasPriorActivity(occurrences: [HabitOccurrenceDTO], referenceDate: Date)
+        -> Bool
+    {
         let calendar = HabitStreakCalculator.streakCalendar()
-        let currentWeekStart = calendar.dateInterval(of: .weekOfYear, for: referenceDate)?.start ?? referenceDate
+        let currentWeekStart =
+            calendar.dateInterval(of: .weekOfYear, for: referenceDate)?.start ?? referenceDate
         return occurrences.contains { occurrence in
             occurrence.completed && occurrence.periodStart < currentWeekStart
         }
@@ -149,8 +161,8 @@ protocol CompanionOutputValues: Sendable {
 }
 
 #if canImport(FoundationModels)
-@available(iOS 26.0, *)
-extension CompanionOutput: CompanionOutputValues {}
+    @available(iOS 26.0, *)
+    extension CompanionOutput: CompanionOutputValues {}
 #endif
 
 enum CompanionOutputMapper {
@@ -162,13 +174,19 @@ enum CompanionOutputMapper {
     ) -> CompanionMessage {
         let text = output.text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else {
-            return CompanionMessage(text: output.text, emotion: supportedEmotions.first ?? .happy, suggestedTask: nil)
+            return CompanionMessage(
+                text: output.text, emotion: supportedEmotions.first ?? .happy, suggestedTask: nil
+            )
         }
-        let emotion = CompanionEmotion(rawValue: output.emotion)
+        let emotion =
+            CompanionEmotion(rawValue: output.emotion)
             ?? supportedEmotions.first
             ?? .happy
-        let suggested = output.isSuggestingTask && trigger?.allowsTaskSuggestion == true
-            ? dueTasks.first { $0.name.localizedCaseInsensitiveCompare(output.suggestedTaskName) == .orderedSame }
+        let suggested =
+            output.isSuggestingTask && trigger?.allowsTaskSuggestion == true
+            ? dueTasks.first {
+                $0.name.localizedCaseInsensitiveCompare(output.suggestedTaskName) == .orderedSame
+            }
             : nil
         return CompanionMessage(text: text, emotion: emotion, suggestedTask: suggested)
     }
@@ -178,20 +196,22 @@ enum CompanionOutputMapper {
         lastChatHistoryMessage: ChatMessage?,
         trigger: CompanionTrigger?
     ) -> Bool {
-        guard let last = lastChatHistoryMessage else { return false }
-        guard last.sender == .companion else { return false }
-        if trigger?.allowsTaskSuggestion == true { return false }
+        guard let last = lastChatHistoryMessage, last.sender == .companion else { return false }
+        if trigger?.allowsTaskSuggestion == true {
+            return false
+        }
         return last.text == message.text
     }
 
     static func isModelCatalogError(_ error: Error) -> Bool {
         #if canImport(FoundationModels)
-        if #available(iOS 26.0, *) {
-            if let genError = error as? LanguageModelSession.GenerationError,
-               case .assetsUnavailable = genError {
-                return true
+            if #available(iOS 26.0, *) {
+                if let genError = error as? LanguageModelSession.GenerationError,
+                    case .assetsUnavailable = genError
+                {
+                    return true
+                }
             }
-        }
         #endif
         let ns = error as NSError
         if ns.domain == "FoundationModels.LanguageModelSession.GenerationError", ns.code == -1 {
@@ -204,21 +224,30 @@ enum CompanionOutputMapper {
 // MARK: - Guided generation output
 
 #if canImport(FoundationModels)
-@available(iOS 26.0, *)
-@Generable(description: "A companion message")
-struct CompanionOutput {
-    @Guide(description: "One or two warm, conversational sentences. No markdown or special formatting.")
-    var text: String
+    @available(iOS 26.0, *)
+    @Generable(description: "A companion message")
+    struct CompanionOutput {
+        @Guide(
+            description:
+                "One or two warm, conversational sentences. No markdown or special formatting."
+        )
+        var text: String
 
-    @Guide(description: "The emotional tone as a single word. Use one of the valid emotion values listed in the system instructions.")
-    var emotion: String
+        @Guide(
+            description:
+                "The emotional tone as a single word. Use one of the valid emotion values listed in the system instructions."
+        )
+        var emotion: String
 
-    @Guide(description: "True only if your message suggests the user work on a specific task from UPCOMING TASKS.")
-    var isSuggestingTask: Bool
+        @Guide(
+            description:
+                "True only if your message suggests the user work on a specific task from UPCOMING TASKS."
+        )
+        var isSuggestingTask: Bool
 
-    @Guide(description: "The exact task name when isSuggestingTask is true; ignored otherwise.")
-    var suggestedTaskName: String
-}
+        @Guide(description: "The exact task name when isSuggestingTask is true; ignored otherwise.")
+        var suggestedTaskName: String
+    }
 #endif
 
 // MARK: - Task context snapshot
@@ -231,7 +260,7 @@ struct CompanionTaskContext: Sendable {
         let dueDate: Date
         let pomodoroMinutes: Int
         let lastCompletedAt: Date?
-        let lastMoodValence: Double?   // -1.0 to +1.0, nil if never logged
+        let lastMoodValence: Double?  // -1.0 to +1.0, nil if never logged
         let categories: [String]
         var consistency: ConsistencyBand = .notEnoughHistory
         var pace: PaceSummary? = nil
@@ -244,14 +273,21 @@ struct CompanionTaskContext: Sendable {
         let currentStreak: Int
         let doneToday: Bool
         var consistency: ConsistencyBand = .notEnoughHistory
+        /// Rolling-window habit progress derived from `HabitProgressEngine`.
+        var windowCredit: Int = 0
+        var windowTarget: Int = 7
+        var windowDays: Int = 7
+        var strength: Double = 0
     }
 
-    let dueTasks: [TaskSummary]        // incomplete tasks, capped at 10
-    let recentlyCompleted: [TaskSummary] // last 5 completed tasks
-    let habits: [HabitSummary]         // active habits with streak/today status
+    let dueTasks: [TaskSummary]  // incomplete tasks, capped at 10
+    let recentlyCompleted: [TaskSummary]  // last 5 completed tasks
+    let habits: [HabitSummary]  // active habits with streak/today status
     let loadedAt: Date
 
-    static let empty = CompanionTaskContext(dueTasks: [], recentlyCompleted: [], habits: [], loadedAt: .distantPast)
+    static let empty = CompanionTaskContext(
+        dueTasks: [], recentlyCompleted: [], habits: [], loadedAt: .distantPast
+    )
 
     /// Human-readable summary injected into the system instructions.
     var instructionsBlock: String {
@@ -308,9 +344,15 @@ struct CompanionTaskContext: Sendable {
         if !habits.isEmpty {
             lines.append("HABITS:")
             for h in habits {
-                let frequency = h.weeklyFrequency == 7 ? "daily" : "\(h.weeklyFrequency) days/week"
-                let done = h.doneToday ? "done today" : "not done today"
-                lines.append("- \"\(h.name)\" (\(frequency)) — \(h.consistency.descriptor), streak \(h.currentStreak) days, \(done)")
+                let done = h.doneToday ? "done today" : "pending today"
+                let rolling = "\(h.windowCredit)/\(h.windowTarget) in last \(h.windowDays)d"
+                let strength =
+                    h.strength > 0
+                    ? ", strength \(Int((h.strength * 100).rounded()))%"
+                    : ""
+                lines.append(
+                    "- \"\(h.name)\" — \(h.consistency.descriptor), \(rolling)\(strength), streak \(h.currentStreak) days, \(done)"
+                )
             }
         }
 
@@ -323,38 +365,42 @@ struct CompanionTaskContext: Sendable {
 @MainActor
 @Observable
 final class CompanionService {
-
     static let shared = CompanionService()
 
     /// All available companion personalities. Add new ones here.
     static let allPersonalities: [any CompanionPersonality] = [
         OttoPersonality(),
-        GoosePersonality()
+        GoosePersonality(),
     ]
 
-    var currentMessage: CompanionMessage? = nil
+    var currentMessage: CompanionMessage?
     var isVisible: Bool = false
     var isGenerating: Bool = false
     var modelAvailability: CompanionModelAvailability = .unsupported
-    var startTaskRequest: UUID? = nil
+    var startTaskRequest: UUID?
     var chatHistory: [ChatMessage] = []
-    var mostRecentSuggestedTask: ChatMessage? { chatStore.fetchMostRecentTaskMessage() }
+    var mostRecentSuggestedTask: ChatMessage? {
+        chatStore.fetchMostRecentTaskMessage()
+    }
+
     private(set) var personality: any CompanionPersonality
 
-    // Opaque storage for LanguageModelSession (iOS 26+ only)
-    private var _session: Any? = nil
+    /// Opaque storage for LanguageModelSession (iOS 26+ only)
+    private var _session: Any?
 
-    // Live task context — updated by call sites before triggering
+    /// Live task context — updated by call sites before triggering
     private var taskContext: CompanionTaskContext = .empty
 
-    // Retained store reference so chat sheet can refresh context without prop-drilling
-    private var modelStore: ClarityModelActor? = nil
+    /// Retained store reference so chat sheet can refresh context without prop-drilling
+    private var modelStore: ClarityModelActor?
 
     // App-target-only chat history store. Lazily created so the SwiftData
     // container isn't spun up during app launch.
-    private var _chatStore: CompanionChatStore? = nil
+    private var _chatStore: CompanionChatStore?
     private var chatStore: CompanionChatStore {
-        if let existing = _chatStore { return existing }
+        if let existing = _chatStore {
+            return existing
+        }
         let store = CompanionChatStore()
         _chatStore = store
         return store
@@ -368,7 +414,8 @@ final class CompanionService {
 
     private init() {
         let savedID = UserDefaults.companionPersonalityID
-        personality = CompanionService.allPersonalities.first { $0.id == savedID } ?? OttoPersonality()
+        personality =
+            CompanionService.allPersonalities.first { $0.id == savedID } ?? OttoPersonality()
         restoreDigest()
         // NOTE: checkModelAvailability() is intentionally NOT called here.
         // It touches SystemLanguageModel.default which triggers FoundationModels
@@ -378,31 +425,35 @@ final class CompanionService {
 
     private func checkModelAvailability() {
         #if canImport(FoundationModels)
-        if #available(iOS 26.0, *) {
-            switch SystemLanguageModel.default.availability {
-            case .available:
-                modelAvailability = .available
-                log.info("checkModelAvailability: Apple Intelligence available")
-            case .unavailable(.deviceNotEligible):
-                modelAvailability = .deviceNotEligible
-                log.warning("checkModelAvailability: device not eligible for Apple Intelligence")
-            case .unavailable(.appleIntelligenceNotEnabled):
-                modelAvailability = .appleIntelligenceNotEnabled
-                log.warning("checkModelAvailability: Apple Intelligence not enabled")
-            case .unavailable(.modelNotReady):
-                modelAvailability = .modelNotReady
-                log.warning("checkModelAvailability: model not ready (still downloading)")
-            case .unavailable(let other):
-                modelAvailability = .modelNotReady
-                log.warning("checkModelAvailability: unavailable for unknown reason — \(String(describing: other))")
+            if #available(iOS 26.0, *) {
+                switch SystemLanguageModel.default.availability {
+                case .available:
+                    modelAvailability = .available
+                    log.info("checkModelAvailability: Apple Intelligence available")
+                case .unavailable(.deviceNotEligible):
+                    modelAvailability = .deviceNotEligible
+                    log.warning(
+                        "checkModelAvailability: device not eligible for Apple Intelligence"
+                    )
+                case .unavailable(.appleIntelligenceNotEnabled):
+                    modelAvailability = .appleIntelligenceNotEnabled
+                    log.warning("checkModelAvailability: Apple Intelligence not enabled")
+                case .unavailable(.modelNotReady):
+                    modelAvailability = .modelNotReady
+                    log.warning("checkModelAvailability: model not ready (still downloading)")
+                case .unavailable(let other):
+                    modelAvailability = .modelNotReady
+                    log.warning(
+                        "checkModelAvailability: unavailable for unknown reason — \(String(describing: other))"
+                    )
+                }
+            } else {
+                modelAvailability = .unsupported
+                log.warning("checkModelAvailability: iOS 26 not available")
             }
-        } else {
-            modelAvailability = .unsupported
-            log.warning("checkModelAvailability: iOS 26 not available")
-        }
         #else
-        modelAvailability = .unsupported
-        log.warning("checkModelAvailability: FoundationModels not importable")
+            modelAvailability = .unsupported
+            log.warning("checkModelAvailability: FoundationModels not importable")
         #endif
     }
 
@@ -466,7 +517,9 @@ final class CompanionService {
     }
 
     private func restoreDigest() {
-        cachedDigest = UserDefaults.standard.string(forKey: "me.craigpeters.clarity.companionDigest")
+        cachedDigest = UserDefaults.standard.string(
+            forKey: "me.craigpeters.clarity.companionDigest"
+        )
     }
 
     private var styleGuidance: String {
@@ -480,53 +533,59 @@ final class CompanionService {
     }
 
     #if canImport(FoundationModels)
-    @available(iOS 26.0, *)
-    @Generable(description: "A concise summary of a conversation")
-    fileprivate struct ConversationDigestOutput {
-        @Guide(description: "1–3 sentences summarizing what the user has been talking about, third person, no advice.")
-        var text: String
-    }
+        @available(iOS 26.0, *)
+        @Generable(description: "A concise summary of a conversation")
+        fileprivate struct ConversationDigestOutput {
+            @Guide(
+                description:
+                    "1–3 sentences summarizing what the user has been talking about, third person, no advice."
+            )
+            var text: String
+        }
     #endif
 
     #if canImport(FoundationModels)
-    @available(iOS 26.0, *)
-    private func updateConversationDigest() async {
-        guard modelAvailability.isAvailable else { return }
-        let conversational = chatHistory.filter { $0.sender != .event }
-        let tail = CompanionService.recentVerbatimCount
-        guard conversational.count > tail else {
-            cachedDigest = nil
-            return
+        @available(iOS 26.0, *)
+        private func updateConversationDigest() async {
+            guard modelAvailability.isAvailable else { return }
+            let conversational = chatHistory.filter { $0.sender != .event }
+            let tail = CompanionService.recentVerbatimCount
+            guard conversational.count > tail else {
+                cachedDigest = nil
+                return
+            }
+
+            let older = Array(conversational.prefix(conversational.count - tail))
+            guard !older.isEmpty else {
+                cachedDigest = nil
+                return
+            }
+
+            let transcript = older.map { message in
+                let sender = message.sender == .user ? "User" : displayName
+                return "\(sender): \(message.text)"
+            }.joined(separator: "\n")
+
+            let instructions = """
+                Summarize the following conversation in 1–3 sentences, third person, no advice. \
+                Focus on what the user has been talking about.
+
+                \(transcript)
+                """
+            do {
+                let session = LanguageModelSession(instructions: instructions)
+                let response = try await session.respond(
+                    to: "Summarize the conversation above.",
+                    generating: ConversationDigestOutput.self
+                )
+                let summary = response.content.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                let bounded = String(summary.prefix(Self.digestCharacterCap))
+                cachedDigest = bounded.isEmpty ? nil : bounded
+            } catch {
+                log.warning("updateConversationDigest: failed to generate digest — \(error)")
+                // Keep the existing cachedDigest on failure.
+            }
         }
-
-        let older = Array(conversational.prefix(conversational.count - tail))
-        guard !older.isEmpty else {
-            cachedDigest = nil
-            return
-        }
-
-        let transcript = older.map { message in
-            let sender = message.sender == .user ? "User" : displayName
-            return "\(sender): \(message.text)"
-        }.joined(separator: "\n")
-
-        let instructions = """
-        Summarize the following conversation in 1–3 sentences, third person, no advice. \
-        Focus on what the user has been talking about.
-
-        \(transcript)
-        """
-        do {
-            let session = LanguageModelSession(instructions: instructions)
-            let response = try await session.respond(to: "Summarize the conversation above.", generating: ConversationDigestOutput.self)
-            let summary = response.content.text.trimmingCharacters(in: .whitespacesAndNewlines)
-            let bounded = String(summary.prefix(Self.digestCharacterCap))
-            cachedDigest = bounded.isEmpty ? nil : bounded
-        } catch {
-            log.warning("updateConversationDigest: failed to generate digest — \(error)")
-            // Keep the existing cachedDigest on failure.
-        }
-    }
     #endif
 
     // MARK: - Context loading
@@ -536,13 +595,15 @@ final class CompanionService {
         log.debug("loadContext: fetching tasks and habits")
         do {
             let now = Date()
-            let ninetyDaysAgo = now.addingTimeInterval(-90 * 86_400)
-            let thirteenWeeksAgo = now.addingTimeInterval(-13 * 7 * 86_400)
+            let ninetyDaysAgo = now.addingTimeInterval(-90 * 86400)
+            let thirteenWeeksAgo = now.addingTimeInterval(-13 * 7 * 86400)
 
             let incomplete = try await store.fetchTasks(filter: .all)
             let completed = try await store.fetchCompletedTasks(since: ninetyDaysAgo)
             let habits = try await store.fetchHabits()
-            log.debug("loadContext: \(incomplete.count) incomplete, \(completed.count) completed tasks, \(habits.count) habits")
+            log.debug(
+                "loadContext: \(incomplete.count) incomplete, \(completed.count) completed tasks, \(habits.count) habits"
+            )
 
             let scorer = ConsistencyScorer()
             let paceDetector = PaceDetector()
@@ -554,7 +615,9 @@ final class CompanionService {
             for task in completed {
                 completionsByUUID[task.uuid, default: []].append(task.completedAt ?? task.due)
                 for category in task.categories.map(\.name) {
-                    completionsByCategory[category, default: []].append(task.completedAt ?? task.due)
+                    completionsByCategory[category, default: []].append(
+                        task.completedAt ?? task.due
+                    )
                 }
             }
             for uuid in completionsByUUID.keys {
@@ -585,7 +648,8 @@ final class CompanionService {
                 return nil
             }
 
-            let dueSummaries = incomplete
+            let dueSummaries =
+                incomplete
                 .filter { !$0.completed }
                 .sorted { $0.due < $1.due }
                 .prefix(10)
@@ -611,7 +675,8 @@ final class CompanionService {
                     )
                 }
 
-            let recentSummaries = completed
+            let recentSummaries =
+                completed
                 .sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
                 .prefix(5)
                 .map { task -> CompanionTaskContext.TaskSummary in
@@ -635,11 +700,28 @@ final class CompanionService {
 
             var habitSummaries: [CompanionTaskContext.HabitSummary] = []
             for habit in habits {
-                let history = try await store.fetchHabitHistory(habit.uuid, from: thirteenWeeksAgo, to: now)
-                let streak = HabitStreakCalculator.streak(occurrences: history, frequency: habit.weeklyFrequency, freezes: habit.streakFreezes)
+                let history = try await store.fetchHabitHistory(
+                    habit.uuid, from: thirteenWeeksAgo, to: now
+                )
+                let windowDays = habit.windowDays ?? HabitConfig.defaultWindowDays
+                var pauseRanges: [ClosedRange<Date>] = []
+                if let from = habit.pausedFrom, let until = habit.pausedUntil {
+                    pauseRanges = [from...until]
+                }
+                let progress = HabitProgressEngine.evaluate(
+                    occurrences: history,
+                    dailyTarget: habit.dailyTarget,
+                    targetDaysPerWindow: habit.weeklyFrequency,
+                    windowDays: windowDays,
+                    freezesSpent: habit.freezesSpent,
+                    pauseRanges: pauseRanges,
+                    now: now,
+                    calendar: calendar
+                )
                 let today = calendar.startOfDay(for: now)
                 let doneToday = history.contains { occurrence in
-                    occurrence.completed && calendar.isDate(occurrence.periodStart, inSameDayAs: today)
+                    occurrence.completed
+                        && calendar.isDate(occurrence.periodStart, inSameDayAs: today)
                 }
                 let completedDates = history.filter(\.completed).map(\.periodStart)
                 let periods = ConsistencyScorer.habitPeriods(
@@ -647,14 +729,20 @@ final class CompanionService {
                     weeklyFrequency: habit.weeklyFrequency,
                     now: now
                 )
-                habitSummaries.append(CompanionTaskContext.HabitSummary(
-                    uuid: habit.uuid,
-                    name: habit.name,
-                    weeklyFrequency: habit.weeklyFrequency,
-                    currentStreak: streak.current,
-                    doneToday: doneToday,
-                    consistency: scorer.band(for: scorer.score(periods: periods))
-                ))
+                habitSummaries.append(
+                    CompanionTaskContext.HabitSummary(
+                        uuid: habit.uuid,
+                        name: habit.name,
+                        weeklyFrequency: habit.weeklyFrequency,
+                        currentStreak: progress.currentStreak,
+                        doneToday: doneToday,
+                        consistency: scorer.band(for: scorer.score(periods: periods)),
+                        windowCredit: Int(progress.windowCredit.rounded()),
+                        windowTarget: progress.windowTarget,
+                        windowDays: windowDays,
+                        strength: progress.strength
+                    )
+                )
             }
 
             taskContext = CompanionTaskContext(
@@ -663,14 +751,16 @@ final class CompanionService {
                 habits: habitSummaries,
                 loadedAt: now
             )
-            log.debug("loadContext: context built — \(self.taskContext.dueTasks.count) due, \(self.taskContext.recentlyCompleted.count) recent, \(self.taskContext.habits.count) habits")
+            log.debug(
+                "loadContext: context built — \(taskContext.dueTasks.count) due, \(taskContext.recentlyCompleted.count) recent, \(taskContext.habits.count) habits"
+            )
 
             // Invalidate the session so the next request picks up fresh instructions
             #if canImport(FoundationModels)
-            if #available(iOS 26.0, *) {
-                _session = nil
-                log.debug("loadContext: session invalidated for fresh instructions")
-            }
+                if #available(iOS 26.0, *) {
+                    _session = nil
+                    log.debug("loadContext: session invalidated for fresh instructions")
+                }
             #endif
         } catch {
             log.error("loadContext: failed to fetch tasks — \(error)")
@@ -680,51 +770,57 @@ final class CompanionService {
     // MARK: - Session management
 
     #if canImport(FoundationModels)
-    @available(iOS 26.0, *)
-    private var session: LanguageModelSession? {
-        get { _session as? LanguageModelSession }
-        set { _session = newValue }
-    }
-
-    /// Returns the current session, creating one lazily with up-to-date instructions.
-    @available(iOS 26.0, *)
-    private func currentSession() -> LanguageModelSession {
-        if let existing = session { return existing }
-        let base = personality.systemInstructions(name: displayName, contextBlock: taskContext.instructionsBlock)
-        let emotionList = personality.supportedEmotions.map(\.rawValue).joined(separator: ", ")
-        let historyBlock = recentConversationBlock(limit: Self.recentVerbatimCount)
-        var instructions = base + "\n\nValid emotion values: \(emotionList)"
-        if let cachedDigest, !cachedDigest.isEmpty {
-            let boundedDigest = String(cachedDigest.prefix(Self.digestCharacterCap))
-            instructions += "\n\nCONVERSATION SO FAR: \(boundedDigest)"
+        @available(iOS 26.0, *)
+        private var session: LanguageModelSession? {
+            get { _session as? LanguageModelSession }
+            set { _session = newValue }
         }
-        if !historyBlock.isEmpty {
-            instructions += "\n\nRECENT MESSAGES:\n\(historyBlock)"
-        }
-        instructions += "\n\n" + styleGuidance
-        log.debug("currentSession: creating new session")
-        log.debug("currentSession: instructions —\n\(instructions)")
-        let newSession = LanguageModelSession(instructions: instructions)
-        session = newSession
-        return newSession
-    }
 
-    private func recentConversationBlock(limit: Int) -> String {
-        let conversational = chatHistory.filter { $0.sender != .event }
-        let recent = Array(conversational.suffix(limit))
-        guard !recent.isEmpty else { return "" }
-        return recent.map { message in
-            let sender = message.sender == .user ? "User" : displayName
-            let text = String(message.text.prefix(Self.recentMessageCharacterCap))
-            return "\(sender): \(text)"
-        }.joined(separator: "\n")
-    }
+        /// Returns the current session, creating one lazily with up-to-date instructions.
+        @available(iOS 26.0, *)
+        private func currentSession() -> LanguageModelSession {
+            if let existing = session {
+                return existing
+            }
+            let base = personality.systemInstructions(
+                name: displayName, contextBlock: taskContext.instructionsBlock
+            )
+            let emotionList = personality.supportedEmotions.map(\.rawValue).joined(separator: ", ")
+            let historyBlock = recentConversationBlock(limit: Self.recentVerbatimCount)
+            var instructions = base + "\n\nValid emotion values: \(emotionList)"
+            if let cachedDigest, !cachedDigest.isEmpty {
+                let boundedDigest = String(cachedDigest.prefix(Self.digestCharacterCap))
+                instructions += "\n\nCONVERSATION SO FAR: \(boundedDigest)"
+            }
+            if !historyBlock.isEmpty {
+                instructions += "\n\nRECENT MESSAGES:\n\(historyBlock)"
+            }
+            instructions += "\n\n" + styleGuidance
+            log.debug("currentSession: creating new session")
+            log.debug("currentSession: instructions —\n\(instructions)")
+            let newSession = LanguageModelSession(instructions: instructions)
+            session = newSession
+            return newSession
+        }
+
+        private func recentConversationBlock(limit: Int) -> String {
+            let conversational = chatHistory.filter { $0.sender != .event }
+            let recent = Array(conversational.suffix(limit))
+            guard !recent.isEmpty else { return "" }
+            return recent.map { message in
+                let sender = message.sender == .user ? "User" : displayName
+                let text = String(message.text.prefix(Self.recentMessageCharacterCap))
+                return "\(sender): \(text)"
+            }.joined(separator: "\n")
+        }
     #endif
 
     // MARK: - Public trigger entry point
 
     private var companionEnabled: Bool {
-        if UserDefaults.standard.object(forKey: "me.craigpeters.clarity.companionEnabled") == nil { return true }
+        if UserDefaults.standard.object(forKey: "me.craigpeters.clarity.companionEnabled") == nil {
+            return true
+        }
         return UserDefaults.standard.bool(forKey: "me.craigpeters.clarity.companionEnabled")
     }
 
@@ -734,50 +830,58 @@ final class CompanionService {
             return
         }
         checkModelAvailability()
-        log.info("trigger: \(String(describing: event)) — model availability: \(String(describing: modelAvailability))")
+        log.info(
+            "trigger: \(String(describing: event)) — model availability: \(String(describing: modelAvailability))"
+        )
 
         #if canImport(FoundationModels)
-        if #available(iOS 26.0, *), modelAvailability.isAvailable {
-            Task { await generate(prompt: personality.prompt(for: event), fallbackEvent: event) }
-        } else {
-            log.debug("trigger: model unavailable, using fallback")
-            showFallback(for: event)
-        }
+            if #available(iOS 26.0, *), modelAvailability.isAvailable {
+                Task {
+                    await generate(prompt: personality.prompt(for: event), fallbackEvent: event)
+                }
+            } else {
+                log.debug("trigger: model unavailable, using fallback")
+                showFallback(for: event)
+            }
         #else
-        log.debug("trigger: FoundationModels not importable, using fallback")
-        showFallback(for: event)
+            log.debug("trigger: FoundationModels not importable, using fallback")
+            showFallback(for: event)
         #endif
     }
 
     /// Send a free-form message directly from the user to the companion.
     func chat(_ userMessage: String) {
         guard companionEnabled,
-              !isGenerating,
-              !userMessage.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+            !isGenerating,
+            !userMessage.trimmingCharacters(in: .whitespaces).isEmpty
+        else { return }
         checkModelAvailability()
-        log.info("chat: user message — \"\(userMessage)\" — model availability: \(String(describing: modelAvailability))")
+        log.info(
+            "chat: user message — \"\(userMessage)\" — model availability: \(String(describing: modelAvailability))"
+        )
 
         appendUserMessage(userMessage)
 
         #if canImport(FoundationModels)
-        if #available(iOS 26.0, *), modelAvailability.isAvailable {
-            let sanitized = userMessage
-                .replacingOccurrences(of: "\\", with: "\\\\")
-                .replacingOccurrences(of: "\"", with: "\\\"")
-                .replacingOccurrences(of: "\n", with: " ")
-                .replacingOccurrences(of: "\r", with: "")
-            let prompt = """
-                The user said: "\(sanitized)"
-                Respond to what they said first and foremost. Only bring in task or habit context if it naturally follows from their message. \n\(styleGuidance)
-                """
-            Task { await generate(prompt: prompt, fallbackEvent: nil) }
-        } else {
-            log.debug("chat: model unavailable, using fallback")
-            showChatFallback()
-        }
+            if #available(iOS 26.0, *), modelAvailability.isAvailable {
+                let sanitized =
+                    userMessage
+                    .replacingOccurrences(of: "\\", with: "\\\\")
+                    .replacingOccurrences(of: "\"", with: "\\\"")
+                    .replacingOccurrences(of: "\n", with: " ")
+                    .replacingOccurrences(of: "\r", with: "")
+                let prompt = """
+                    The user said: "\(sanitized)"
+                    Respond to what they said first and foremost. Only bring in task or habit context if it naturally follows from their message. \n\(styleGuidance)
+                    """
+                Task { await generate(prompt: prompt, fallbackEvent: nil) }
+            } else {
+                log.debug("chat: model unavailable, using fallback")
+                showChatFallback()
+            }
         #else
-        log.debug("chat: FoundationModels not importable, using fallback")
-        showChatFallback()
+            log.debug("chat: FoundationModels not importable, using fallback")
+            showChatFallback()
         #endif
     }
 
@@ -818,172 +922,188 @@ final class CompanionService {
     private static let generationTimeout: Duration = .seconds(30)
 
     #if canImport(FoundationModels)
-    /// Single generation path for both trigger events and free-form chat.
-    @available(iOS 26.0, *)
-    private func generate(prompt: String, fallbackEvent: CompanionTrigger?) async {
-        isGenerating = true
-        defer { isGenerating = false }
+        /// Single generation path for both trigger events and free-form chat.
+        @available(iOS 26.0, *)
+        private func generate(prompt: String, fallbackEvent: CompanionTrigger?) async {
+            isGenerating = true
+            defer { isGenerating = false }
 
-        // Guard against empty/malformed prompts reaching the model. The
-        // rollbackTranscript crash has not been reproduced with a known-bad
-        // input, but there's no reason to ever send an empty prompt.
-        let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedPrompt.isEmpty else {
-            log.warning("generate: empty prompt after trimming, using fallback")
-            showErrorFallback()
-            return
-        }
-
-        log.info("generate: prompt — \"\(trimmedPrompt)\"")
-
-        do {
-            let response = try await withGenerationTimeout {
-                try await self.currentSession().respond(to: trimmedPrompt, generating: CompanionOutput.self)
+            // Guard against empty/malformed prompts reaching the model. The
+            // rollbackTranscript crash has not been reproduced with a known-bad
+            // input, but there's no reason to ever send an empty prompt.
+            let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmedPrompt.isEmpty else {
+                log.warning("generate: empty prompt after trimming, using fallback")
+                showErrorFallback()
+                return
             }
-            show(response.content, trigger: fallbackEvent)
-            // Update the rolling digest off the critical path after a successful reply.
-            Task { await updateConversationDigest() }
-        } catch is GenerationTimeoutError {
-            // A hung session is presumed corrupt — drop it so the next request starts fresh.
-            log.error("generate: timed out after \(Self.generationTimeout) — dropping session")
-            session = nil
-            showErrorFallback()
-        } catch let genError as LanguageModelSession.GenerationError {
-            // Regardless of which specific case this is, never reuse the session
-            // after a GenerationError — the crash signature shows FoundationModels
-            // can leave its transcript in a corrupt state mid-failure.
-            switch genError {
-            case .assetsUnavailable:
-                log.warning("generate: assets unavailable — marking modelNotReady")
-                modelAvailability = .modelNotReady
+
+            log.info("generate: prompt — \"\(trimmedPrompt)\"")
+
+            do {
+                let response = try await withGenerationTimeout {
+                    try await self.currentSession().respond(
+                        to: trimmedPrompt, generating: CompanionOutput.self
+                    )
+                }
+                show(response.content, trigger: fallbackEvent)
+                // Update the rolling digest off the critical path after a successful reply.
+                Task { await updateConversationDigest() }
+            } catch is GenerationTimeoutError {
+                // A hung session is presumed corrupt — drop it so the next request starts fresh.
+                log.error("generate: timed out after \(Self.generationTimeout) — dropping session")
                 session = nil
                 showErrorFallback()
+            } catch let genError as LanguageModelSession.GenerationError {
+                // Regardless of which specific case this is, never reuse the session
+                // after a GenerationError — the crash signature shows FoundationModels
+                // can leave its transcript in a corrupt state mid-failure.
+                switch genError {
+                case .assetsUnavailable:
+                    log.warning("generate: assets unavailable — marking modelNotReady")
+                    modelAvailability = .modelNotReady
+                    session = nil
+                    showErrorFallback()
 
-            case .exceededContextWindowSize:
-                // Reset to a fresh session and retry once
-                log.warning("generate: context window exceeded — resetting session and retrying")
-                session = nil
-                do {
-                    let response = try await withGenerationTimeout {
-                        try await self.currentSession().respond(to: trimmedPrompt, generating: CompanionOutput.self)
+                case .exceededContextWindowSize:
+                    // Reset to a fresh session and retry once
+                    log.warning(
+                        "generate: context window exceeded — resetting session and retrying"
+                    )
+                    session = nil
+                    do {
+                        let response = try await withGenerationTimeout {
+                            try await self.currentSession().respond(
+                                to: trimmedPrompt, generating: CompanionOutput.self
+                            )
+                        }
+                        show(response.content, trigger: fallbackEvent)
+                    } catch {
+                        log.error("generate: retry after context reset failed — \(error)")
+                        session = nil
+                        showErrorFallback()
                     }
-                    show(response.content, trigger: fallbackEvent)
-                } catch {
-                    log.error("generate: retry after context reset failed — \(error)")
+
+                case .guardrailViolation:
+                    log.warning("generate: guardrail triggered unexpectedly — saving feedback")
+                    let feedbackData = session?.logFeedbackAttachment(
+                        sentiment: .negative,
+                        issues: [
+                            LanguageModelFeedback.Issue(
+                                category: .triggeredGuardrailUnexpectedly,
+                                explanation:
+                                    "Guardrail triggered on a benign productivity companion prompt"
+                            )
+                        ]
+                    )
+                    saveFeedback(feedbackData)
+                    session = nil
+                    showErrorFallback()
+
+                case .refusal(let refusal, _):
+                    let explanation = (try? await refusal.explanation)?.content
+                    log.warning(
+                        "generate: model refused — \(explanation ?? "no explanation provided")"
+                    )
+                    session = nil
+                    showErrorFallback()
+
+                default:
+                    log.error("generate: generation error — \(genError)")
                     session = nil
                     showErrorFallback()
                 }
-
-            case .guardrailViolation:
-                log.warning("generate: guardrail triggered unexpectedly — saving feedback")
-                let feedbackData = session?.logFeedbackAttachment(
-                    sentiment: .negative,
-                    issues: [
-                        LanguageModelFeedback.Issue(
-                            category: .triggeredGuardrailUnexpectedly,
-                            explanation: "Guardrail triggered on a benign productivity companion prompt"
-                        )
-                    ]
-                )
-                saveFeedback(feedbackData)
+            } catch {
+                // Drop the session on every error, not just the model-catalog case, so
+                // that any internal FM state corruption cannot leak into the next call.
                 session = nil
-                showErrorFallback()
-
-            case .refusal(let refusal, _):
-                let explanation = (try? await refusal.explanation)?.content
-                log.warning("generate: model refused — \(explanation ?? "no explanation provided")")
-                session = nil
-                showErrorFallback()
-
-            default:
-                log.error("generate: generation error — \(genError)")
-                session = nil
+                if isModelCatalogError(error) {
+                    log.warning("generate: model catalog unavailable — marking modelNotReady")
+                    modelAvailability = .modelNotReady
+                } else {
+                    log.error("generate: failed — \(error)")
+                }
                 showErrorFallback()
             }
-        } catch {
-            // Drop the session on every error, not just the model-catalog case, so
-            // that any internal FM state corruption cannot leak into the next call.
-            session = nil
-            if isModelCatalogError(error) {
-                log.warning("generate: model catalog unavailable — marking modelNotReady")
-                modelAvailability = .modelNotReady
-            } else {
-                log.error("generate: failed — \(error)")
+        }
+
+        /// Marker error thrown when a generation call exceeds `generationTimeout`.
+        private struct GenerationTimeoutError: Error {}
+
+        /// Race a single FoundationModels call against `Self.generationTimeout`.
+        /// Uses `withThrowingTaskGroup` so that whichever child loses the race is
+        /// cancelled automatically when the group returns.
+        @available(iOS 26.0, *)
+        private func withGenerationTimeout<T: Sendable>(
+            _ operation: @escaping @Sendable () async throws -> T
+        ) async throws -> T {
+            try await withThrowingTaskGroup(of: T.self) { group in
+                group.addTask { try await operation() }
+                group.addTask {
+                    try await Task.sleep(for: Self.generationTimeout)
+                    throw GenerationTimeoutError()
+                }
+                guard let result = try await group.next() else {
+                    throw GenerationTimeoutError()
+                }
+                group.cancelAll()
+                return result
             }
-            showErrorFallback()
         }
-    }
 
-    /// Marker error thrown when a generation call exceeds `generationTimeout`.
-    private struct GenerationTimeoutError: Error {}
+        @available(iOS 26.0, *)
+        private func saveFeedback(_ data: Data?) {
+            guard let data else { return }
+            let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let file = dir.appendingPathComponent(
+                "companion-feedback-\(Date().timeIntervalSince1970).jsonl"
+            )
+            try? data.write(to: file)
+            log.info("saveFeedback: written to \(file.path)")
+        }
 
-    /// Race a single FoundationModels call against `Self.generationTimeout`.
-    /// Uses `withThrowingTaskGroup` so that whichever child loses the race is
-    /// cancelled automatically when the group returns.
-    @available(iOS 26.0, *)
-    private func withGenerationTimeout<T: Sendable>(
-        _ operation: @escaping @Sendable () async throws -> T
-    ) async throws -> T {
-        try await withThrowingTaskGroup(of: T.self) { group in
-            group.addTask { try await operation() }
-            group.addTask {
-                try await Task.sleep(for: Self.generationTimeout)
-                throw GenerationTimeoutError()
+        @available(iOS 26.0, *)
+        private func show(_ output: CompanionOutput, trigger: CompanionTrigger?) {
+            let message = CompanionOutputMapper.map(
+                output,
+                trigger: trigger,
+                supportedEmotions: personality.supportedEmotions,
+                dueTasks: taskContext.dueTasks
+            )
+            log.debug(
+                "generate: text='\(message.text)' emotion=\(message.emotion.rawValue) suggestedTask=\(String(describing: message.suggestedTask?.name))"
+            )
+            guard appendCompanionMessage(message, trigger: trigger) else { return }
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                currentMessage = message
+                isVisible = true
             }
-            guard let result = try await group.next() else {
-                throw GenerationTimeoutError()
+        }
+
+        @discardableResult
+        private func appendCompanionMessage(_ message: CompanionMessage, trigger: CompanionTrigger?)
+            -> Bool
+        {
+            // Compare against the last *conversational* message so that an interleaved
+            // event row does not mask a true duplicate companion reply.
+            let lastConversational = chatHistory.last { $0.sender != .event }
+            if CompanionOutputMapper.isDuplicate(
+                message, lastChatHistoryMessage: lastConversational, trigger: trigger
+            ) {
+                log.debug("appendCompanionMessage: skipping duplicate companion message")
+                return false
             }
-            group.cancelAll()
-            return result
+            let historyMessage = ChatMessage(
+                sender: .companion,
+                text: message.text,
+                emotion: message.emotion.rawValue,
+                suggestedTaskUUID: message.suggestedTask?.uuid,
+                suggestedTaskName: message.suggestedTask?.name
+            )
+            chatStore.append(historyMessage)
+            chatHistory.append(historyMessage)
+            return true
         }
-    }
-
-
-    @available(iOS 26.0, *)
-    private func saveFeedback(_ data: Data?) {
-        guard let data else { return }
-        let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let file = dir.appendingPathComponent("companion-feedback-\(Date().timeIntervalSince1970).jsonl")
-        try? data.write(to: file)
-        log.info("saveFeedback: written to \(file.path)")
-    }
-
-    @available(iOS 26.0, *)
-    private func show(_ output: CompanionOutput, trigger: CompanionTrigger?) {
-        let message = CompanionOutputMapper.map(
-            output,
-            trigger: trigger,
-            supportedEmotions: personality.supportedEmotions,
-            dueTasks: taskContext.dueTasks
-        )
-        log.debug("generate: text='\(message.text)' emotion=\(message.emotion.rawValue) suggestedTask=\(String(describing: message.suggestedTask?.name))")
-        guard appendCompanionMessage(message, trigger: trigger) else { return }
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-            currentMessage = message
-            isVisible = true
-        }
-    }
-
-    @discardableResult
-    private func appendCompanionMessage(_ message: CompanionMessage, trigger: CompanionTrigger?) -> Bool {
-        // Compare against the last *conversational* message so that an interleaved
-        // event row does not mask a true duplicate companion reply.
-        let lastConversational = chatHistory.last { $0.sender != .event }
-        if CompanionOutputMapper.isDuplicate(message, lastChatHistoryMessage: lastConversational, trigger: trigger) {
-            log.debug("appendCompanionMessage: skipping duplicate companion message")
-            return false
-        }
-        let historyMessage = ChatMessage(
-            sender: .companion,
-            text: message.text,
-            emotion: message.emotion.rawValue,
-            suggestedTaskUUID: message.suggestedTask?.uuid,
-            suggestedTaskName: message.suggestedTask?.name
-        )
-        chatStore.append(historyMessage)
-        chatHistory.append(historyMessage)
-        return true
-    }
     #endif
 
     // MARK: - Error classification
@@ -1044,7 +1164,9 @@ final class CompanionService {
         }
         Task {
             do {
-                let allHistory = try await store.fetchHabitHistory(habit.uuid, from: Date.distantPast, to: Date.distantFuture)
+                let allHistory = try await store.fetchHabitHistory(
+                    habit.uuid, from: Date.distantPast, to: Date.distantFuture
+                )
                 let state = HabitStreakState.resolve(
                     habit: habit,
                     completedOccurrences: allHistory,
@@ -1071,24 +1193,26 @@ final class CompanionService {
 // MARK: - Test hooks
 
 #if DEBUG
-extension CompanionService {
-    /// Internal test accessor for the cached conversation digest.
-    var testableDigest: String? { cachedDigest }
+    extension CompanionService {
+        /// Internal test accessor for the cached conversation digest.
+        var testableDigest: String? {
+            cachedDigest
+        }
 
-    /// Internal test helper to populate the digest cache directly.
-    func setTestableDigest(_ digest: String?) {
-        cachedDigest = digest
-    }
+        /// Internal test helper to populate the digest cache directly.
+        func setTestableDigest(_ digest: String?) {
+            cachedDigest = digest
+        }
 
-    /// Internal test helper to restore the digest cache from UserDefaults.
-    func restoreTestableDigest() {
-        restoreDigest()
-    }
+        /// Internal test helper to restore the digest cache from UserDefaults.
+        func restoreTestableDigest() {
+            restoreDigest()
+        }
 
-    /// Internal test helper to clear the digest cache and persisted copy.
-    func clearTestableDigest() {
-        cachedDigest = nil
-        UserDefaults.standard.removeObject(forKey: "me.craigpeters.clarity.companionDigest")
+        /// Internal test helper to clear the digest cache and persisted copy.
+        func clearTestableDigest() {
+            cachedDigest = nil
+            UserDefaults.standard.removeObject(forKey: "me.craigpeters.clarity.companionDigest")
+        }
     }
-}
 #endif

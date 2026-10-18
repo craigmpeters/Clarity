@@ -24,8 +24,17 @@ class Habit {
     var healthKitIdentifier: String?
     var isArchived: Bool = false
     var artworkFilename: String?
+    /// Rolling-window size in days (7, 14, or 30). Nil means
+    /// `HabitConfig.defaultWindowDays`. The persisted `weeklyFrequency` is
+    /// reinterpreted as the target days per this window.
+    var windowDays: Int?
+    /// Optional pause range. Paused days are neutral: no progress, no freeze spend,
+    /// no strength decay.
+    var pausedFrom: Date?
+    var pausedUntil: Date?
 
-    @Relationship(deleteRule: .cascade, inverse: \HabitOccurrence.habit) var occurrences: [HabitOccurrence]?
+    @Relationship(deleteRule: .cascade, inverse: \HabitOccurrence.habit) var occurrences:
+        [HabitOccurrence]?
     @Relationship var categories: [Category]?
 
     init(
@@ -41,6 +50,9 @@ class Habit {
         healthKitIdentifier: String? = nil,
         isArchived: Bool = false,
         artworkFilename: String? = nil,
+        windowDays: Int? = nil,
+        pausedFrom: Date? = nil,
+        pausedUntil: Date? = nil,
         categories: [Category] = []
     ) {
         self.uuid = uuid
@@ -55,11 +67,14 @@ class Habit {
         self.healthKitIdentifier = healthKitIdentifier
         self.isArchived = isArchived
         self.artworkFilename = artworkFilename
+        self.windowDays = windowDays
+        self.pausedFrom = pausedFrom
+        self.pausedUntil = pausedUntil
         self.categories = categories
     }
 }
 
-/// A single day's occurrence of a habit.
+// A single day's occurrence of a habit.
 
 @Model
 class HabitOccurrence {
@@ -70,7 +85,7 @@ class HabitOccurrence {
     var completed: Bool = false
     var completedAt: Date?
     var freezeUsed: Bool = false
-    var source: String? = nil
+    var source: String?
 
     init(
         uuid: UUID = UUID(),

@@ -7,18 +7,16 @@
 
 import AppIntents
 
-
 struct TaskHistoryWidgetIntent: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "Habit History"
     static let description = IntentDescription("Displays a habit and its completion history.")
-    
+
     @Parameter(title: "Task")
     var task: TaskEntity?
 
-    init() {} // required
-    
+    init() {}  // required
+
     init(task: TaskEntity) {
         self.task = task
     }
-    
 }

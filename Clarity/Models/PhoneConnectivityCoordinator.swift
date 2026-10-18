@@ -6,9 +6,9 @@
 //
 
 import Foundation
+import SwiftData
 import WatchConnectivity
 import WidgetKit
-import SwiftData
 import XCGLogger
 
 @MainActor
@@ -28,7 +28,7 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
     private var revision: Int
 
     private init() {
-        self.revision = UserDefaults.standard.integer(forKey: Self.revisionKey)
+        revision = UserDefaults.standard.integer(forKey: Self.revisionKey)
     }
 
     func start() {
@@ -55,7 +55,8 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
             observer,
             { _, observer, _, _, _ in
                 guard let observer else { return }
-                let coordinator = Unmanaged<PhoneConnectivityCoordinator>.fromOpaque(observer).takeUnretainedValue()
+                let coordinator = Unmanaged<PhoneConnectivityCoordinator>.fromOpaque(observer)
+                    .takeUnretainedValue()
                 Task { @MainActor in
                     coordinator.broadcastSnapshot(delay: .zero)
                 }
@@ -77,18 +78,24 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
             LogManager.shared.log.error("Failed to read habits snapshot: \(error)")
             habits = []
         }
-        let progress = WidgetFileCoordinator.shared.readWeeklyProgress() ?? WeeklyProgress(completed: 0, target: 0, error: nil, categories: [])
+        let progress =
+            WidgetFileCoordinator.shared.readWeeklyProgress()
+            ?? WeeklyProgress(completed: 0, target: 0, error: nil, categories: [])
         let active: PomodoroDTO? = {
             guard PomodoroService.shared.isActive else { return nil }
             return PomodoroDTO(
                 startTime: PomodoroService.shared.startTime,
                 endTime: PomodoroService.shared.endTime,
-                toDoTask: PomodoroService.shared.toDoTask ?? tasks.first ?? ToDoTaskDTO(name: nil, uuid: UUID(), completed: false)
+                toDoTask: PomodoroService.shared.toDoTask ?? tasks.first
+                    ?? ToDoTaskDTO(name: nil, uuid: UUID(), completed: false)
             )
         }()
         let occurrences = await buildHabitOccurrences(habits: habits)
         let enrichedHabits = await enrichHabitsForWatch(habits: habits, occurrences: occurrences)
-        return Snapshot(revision: revision, tasks: tasks, habits: enrichedHabits, habitOccurrences: occurrences, progress: progress, activePomodoro: active)
+        return Snapshot(
+            revision: revision, tasks: tasks, habits: enrichedHabits, habitOccurrences: occurrences,
+            progress: progress, activePomodoro: active
+        )
     }
 
     private func buildHabitOccurrences(habits: [HabitDTO]) async -> [UUID: HabitOccurrenceDTO] {
@@ -98,15 +105,20 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
         var result: [UUID: HabitOccurrenceDTO] = [:]
         for habit in habits {
             guard let store = store else { continue }
-            let history = (try? await store.fetchHabitHistory(habit.uuid, from: startOfDay, to: Date())) ?? []
-            if let today = history.first(where: { calendar.isDate($0.periodStart, inSameDayAs: Date()) }) {
+            let history =
+                (try? await store.fetchHabitHistory(habit.uuid, from: startOfDay, to: Date())) ?? []
+            if let today = history.first(where: {
+                calendar.isDate($0.periodStart, inSameDayAs: Date())
+            }) {
                 result[habit.uuid] = today
             }
         }
         return result
     }
 
-    private func enrichHabitsForWatch(habits: [HabitDTO], occurrences: [UUID: HabitOccurrenceDTO]) async -> [HabitDTO] {
+    private func enrichHabitsForWatch(habits: [HabitDTO], occurrences _: [UUID: HabitOccurrenceDTO])
+        async -> [HabitDTO]
+    {
         let store = try? await ClarityServices.store()
         let calendar = HabitStreakCalculator.streakCalendar()
         let now = Date()
@@ -117,15 +129,43 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
                 group.addTask {
                     var enriched = habit
                     guard let store = store else { return enriched }
-                    let allHistory = (try? await store.fetchHabitHistory(habit.uuid, from: Date.distantPast, to: now)) ?? []
-                    let streak = HabitStreakCalculator.streak(occurrences: allHistory, frequency: habit.weeklyFrequency, freezes: habit.streakFreezes)
-                    enriched.currentStreak = streak.current
-                    let recentHistory = (try? await store.fetchHabitHistory(habit.uuid, from: rollingStart, to: now)) ?? []
+                    let allHistory =
+                        (try? await store.fetchHabitHistory(
+                            habit.uuid, from: Date.distantPast, to: now
+                        ))
+                        ?? []
+                    var pauseRanges: [ClosedRange<Date>] = []
+                    if let from = habit.pausedFrom, let until = habit.pausedUntil {
+                        pauseRanges = [from...until]
+                    }
+                    let windowDays = habit.windowDays ?? HabitConfig.defaultWindowDays
+                    let progress = HabitProgressEngine.evaluate(
+                        occurrences: allHistory,
+                        dailyTarget: habit.dailyTarget,
+                        targetDaysPerWindow: habit.weeklyFrequency,
+                        windowDays: windowDays,
+                        freezesSpent: habit.freezesSpent,
+                        pauseRanges: pauseRanges,
+                        now: now,
+                        calendar: calendar
+                    )
+                    enriched.currentStreak = progress.currentStreak
+                    enriched.windowCredit = progress.windowCredit
+                    enriched.windowDenominator = progress.windowDenominator
+                    enriched.strength = progress.strength
+                    enriched.freezeProgressDays = progress.freezeProgressDays
+                    let recentHistory =
+                        (try? await store.fetchHabitHistory(habit.uuid, from: rollingStart, to: now))
+                        ?? []
                     // Rolling 7-day window: oldest day first, today last.
                     enriched.weekCompletionBitmap = (0..<7).map { offset -> Bool in
-                        guard let day = calendar.date(byAdding: .day, value: offset - 6, to: today) else { return false }
+                        guard let day = calendar.date(byAdding: .day, value: offset - 6, to: today)
+                        else {
+                            return false
+                        }
                         return recentHistory.contains { occurrence in
-                            calendar.isDate(occurrence.periodStart, inSameDayAs: day) && (occurrence.completed || occurrence.freezeUsed)
+                            calendar.isDate(occurrence.periodStart, inSameDayAs: day)
+                                && (occurrence.completed || occurrence.freezeUsed)
                         }
                     }
                     return enriched
@@ -140,7 +180,9 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
     }
 
     func transferHabitArtwork(filename: String, for habitUUID: UUID) {
-        guard let url = WidgetFileCoordinator.shared.habitArtworkURL(filename: filename) else { return }
+        guard let url = WidgetFileCoordinator.shared.habitArtworkURL(filename: filename) else {
+            return
+        }
         ConnectivityTransport.shared.transferHabitArtwork(fileURL: url, habitUUID: habitUUID)
     }
 
@@ -186,6 +228,8 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
             // No-op: reply handled in the transport via SnapshotBuilder.
             break
         case .logHabitProgress(let uuid, let amount):
+            // Legacy wire format (pre-timestamp). Attribute to "now" so we never crash
+            // decoding queued commands; new watch builds send `logHabitProgressAt`.
             do {
                 let store = try await ClarityServices.store()
                 let habit = try await store.fetchHabits().first(where: { $0.uuid == uuid })
@@ -201,6 +245,25 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
                 // Still broadcast the current snapshot so the watch can reconcile its optimistic state.
                 broadcastSnapshot()
             }
+        case .logHabitProgressAt(let uuid, let amount, let timestamp):
+            do {
+                let store = try await ClarityServices.store()
+                let habit = try await store.fetchHabits().first(where: { $0.uuid == uuid })
+                if habit?.healthKitIdentifier != nil {
+                    _ = try await store.logHabitProgressWithHealthKit(
+                        uuid, amount: amount, triggeredAt: timestamp
+                    )
+                } else {
+                    _ = try await store.logHabitProgress(
+                        uuid, amount: amount, source: "watch", triggeredAt: timestamp
+                    )
+                }
+                broadcastSnapshot()
+            } catch {
+                LogManager.shared.log.error("⌚️ log habit progress failed: \(error)")
+                try? await ConnectivityTransport.shared.send(.habitCommandFailed(uuid: uuid))
+                broadcastSnapshot()
+            }
         }
     }
 
@@ -213,24 +276,32 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
         do {
             store = try await ClarityServices.store()
         } catch {
-            LogManager.shared.log.error("[PhoneConnectivity] startPomodoroFromWatch: store unavailable: \(error)")
+            LogManager.shared.log.error(
+                "[PhoneConnectivity] startPomodoroFromWatch: store unavailable: \(error)"
+            )
             return
         }
         let dto: ToDoTaskDTO
         do {
             guard let found = try WidgetFileCoordinator.shared.readTaskByUuid(id) else {
-                LogManager.shared.log.error("[PhoneConnectivity] startPomodoroFromWatch: readTaskByUuid returned nil for \(id) — task missing from widget snapshot")
+                LogManager.shared.log.error(
+                    "[PhoneConnectivity] startPomodoroFromWatch: readTaskByUuid returned nil for \(id) — task missing from widget snapshot"
+                )
                 return
             }
             dto = found
         } catch {
-            LogManager.shared.log.error("[PhoneConnectivity] startPomodoroFromWatch: readTaskByUuid threw for \(id): \(error)")
+            LogManager.shared.log.error(
+                "[PhoneConnectivity] startPomodoroFromWatch: readTaskByUuid threw for \(id): \(error)"
+            )
             return
         }
         let container = store.modelContainer
         PomodoroService.shared.startPomodoro(for: dto, container: container, device: .watchOS)
         defaults?.removeObject(forKey: "pendingStartTimerTaskId")
-        LogManager.shared.log.info("[PhoneConnectivity] Pomodoro started from watch for \(dto.name) (\(id))")
+        LogManager.shared.log.info(
+            "[PhoneConnectivity] Pomodoro started from watch for \(dto.name) (\(id))"
+        )
     }
 
     // MARK: Snapshot broadcast
@@ -250,7 +321,9 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
                 // Expected when the watch is unreachable (applicationContext
                 // can only be set while the counterpart is reachable). Retry
                 // with backoff so the watch converges when it comes back.
-                LogManager.shared.log.debug("[PhoneConnectivity] pushState failed: \(error.localizedDescription); will retry")
+                LogManager.shared.log.debug(
+                    "[PhoneConnectivity] pushState failed: \(error.localizedDescription); will retry"
+                )
                 self.scheduleBroadcastRetry()
             }
             try? await ConnectivityTransport.shared.pushComplicationIfNeeded(snap)
@@ -274,8 +347,9 @@ final class PhoneConnectivityCoordinator: SnapshotBuilder {
             guard let self else { return }
             Task { @MainActor in
                 guard let task = PomodoroService.shared.toDoTask,
-                      let start = PomodoroService.shared.startTime,
-                      let end = PomodoroService.shared.endTime else { return }
+                    let start = PomodoroService.shared.startTime,
+                    let end = PomodoroService.shared.endTime
+                else { return }
                 let dto = PomodoroDTO(startTime: start, endTime: end, toDoTask: task)
                 try? await ConnectivityTransport.shared.send(.pomodoroStarted(dto))
                 self.broadcastSnapshot()

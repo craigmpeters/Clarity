@@ -15,12 +15,14 @@ struct PomodoroSoundSettingsView: View {
     }
 
     private var customFilename: String? {
-        if case .custom(let filename) = selectedSound { return filename }
+        if case .custom(let filename) = selectedSound {
+            return filename
+        }
         // Also check if there's any previously saved custom file that isn't selected
         return nil
     }
 
-    // Find any saved custom sound in Library/Sounds
+    /// Find any saved custom sound in Library/Sounds
     private var savedCustomFilename: String? {
         let dir = PomodoroSoundManager.shared.librarySoundsURL()
         let files = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
@@ -30,6 +32,7 @@ struct PomodoroSoundSettingsView: View {
     var body: some View {
         List {
             // MARK: Built-in Sounds
+
             Section {
                 soundRow(.default)
                 ForEach(PomodoroAlarmSound.allPresets, id: \.persistenceID) { sound in
@@ -40,6 +43,7 @@ struct PomodoroSoundSettingsView: View {
             }
 
             // MARK: Custom Sound
+
             Section {
                 if let filename = savedCustomFilename {
                     let customSound = PomodoroAlarmSound.custom(filename: filename)
@@ -80,7 +84,9 @@ struct PomodoroSoundSettingsView: View {
             } header: {
                 Text("Custom Sound")
             } footer: {
-                Text("Supported formats: MP3, AAC, WAV, AIFF, CAF. Maximum duration: 30 seconds. The file will be converted for use as a notification sound.")
+                Text(
+                    "Supported formats: MP3, AAC, WAV, AIFF, CAF. Maximum duration: 30 seconds. The file will be converted for use as a notification sound."
+                )
             }
         }
         .navigationTitle("Pomodoro Sound")
@@ -95,7 +101,9 @@ struct PomodoroSoundSettingsView: View {
         .alert("Import Failed", isPresented: $showingError) {
             Button("OK") { errorMessage = nil }
         } message: {
-            if let msg = errorMessage { Text(msg) }
+            if let msg = errorMessage {
+                Text(msg)
+            }
         }
         .overlay {
             if isImporting {
@@ -116,7 +124,6 @@ struct PomodoroSoundSettingsView: View {
 
     // MARK: Sound Row
 
-    @ViewBuilder
     private func soundRow(_ sound: PomodoroAlarmSound) -> some View {
         HStack {
             Text(sound.displayName)

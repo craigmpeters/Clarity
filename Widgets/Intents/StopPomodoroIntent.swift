@@ -8,7 +8,9 @@ import XCGLogger
 /// `openAppWhenRun: true` causes the main app to be foregrounded after the intent runs.
 struct StopPomodoroIntent: AppIntent {
     static let title: LocalizedStringResource = "Stop Pomodoro"
-    static let description = IntentDescription("Stop the active Pomodoro timer and complete the task")
+    static let description = IntentDescription(
+        "Stop the active Pomodoro timer and complete the task"
+    )
     static let openAppWhenRun: Bool = true
 
     private let appGroup = "group.me.craigpeters.clarity"
@@ -48,9 +50,13 @@ struct StopPomodoroIntent: AppIntent {
                 try await store.completeTask(uuid, startedAt: taskStartedAt)
                 if let started = taskStartedAt {
                     let elapsed = Date().timeIntervalSince(started)
-                    LogManager.shared.log.debug("StopPomodoroIntent: completed task \(uuid.uuidString) (elapsed: \(elapsed)s)")
+                    LogManager.shared.log.debug(
+                        "StopPomodoroIntent: completed task \(uuid.uuidString) (elapsed: \(elapsed)s)"
+                    )
                 } else {
-                    LogManager.shared.log.debug("StopPomodoroIntent: completed task \(uuid.uuidString)")
+                    LogManager.shared.log.debug(
+                        "StopPomodoroIntent: completed task \(uuid.uuidString)"
+                    )
                 }
             } catch {
                 LogManager.shared.log.error("StopPomodoroIntent: failed to complete task \(error)")
@@ -85,7 +91,8 @@ struct StopPomodoroIntent: AppIntent {
     ) {
         var sessions: [CompletedSession] = []
         if let data = defaults?.data(forKey: sessionHistoryKey),
-           let existing = try? JSONDecoder().decode([CompletedSession].self, from: data) {
+            let existing = try? JSONDecoder().decode([CompletedSession].self, from: data)
+        {
             sessions = existing
         }
         let session = CompletedSession(

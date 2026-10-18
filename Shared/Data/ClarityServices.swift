@@ -1,25 +1,28 @@
 import SwiftData
 import os
+
 #if canImport(WidgetKit)
-import WidgetKit
+    import WidgetKit
 #endif
 
 enum ClarityServices {
     // Cache only for extension and watch app processes.
     // nonisolated(unsafe): single-writer (no concurrent callers).
-    nonisolated(unsafe) private static var cachedExtensionContainer: ModelContainer?
+    private nonisolated(unsafe) static var cachedExtensionContainer: ModelContainer?
 
     nonisolated static func sharedContainer() throws -> ModelContainer {
         let isExtension = Bundle.main.object(forInfoDictionaryKey: "NSExtension") != nil
-#if os(watchOS)
-        let isWatchApp = true
-#else
-        let isWatchApp = false
-#endif
+        #if os(watchOS)
+            let isWatchApp = true
+        #else
+            let isWatchApp = false
+        #endif
         print("🚦 Process type:", isExtension ? "EXTENSION" : (isWatchApp ? "WATCH_APP" : "APP"))
 
         if isExtension || isWatchApp {
-            if let c = cachedExtensionContainer { return c }
+            if let c = cachedExtensionContainer {
+                return c
+            }
             print("🏗️ Creating NON-CloudKit container (EXT/WATCH)")
             let c = try Containers.liveExtension()
             cachedExtensionContainer = c
@@ -28,7 +31,6 @@ enum ClarityServices {
             return AppContainer.shared
         }
     }
-
 
     nonisolated static func inMemoryContainer() -> ModelContainer {
         try! Containers.inMemory()
@@ -40,7 +42,7 @@ enum ClarityServices {
     }
 
     // -------- Snapshots for widgets / quick reads --------
-    
+
     // TODO: [CRASH-001] Route all snapshot reads through ClarityModelActor to avoid ad-hoc ModelContext
     // access on a non-actor isolation domain. SwiftData's ModelContext is not thread-safe; creating
     // contexts here and calling fetch() concurrently with the @ModelActor store can trigger
@@ -55,7 +57,8 @@ enum ClarityServices {
                 sortBy: [SortDescriptor(\.completedAt, order: .forward)]
             )
             let all = try ctx.fetch(descriptor)
-            return all
+            return
+                all
                 .map(ToDoTaskDTO.init(from:))
         } catch {
             return []
@@ -66,7 +69,7 @@ enum ClarityServices {
     // ClarityModelActor is mutating the same store. Move this to the actor and call via store().
     nonisolated static func snapshotTasks(filter: ToDoTask.TaskFilter = .all) -> [ToDoTaskDTO] {
         do {
-            let container = try sharedContainer()         // <- was Containers.live()
+            let container = try sharedContainer()  // <- was Containers.live()
             let ctx = ModelContext(container)
             let descriptor = FetchDescriptor<ToDoTask>(
                 predicate: #Predicate { !$0.completed },
@@ -74,14 +77,15 @@ enum ClarityServices {
             )
             let all = try ctx.fetch(descriptor)
             let now = Date()
-            return all
+            return
+                all
                 .filter { filter.matches(task: $0, at: now) }
                 .map(ToDoTaskDTO.init(from:))
         } catch {
             return []
         }
     }
-    
+
     // TODO: [CRASH-001] Same ModelContext isolation issue: this should be a read on the actor.
     nonisolated static func snapshotCategories() -> [CategoryDTO] {
         do {
@@ -99,8 +103,11 @@ enum ClarityServices {
 
     nonisolated static func reloadWidgets(kind: String? = nil) {
         #if canImport(WidgetKit)
-        if let kind { WidgetCenter.shared.reloadTimelines(ofKind: kind) }
-        else { WidgetCenter.shared.reloadAllTimelines() }
+            if let kind {
+                WidgetCenter.shared.reloadTimelines(ofKind: kind)
+            } else {
+                WidgetCenter.shared.reloadAllTimelines()
+            }
         #endif
     }
 
@@ -111,11 +118,15 @@ enum ClarityServices {
             let container = try sharedContainer()
             let ctx = ModelContext(container)
 
-            let globalTarget = (try? ctx.fetch(FetchDescriptor<GlobalTargetSettings>()))?.first?.weeklyGlobalTarget ?? 0
-            let categories = (try? ctx.fetch(FetchDescriptor<Category>()))?.map(CategoryDTO.init(from:)) ?? []
-            let completedDTOs = (try? ctx.fetch(
-                FetchDescriptor<ToDoTask>(predicate: #Predicate { $0.completed })
-            ))?.map(ToDoTaskDTO.init(from:)) ?? []
+            let globalTarget =
+                (try? ctx.fetch(FetchDescriptor<GlobalTargetSettings>()))?.first?.weeklyGlobalTarget
+                ?? 0
+            let categories =
+                (try? ctx.fetch(FetchDescriptor<Category>()))?.map(CategoryDTO.init(from:)) ?? []
+            let completedDTOs =
+                (try? ctx.fetch(
+                    FetchDescriptor<ToDoTask>(predicate: #Predicate { $0.completed })
+                ))?.map(ToDoTaskDTO.init(from:)) ?? []
 
             let progress = StatisticsCalculator.weeklyProgress(
                 completedTasks: completedDTOs,
@@ -127,7 +138,9 @@ enum ClarityServices {
             return progress
         } catch {
             print(error.localizedDescription)
-            return WeeklyProgress(completed: 0, target: 0, error: error.localizedDescription, categories: [])
+            return WeeklyProgress(
+                completed: 0, target: 0, error: error.localizedDescription, categories: []
+            )
         }
     }
 }
@@ -138,7 +151,9 @@ actor StoreRegistry {
 
     func store(for container: ModelContainer) async -> ClarityModelActor {
         let key = ObjectIdentifier(container)
-        if let existing = stores[key] { return existing }
+        if let existing = stores[key] {
+            return existing
+        }
 
         // Build OFF the main thread
         let store = await ClarityModelActorFactory.makeBackground(container: container)
@@ -146,9 +161,8 @@ actor StoreRegistry {
         return store
     }
 
-    // Handy for tests/previews if you need to reset between runs
+    /// Handy for tests/previews if you need to reset between runs
     func reset() {
         stores.removeAll()
     }
 }
-

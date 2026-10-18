@@ -10,14 +10,14 @@ import SwiftUI
 struct RelativeDateText: View {
     let date: Date
     @Environment(\.calendar) private var calendar
-    
+
     var body: some View {
-        TimelineView(.periodic(from:Date(), by: betweenNowAndMidnight())) { _ in
+        TimelineView(.periodic(from: Date(), by: betweenNowAndMidnight())) { _ in
             Text(format(date))
                 .foregroundStyle(.secondary)
         }
     }
-    
+
     private func format(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .long
@@ -25,7 +25,7 @@ struct RelativeDateText: View {
         formatter.doesRelativeDateFormatting = true
         return formatter.string(from: date)
     }
-    
+
     private func betweenNowAndMidnight() -> TimeInterval {
         let now = Date()
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: now)!.midnight
@@ -36,5 +36,5 @@ struct RelativeDateText: View {
 #Preview {
     let calendar = Calendar.current
     let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date()) ?? Date()
-    RelativeDateText(date: tomorrow )
+    RelativeDateText(date: tomorrow)
 }

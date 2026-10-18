@@ -1,9 +1,9 @@
-import SwiftUI
-import SwiftData
 import Charts
-import os
-import UniformTypeIdentifiers
+import SwiftData
+import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
+import os
 
 // MARK: - Habit Streak Data Types
 
@@ -14,11 +14,15 @@ struct HabitStreakRow: Identifiable, Sendable {
     let currentStreak: Int
     let longestStreak: Int
     let freezes: Int
-    let completedThisWeek: Int
-    let weeklyFrequency: Int
+    /// Rolling window credit over `windowDays` and target within that window.
+    let windowCredit: Double
+    let windowTarget: Int
+    let windowDays: Int
+    /// 0...1 habit strength EMA.
+    let strength: Double
 }
 
-// Timeframe selection pill component
+/// Timeframe selection pill component
 struct TimeframePill: View {
     let timeframe: StatsTimeframe
     let isSelected: Bool
@@ -52,8 +56,7 @@ struct StatsView: View {
     @Query private var allTasks: [ToDoTask]
     @Query private var allCategories: [Category]
     @Query private var allHabits: [Habit]
-    
-    
+
     @State private var selectedTimeframe: StatsTimeframe = .last7Days
     @State private var selectedCategory: Category? = nil
     @Environment(\.modelContext) private var modelContext
@@ -74,7 +77,6 @@ struct StatsView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-
                     // Timeframe selector with horizontal scroll
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Time Period")
@@ -190,36 +192,43 @@ struct StatsView: View {
     private func loadHabitStreaks() {
         let calendar = HabitStreakCalculator.streakCalendar()
         let now = Date()
-        let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
         var rows: [HabitStreakRow] = []
         for habit in allHabits.filter({ !$0.isArchived }) {
-            
             let allOccurrences = (habit.occurrences ?? []).compactMap(
-                HabitOccurrenceDTO.init(from:))
-            
-            let streak = HabitStreakCalculator.streak(
+                HabitOccurrenceDTO.init(from:)
+            )
+
+            let windowDays = habit.windowDays ?? HabitConfig.defaultWindowDays
+            var pauseRanges: [ClosedRange<Date>] = []
+            if let start = habit.pausedFrom, let end = habit.pausedUntil {
+                pauseRanges = [start...end]
+            }
+            let progress = HabitProgressEngine.evaluate(
                 occurrences: allOccurrences,
-                frequency: habit.weeklyFrequency,
-                freezes: habit.streakFreezes)
-            
-            let weeklyOccurrences = allOccurrences.filter
-            
-            let weekOccurrences = allOccurrences.filter {
-                   $0.periodStart >= startOfWeek && $0.periodStart <= now
-               }
-           let completedThisWeek = weekOccurrences.filter { $0.completed || $0.freezeUsed }.count
-           
-           rows.append(HabitStreakRow(
-               uuid: habit.uuid,
-               name: habit.name,
-               currentStreak: streak.current,
-               longestStreak: streak.longest,
-               freezes: habit.streakFreezes,
-               completedThisWeek: completedThisWeek,
-               weeklyFrequency: habit.weeklyFrequency
-           ))
-       }
-       habitStreaks = rows
+                dailyTarget: habit.dailyTarget,
+                targetDaysPerWindow: habit.weeklyFrequency,
+                windowDays: windowDays,
+                freezesSpent: habit.freezesSpent,
+                pauseRanges: pauseRanges,
+                now: now,
+                calendar: calendar
+            )
+
+            rows.append(
+                HabitStreakRow(
+                    uuid: habit.uuid,
+                    name: habit.name,
+                    currentStreak: progress.currentStreak,
+                    longestStreak: progress.longestStreak,
+                    freezes: habit.streakFreezes,
+                    windowCredit: progress.windowCredit,
+                    windowTarget: progress.windowTarget,
+                    windowDays: windowDays,
+                    strength: progress.strength
+                )
+            )
+        }
+        habitStreaks = rows
     }
 
     private func checkCompanionTriggers(completedDTOs: [ToDoTaskDTO]) {
@@ -234,7 +243,8 @@ struct StatsView: View {
         }
 
         // Detect low average mood from recent completions
-        let recentMoods = completedDTOs
+        let recentMoods =
+            completedDTOs
             .compactMap { $0.completionMoodValence }
             .suffix(10)
         if recentMoods.count >= 3 {
@@ -247,12 +257,15 @@ struct StatsView: View {
 
         // Habit nudge when there's enough data but no streak trigger
         if streak == 0, !completedDTOs.isEmpty {
-            let categoryNames = Array(Set(completedDTOs.flatMap { $0.categories.map(\.name) })).sorted()
+            let categoryNames = Array(Set(completedDTOs.flatMap { $0.categories.map(\.name) }))
+                .sorted()
             if !categoryNames.isEmpty {
-                companion.trigger(.habitSuggestion(
-                    categories: categoryNames,
-                    completedCount: completedDTOs.count
-                ))
+                companion.trigger(
+                    .habitSuggestion(
+                        categories: categoryNames,
+                        completedCount: completedDTOs.count
+                    )
+                )
             }
         }
     }
@@ -264,7 +277,9 @@ struct StatsView: View {
 
         var csv = "Task Name,Completed Date,Categories,Task Time (min)\n"
 
-        let sorted = summary.allCompletedTasks.sorted { ($0.completedAt ?? Date()) > ($1.completedAt ?? Date()) }
+        let sorted = summary.allCompletedTasks.sorted {
+            ($0.completedAt ?? Date()) > ($1.completedAt ?? Date())
+        }
         for dto in sorted {
             let cats = dto.categories.map(\.name)
             let categoriesStr = cats.isEmpty ? "Uncategorised" : cats.joined(separator: "; ")
@@ -284,7 +299,9 @@ struct StatsView: View {
         do {
             try csv.write(to: tempURL, atomically: true, encoding: .utf8)
         } catch {
-            LogManager.shared.log.error("Failed to write CSV to temp file: \(error.localizedDescription)")
+            LogManager.shared.log.error(
+                "Failed to write CSV to temp file: \(error.localizedDescription)"
+            )
         }
         shareItems = [tempURL]
         shareSubject = "To-Do Statistics — \(selectedTimeframe.rawValue)"
@@ -397,7 +414,8 @@ struct CategoryCompletionChart: View {
                 .frame(height: 200)
             } else {
                 Chart(data, id: \.categoryName) { item in
-                    let color: Color = item.categoryName == "Uncategorized"
+                    let color: Color =
+                        item.categoryName == "Uncategorized"
                         ? .gray
                         : item.color.SwiftUIColor
                     BarMark(
@@ -474,7 +492,9 @@ struct ProductivityHeatmap: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
 
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 6), spacing: 4) {
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 6), spacing: 4
+            ) {
                 ForEach(data, id: \.hour) { item in
                     VStack(spacing: 2) {
                         Text(formatHour(item.hour))
@@ -496,9 +516,15 @@ struct ProductivityHeatmap: View {
     }
 
     private func formatHour(_ hour: Int) -> String {
-        if hour == 0 { return "12AM" }
-        if hour < 12 { return "\(hour)AM" }
-        if hour == 12 { return "12PM" }
+        if hour == 0 {
+            return "12AM"
+        }
+        if hour < 12 {
+            return "\(hour)AM"
+        }
+        if hour == 12 {
+            return "12PM"
+        }
         return "\(hour - 12)PM"
     }
 }
@@ -534,7 +560,10 @@ struct WeeklyBreakdownView: View {
 
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
-                                ForEach(Array(dayData.categoryCompletions.keys).sorted(), id: \.self) { category in
+                                ForEach(
+                                    Array(dayData.categoryCompletions.keys).sorted(), id: \.self
+                                ) {
+                                    category in
                                     CategoryBadge(
                                         name: category,
                                         count: dayData.categoryCompletions[category] ?? 0
@@ -660,9 +689,19 @@ struct HabitStreakCard: View {
                 }
             }
 
-            Text("\(row.completedThisWeek) / \(row.weeklyFrequency) days this week")
+            HStack {
+                Text(
+                    "\(Int(row.windowCredit.rounded())) of \(row.windowTarget) in last \(row.windowDays) days"
+                )
                 .font(.caption)
                 .foregroundColor(.secondary)
+                Spacer()
+                if row.strength > 0 {
+                    Text("Strength \(Int((row.strength * 100).rounded()))%")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
         }
         .padding()
         .background(Color.secondary.opacity(0.1))
@@ -702,7 +741,7 @@ struct ActivityViewController: UIViewControllerRepresentable {
     let items: [Any]
     let subject: String?
 
-    func makeUIViewController(context: Context) -> UIActivityViewController {
+    func makeUIViewController(context _: Context) -> UIActivityViewController {
         let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
         if let subject {
             controller.setValue(subject, forKey: "subject")
@@ -710,14 +749,13 @@ struct ActivityViewController: UIViewControllerRepresentable {
         return controller
     }
 
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+    func updateUIViewController(_: UIActivityViewController, context _: Context) {}
 }
-
 
 #if DEBUG
-#Preview {
-    StatsView()
-    .modelContainer(PreviewData.shared.previewContainer)
-    .environment(CompanionService.shared)
-}
+    #Preview {
+        StatsView()
+            .modelContainer(PreviewData.shared.previewContainer)
+            .environment(CompanionService.shared)
+    }
 #endif

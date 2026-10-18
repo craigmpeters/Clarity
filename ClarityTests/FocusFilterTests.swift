@@ -7,10 +7,10 @@
 
 import Foundation
 import Testing
+
 @testable import Clarity
 
 struct FocusFilterTests {
-
     private struct FakeTask: FocusFilterable {
         let name: String
         let focusCategoryNames: [String]
@@ -31,7 +31,7 @@ struct FocusFilterTests {
         let tasks = [
             task("A", categories: ["Work"]),
             task("B", categories: ["Home"]),
-            task("C", categories: ["Work", "Home"])
+            task("C", categories: ["Work", "Home"]),
         ]
         let settings = FocusFilter.Settings(categoryNames: ["Work"], isHidden: false)
         let result = FocusFilter.apply(to: tasks, settings: settings)
@@ -49,7 +49,7 @@ struct FocusFilterTests {
         let tasks = [
             task("A", categories: ["Work"]),
             task("B", categories: ["Home"]),
-            task("C", categories: ["Work", "Home"])
+            task("C", categories: ["Work", "Home"]),
         ]
         let settings = FocusFilter.Settings(categoryNames: ["Work"], isHidden: true)
         let result = FocusFilter.apply(to: tasks, settings: settings)
@@ -82,7 +82,7 @@ struct FocusFilterTests {
             task("A", categories: ["Home"], completed: true),
             task("B", categories: ["Work"], completed: true),
             task("C", categories: ["Work"]),
-            task("D", categories: ["Home"])
+            task("D", categories: ["Home"]),
         ]
         let settings = FocusFilter.Settings(categoryNames: ["Work"], isHidden: false)
         let result = FocusFilter.apply(to: tasks, settings: settings)
@@ -94,7 +94,7 @@ struct FocusFilterTests {
             task("A", categories: ["Work"], completed: true),
             task("B", categories: ["Home"], completed: true),
             task("C", categories: ["Work"]),
-            task("D", categories: ["Home"])
+            task("D", categories: ["Home"]),
         ]
         let settings = FocusFilter.Settings(categoryNames: ["Work"], isHidden: true)
         let result = FocusFilter.apply(to: tasks, settings: settings)
@@ -102,36 +102,39 @@ struct FocusFilterTests {
     }
 
     @Test func decodesLegacyStringCategories() throws {
-        let json = """
-        {
-          "Categories": ["Work", "Home"],
-          "showOrHide": "show"
-        }
-        """.data(using: .utf8)!
+        let json = try #require(
+            """
+            {
+              "Categories": ["Work", "Home"],
+              "showOrHide": "show"
+            }
+            """.data(using: .utf8))
         let raw = try JSONDecoder().decode(_FocusFilterRaw.self, from: json)
         #expect(raw.Categories == ["Work", "Home"])
         #expect(raw.showOrHide == "show")
     }
 
     @Test func decodesCategoryNameObjects() throws {
-        let json = """
-        {
-          "Categories": [{"name": "Work"}, {"name": "Home"}],
-          "showOrHide": "show"
-        }
-        """.data(using: .utf8)!
+        let json = try #require(
+            """
+            {
+              "Categories": [{"name": "Work"}, {"name": "Home"}],
+              "showOrHide": "show"
+            }
+            """.data(using: .utf8))
         let raw = try JSONDecoder().decode(_FocusFilterRaw.self, from: json)
         #expect(raw.Categories == ["Work", "Home"])
         #expect(raw.showOrHide == "show")
     }
 
     @Test func decodesLegacyShowMode() throws {
-        let json = """
-        {
-          "Categories": ["Work"],
-          "showOrHide": "hide"
-        }
-        """.data(using: .utf8)!
+        let json = try #require(
+            """
+            {
+              "Categories": ["Work"],
+              "showOrHide": "hide"
+            }
+            """.data(using: .utf8))
         let raw = try JSONDecoder().decode(_FocusFilterRaw.self, from: json)
         #expect(raw.showOrHide == "hide")
     }

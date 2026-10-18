@@ -57,7 +57,7 @@ struct ChatTypingIndicatorRow: View {
             )
 
             HStack(spacing: 6) {
-                ForEach(0..<3, id: \.self) { index in
+                ForEach(0..<3, id: \.self) { _ in
                     Circle()
                         .frame(width: 8, height: 8)
                         .foregroundStyle(.secondary)

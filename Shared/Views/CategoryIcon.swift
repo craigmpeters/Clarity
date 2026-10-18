@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct CategoryIcon {
+enum CategoryIcon {
     /// A curated set of SF Symbol names suitable for categories/habits.
     static let suggestions: [String] = [
         "star.fill",
@@ -88,7 +88,7 @@ struct CategoryIcon {
         "dog.fill",
         "puzzlepiece.extension.fill",
         "target",
-        "sparkles"
+        "sparkles",
     ]
 
     /// Map a category name to a reasonable default icon suggestion.
@@ -186,7 +186,7 @@ struct CategoryIcon {
             // Digital wellbeing
             ("phone", "iphone.slash"),
             ("social media", "iphone.slash"),
-            ("screen", "iphone.slash")
+            ("screen", "iphone.slash"),
         ]
         for (key, icon) in mapping {
             if lowercased.contains(key) {
@@ -219,7 +219,9 @@ struct CategoryIconPicker: View {
     @State private var customIconName: String = ""
 
     private var filteredIcons: [String] {
-        if searchText.isEmpty { return CategoryIcon.suggestions }
+        if searchText.isEmpty {
+            return CategoryIcon.suggestions
+        }
         return CategoryIcon.suggestions.filter { $0.localizedCaseInsensitiveContains(searchText) }
     }
 
@@ -247,7 +249,10 @@ struct CategoryIconPicker: View {
                                 .padding(10)
                                 .background(
                                     RoundedRectangle(cornerRadius: 10)
-                                        .fill(selectedIcon == icon ? Color.accentColor : Color(.systemGray6))
+                                        .fill(
+                                            selectedIcon == icon
+                                                ? Color.accentColor : Color(.systemGray6)
+                                        )
                                 )
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -352,8 +357,8 @@ private struct SearchBar: View {
 }
 
 #if DEBUG
-#Preview {
-    @Previewable @State var icon: String? = "star.fill"
-    CategoryIconPicker(selectedIcon: .constant(icon))
-}
+    #Preview {
+        @Previewable @State var icon: String? = "star.fill"
+        CategoryIconPicker(selectedIcon: .constant(icon))
+    }
 #endif

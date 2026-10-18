@@ -5,17 +5,17 @@
 //  Created by Craig Peters on 01/09/2025.
 //
 
-import SwiftData
 import Foundation
+import SwiftData
 
 @Model
 public final class GlobalTargetSettings {
-    var weeklyGlobalTarget: Int = 0 // Total tasks per week across all categories
+    var weeklyGlobalTarget: Int = 0  // Total tasks per week across all categories
     var created: Date = Date()
 
     init(weeklyGlobalTarget: Int = 0) {
         self.weeklyGlobalTarget = weeklyGlobalTarget
-        self.created = Date()
+        created = Date()
     }
 }
 
@@ -28,14 +28,15 @@ public struct CategoryProgress: Sendable {
 
 extension CategoryProgress: Codable {
     enum CodingKeys: String, CodingKey { case name, completed, target, color }
-    nonisolated public init(from decoder: any Decoder) throws {
+    public nonisolated init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        self.name = try c.decode(String.self, forKey: .name)
-        self.completed = try c.decode(Int.self, forKey: .completed)
-        self.target = try c.decode(Int.self, forKey: .target)
-        self.color = try c.decode(String.self, forKey: .color)
+        name = try c.decode(String.self, forKey: .name)
+        completed = try c.decode(Int.self, forKey: .completed)
+        target = try c.decode(Int.self, forKey: .target)
+        color = try c.decode(String.self, forKey: .color)
     }
-    nonisolated public func encode(to encoder: any Encoder) throws {
+
+    public nonisolated func encode(to encoder: any Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(name, forKey: .name)
         try c.encode(completed, forKey: .completed)
@@ -53,14 +54,15 @@ public struct WeeklyProgress: Sendable {
 
 extension WeeklyProgress: Codable {
     enum CodingKeys: String, CodingKey { case completed, target, error, categories }
-    nonisolated public init(from decoder: any Decoder) throws {
+    public nonisolated init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        self.completed = try c.decode(Int.self, forKey: .completed)
-        self.target = try c.decode(Int.self, forKey: .target)
-        self.error = try c.decodeIfPresent(String.self, forKey: .error)
-        self.categories = try c.decode([CategoryProgress].self, forKey: .categories)
+        completed = try c.decode(Int.self, forKey: .completed)
+        target = try c.decode(Int.self, forKey: .target)
+        error = try c.decodeIfPresent(String.self, forKey: .error)
+        categories = try c.decode([CategoryProgress].self, forKey: .categories)
     }
-    nonisolated public func encode(to encoder: any Encoder) throws {
+
+    public nonisolated func encode(to encoder: any Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(completed, forKey: .completed)
         try c.encode(target, forKey: .target)
@@ -72,12 +74,12 @@ extension WeeklyProgress: Codable {
 // MARK: - StatsTimeframe
 
 public enum StatsTimeframe: String, CaseIterable, Sendable, Codable {
-    case today      = "Today"
-    case last7Days  = "7 Days"
+    case today = "Today"
+    case last7Days = "7 Days"
     case last30Days = "30 Days"
     case last90Days = "90 Days"
-    case thisYear   = "This Year"
-    case allTime    = "All Time"
+    case thisYear = "This Year"
+    case allTime = "All Time"
 
     public var dateRange: String {
         let formatter = DateFormatter()
@@ -105,12 +107,12 @@ public enum StatsTimeframe: String, CaseIterable, Sendable, Codable {
 
     public var shortDescription: String {
         switch self {
-        case .today:     return "24 hrs"
-        case .last7Days:  return "1 week"
+        case .today: return "24 hrs"
+        case .last7Days: return "1 week"
         case .last30Days: return "1 month"
         case .last90Days: return "3 months"
-        case .thisYear:   return Calendar.current.component(.year, from: Date()).description
-        case .allTime:    return "Everything"
+        case .thisYear: return Calendar.current.component(.year, from: Date()).description
+        case .allTime: return "Everything"
         }
     }
 }
@@ -124,7 +126,7 @@ struct OverviewMetrics: Sendable {
 }
 
 struct HourlyCompletionData: Sendable {
-    let hour: Int        // 0..<24
+    let hour: Int  // 0..<24
     let count: Int
     let intensity: Double
 }

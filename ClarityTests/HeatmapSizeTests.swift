@@ -7,10 +7,10 @@
 
 import Foundation
 import Testing
+
 @testable import Clarity
 
 struct HeatmapSizeTests {
-
     @Test func smallPresetDimensions() {
         #expect(HeatmapSize.small.columns == 7)
         #expect(HeatmapSize.small.rows == 4)

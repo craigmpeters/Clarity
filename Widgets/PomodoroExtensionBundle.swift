@@ -5,8 +5,8 @@
 //  Created by Craig Peters on 21/08/2025.
 //
 
-import WidgetKit
 import SwiftUI
+import WidgetKit
 
 @main
 struct PomodoroExtensionBundle: WidgetBundle {

@@ -7,10 +7,10 @@
 
 import Foundation
 import Testing
+
 @testable import Clarity
 
 struct StatsTimeframeTests {
-
     @Test func caseIterableContainsAllCases() {
         #expect(StatsTimeframe.allCases.count == 6)
     }

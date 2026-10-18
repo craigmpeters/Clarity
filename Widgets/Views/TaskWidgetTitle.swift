@@ -21,9 +21,9 @@ func TaskWidgetTitle(entry: TaskWidgetEntry) -> some View {
                 .foregroundStyle(.secondary)
         }
         #if DEBUG
-        Text(entry.progress.error ?? "No Error")
-            .font(.footnote)
-            .foregroundStyle(.secondary)
+            Text(entry.progress.error ?? "No Error")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
         #endif
     }
 }
