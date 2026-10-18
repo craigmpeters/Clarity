@@ -4,13 +4,19 @@
 import SwiftUI
 
 struct CompanionChatView: View {
-    var companion: CompanionService
+    @Environment(CompanionService.self) private var companion
 
-    @State private var inputText = ""
     @FocusState private var inputFocused: Bool
     @Environment(\.dismiss) private var dismiss
 
     private let bottomID = "bottom"
+
+    private var draftBinding: Binding<String> {
+        Binding(
+            get: { companion.chatDraft },
+            set: { companion.chatDraft = $0 }
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -284,9 +290,9 @@ struct CompanionChatView: View {
     }
 
     private func sendMessage() {
-        let trimmed = inputText.trimmingCharacters(in: .whitespaces)
+        let trimmed = companion.chatDraft.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty, !companion.isGenerating else { return }
-        inputText = ""
+        companion.chatDraft = ""
         companion.chat(trimmed)
     }
 
@@ -316,5 +322,6 @@ struct CompanionChatView: View {
             suggestedTaskName: "Review Q3 report"
         ),
     ]
-    return CompanionChatView(companion: service)
+    return CompanionChatView()
+        .environment(service)
 }

@@ -51,7 +51,7 @@ struct CompanionOverlayView: View {
             .spring(response: 0.4, dampingFraction: 0.75), value: companion.currentMessage?.emotion
         )
         .sheet(isPresented: $showingChat) {
-            CompanionChatView(companion: companion)
+            CompanionChatView()
         }
     }
 
@@ -231,5 +231,6 @@ private struct Triangle: Shape {
 }
 
 #Preview("Chat Sheet") {
-    CompanionChatView(companion: CompanionService.shared)
+    CompanionChatView()
+        .environment(CompanionService.shared)
 }
