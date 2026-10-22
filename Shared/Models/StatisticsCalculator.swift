@@ -10,7 +10,6 @@ import Foundation
 /// Pure, nonisolated statistics computation over `ToDoTaskDTO` arrays.
 /// No SwiftData queries, no actor isolation — safe to call from any context.
 nonisolated struct StatisticsCalculator: Sendable {
-
     // MARK: - Top-level entry point
 
     /// Produces a full StatisticsSummary for the given timeframe and optional category filter.
@@ -59,13 +58,15 @@ nonisolated struct StatisticsCalculator: Sendable {
                 return completedAt >= start
             }
         case .last30Days:
-            let start = calendar.date(byAdding: .day, value: -30, to: referenceDate) ?? referenceDate
+            let start =
+                calendar.date(byAdding: .day, value: -30, to: referenceDate) ?? referenceDate
             return tasks.filter { task in
                 guard let completedAt = task.completedAt else { return false }
                 return completedAt >= start
             }
         case .last90Days:
-            let start = calendar.date(byAdding: .day, value: -90, to: referenceDate) ?? referenceDate
+            let start =
+                calendar.date(byAdding: .day, value: -90, to: referenceDate) ?? referenceDate
             return tasks.filter { task in
                 guard let completedAt = task.completedAt else { return false }
                 return completedAt >= start
@@ -95,7 +96,7 @@ nonisolated struct StatisticsCalculator: Sendable {
 
     static func overviewMetrics(
         from tasks: [ToDoTaskDTO],
-        referenceDate: Date = Date()
+        referenceDate _: Date = Date()
     ) -> OverviewMetrics {
         let totalCompleted = tasks.count
         let totalFocusTime = tasks.reduce(0.0) { $0 + ($1.pomodoro ? $1.pomodoroTime : 0) }
@@ -160,7 +161,7 @@ nonisolated struct StatisticsCalculator: Sendable {
         let formatter = DateFormatter()
         formatter.dateFormat = "EEE, MMM d"
 
-        return dailyCount.map { (date, categoryNames) -> DailyCompletionData in
+        return dailyCount.map { date, categoryNames -> DailyCompletionData in
             var categoryCount: [String: Int] = [:]
             for name in categoryNames {
                 categoryCount[name.isEmpty ? "Uncategorized" : name, default: 0] += 1
@@ -216,7 +217,7 @@ nonisolated struct StatisticsCalculator: Sendable {
 
         let colorMap = Dictionary(uniqueKeysWithValues: categories.map { ($0.name, $0.color) })
 
-        return categoryCount.map { (name, count) -> CategoryCompletionData in
+        return categoryCount.map { name, count -> CategoryCompletionData in
             let color = colorMap[name] ?? .Brown
             return CategoryCompletionData(categoryName: name, completionCount: count, color: color)
         }.sorted { $0.completionCount > $1.completionCount }
@@ -241,10 +242,12 @@ nonisolated struct StatisticsCalculator: Sendable {
         referenceDate: Date
     ) -> Int {
         let calendar = Calendar.current
-        let completedDates = Set(tasks.compactMap { task -> Date? in
-            guard let completedAt = task.completedAt else { return nil }
-            return calendar.startOfDay(for: completedAt)
-        })
+        let completedDates = Set(
+            tasks.compactMap { task -> Date? in
+                guard let completedAt = task.completedAt else { return nil }
+                return calendar.startOfDay(for: completedAt)
+            }
+        )
 
         guard !completedDates.isEmpty else { return 0 }
 
@@ -276,7 +279,9 @@ nonisolated struct StatisticsCalculator: Sendable {
         var current = 1
 
         for i in 1..<sortedDates.count {
-            let diff = calendar.dateComponents([.day], from: sortedDates[i - 1], to: sortedDates[i]).day ?? 0
+            let diff =
+                calendar.dateComponents([.day], from: sortedDates[i - 1], to: sortedDates[i]).day
+                ?? 0
             if diff == 1 {
                 current += 1
                 longest = max(longest, current)
@@ -301,7 +306,7 @@ nonisolated struct StatisticsCalculator: Sendable {
     ) -> WeeklyProgress {
         let calendar = Calendar.current
         var comps = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: referenceDate)
-        comps.weekday = 2 // Monday
+        comps.weekday = 2  // Monday
         let weekStart = calendar.date(from: comps) ?? referenceDate
 
         let tasksThisWeek = completedTasks.filter { dto in

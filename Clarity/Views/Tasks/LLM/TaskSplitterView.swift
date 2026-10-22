@@ -1,12 +1,12 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 @available(iOS 26.0, *)
 struct TaskSplitterView: View {
     @Binding var taskName: String
     @State private var showingSplitter = false
     @State private var selectedSuggestions: [SplitTaskSuggestion] = []
-    
+
     var body: some View {
         if #available(iOS 26.0, *) {
             Button(action: { showingSplitter = true }) {

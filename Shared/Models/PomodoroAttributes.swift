@@ -8,14 +8,15 @@
 import Foundation
 
 #if canImport(ActivityKit)
-import ActivityKit
+    import ActivityKit
 
-struct PomodoroAttributes: ActivityAttributes {
-    public struct ContentState: Codable, Hashable {
-        var taskName: String
-        var startTime: Date
-        var endTime: Date
+    struct PomodoroAttributes: ActivityAttributes {
+        struct ContentState: Codable, Hashable {
+            var taskName: String
+            var startTime: Date
+            var endTime: Date
+        }
+
+        var sessionId: String
     }
-    var sessionId: String
-}
 #endif

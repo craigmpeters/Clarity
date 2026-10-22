@@ -8,11 +8,11 @@
 import Foundation
 import SwiftData
 import Testing
+
 @testable import Clarity
 
 @Suite(.serialized)
 struct ClarityModelActorHabitTests {
-
     private func makeActor() async throws -> ClarityModelActor {
         ClarityModelActor.widgetCoordinator = NoOpWidgetCoordinator()
         let container = try Containers.inMemory()
@@ -100,7 +100,9 @@ struct ClarityModelActorHabitTests {
         let calendar = Calendar.current
         let threeDaysAgo = calendar.date(byAdding: .day, value: -3, to: Date()) ?? Date()
 
-        let applied = try await actor.applyHealthKitProgress(added.uuid, value: 12, date: threeDaysAgo)
+        let applied = try await actor.applyHealthKitProgress(
+            added.uuid, value: 12, date: threeDaysAgo
+        )
 
         #expect(applied.completed == true)
         #expect(calendar.isDate(applied.periodStart, inSameDayAs: threeDaysAgo))
@@ -112,7 +114,8 @@ struct ClarityModelActorHabitTests {
         }
 
         let history = try await actor.fetchHabitHistory(
-            added.uuid, from: Date.distantPast, to: Date.distantFuture)
+            added.uuid, from: Date.distantPast, to: Date.distantFuture
+        )
         #expect(history.count == 1)
         #expect(history.first { calendar.isDate($0.periodStart, inSameDayAs: threeDaysAgo) } != nil)
     }
@@ -160,27 +163,28 @@ struct ClarityModelActorHabitTests {
     }
 
     @Test func spendFreezeThrowsWhenNoFreezableMiss() async throws {
-        // PINNED: spendFreeze requires a missed period within the grace window. A habit that
-        // has succeeded in the current week has no missed period, so the spend succeeds and
-        // consumes a freeze even though there is nothing to backfill. This documents the
-        // current behavior where the guard does not prevent spending when no miss exists.
+        // PINNED: with rolling-window semantics, spendFreeze requires an actual missed
+        // day within the grace window. A habit that has met the rolling target so far
+        // this week is not at risk, so the spend throws .noFreezableMiss.
         let actor = try await makeActor()
         let added = try await actor.addHabit(makeDTO(dailyTarget: 1, weeklyFrequency: 7))
-        // Complete all 7 days of the current calendar week so there is no missed period.
+        // Complete all 7 days ending today (no miss anywhere).
         let calendar = HabitStreakCalculator.streakCalendar()
         let today = calendar.startOfDay(for: Date())
-        let weekday = calendar.component(.weekday, from: today)
-        for offset in 0..<weekday {
-            let date = calendar.date(byAdding: .day, value: offset - (weekday - 1), to: today) ?? today
+        for offset in 0..<7 {
+            let date = calendar.date(byAdding: .day, value: -offset, to: today) ?? today
             _ = try await actor.setHabitProgress(added.uuid, date: date, amount: 1)
         }
         try await actor.forceStreakFreezes(added.uuid, count: 5)
         let fetched = try await actor.fetchHabits().first
         #expect(fetched?.streakFreezes == 5)
-        try await actor.spendFreeze(fetched!.uuid)
+        await #expect(throws: HabitError.noFreezableMiss) {
+            try await actor.spendFreeze(#require(fetched?.uuid))
+        }
+        // Balance unchanged after a failed spend.
         let after = try await actor.fetchHabits().first
-        #expect(after?.streakFreezes == 4)
-        #expect(after?.freezesSpent == 1)
+        #expect(after?.streakFreezes == 5)
+        #expect(after?.freezesSpent == 0)
     }
 
     @Test func spendFreezeBackfillsMissedPeriodWhenGraceWindowOpen() async throws {
@@ -192,7 +196,8 @@ struct ClarityModelActorHabitTests {
         let weekday = calendar.component(.weekday, from: today)
         // Place a completed day in the prior week and referenceDate just after it so the
         // current week is closed and has failed, yielding a missedPeriod.
-        let lastSunday = calendar.date(byAdding: .day, value: -(weekday - 1) - 7, to: today) ?? today
+        let lastSunday =
+            calendar.date(byAdding: .day, value: -(weekday - 1) - 7, to: today) ?? today
         let lastSaturday = calendar.date(byAdding: .day, value: 6, to: lastSunday) ?? today
         _ = try await actor.setHabitProgress(added.uuid, date: lastSaturday, amount: 1)
 
@@ -220,7 +225,8 @@ struct ClarityModelActorHabitTests {
         let calendar = HabitStreakCalculator.streakCalendar()
         let today = calendar.startOfDay(for: Date())
         let weekday = calendar.component(.weekday, from: today)
-        let lastSunday = calendar.date(byAdding: .day, value: -(weekday - 1) - 7, to: today) ?? today
+        let lastSunday =
+            calendar.date(byAdding: .day, value: -(weekday - 1) - 7, to: today) ?? today
         for offset in 0..<7 {
             let date = calendar.date(byAdding: .day, value: offset, to: lastSunday) ?? today
             _ = try await actor.setHabitProgress(added.uuid, date: date, amount: 1)
@@ -229,7 +235,7 @@ struct ClarityModelActorHabitTests {
         let fetched = try await actor.fetchHabits().first
         #expect(fetched?.streakFreezes == 1)
         await #expect(throws: HabitError.noFreezableMiss) {
-            try await actor.spendFreeze(fetched!.uuid)
+            try await actor.spendFreeze(#require(fetched?.uuid))
         }
     }
 
@@ -263,7 +269,8 @@ struct ClarityModelActorHabitTests {
         let weekday = calendar.component(.weekday, from: today)
         // weekday is 1 (Sunday) ... 7 (Saturday). Fill from Sunday through today.
         for offset in 0..<weekday {
-            let date = calendar.date(byAdding: .day, value: offset - (weekday - 1), to: today) ?? today
+            let date =
+                calendar.date(byAdding: .day, value: offset - (weekday - 1), to: today) ?? today
             _ = try await actor.setHabitProgress(added.uuid, date: date, amount: 1)
         }
         // Re-fetch the habit to get the latest freeze count after reconciliation.
@@ -271,6 +278,71 @@ struct ClarityModelActorHabitTests {
         // The in-progress current week counts as a 7-day streak only if today is Saturday;
         // otherwise the streak is still building. Assert non-negative count.
         #expect((fetched?.streakFreezes ?? 0) >= 0)
+    }
+
+    /// Step A regression: freeze balance is derived from completed-day history and is
+    /// additive-only via `max()`. A spurious zero-streak evaluation (e.g. an in-progress
+    /// Saturday with an unfinished week) must NEVER reduce the balance.
+    @Test func reconcileFreezesIsAdditiveOnlyAndNeverWithdrawsOnSaturday() async throws {
+        let actor = try await makeActor()
+        let added = try await actor.addHabit(makeDTO(dailyTarget: 1, weeklyFrequency: 7))
+        let calendar = HabitStreakCalculator.streakCalendar()
+        let today = calendar.startOfDay(for: Date())
+        let weekday = calendar.component(.weekday, from: today)
+        // Complete Sunday through today so history is full up to now.
+        for offset in 0..<weekday {
+            let date =
+                calendar.date(byAdding: .day, value: offset - (weekday - 1), to: today) ?? today
+            _ = try await actor.setHabitProgress(added.uuid, date: date, amount: 1)
+        }
+        // Force the balance to a known good value simulating a previously-earned freeze.
+        try await actor.forceStreakFreezes(added.uuid, count: 2)
+        let before = try await actor.fetchHabits().first
+        #expect(before?.streakFreezes == 2)
+
+        // Trigger a mutation. reconcileFreezes must NEVER decrease the balance, even if
+        // an evaluation window computed a smaller number by mistake.
+        _ = try await actor.setHabitProgress(added.uuid, date: today, amount: 2)
+        let after = try await actor.fetchHabits().first
+        #expect(after?.streakFreezes ?? -1 >= 2)
+    }
+
+    /// One-time repair: a habit whose balance was wrongly zeroed is restored from completed
+    /// history; never restores more than `maxFreezes`, never decreases.
+    @Test func repairFreezesFromHistoryRestoresLostFreezes() async throws {
+        let actor = try await makeActor()
+        let added = try await actor.addHabit(makeDTO(dailyTarget: 1, weeklyFrequency: 7))
+        let calendar = HabitStreakCalculator.streakCalendar()
+        // Log completed days across two full prior weeks so the history earns freeze credit.
+        for weekOffset in [-2, -1] {
+            guard
+                let wkStart = try calendar.date(
+                    byAdding: .weekOfYear, value: weekOffset,
+                    to: #require(calendar.dateInterval(of: .weekOfYear, for: Date())?.start)
+                )
+            else { continue }
+            for offset in 0..<7 {
+                if let date = calendar.date(byAdding: .day, value: offset, to: wkStart) {
+                    _ = try await actor.setHabitProgress(added.uuid, date: date, amount: 1)
+                }
+            }
+        }
+        // Simulate the bug: balance wrongly zeroed by the Saturday wipe.
+        try await actor.forceStreakFreezes(added.uuid, count: 0)
+        let before = try await actor.fetchHabits().first
+        #expect(before?.streakFreezes == 0)
+
+        let repaired = try await actor.repairFreezesFromHistory()
+        #expect(repaired == 1)
+        let after = try await actor.fetchHabits().first
+        // 14 completed days = 2 freezes earned; spent 0.
+        #expect(after?.streakFreezes == 2)
+
+        // Idempotent: second run is a no-op.
+        let second = try await actor.repairFreezesFromHistory()
+        #expect(second == 0)
+        let unchanged = try await actor.fetchHabits().first
+        #expect(unchanged?.streakFreezes == 2)
     }
 
     // MARK: - becameCompleted

@@ -5,9 +5,8 @@
 //  Created by Craig Peters on 22/02/2026.
 //
 
-import WidgetKit
 import SwiftUI
-
+import WidgetKit
 
 @main
 struct ClarityWatchWidgetsBundle: WidgetBundle {

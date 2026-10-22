@@ -1,7 +1,7 @@
 // CategorySettingsView.swift with full edit capabilities
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct CategorySettingsView: View {
     @Query private var categories: [Category]
@@ -10,11 +10,11 @@ struct CategorySettingsView: View {
     @State private var globalTarget: Int = 0
     @State private var showingAddCategory = false
     @State private var editingCategory: Category?
-    
+
     private var currentGlobalSettings: GlobalTargetSettings? {
         globalSettings.first
     }
-    
+
     var body: some View {
         NavigationView {
             Form {
@@ -23,9 +23,9 @@ struct CategorySettingsView: View {
                     HStack {
                         Label("Global Weekly Target", systemImage: "target")
                             .foregroundStyle(.orange)
-                        
+
                         Spacer()
-                        
+
                         Stepper(value: $globalTarget, in: 0...100) {
                             HStack {
                                 TextField("", value: $globalTarget, format: .number)
@@ -54,7 +54,7 @@ struct CategorySettingsView: View {
                     Text("Set a target for total tasks to complete each week across all categories")
                         .font(.caption)
                 }
-                
+
                 // Individual Category Targets
                 Section {
                     ForEach(categories) { category in
@@ -66,7 +66,7 @@ struct CategorySettingsView: View {
                         )
                     }
                     .onDelete(perform: deleteCategories)
-                    
+
                     Button(action: { showingAddCategory = true }) {
                         Label("Add Category", systemImage: "plus.circle.fill")
                             .foregroundStyle(.blue)
@@ -77,7 +77,7 @@ struct CategorySettingsView: View {
                     Text("Tap a category to edit name and color. Adjust targets with +/- buttons.")
                         .font(.caption)
                 }
-                
+
                 // Target Summary
                 if !categories.isEmpty {
                     Section("Target Summary") {
@@ -87,8 +87,6 @@ struct CategorySettingsView: View {
                             Text("\(categories.reduce(0) { $0 + $1.weeklyTarget })")
                                 .foregroundStyle(.secondary)
                         }
-                        
-
                     }
                 }
             }
@@ -107,7 +105,7 @@ struct CategorySettingsView: View {
             }
         }
     }
-    
+
     private func loadGlobalSettings() {
         if let settings = currentGlobalSettings {
             globalTarget = settings.weeklyGlobalTarget
@@ -117,7 +115,7 @@ struct CategorySettingsView: View {
             try? modelContext.save()
         }
     }
-    
+
     private func saveGlobalTarget(_ value: Int) {
         if let settings = currentGlobalSettings {
             settings.weeklyGlobalTarget = value
@@ -127,7 +125,7 @@ struct CategorySettingsView: View {
         }
         try? modelContext.save()
     }
-    
+
     private func deleteCategories(at offsets: IndexSet) {
         for index in offsets {
             modelContext.delete(categories[index])
@@ -136,12 +134,12 @@ struct CategorySettingsView: View {
     }
 }
 
-// Updated CategoryTargetRow with edit button
+/// Updated CategoryTargetRow with edit button
 struct CategoryTargetRow: View {
     @Bindable var category: Category
     @Environment(\.modelContext) private var modelContext
     let onEdit: () -> Void
-    
+
     var body: some View {
         HStack {
             // Tappable category info
@@ -156,20 +154,20 @@ struct CategoryTargetRow: View {
                             .fill(category.color!.SwiftUIColor)
                             .frame(width: 16, height: 16)
                     }
-                    
+
                     Text(category.name!)
                         .fontWeight(.medium)
                         .foregroundStyle(.primary)
-                    
+
                     Image(systemName: "chevron.right")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
             }
             .buttonStyle(.plain)
-            
+
             Spacer()
-            
+
             // Target adjustment buttons
             HStack(spacing: 4) {
                 Button(action: { decrementTarget() }) {
@@ -178,17 +176,17 @@ struct CategoryTargetRow: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(category.weeklyTarget == 0)
-                
+
                 Text("\(category.weeklyTarget)")
                     .frame(minWidth: 30)
                     .font(.system(.body, design: .monospaced))
-                
+
                 Button(action: { incrementTarget() }) {
                     Image(systemName: "plus.circle")
                         .foregroundStyle(.blue)
                 }
                 .buttonStyle(.plain)
-                
+
                 Text("/ week")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -196,12 +194,12 @@ struct CategoryTargetRow: View {
         }
         .padding(.vertical, 4)
     }
-    
+
     private func incrementTarget() {
         category.weeklyTarget += 1
         try? modelContext.save()
     }
-    
+
     private func decrementTarget() {
         if category.weeklyTarget > 0 {
             category.weeklyTarget -= 1
@@ -210,25 +208,25 @@ struct CategoryTargetRow: View {
     }
 }
 
-// Edit Category View for name and color
+/// Edit Category View for name and color
 struct EditCategoryView: View {
     @Bindable var category: Category
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var name: String
     @State private var selectedColor: Category.CategoryColor
     @State private var weeklyTarget: Int
     @State private var selectedIcon: String?
-    
+
     init(category: Category) {
         self.category = category
-        self._name = State(initialValue: category.name ?? "")
-        self._selectedColor = State(initialValue: category.color ?? Category.CategoryColor.Blue)
-        self._weeklyTarget = State(initialValue: category.weeklyTarget)
-        self._selectedIcon = State(initialValue: category.iconName)
+        _name = State(initialValue: category.name ?? "")
+        _selectedColor = State(initialValue: category.color ?? Category.CategoryColor.Blue)
+        _weeklyTarget = State(initialValue: category.weeklyTarget)
+        _selectedIcon = State(initialValue: category.iconName)
     }
-    
+
     var body: some View {
         NavigationView {
             Form {
@@ -236,7 +234,7 @@ struct EditCategoryView: View {
                     TextField("Category Name", text: $name)
                         .textFieldStyle(.roundedBorder)
                 }
-                
+
                 Section("Weekly Target") {
                     HStack {
                         Image(systemName: "target")
@@ -250,9 +248,11 @@ struct EditCategoryView: View {
                         }
                     }
                 }
-                
+
                 Section("Color") {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 16) {
+                    LazyVGrid(
+                        columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 16
+                    ) {
                         ForEach(Category.CategoryColor.allCases, id: \.self) { color in
                             Button(action: {
                                 withAnimation(.easeInOut(duration: 0.15)) {
@@ -274,10 +274,12 @@ struct EditCategoryView: View {
                                                 .opacity(selectedColor == color ? 1 : 0)
                                         )
                                         .scaleEffect(selectedColor == color ? 1.1 : 1.0)
-                                    
+
                                     Text(color.rawValue)
                                         .font(.caption2)
-                                        .foregroundColor(selectedColor == color ? color.SwiftUIColor : .secondary)
+                                        .foregroundColor(
+                                            selectedColor == color ? color.SwiftUIColor : .secondary
+                                        )
                                 }
                             }
                             .buttonStyle(PlainButtonStyle())
@@ -285,12 +287,12 @@ struct EditCategoryView: View {
                     }
                     .padding(.vertical, 8)
                 }
-                
+
                 Section("Icon") {
                     CategoryIconPicker(selectedIcon: $selectedIcon)
                         .frame(minHeight: 260)
                 }
-                
+
                 Section("Preview") {
                     HStack {
                         if let iconName = selectedIcon, !iconName.isEmpty {
@@ -322,7 +324,7 @@ struct EditCategoryView: View {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         saveChanges()
@@ -333,13 +335,13 @@ struct EditCategoryView: View {
             }
         }
     }
-    
+
     private func saveChanges() {
         category.name = name
         category.color = selectedColor
         category.weeklyTarget = weeklyTarget
         category.iconName = selectedIcon
-        
+
         do {
             try modelContext.save()
             dismiss()

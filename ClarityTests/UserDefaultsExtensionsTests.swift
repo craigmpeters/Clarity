@@ -7,12 +7,12 @@
 
 import Foundation
 import Testing
+
 @testable import Clarity
 
 @MainActor
 @Suite(.serialized)
 struct UserDefaultsExtensionsTests {
-
     private let keys: [String] = [
         "hasCompletedOnboarding",
         "hasSeenSwipeGesturesTooltip",
@@ -21,7 +21,7 @@ struct UserDefaultsExtensionsTests {
         "me.craigpeters.clarity.hasBoughtPremium",
         "me.craigpeters.clarity.companionEnabled",
         "me.craigpeters.clarity.companionName",
-        "me.craigpeters.clarity.companionPersonalityID"
+        "me.craigpeters.clarity.companionPersonalityID",
     ]
 
     init() {

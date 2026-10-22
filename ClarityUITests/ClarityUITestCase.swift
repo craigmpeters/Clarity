@@ -18,7 +18,7 @@ class ClarityUITestCase: XCTestCase {
         app.launchArguments = [
             "--uitesting",
             "--uitesting-skip-onboarding",
-            "--uitesting-disable-companion"
+            "--uitesting-disable-companion",
         ]
         app.terminate()
         app.launch()
@@ -40,10 +40,10 @@ class ClarityUITestCase: XCTestCase {
     func assertExists(_ element: XCUIElement, timeout: TimeInterval = 5) {
         XCTAssertTrue(element.waitForExistence(timeout: timeout))
     }
-    
+
     func scrollToCell(_ cell: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 8) {
         var attempts = 0
-        while !cell.isHittable && attempts < maxSwipes {
+        while !cell.isHittable, attempts < maxSwipes {
             app.swipeUp()
             attempts += 1
         }

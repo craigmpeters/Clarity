@@ -5,8 +5,8 @@
 //  Created by Craig Peters on 18/09/2025.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 import os
 
 struct TaskRowView: View {
@@ -38,6 +38,7 @@ struct TaskRowView: View {
         self.onComplete = onComplete
         self.onStartTimer = onStartTimer
     }
+
     var body: some View {
         HStack(spacing: 12) {
             VStack(spacing: 2) {
@@ -88,7 +89,10 @@ struct TaskRowView: View {
                     Button {
                         performAction(.trailingPrimary)
                     } label: {
-                        Label(swipeOptions.primarySwipeTrailing.title, systemImage: swipeOptions.primarySwipeTrailing.systemImage)
+                        Label(
+                            swipeOptions.primarySwipeTrailing.title,
+                            systemImage: swipeOptions.primarySwipeTrailing.systemImage
+                        )
                     }
                     .tint(swipeOptions.primarySwipeTrailing.color)
                 }
@@ -96,7 +100,10 @@ struct TaskRowView: View {
                     Button {
                         performAction(.trailingSecondary)
                     } label: {
-                        Label(swipeOptions.secondarySwipeTrailing.title, systemImage: swipeOptions.secondarySwipeTrailing.systemImage)
+                        Label(
+                            swipeOptions.secondarySwipeTrailing.title,
+                            systemImage: swipeOptions.secondarySwipeTrailing.systemImage
+                        )
                     }
                     .tint(swipeOptions.secondarySwipeTrailing.color)
                 }
@@ -106,7 +113,10 @@ struct TaskRowView: View {
                     Button {
                         performAction(.leadingPrimary)
                     } label: {
-                        Label(swipeOptions.primarySwipeLeading.title, systemImage: swipeOptions.primarySwipeLeading.systemImage)
+                        Label(
+                            swipeOptions.primarySwipeLeading.title,
+                            systemImage: swipeOptions.primarySwipeLeading.systemImage
+                        )
                     }
                     .tint(swipeOptions.primarySwipeLeading.color)
                 }
@@ -114,7 +124,10 @@ struct TaskRowView: View {
                     Button {
                         performAction(.leadingSecondary)
                     } label: {
-                        Label(swipeOptions.secondarySwipeLeading.title, systemImage: swipeOptions.secondarySwipeLeading.systemImage)
+                        Label(
+                            swipeOptions.secondarySwipeLeading.title,
+                            systemImage: swipeOptions.secondarySwipeLeading.systemImage
+                        )
                     }
                     .tint(swipeOptions.secondarySwipeLeading.color)
                 }
@@ -129,7 +142,7 @@ struct TaskRowView: View {
                         onDelete()
                     }
                 }
-                Button("Cancel", role: .cancel) { }
+                Button("Cancel", role: .cancel) {}
             }
         }
     }
@@ -241,8 +254,12 @@ func dateAccentTextColor(_ due: Date) -> Color {
     let isToday = Calendar.current.isDateInToday(due)
     let isPast = Date.now.midnight > due.midnight
 
-    if isPast { return .red }
-    if isToday { return .primary }
+    if isPast {
+        return .red
+    }
+    if isToday {
+        return .primary
+    }
 
     return .primary
 }
@@ -251,57 +268,63 @@ func dateAccentBackgroundColor(_ due: Date) -> Color {
     let isToday = Calendar.current.isDateInToday(due)
     let isPast = Date.now.midnight > due.midnight
 
-    if isPast { return .red.opacity(0.15) }
-    if isToday { return .green.opacity(0.15) }
+    if isPast {
+        return .red.opacity(0.15)
+    }
+    if isToday {
+        return .green.opacity(0.15)
+    }
     return Color.accentColor.opacity(0.12)
 }
 
 #if DEBUG
-#Preview("Default") {
-    HStack {
-        TaskRowView(
-            task: PreviewData.shared.getToDoTask(),
-            swipeOptions: TaskSwipeAndTapOptions(),
-            onEdit: { print("Task Edited") },
-            onDelete: { print("Task Deleted") },
-            onComplete: { print("Task Completed") },
-            onStartTimer: { print("Timer Started") }
-        )
-        .modelContainer(PreviewData.shared.previewContainer)
-        .environment(CompanionService.shared)
+    #Preview("Default") {
+        HStack {
+            TaskRowView(
+                task: PreviewData.shared.getToDoTask(),
+                swipeOptions: TaskSwipeAndTapOptions(),
+                onEdit: { print("Task Edited") },
+                onDelete: { print("Task Deleted") },
+                onComplete: { print("Task Completed") },
+                onStartTimer: { print("Timer Started") }
+            )
+            .modelContainer(PreviewData.shared.previewContainer)
+            .environment(CompanionService.shared)
+        }
+        .padding(30)
     }
-    .padding(30)
-}
 
-#Preview("Overdue") {
-    HStack {
-        TaskRowView(
-            task: PreviewData.shared.getOverDueToDoTask(),
-            swipeOptions: TaskSwipeAndTapOptions(),
-            onEdit: { print("Task Edited") },
-            onDelete: { print("Task Deleted") },
-            onComplete: { print("Task Completed") },
-            onStartTimer: { print("Timer Started") }
-        )
-        .modelContainer(PreviewData.shared.previewContainer)
-        .environment(CompanionService.shared)
+    #Preview("Overdue") {
+        HStack {
+            TaskRowView(
+                task: PreviewData.shared.getOverDueToDoTask(),
+                swipeOptions: TaskSwipeAndTapOptions(),
+                onEdit: { print("Task Edited") },
+                onDelete: { print("Task Deleted") },
+                onComplete: { print("Task Completed") },
+                onStartTimer: { print("Timer Started") }
+            )
+            .modelContainer(PreviewData.shared.previewContainer)
+            .environment(CompanionService.shared)
+        }
+        .padding(30)
     }
-    .padding(30)
-}
 
-#Preview("Many Categories") {
-    HStack {
-        TaskRowView(
-            task: PreviewData.shared.makeEveryMonday(PreviewData.shared.getTaskWithManyCategories()),
-            swipeOptions: TaskSwipeAndTapOptions(),
-            onEdit: { print("Task Edited") },
-            onDelete: { print("Task Deleted") },
-            onComplete: { print("Task Completed") },
-            onStartTimer: { print("Timer Started") }
-        )
-        .modelContainer(PreviewData.shared.previewContainer)
-        .environment(CompanionService.shared)
+    #Preview("Many Categories") {
+        HStack {
+            TaskRowView(
+                task: PreviewData.shared.makeEveryMonday(
+                    PreviewData.shared.getTaskWithManyCategories()
+                ),
+                swipeOptions: TaskSwipeAndTapOptions(),
+                onEdit: { print("Task Edited") },
+                onDelete: { print("Task Deleted") },
+                onComplete: { print("Task Completed") },
+                onStartTimer: { print("Timer Started") }
+            )
+            .modelContainer(PreviewData.shared.previewContainer)
+            .environment(CompanionService.shared)
+        }
+        .padding(30)
     }
-    .padding(30)
-}
 #endif

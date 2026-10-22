@@ -1,15 +1,14 @@
 //
-//  ClarityWatchWidgets.swift
+//  ClarityWatchDueWidget.swift
 //  ClarityWatchWidgets
 //
 //  Created by Craig Peters on 22/02/2026.
 //
 
-import WidgetKit
-import SwiftUI
 import OSLog
+import SwiftUI
+import WidgetKit
 import XCGLogger
-
 
 extension ToDoTask.TaskFilterOption {
     var systemImage: String {
@@ -35,39 +34,54 @@ extension ToDoTask.TaskFilterOption {
 
 struct WatchDueWidgetProvider: AppIntentTimelineProvider {
     func recommendations() -> [AppIntentRecommendation<WatchDueWidgetIntent>] {
-        [AppIntentRecommendation(intent: WatchDueWidgetIntent(), description: Text("Overdue Tasks")),
-         AppIntentRecommendation(intent: WatchDueWidgetIntent(ToDoTask.TaskFilterOption.today, categoryFilter: []), description: Text("Todays Tasks"))
+        [
+            AppIntentRecommendation(
+                intent: WatchDueWidgetIntent(), description: Text("Overdue Tasks")
+            ),
+            AppIntentRecommendation(
+                intent: WatchDueWidgetIntent(ToDoTask.TaskFilterOption.today, categoryFilter: []),
+                description: Text("Todays Tasks")
+            ),
         ]
     }
-    
-    func placeholder(in context: Context) -> WatchDueEntry {
+
+    func placeholder(in _: Context) -> WatchDueEntry {
         WatchDueEntry(date: .now, todos: [], filter: .all, progress: getWeeklyProgress())
     }
 
-    func snapshot(for configuration: WatchDueWidgetIntent, in context: Context) async -> WatchDueEntry {
-        
-        var tasks : [ToDoTaskDTO] = []
+    func snapshot(for configuration: WatchDueWidgetIntent, in _: Context) async
+        -> WatchDueEntry
+    {
+        var tasks: [ToDoTaskDTO] = []
         do {
-            tasks = try WidgetFileCoordinator.shared.readTasks(with: configuration.filter.toTaskFilter())
+            tasks = try WidgetFileCoordinator.shared.readTasks(
+                with: configuration.filter.toTaskFilter()
+            )
             tasks = tasks.filter { !$0.completed }
         } catch {
             LogManager.shared.log.error("Could not get tasks: \(error.localizedDescription)")
         }
         // TODO: Is this required? I am not sure it will even work.
         tasks = ToDoTaskDTO.focusFilter(in: tasks)
-        return WatchDueEntry(date: .now, todos: tasks, filter: configuration.filter, progress: getWeeklyProgress())
+        return WatchDueEntry(
+            date: .now, todos: tasks, filter: configuration.filter, progress: getWeeklyProgress()
+        )
     }
-    
-    func timeline(for configuration: WatchDueWidgetIntent, in context: Context) async -> Timeline<WatchDueEntry> {
-        var tasks : [ToDoTaskDTO] = []
+
+    func timeline(for configuration: WatchDueWidgetIntent, in _: Context) async -> Timeline<
+        WatchDueEntry
+    > {
+        var tasks: [ToDoTaskDTO] = []
         do {
-            tasks = try WidgetFileCoordinator.shared.readTasks(with: configuration.filter.toTaskFilter())
+            tasks = try WidgetFileCoordinator.shared.readTasks(
+                with: configuration.filter.toTaskFilter()
+            )
             tasks = tasks.filter { !$0.completed }
         } catch {
             LogManager.shared.log.error("Could not get tasks: \(error.localizedDescription)")
         }
-        
-        let selectedCategories : [CategoryEntity] = configuration.categoryFilter
+
+        let selectedCategories: [CategoryEntity] = configuration.categoryFilter
         if selectedCategories.count > 0 {
             let selectedCategoryNames = Set(selectedCategories.map(\.name))
             tasks = tasks.filter { task in
@@ -75,25 +89,27 @@ struct WatchDueWidgetProvider: AppIntentTimelineProvider {
                 return !taskCategories.isDisjoint(with: selectedCategoryNames)
             }
         }
-        
+
         tasks = ToDoTaskDTO.focusFilter(in: tasks)
-        let entry = WatchDueEntry(date: .now, todos: tasks, filter: configuration.filter, progress: getWeeklyProgress())
-        
+        let entry = WatchDueEntry(
+            date: .now, todos: tasks, filter: configuration.filter, progress: getWeeklyProgress()
+        )
+
         let cal = Calendar.current
         let now = Date()
-        
+
         // Always update at midnight (when day changes)
         let nextMidnight = cal.startOfDay(for: cal.date(byAdding: .day, value: 1, to: now) ?? now)
-        
+
         // For frequent updates during the day, update every 15 minutes
         let next15Minutes = cal.date(byAdding: .minute, value: 15, to: now) ?? now
-        
+
         // Use whichever comes first - this ensures we update at midnight for date changes
         let nextUpdate = min(nextMidnight, next15Minutes)
-        
+
         return Timeline(entries: [entry], policy: .after(nextUpdate))
     }
-    
+
     private func getWeeklyProgress() -> WeeklyProgress {
         if let progress = WidgetFileCoordinator.shared.readWeeklyProgress() {
             return progress
@@ -103,7 +119,7 @@ struct WatchDueWidgetProvider: AppIntentTimelineProvider {
     }
 }
 
-struct ClarityWatchWidgetDueView : View {
+struct ClarityWatchWidgetDueView: View {
     @Environment(\.widgetFamily) var widgetFamily
     @Environment(\.widgetRenderingMode) var renderingMode
     var entry: WatchDueEntry
@@ -142,7 +158,7 @@ struct ClarityWatchWidgetDueView : View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            
+
         case .accessoryCircular:
             Gauge(value: Double(min(entry.todos.count, 10)), in: 0...10) {
                 Image(systemName: entry.filter.systemImage)
@@ -153,8 +169,12 @@ struct ClarityWatchWidgetDueView : View {
                     .widgetAccentable()
             }
             .gaugeStyle(.accessoryCircular)
-            .tint(entry.todos.count == 0 ? .secondary : entry.todos.count <= 3 ? .green : entry.todos.count <= 7 ? .yellow : .red)
-            
+            .tint(
+                entry.todos.count == 0
+                    ? .secondary
+                    : entry.todos.count <= 3 ? .green : entry.todos.count <= 7 ? .yellow : .red
+            )
+
         case .accessoryCorner:
             Image(renderingMode == .fullColor ? "clarity-teeny" : "clarity-teeny-mono")
                 .renderingMode(renderingMode == .fullColor ? .original : .template)
@@ -164,11 +184,10 @@ struct ClarityWatchWidgetDueView : View {
                 .widgetLabel {
                     Text("\(entry.todos.count) • \(entry.filter.rawValue)")
                 }
+
         default:
             EmptyView()
         }
-        
-
     }
 }
 
@@ -176,11 +195,15 @@ struct WatchDueWidget: Widget {
     let kind: String = "WatchDueWidget"
 
     var body: some WidgetConfiguration {
-        AppIntentConfiguration(kind: kind, intent: WatchDueWidgetIntent.self, provider: WatchDueWidgetProvider()) { entry in
+        AppIntentConfiguration(
+            kind: kind, intent: WatchDueWidgetIntent.self, provider: WatchDueWidgetProvider()
+        ) { entry in
             ClarityWatchWidgetDueView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
-        .supportedFamilies([.accessoryCircular, .accessoryCorner, .accessoryRectangular, .accessoryInline])
+        .supportedFamilies([
+            .accessoryCircular, .accessoryCorner, .accessoryRectangular, .accessoryInline,
+        ])
     }
 }
 

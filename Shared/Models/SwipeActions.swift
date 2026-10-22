@@ -6,8 +6,8 @@
 //
 
 import Foundation
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 /// Represents the possible swipe actions a user can perform on a row
 enum SwipeAction: String, Codable, Equatable, Sendable, CaseIterable {
@@ -22,7 +22,7 @@ enum SwipeAction: String, Codable, Equatable, Sendable, CaseIterable {
         .delete,
         .edit,
         .complete,
-        .startTimer
+        .startTimer,
     ]
 }
 
@@ -37,7 +37,7 @@ extension SwipeAction {
         case .startTimer: return "Start Timer"
         }
     }
-    
+
     /// Icon for the action
     var systemImage: String {
         switch self {
@@ -48,7 +48,7 @@ extension SwipeAction {
         case .startTimer: return "timer"
         }
     }
-    
+
     var color: Color {
         switch self {
         case .none: return .black
@@ -58,7 +58,7 @@ extension SwipeAction {
         case .startTimer: return .blue
         }
     }
-    
+
     /// The SF Symbol name for the action's icon.
     var systemImageName: String {
         switch self {
@@ -69,7 +69,7 @@ extension SwipeAction {
         case .startTimer: return "timer"
         }
     }
-    
+
     /// Suggested button role for this action.
     var role: ButtonRole? {
         switch self {
@@ -79,28 +79,25 @@ extension SwipeAction {
     }
 }
 
-
 // #MARK: Model
 
 @Model
-public final class  TaskSwipeAndTapOptions {
-    
+public final class TaskSwipeAndTapOptions {
     var tap: SwipeAction = SwipeAction.edit
-    var primarySwipeLeading: SwipeAction = SwipeAction.startTimer 
+    var primarySwipeLeading: SwipeAction = SwipeAction.startTimer
     var primarySwipeTrailing: SwipeAction = SwipeAction.delete
     var secondarySwipeLeading: SwipeAction = SwipeAction.complete
     var secondarySwipeTrailing: SwipeAction = SwipeAction.none
-    
-    public init() {
-        
-    }
-    
-    init(primarySwipeLeading: SwipeAction, secondarySwipeLeading: SwipeAction, primarySwipeTrailing: SwipeAction, secondarySwipeTrailing: SwipeAction) {
+
+    public init() {}
+
+    init(
+        primarySwipeLeading: SwipeAction, secondarySwipeLeading: SwipeAction,
+        primarySwipeTrailing: SwipeAction, secondarySwipeTrailing: SwipeAction
+    ) {
         self.primarySwipeLeading = primarySwipeLeading
         self.primarySwipeTrailing = primarySwipeTrailing
         self.secondarySwipeLeading = secondarySwipeLeading
         self.secondarySwipeTrailing = secondarySwipeTrailing
-        
     }
 }
-

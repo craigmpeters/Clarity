@@ -7,49 +7,50 @@
 
 import SwiftData
 import SwiftUI
+
 #if canImport(FoundationModels)
-import FoundationModels
+    import FoundationModels
 #endif
 
 struct TaskFormView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
-    
+
     let editingTask: ToDoTaskDTO?
     @State private var toDoTask: ToDoTaskDTO
     @State private var selectedCategories: [CategoryDTO] = []
     @State private var selectedRecurrence: ToDoTask.RecurrenceInterval = .daily
     @State private var customDays: Int = 1
-    @State private var dueDate: Date = Date()
+    @State private var dueDate: Date = .init()
     @State private var showingDatePicker = false
     @State private var everySpecificDayDay: Int = 1
-    
+
     @State private var store: ClarityModelActor?
     @FocusState private var nameFieldFocused: Bool
-    
+
     private var isEditing: Bool {
         editingTask != nil
     }
-    
+
     init(task: ToDoTaskDTO? = nil) {
-        self.editingTask = task
-        
+        editingTask = task
+
         if let task = task {
-            self._toDoTask = State(initialValue: task)
-            self._selectedCategories = State(initialValue: task.categories)
-            self._selectedRecurrence = State(initialValue: task.recurrenceInterval ?? .daily)
-            self._customDays = State(initialValue: task.customRecurrenceDays)
-            self._dueDate = State(initialValue: task.due)
-            self._everySpecificDayDay = State(initialValue: task.everySpecificDayDay)
+            _toDoTask = State(initialValue: task)
+            _selectedCategories = State(initialValue: task.categories)
+            _selectedRecurrence = State(initialValue: task.recurrenceInterval ?? .daily)
+            _customDays = State(initialValue: task.customRecurrenceDays)
+            _dueDate = State(initialValue: task.due)
+            _everySpecificDayDay = State(initialValue: task.everySpecificDayDay)
         } else {
-            self._toDoTask = State(initialValue: ToDoTaskDTO(name: ""))
-            self._selectedCategories = State(initialValue: [])
-            self._selectedRecurrence = State(initialValue: .daily)
-            self._customDays = State(initialValue: 1)
-            self._dueDate = State(initialValue: Date())
+            _toDoTask = State(initialValue: ToDoTaskDTO(name: ""))
+            _selectedCategories = State(initialValue: [])
+            _selectedRecurrence = State(initialValue: .daily)
+            _customDays = State(initialValue: 1)
+            _dueDate = State(initialValue: Date())
         }
     }
-    
+
     private func saveTask() {
         withAnimation(.easeInOut(duration: 0.2)) {
             toDoTask.categories = selectedCategories
@@ -62,12 +63,12 @@ struct TaskFormView: View {
             } else {
                 toDoTask.recurrenceInterval = nil
             }
-            
+
             if !isEditing {
                 Task {
                     try? await store?.addTask(toDoTask)
                 }
-                
+
             } else {
                 Task {
                     try? await store?.updateTask(toDoTask)
@@ -76,7 +77,7 @@ struct TaskFormView: View {
         }
         dismiss()
     }
-    
+
     var body: some View {
         NavigationView {
             Form {
@@ -92,20 +93,24 @@ struct TaskFormView: View {
                                 .foregroundStyle(.orange)
                             Text("Duration")
                             Spacer()
-                            MinutePickerView(selectedTimeInterval: $toDoTask.pomodoroTime, TaskName: $toDoTask.name)
+                            MinutePickerView(
+                                selectedTimeInterval: $toDoTask.pomodoroTime,
+                                TaskName: $toDoTask.name
+                            )
                         }
-                        
+
                         if #available(iOS 26.0, *) {
                             HStack {
                                 Text("Suggest a duration")
                                 Spacer()
-                                PomodoroSuggestion(taskSuggestion: $toDoTask.name, suggestedTime: $toDoTask.pomodoroTime)
+                                PomodoroSuggestion(
+                                    taskSuggestion: $toDoTask.name,
+                                    suggestedTime: $toDoTask.pomodoroTime
+                                )
                             }
-
                         }
                     }
 
-                    
                     HStack {
                         Image(systemName: "calendar")
                             .foregroundStyle(.red)
@@ -124,17 +129,32 @@ struct TaskFormView: View {
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("task-form-date-toggle")
                     }
-                                        
+
                     // Expanded date picker
                     if showingDatePicker {
                         // Quick date options
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
-                                QuickDateButton(title: "Today", date: Date(), selectedDate: $dueDate)
-                                QuickDateButton(title: "Tomorrow", date: Date().addingTimeInterval(86400), selectedDate: $dueDate)
-                                QuickDateButton(title: "In 3 Days", date: Date().addingTimeInterval(86400 * 3), selectedDate: $dueDate)
-                                QuickDateButton(title: "Next Week", date: Date().addingTimeInterval(86400 * 7), selectedDate: $dueDate)
-                                QuickDateButton(title: "In 2 Weeks", date: Date().addingTimeInterval(86400 * 14), selectedDate: $dueDate)
+                                QuickDateButton(
+                                    title: "Today", date: Date(), selectedDate: $dueDate
+                                )
+                                QuickDateButton(
+                                    title: "Tomorrow", date: Date().addingTimeInterval(86400),
+                                    selectedDate: $dueDate
+                                )
+                                QuickDateButton(
+                                    title: "In 3 Days", date: Date().addingTimeInterval(86400 * 3),
+                                    selectedDate: $dueDate
+                                )
+                                QuickDateButton(
+                                    title: "Next Week", date: Date().addingTimeInterval(86400 * 7),
+                                    selectedDate: $dueDate
+                                )
+                                QuickDateButton(
+                                    title: "In 2 Weeks",
+                                    date: Date().addingTimeInterval(86400 * 14),
+                                    selectedDate: $dueDate
+                                )
                             }
                         }
                         DatePicker(
@@ -145,20 +165,19 @@ struct TaskFormView: View {
                         )
                         .datePickerStyle(.graphical)
                         .labelsHidden()
-                        //.padding(.vertical, 8)
-                                            
-
+                        // .padding(.vertical, 8)
                     }
-                    
-                Toggle("Repeating Task", isOn: $toDoTask.repeating)
-                    .accessibilityIdentifier("task-form-repeating-toggle")
+
+                    Toggle("Repeating Task", isOn: $toDoTask.repeating)
+                        .accessibilityIdentifier("task-form-repeating-toggle")
 
                     // Show recurrence options when repeating is enabled
                     if toDoTask.repeating {
                         VStack(alignment: .leading, spacing: 8) {
                             // Recurrence interval picker
                             Picker(selection: $selectedRecurrence) {
-                                ForEach(ToDoTask.RecurrenceInterval.allCases, id: \.self) { interval in
+                                ForEach(ToDoTask.RecurrenceInterval.allCases, id: \.self) {
+                                    interval in
                                     Text(interval.displayName)
                                         .tag(interval)
                                 }
@@ -171,7 +190,7 @@ struct TaskFormView: View {
                             }
                             .pickerStyle(.wheel)
                             .frame(maxHeight: 120)
-                            
+
                             // Show custom days input if custom is selected
                             if selectedRecurrence == .custom {
                                 HStack {
@@ -179,7 +198,6 @@ struct TaskFormView: View {
                                         .foregroundStyle(.indigo)
                                     Text("Every")
 
-                                    
                                     TextField("Days", value: $customDays, format: .number)
                                         .textFieldStyle(.roundedBorder)
                                         .frame(width: 60)
@@ -190,7 +208,7 @@ struct TaskFormView: View {
                                                 customDays = 1
                                             }
                                         }
-                                    
+
                                     Text(customDays == 1 ? "day" : "days")
                                     Spacer()
                                 }
@@ -212,7 +230,7 @@ struct TaskFormView: View {
                                 }
                                 .transition(.opacity.combined(with: .move(edge: .top)))
                             }
-                            
+
                             // Preview of next occurrence
                             if let nextDate = getNextOccurrenceDate() {
                                 HStack {
@@ -245,7 +263,7 @@ struct TaskFormView: View {
                     }
                     .accessibilityIdentifier("task-form-cancel")
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(isEditing ? "Save" : "Add") {
                         saveTask()
@@ -260,14 +278,14 @@ struct TaskFormView: View {
             }
         }
     }
-    
+
     private func getNextOccurrenceDate() -> Date? {
         guard toDoTask.repeating else { return nil }
-        
+
         if selectedRecurrence == .custom {
             return Calendar.current.date(byAdding: .day, value: customDays, to: dueDate)
         }
-        
+
         if selectedRecurrence == .specific {
             var comps = DateComponents()
             // Map app's weekday index (where 3 = Wednesday) to Calendar's weekday (1 = Sunday ... 7 = Saturday)
@@ -275,36 +293,38 @@ struct TaskFormView: View {
             // Shift so that app's 3 (Wednesday) becomes Calendar's 4 (Wednesday)
             let calendarWeekday = ((normalized + 1 - 1) % 7) + 1
             comps.weekday = calendarWeekday
-            return Calendar.current.nextDate(after: Date(), matching: comps, matchingPolicy: .nextTimePreservingSmallerComponents)
+            return Calendar.current.nextDate(
+                after: Date(), matching: comps, matchingPolicy: .nextTimePreservingSmallerComponents
+            )
         }
-        
+
         return selectedRecurrence.nextDate(from: dueDate)
     }
-    
+
     private var isOverdue: Bool {
-            dueDate < Calendar.current.startOfDay(for: Date())
+        dueDate < Calendar.current.startOfDay(for: Date())
+    }
+
+    private func formatDate(_ date: Date) -> String {
+        let calendar = Calendar.current
+
+        if calendar.isDateInToday(date) {
+            return "Today"
+        } else if calendar.isDateInTomorrow(date) {
+            return "Tomorrow"
+        } else if calendar.isDate(date, equalTo: Date(), toGranularity: .weekOfYear) {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "EEEE"  // Day of week
+            return formatter.string(from: date)
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            return formatter.string(from: date)
         }
-        
-        private func formatDate(_ date: Date) -> String {
-            let calendar = Calendar.current
-            
-            if calendar.isDateInToday(date) {
-                return "Today"
-            } else if calendar.isDateInTomorrow(date) {
-                return "Tomorrow"
-            } else if calendar.isDate(date, equalTo: Date(), toGranularity: .weekOfYear) {
-                let formatter = DateFormatter()
-                formatter.dateFormat = "EEEE" // Day of week
-                return formatter.string(from: date)
-            } else {
-                let formatter = DateFormatter()
-                formatter.dateStyle = .medium
-                return formatter.string(from: date)
-            }
-        }
+    }
 }
 
-// Quick date selection button component
+/// Quick date selection button component
 struct QuickDateButton: View {
     let title: String
     let date: Date
@@ -329,10 +349,11 @@ struct QuickDateButton: View {
                 .cornerRadius(8)
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier("quick-date-\(title.lowercased().replacingOccurrences(of: " ", with: "-"))")
+        .accessibilityIdentifier(
+            "quick-date-\(title.lowercased().replacingOccurrences(of: " ", with: "-"))"
+        )
     }
 }
-
 
 @available(iOS 26.0, *)
 extension TaskFormView {
@@ -349,9 +370,9 @@ extension TaskFormView {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                        
+
                         Spacer()
-                        
+
                         TaskSplitterView(
                             taskName: $toDoTask.name
                         )
@@ -364,24 +385,26 @@ extension TaskFormView {
             } else if SystemLanguageModel.default.availability == .unavailable(.modelNotReady) {
                 Section {
                     HStack {
-                        Label("Apple Intelligence has not finished downloading. Come back soon for the ability to split tasks", systemImage: "apple.intelligence")
-                            .font(.caption2)
-                     }
+                        Label(
+                            "Apple Intelligence has not finished downloading. Come back soon for the ability to split tasks",
+                            systemImage: "apple.intelligence"
+                        )
+                        .font(.caption2)
+                    }
                 }
             }
-         }
+        }
     }
 }
 
 #if DEBUG
-#Preview("New Task") {
-    TaskFormView()
-    .modelContainer(PreviewData.shared.previewContainer)
-}
+    #Preview("New Task") {
+        TaskFormView()
+            .modelContainer(PreviewData.shared.previewContainer)
+    }
 
-#Preview("Edit Task") {
-    TaskFormView(task: PreviewData.shared.toToDoTaskDTO(from: PreviewData.shared.getToDoTask()) )
-        .modelContainer(PreviewData.shared.previewContainer)
-}
+    #Preview("Edit Task") {
+        TaskFormView(task: PreviewData.shared.toToDoTaskDTO(from: PreviewData.shared.getToDoTask()))
+            .modelContainer(PreviewData.shared.previewContainer)
+    }
 #endif
-

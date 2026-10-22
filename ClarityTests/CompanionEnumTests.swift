@@ -7,10 +7,10 @@
 
 import Foundation
 import Testing
+
 @testable import Clarity
 
 struct CompanionEnumTests {
-
     @Test func triggerAllowsTaskSuggestionOnlyForCompletionTriggers() {
         #expect(CompanionTrigger.taskCompleted(taskName: "T").allowsTaskSuggestion == true)
         #expect(CompanionTrigger.pomodoroCompleted(taskName: "T").allowsTaskSuggestion == true)
@@ -18,8 +18,14 @@ struct CompanionEnumTests {
         #expect(CompanionTrigger.taskUncompleted(taskName: "T").allowsTaskSuggestion == false)
         #expect(CompanionTrigger.streakMilestone(days: 7).allowsTaskSuggestion == false)
         #expect(CompanionTrigger.lowMoodDetected(averageValence: 0.0).allowsTaskSuggestion == false)
-        #expect(CompanionTrigger.habitSuggestion(categories: [], completedCount: 0).allowsTaskSuggestion == false)
-        #expect(CompanionTrigger.habitCompleted(habitName: "H", state: .continued(streak: 1)).allowsTaskSuggestion == false)
+        #expect(
+            CompanionTrigger.habitSuggestion(categories: [], completedCount: 0).allowsTaskSuggestion
+                == false
+        )
+        #expect(
+            CompanionTrigger.habitCompleted(habitName: "H", state: .continued(streak: 1))
+                .allowsTaskSuggestion == false
+        )
     }
 
     @Test func modelAvailabilityOnlyAvailableCaseIsAvailable() {
@@ -33,14 +39,17 @@ struct CompanionEnumTests {
     @Test func modelAvailabilityUserFacingReasons() {
         #expect(CompanionModelAvailability.available.userFacingReason == "")
         #expect(CompanionModelAvailability.deviceNotEligible.userFacingReason.isEmpty == false)
-        #expect(CompanionModelAvailability.appleIntelligenceNotEnabled.userFacingReason.isEmpty == false)
+        #expect(
+            CompanionModelAvailability.appleIntelligenceNotEnabled.userFacingReason.isEmpty == false
+        )
         #expect(CompanionModelAvailability.modelNotReady.userFacingReason.isEmpty == false)
         #expect(CompanionModelAvailability.unsupported.userFacingReason.isEmpty == false)
     }
 
     @Test func companionEmotionRawValueRoundTrip() {
         for emotion in [
-            CompanionEmotion.idle, .thinking, .happy, .encouraging, .loving, .caring, .determined, .silly
+            CompanionEmotion.idle, .thinking, .happy, .encouraging, .loving, .caring, .determined,
+            .silly,
         ] {
             #expect(CompanionEmotion(rawValue: emotion.rawValue) == emotion)
         }
@@ -66,7 +75,9 @@ struct CompanionEnumTests {
     }
 
     @Test func chatMessageEmotionValidRawValue() {
-        let message = ChatMessage(sender: .companion, text: "hi", emotion: CompanionEmotion.happy.rawValue)
+        let message = ChatMessage(
+            sender: .companion, text: "hi", emotion: CompanionEmotion.happy.rawValue
+        )
         #expect(message.emotion == .happy)
     }
 

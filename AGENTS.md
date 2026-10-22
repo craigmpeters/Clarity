@@ -6,7 +6,9 @@
 - Swift Testing for all new tests (XCTest only when extending legacy suites)
 
 ## Code style
-- Format with swift-format (runs automatically on edit)
+- Format with swift-format; configuration in `.swift-format` (4-space indentation)
+- Formatting runs automatically via git pre-commit hook
+- Indentation: 4 spaces, no tabs.
 - No force unwraps, force try, or implicitly unwrapped optionals outside tests
 - Prefer structs and value semantics; classes only when identity or reference semantics are required
 - Concurrency: async/await and actors only; no completion handlers or DispatchQueue in new code
@@ -23,5 +25,5 @@
 
 ## Design Decisions
 * Tasks themselves in ToDoTask have a UUID, this is unique for the task but not the instance of the task - this behaviour is intended
-* Habit progress dots (WeeklyDotsView on iOS, weekCompletionBitmap on watchOS) show a rolling 7-day window (today plus the previous 6 days, oldest first, today last) rather than a fixed calendar week. Streak calculation (HabitStreakCalculator) is day-based: current streak = consecutive successful weeks x 7 + completed days in the current in-progress week (or 7 if the current week already met its weekly target). The weekly target uses calendar weeks (Sunday start).
+* Habit progress dots (WeeklyDotsView on iOS, weekCompletionBitmap on watchOS) show a rolling 7-day window (today plus the previous 6 days, oldest first, today last) rather than a fixed calendar week. Habit streak / strength / freeze balances are computed by `HabitProgressEngine` over a trailing `windowDays` (default 7, configurable 7/14/30). The persisted `weeklyFrequency` field is reinterpreted as the target days per window. Freeze balance is derived from completed-day history (never from the current streak) and is additive-only via `ClarityModelActor.reconcileFreezes`; auto-spend (when the global `autoUseFreezes` UserDefault is on, default true) marks a missed day as frozen without setting `completed=true` so engine credit stays neutral. Watch taps carry a timestamp via `WatchCommand.logHabitProgressAt` so queued taps replayed after midnight still attribute to the tap day.
 * Pomodoro durations are capped at a maximum of 25 minutes (5–25 in 5-minute steps). This is a deliberate business rule: MinutePickerView only offers 5...25, the Apple Intelligence duration suggestion clamps to 25 (PomodoroSuggestion / PomodoroSuggestionService), and AI task-splitting subtask estimates clamp to 25 (TaskSplitParser). Do not raise these caps.

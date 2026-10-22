@@ -46,10 +46,12 @@ struct CompanionFaceView: View {
     var fallbackEmoji: String = "🦦"
 
     var body: some View {
-        CompanionSpriteView(emotion: emotion, size: size, assetPrefix: assetPrefix, fallbackEmoji: fallbackEmoji)
-            .background(Circle().fill(.white))
-            .clipShape(Circle())
-            .overlay(Circle().stroke(Color.black, lineWidth: 2))
+        CompanionSpriteView(
+            emotion: emotion, size: size, assetPrefix: assetPrefix, fallbackEmoji: fallbackEmoji
+        )
+        .background(Circle().fill(.white))
+        .clipShape(Circle())
+        .overlay(Circle().stroke(Color.black, lineWidth: 2))
     }
 }
 

@@ -2,32 +2,39 @@
 //  HabitStreakCalculatorTests.swift
 //  ClarityTests
 //
-//  Created by OpenCode on 08/08/2026.
+//  Adapter-level tests for `HabitStreakCalculator`, which now delegates to
+//  `HabitProgressEngine` (rolling-window semantics). Calendar-week behaviour
+//  was retired by Step B — see docs/20261004/clarity-rolling-habits-spec.md.
 //
 
 import Foundation
 import Testing
+
 @testable import Clarity
 
 struct HabitStreakCalculatorTests {
-
     private let calendar: Calendar = {
         var cal = Calendar(identifier: .gregorian)
-        cal.firstWeekday = 1 // Sunday, matching HabitStreakCalculator
+        cal.firstWeekday = 1  // Sunday, matching HabitStreakCalculator
+        cal.timeZone = TimeZone(identifier: "Europe/London") ?? .current
         return cal
     }()
+
     private let habitUUID = UUID()
 
-    private func date(year: Int, month: Int, day: Int) -> Date {
+    private func date(year: Int, month: Int, day: Int, hour: Int = 12) -> Date {
         var components = DateComponents()
         components.year = year
         components.month = month
         components.day = day
-        components.hour = 12
+        components.hour = hour
+        components.timeZone = calendar.timeZone
         return calendar.date(from: components) ?? Date()
     }
 
-    private func occurrence(_ date: Date, completed: Bool = true, freezeUsed: Bool = false) -> HabitOccurrenceDTO {
+    private func occurrence(_ date: Date, completed: Bool = true, freezeUsed: Bool = false)
+        -> HabitOccurrenceDTO
+    {
         HabitOccurrenceDTO(
             habitUUID: habitUUID,
             periodStart: date,
@@ -37,126 +44,169 @@ struct HabitStreakCalculatorTests {
         )
     }
 
-    /// Generate completed occurrences for a full week starting at `weekStart`.
-    private func fullWeek(start: Date) -> [HabitOccurrenceDTO] {
-        (0..<7).compactMap { offset -> HabitOccurrenceDTO? in
-            guard let day = calendar.date(byAdding: .day, value: offset, to: start) else { return nil }
+    /// Build `count` completed days ending at (and including) `endingOn`, walking
+    /// backwards day by day.
+    private func rollingDays(endingOn: Date, count: Int) -> [HabitOccurrenceDTO] {
+        (0..<count).compactMap { offset in
+            guard
+                let day = calendar.date(byAdding: .day, value: -(count - 1) + offset, to: endingOn)
+            else { return nil }
             return occurrence(day)
         }
     }
 
-    /// Return the start of the calendar week for the reference date.
-    private func weekStart(for date: Date) -> Date {
-        calendar.dateInterval(of: .weekOfYear, for: date)?.start ?? date
-    }
+    // MARK: - Adapter surface
 
-    @Test func dailyHabitSevenDaysCountsOneWeekStreak() {
+    @Test func adapterConsecutiveDailyDays() {
+        // 7 consecutive completed days ending Wednesday. Current streak is 7
+        // (literal consecutive on-track days, not weeks×7).
         let reference = date(year: 2026, month: 1, day: 7)
-        let start = weekStart(for: reference)
-        let occurrences = fullWeek(start: start)
-        let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 7, freezes: 0, referenceDate: reference)
+        let occurrences = rollingDays(endingOn: reference, count: 7)
+        let result = HabitStreakCalculator.streak(
+            occurrences: occurrences, frequency: 7, freezes: 0, referenceDate: reference
+        )
         #expect(result.current == 7)
         #expect(result.longest == 7)
-        #expect(result.freezesEarned == 1)
         #expect(result.atRisk == false)
     }
 
-    @Test func threeTimesWeeklyHabitWithThreeCompletedDaysSucceeds() {
+    @Test func adapterFewerThanTargetStillCountsCompleted() {
+        // 3-of-7 target with two completed days so far this week; the streak is
+        // the literal chain (Tue completed, Sun completed 3 days earlier).
+        // Streak runs back through Wed pending, Tue completed, Mon missed (breaks,
+        // because trailing window credit 1 < 3 target). current = 1.
         let reference = date(year: 2026, month: 1, day: 7)
-        let start = weekStart(for: reference)
-        let occurrences = [0, 2, 4].compactMap { offset -> HabitOccurrenceDTO? in
-            guard let day = calendar.date(byAdding: .day, value: offset, to: start) else { return nil }
-            return occurrence(day)
-        }
-        let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 3, freezes: 0, referenceDate: reference)
-        // A 3x/week habit that meets its weekly target contributes a full 7 days.
+        let sunday = date(year: 2026, month: 1, day: 4)
+        let tuesday = date(year: 2026, month: 1, day: 6)
+        let occurrences = [occurrence(sunday), occurrence(tuesday)]
+        let result = HabitStreakCalculator.streak(
+            occurrences: occurrences, frequency: 3, freezes: 0, referenceDate: reference
+        )
+        #expect(result.current == 1)
+        #expect(result.longest == 1)
+    }
+
+    @Test func adapterFrozenDayCountsAsOnTrack() throws {
+        // 6 consecutive completed days ending Thursday, Friday frozen, Saturday pending.
+        // The frozen Friday carries the chain forward. current = 7.
+        let friday = date(year: 2026, month: 1, day: 16)
+        let saturday = date(year: 2026, month: 1, day: 17)
+        var occurrences = try rollingDays(
+            endingOn: #require(calendar.date(byAdding: .day, value: -1, to: friday)), count: 6
+        )
+        occurrences.append(occurrence(friday, completed: false, freezeUsed: true))
+        let result = HabitStreakCalculator.streak(
+            occurrences: occurrences, frequency: 7, freezes: 0, referenceDate: saturday
+        )
         #expect(result.current == 7)
         #expect(result.longest == 7)
-    }
-
-    @Test func freezeUsedOnMissedDayPreservesStreak() {
-        let reference = date(year: 2026, month: 1, day: 14)
-        let previousStart = calendar.date(byAdding: .day, value: -7, to: weekStart(for: reference))!
-        var occurrences = (0..<6).compactMap { offset -> HabitOccurrenceDTO? in
-            guard let day = calendar.date(byAdding: .day, value: offset, to: previousStart) else { return nil }
-            return occurrence(day)
-        }
-        if let missedDay = calendar.date(byAdding: .day, value: 6, to: previousStart) {
-            occurrences.append(occurrence(missedDay, completed: false, freezeUsed: true))
-        }
-        let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 7, freezes: 1, referenceDate: reference)
-        #expect(result.current == 7) // previous week succeeded; current week still in progress contributes 0 days
-        #expect(result.longest == 7)
         #expect(result.atRisk == false)
     }
 
-    @Test func noFreezeAfterGraceWindowExpires() {
-        // Previous week failed two weeks ago; the next period (last week) succeeded,
-        // so we are now past the grace window for the failed week.
-        let reference = date(year: 2026, month: 1, day: 25)
-        let currentWeekStart = weekStart(for: reference)
-        let previousStart = calendar.date(byAdding: .day, value: -7, to: currentWeekStart)!
-        let failedStart = calendar.date(byAdding: .day, value: -7, to: previousStart)!
-        var occurrences = (0..<5).compactMap { offset -> HabitOccurrenceDTO? in
-            guard let day = calendar.date(byAdding: .day, value: offset, to: failedStart) else { return nil }
-            return occurrence(day)
-        }
-        // Make the intervening week succeed so the failed week is the most recent miss.
-        occurrences.append(contentsOf: fullWeek(start: previousStart))
-        let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 7, freezes: 1, referenceDate: reference)
-        #expect(result.atRisk == false)
-        #expect(result.current == 7) // previous week succeeded; in-progress week contributes 0 days
-    }
-
-    @Test func freezeAvailableWithinNextPeriodGraceWindow() {
-        // Previous week failed on Sunday 2026-01-11; today is the next Sunday 2026-01-18,
-        // which is the start of the next period (the grace window).
-        let reference = date(year: 2026, month: 1, day: 18)
-        let previousStart = calendar.date(byAdding: .day, value: -7, to: weekStart(for: reference))!
-        let occurrences = (0..<5).compactMap { offset -> HabitOccurrenceDTO? in
-            guard let day = calendar.date(byAdding: .day, value: offset, to: previousStart) else { return nil }
-            return occurrence(day)
-        }
-        let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 7, freezes: 1, referenceDate: reference)
-        #expect(result.atRisk == true)
-        #expect(result.current == 0)
-    }
-
-    @Test func inProgressWeekPreservesExistingStreak() {
-        let reference = date(year: 2026, month: 1, day: 8)
-        let start = weekStart(for: reference)
-        let previousStart = calendar.date(byAdding: .day, value: -7, to: start)!
-        var occurrences = fullWeek(start: previousStart)
-        // Add a few completed days in the current week but not enough to succeed yet.
-        for offset in [0, 1] {
-            if let day = calendar.date(byAdding: .day, value: offset, to: start) {
+    @Test func adapterMissWithinGraceWindowIsAtRisk() {
+        // 7-day streak ends with a real miss 2 days ago; today is still within the
+        // grace window so atRisk=true when a freeze is available.
+        // For the adapter to surface atRisk we need to pass freezesSpent=0 and have
+        // the engine derive at least one available freeze from completed-day history.
+        let today = date(year: 2026, month: 1, day: 18)
+        // 14 days completed ending 3 days ago; one missed day 2 days ago; one missed
+        // day yesterday. This guarantees a streak break with a recent missedDay in
+        // reach of the grace window.
+        var occurrences: [HabitOccurrenceDTO] = []
+        for offset in 3...16 {
+            if let day = calendar.date(byAdding: .day, value: -offset, to: today) {
                 occurrences.append(occurrence(day))
             }
         }
-        let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 7, freezes: 0, referenceDate: reference)
-        #expect(result.current == 9) // previous week (7) + 2 in-progress days this week
-        #expect(result.longest == 9)
+        let result = HabitStreakCalculator.streak(
+            occurrences: occurrences, frequency: 7, freezes: 1, referenceDate: today
+        )
+        #expect(result.current == 0)
+        #expect(result.atRisk == true)
+        #expect(result.missedPeriod != nil)
     }
 
-    @Test func freezesEarnedCapAtMaxFreezes() {
-        let reference = date(year: 2026, month: 1, day: 21)
-        let start = weekStart(for: reference)
-        var occurrences = fullWeek(start: start)
-        for offset in [1, 2] {
-            if let previous = calendar.date(byAdding: .day, value: -offset * 7, to: start) {
-                occurrences.append(contentsOf: fullWeek(start: previous))
+    @Test func adapterFreezeBalancePersistsAcrossStreakReset() throws {
+        // 14 completed days ending last week, one miss yesterday, today pending.
+        // Streak is broken (current = 0), longest retained, but the freeze balance
+        // derived from completed-day history is preserved.
+        let today = date(year: 2026, month: 1, day: 18)
+        let occurrences = try rollingDays(
+            endingOn: #require(calendar.date(byAdding: .day, value: -2, to: today)), count: 14
+        )
+        // Yesterday missed (no occurrence). Today pending.
+        let result = HabitStreakCalculator.streak(
+            occurrences: occurrences, frequency: 7, freezes: 0, referenceDate: today
+        )
+        #expect(result.current == 0)
+        #expect(result.longest == 14)
+        // 14 completed days >= 14, plus perfect-window bonuses; capped at 3.
+        #expect(result.freezesEarned == HabitConfig.maxFreezes)
+    }
+
+    // MARK: - Saturday regression (Step A, still applies via the adapter)
+
+    /// Regression: a daily habit with completions through Friday, evaluated on
+    /// Saturday 12:00 with nothing yet logged, must NOT report a zero streak.
+    @Test func saturdayWithUnfinishedWeekDoesNotResetStreak() {
+        let saturday = date(year: 2026, month: 1, day: 10)
+        // Completions Sun Jan 4 - Fri Jan 9 (6 days); Saturday pending.
+        var occurrences: [HabitOccurrenceDTO] = []
+        for offset in 1...6 {
+            if let day = calendar.date(byAdding: .day, value: -offset, to: saturday) {
+                occurrences.append(occurrence(day))
             }
         }
-        let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 7, freezes: 0, referenceDate: reference)
-        #expect(result.freezesEarned == 3)
+        let result = HabitStreakCalculator.streak(
+            occurrences: occurrences, frequency: 7, freezes: 0, referenceDate: saturday
+        )
+        #expect(result.current == 6)
+        #expect(result.atRisk == false)
     }
 
-    @Test func weeklyBoundaryUsesCalendarWeek() {
-        let reference = date(year: 2026, month: 1, day: 5)
-        let start = weekStart(for: reference)
-        let previousStart = calendar.date(byAdding: .day, value: -7, to: start)!
-        let occurrences = fullWeek(start: previousStart)
-        let result = HabitStreakCalculator.streak(occurrences: occurrences, frequency: 7, freezes: 0, referenceDate: reference)
-        #expect(result.current == 7) // previous week only; current week has no completions
+    /// Same data evaluated on Sunday 00:01 (after Saturday actually missed) — the
+    /// streak is broken because yesterday genuinely missed.
+    @Test func sundayAfterSaturdayMissedResetsStreak() {
+        let sunday = date(year: 2026, month: 1, day: 11)
+        var occurrences: [HabitOccurrenceDTO] = []
+        for offset in 2...7 {
+            if let day = calendar.date(byAdding: .day, value: -offset, to: sunday) {
+                occurrences.append(occurrence(day))
+            }
+        }
+        // Yesterday (Saturday) is missed.
+        let result = HabitStreakCalculator.streak(
+            occurrences: occurrences, frequency: 7, freezes: 0, referenceDate: sunday,
+            freezesSpent: 0
+        )
+        #expect(result.current == 0)
+        #expect(result.longest == 6)
+        #expect(result.missedPeriod != nil)
+        // 6 completed days is below the freeze-earn threshold, so atRisk must be false:
+        // there's nothing to spend.
+        #expect(result.atRisk == false)
+    }
+
+    /// Same scenario, but with enough completed history that freezes have been earned.
+    /// The grace window opens immediately on Sunday after the missed Saturday, so the
+    /// habit is at risk and a freeze could be spent.
+    @Test func sundayAfterSaturdayMissedIsAtRiskWithEarnedFreeze() {
+        let sunday = date(year: 2026, month: 1, day: 11)
+        // 14 completed days ending Friday Jan 9 (so we have a long history and the
+        // freeze accounting has something to count).
+        var occurrences: [HabitOccurrenceDTO] = []
+        for offset in 2...15 {
+            if let day = calendar.date(byAdding: .day, value: -offset, to: sunday) {
+                occurrences.append(occurrence(day))
+            }
+        }
+        // Yesterday (Sat Jan 10) missed.
+        let result = HabitStreakCalculator.streak(
+            occurrences: occurrences, frequency: 7, freezes: 0, referenceDate: sunday,
+            freezesSpent: 0
+        )
+        #expect(result.current == 0)
+        #expect(result.atRisk == true)
+        #expect(result.missedPeriod != nil)
     }
 }

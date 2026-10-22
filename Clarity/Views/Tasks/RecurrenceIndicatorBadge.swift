@@ -18,10 +18,8 @@ enum RecurrenceDescription {
             }
         }
 
-        if interval == .specific {
-            if let symbolIndex = everySpecificDayDay {
-                return Calendar.current.weekdaySymbols[symbolIndex]
-            }
+        if interval == .specific, let symbolIndex = everySpecificDayDay {
+            return Calendar.current.weekdaySymbols[symbolIndex]
         }
         return interval.displayName
     }
@@ -31,12 +29,12 @@ struct RecurrenceIndicatorBadge: View {
     let task: ToDoTask
     var showIcon: Bool = true
     var style: BadgeStyle = .subtle
-    
+
     enum BadgeStyle {
         case subtle
         case prominent
         case compact
-        
+
         var backgroundColor: Color {
             switch self {
             case .subtle:
@@ -47,7 +45,7 @@ struct RecurrenceIndicatorBadge: View {
                 return Color.clear
             }
         }
-        
+
         var foregroundColor: Color {
             switch self {
             case .subtle:
@@ -59,9 +57,7 @@ struct RecurrenceIndicatorBadge: View {
             }
         }
     }
-    
-    
-    
+
     private var recurrenceDescription: String? {
         RecurrenceDescription.forTask(
             repeating: task.repeating ?? false,
@@ -70,7 +66,7 @@ struct RecurrenceIndicatorBadge: View {
             everySpecificDayDay: task.everySpecificDayDay
         )
     }
-    
+
     var body: some View {
         if let description = recurrenceDescription {
             HStack(spacing: 4) {
@@ -88,16 +84,16 @@ struct RecurrenceIndicatorBadge: View {
             .background(style.backgroundColor)
             .cornerRadius(6)
         }
-
     }
 }
 
 #if DEBUG
-#Preview("Every Monday") {
-    HStack {
-        RecurrenceIndicatorBadge(task: PreviewData.shared.makeEveryMonday(PreviewData.shared.getToDoTask()))
+    #Preview("Every Monday") {
+        HStack {
+            RecurrenceIndicatorBadge(
+                task: PreviewData.shared.makeEveryMonday(PreviewData.shared.getToDoTask())
+            )
+        }
+        .padding(4)
     }
-    .padding(4)
-    
-}
 #endif

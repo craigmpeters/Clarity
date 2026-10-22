@@ -5,13 +5,12 @@
 //  Created by Craig Peters on 17/05/2026.
 //
 
-import WidgetKit
-import SwiftUI
-import SwiftData
 import AppIntents
+import SwiftData
+import SwiftUI
+import WidgetKit
 
 struct TaskHistoryWidget: Widget {
-
     let kind: String = "HistoryWidget"
 
     var body: some WidgetConfiguration {
@@ -37,9 +36,9 @@ struct TaskHistoryWidgetView: View {
 
     private var heatmapSize: HeatmapSize {
         switch widgetFamily {
-        case .systemSmall:  return .small
+        case .systemSmall: return .small
         case .systemMedium: return .medium
-        default:            return .large
+        default: return .large
         }
     }
 
@@ -61,39 +60,39 @@ struct TaskHistoryWidgetView: View {
 // MARK: - Previews
 
 #if DEBUG
-#Preview("Small — Dark", as: .systemSmall) {
-    TaskHistoryWidget()
-} timeline: {
-    TaskHistoryEntry(date: .now, uuid: UUID(), tasks: PreviewData.shared.sampleHeatmapTasks)
-}
+    #Preview("Small — Dark", as: .systemSmall) {
+        TaskHistoryWidget()
+    } timeline: {
+        TaskHistoryEntry(date: .now, uuid: UUID(), tasks: PreviewData.shared.sampleHeatmapTasks)
+    }
 
-#Preview("Small — Light", as: .systemSmall) {
-    TaskHistoryWidget()
-} timeline: {
-    TaskHistoryEntry(date: .now, uuid: UUID(), tasks: PreviewData.shared.sampleHeatmapTasks)
-}
+    #Preview("Small — Light", as: .systemSmall) {
+        TaskHistoryWidget()
+    } timeline: {
+        TaskHistoryEntry(date: .now, uuid: UUID(), tasks: PreviewData.shared.sampleHeatmapTasks)
+    }
 
-#Preview("Medium — Dark", as: .systemMedium) {
-    TaskHistoryWidget()
-} timeline: {
-    TaskHistoryEntry(date: .now, uuid: UUID(), tasks: PreviewData.shared.sampleHeatmapTasks)
-}
+    #Preview("Medium — Dark", as: .systemMedium) {
+        TaskHistoryWidget()
+    } timeline: {
+        TaskHistoryEntry(date: .now, uuid: UUID(), tasks: PreviewData.shared.sampleHeatmapTasks)
+    }
 
-#Preview("Medium — Light", as: .systemMedium) {
-    TaskHistoryWidget()
-} timeline: {
-    TaskHistoryEntry(date: .now, uuid: UUID(), tasks: PreviewData.shared.sampleHeatmapTasks)
-}
+    #Preview("Medium — Light", as: .systemMedium) {
+        TaskHistoryWidget()
+    } timeline: {
+        TaskHistoryEntry(date: .now, uuid: UUID(), tasks: PreviewData.shared.sampleHeatmapTasks)
+    }
 
-#Preview("Large — Dark", as: .systemLarge) {
-    TaskHistoryWidget()
-} timeline: {
-    TaskHistoryEntry(date: .now, uuid: UUID(), tasks: PreviewData.shared.sampleHeatmapTasks)
-}
+    #Preview("Large — Dark", as: .systemLarge) {
+        TaskHistoryWidget()
+    } timeline: {
+        TaskHistoryEntry(date: .now, uuid: UUID(), tasks: PreviewData.shared.sampleHeatmapTasks)
+    }
 
-#Preview("Large — Light", as: .systemLarge) {
-    TaskHistoryWidget()
-} timeline: {
-    TaskHistoryEntry(date: .now, uuid: UUID(), tasks: PreviewData.shared.sampleHeatmapTasks)
-}
+    #Preview("Large — Light", as: .systemLarge) {
+        TaskHistoryWidget()
+    } timeline: {
+        TaskHistoryEntry(date: .now, uuid: UUID(), tasks: PreviewData.shared.sampleHeatmapTasks)
+    }
 #endif

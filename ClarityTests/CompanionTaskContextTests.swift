@@ -7,10 +7,10 @@
 
 import Foundation
 import Testing
+
 @testable import Clarity
 
 struct CompanionTaskContextTests {
-
     private let calendar = Calendar.current
 
     private func summary(
@@ -35,14 +35,22 @@ struct CompanionTaskContextTests {
         name: String,
         weeklyFrequency: Int = 7,
         currentStreak: Int = 0,
-        doneToday: Bool = false
+        doneToday: Bool = false,
+        windowCredit: Int = 0,
+        windowTarget: Int = 7,
+        windowDays: Int = 7,
+        strength: Double = 0
     ) -> CompanionTaskContext.HabitSummary {
         CompanionTaskContext.HabitSummary(
             uuid: UUID(),
             name: name,
             weeklyFrequency: weeklyFrequency,
             currentStreak: currentStreak,
-            doneToday: doneToday
+            doneToday: doneToday,
+            windowCredit: windowCredit,
+            windowTarget: windowTarget,
+            windowDays: windowDays,
+            strength: strength
         )
     }
 
@@ -91,13 +99,17 @@ struct CompanionTaskContextTests {
     }
 
     @Test func moodThresholdDrained() {
-        let due = summary(name: "T", dueDate: Date(), lastCompletedAt: Date(), lastMoodValence: -0.1)
+        let due = summary(
+            name: "T", dueDate: Date(), lastCompletedAt: Date(), lastMoodValence: -0.1
+        )
         let ctx = context(dueTasks: [due])
         #expect(ctx.instructionsBlock.contains("felt drained"))
     }
 
     @Test func lastCompletedSuffixOnlyWhenMoodAndLastCompletedPresent() {
-        let withBoth = summary(name: "T", dueDate: Date(), lastCompletedAt: Date(), lastMoodValence: 0.5)
+        let withBoth = summary(
+            name: "T", dueDate: Date(), lastCompletedAt: Date(), lastMoodValence: 0.5
+        )
         let ctxWithBoth = context(dueTasks: [withBoth])
         #expect(ctxWithBoth.instructionsBlock.contains("last done"))
 
@@ -107,7 +119,9 @@ struct CompanionTaskContextTests {
     }
 
     @Test func recentlyCompletedSectionPresent() {
-        let completed = summary(name: "Done", dueDate: Date(), lastCompletedAt: Date(), lastMoodValence: 0.6)
+        let completed = summary(
+            name: "Done", dueDate: Date(), lastCompletedAt: Date(), lastMoodValence: 0.6
+        )
         let ctx = context(recentlyCompleted: [completed])
         #expect(ctx.instructionsBlock.contains("RECENTLY COMPLETED"))
         #expect(ctx.instructionsBlock.contains("\"Done\""))
@@ -115,18 +129,38 @@ struct CompanionTaskContextTests {
     }
 
     @Test func habitsSectionDailyFrequency() {
-        let habit = habitSummary(name: "Walk", weeklyFrequency: 7, currentStreak: 3, doneToday: true)
+        let habit = habitSummary(
+            name: "Walk",
+            weeklyFrequency: 7,
+            currentStreak: 3,
+            doneToday: true,
+            windowCredit: 3,
+            windowTarget: 7,
+            windowDays: 7,
+            strength: 0.62
+        )
         let ctx = context(habits: [habit])
         #expect(ctx.instructionsBlock.contains("HABITS"))
-        #expect(ctx.instructionsBlock.contains("\"Walk\" (daily)"))
+        #expect(ctx.instructionsBlock.contains("\"Walk\""))
+        #expect(ctx.instructionsBlock.contains("3/7 in last 7d"))
+        #expect(ctx.instructionsBlock.contains("strength 62%"))
         #expect(ctx.instructionsBlock.contains("done today"))
     }
 
     @Test func habitsSectionWeeklyFrequency() {
-        let habit = habitSummary(name: "Stretch", weeklyFrequency: 3, currentStreak: 1, doneToday: false)
+        let habit = habitSummary(
+            name: "Stretch",
+            weeklyFrequency: 3,
+            currentStreak: 1,
+            doneToday: false,
+            windowCredit: 1,
+            windowTarget: 3,
+            windowDays: 7,
+            strength: 0.1
+        )
         let ctx = context(habits: [habit])
-        #expect(ctx.instructionsBlock.contains("3 days/week"))
-        #expect(ctx.instructionsBlock.contains("not done today"))
+        #expect(ctx.instructionsBlock.contains("1/3 in last 7d"))
+        #expect(ctx.instructionsBlock.contains("pending today"))
     }
 
     @Test func habitsSectionStreakCount() {
@@ -142,7 +176,9 @@ struct CompanionTaskContextTests {
     }
 
     @Test func habitLineIncludesConsistency() {
-        let habit = habitSummary(name: "Walk", weeklyFrequency: 7, currentStreak: 3, doneToday: true)
+        let habit = habitSummary(
+            name: "Walk", weeklyFrequency: 7, currentStreak: 3, doneToday: true
+        )
         let ctx = context(habits: [habit])
         #expect(ctx.instructionsBlock.contains("just getting started"))
     }

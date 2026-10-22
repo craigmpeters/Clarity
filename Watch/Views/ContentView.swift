@@ -7,8 +7,8 @@
 
 import SwiftUI
 import WatchConnectivity
-import XCGLogger
 import WidgetKit
+import XCGLogger
 
 struct ContentView: View {
     @State private var store = WatchSnapshotStore.shared
@@ -23,8 +23,8 @@ struct ContentView: View {
                 WatchHabitsView()
                     .tag(1)
                 #if INTERNAL
-                WatchLogTransferView()
-                    .tag(2)
+                    WatchLogTransferView()
+                        .tag(2)
                 #endif
             }
             .tabViewStyle(.verticalPage)
@@ -37,20 +37,22 @@ struct ContentView: View {
                         Image(systemName: selectedTab == 0 ? "checklist" : "list.bullet")
                     }
                 }
-//                ToolbarItem(placement: .topBarTrailing) {
-//                    Button {
-//                        transferLogButton()
-//                        refresh()
-//                    } label: {
-//                        Image(systemName: isRefreshing ? "arrow.clockwise.circle.fill" : "arrow.clockwise.circle")
-//                    }
-//                    .disabled(isRefreshing)
-//                }
+                //                ToolbarItem(placement: .topBarTrailing) {
+                //                    Button {
+                //                        transferLogButton()
+                //                        refresh()
+                //                    } label: {
+                //                        Image(systemName: isRefreshing ? "arrow.clockwise.circle.fill" : "arrow.clockwise.circle")
+                //                    }
+                //                    .disabled(isRefreshing)
+                //                }
             }
-            .sheet(item: Binding(
-                get: { store.activePomodoro.map(IdentifiedPomodoro.init) },
-                set: { _ in WatchSnapshotStore.shared.dismissPomodoro() }
-            )) { identified in
+            .sheet(
+                item: Binding(
+                    get: { store.activePomodoro.map(IdentifiedPomodoro.init) },
+                    set: { _ in WatchSnapshotStore.shared.dismissPomodoro() }
+                )
+            ) { identified in
                 PomodoroView(identified.dto)
             }
             .task {
@@ -65,44 +67,49 @@ struct ContentView: View {
 
 #if INTERNAL
 
-struct WatchLogTransferView: View {
+    struct WatchLogTransferView: View {
+        var body: some View {
+            VStack {
+                Button(
+                    action: transferLogButton,
+                    label: {
+                        Text("Send Logs")
+                    }
+                )
+            }
+        }
 
-    var body : some View {
-        VStack {
-            Button(action: transferLogButton, label: {
-                Text("Send Logs")
-            })
+        private func transferLogButton() {
+            LogManager.shared.log.debug("Sending Logs to Phone")
+            guard
+                let containerURL = FileManager.default.containerURL(
+                    forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity"
+                )
+            else {
+                LogManager.shared.log.error("Cannot create Container URL")
+                return
+            }
+            let logData = WidgetFileCoordinator.shared.collectlogs()
+            WatchSnapshotStore.shared.sendLogs(logData)
         }
     }
-    
-    private func transferLogButton() {
-        LogManager.shared.log.debug("Sending Logs to Phone")
-        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.me.craigpeters.clarity") else {
-            LogManager.shared.log.error("Cannot create Container URL")
-            return
-        }
-        let logData = WidgetFileCoordinator.shared.collectlogs()
-        WatchSnapshotStore.shared.sendLogs(logData)
-    }
-}
 #endif
 
-
-
-
 private struct IdentifiedPomodoro: Identifiable {
-    var id: Date { dto.startTime ?? .distantPast }
+    var id: Date {
+        dto.startTime ?? .distantPast
+    }
+
     let dto: PomodoroDTO
-    init(dto: PomodoroDTO) { self.dto = dto }
 }
 
 #if DEBUG
-//#Preview {
-//    let c = WatchSnapshotStore.shared
-//    c.snapshot = Snapshot(revision: 0, tasks: [
-//        .init(id: UUID(), name: "Buy milk", pomodoroTime: 1500, due: .now, categories: [], uuid: UUID(), completed: false),
-//        .init(id: UUID(), name: "Read book", pomodoroTime: 1500, due: Date().addingTimeInterval(86400), categories: [], uuid: UUID(), completed: false)
-//    ], progress: WeeklyProgress(completed: 0, target: 0, error: nil, categories: []), activePomodoro: nil)
-//    return ContentView()
-//}
+    // #Preview {
+    //    let c = WatchSnapshotStore.shared
+    //    c.snapshot = Snapshot(revision: 0, tasks: [
+    //        .init(id: UUID(), name: "Buy milk", pomodoroTime: 1500, due: .now, categories: [], uuid: UUID(), completed: false),
+    //        .init(id: UUID(), name: "Read book", pomodoroTime: 1500, due: Date().addingTimeInterval(86400), categories: [], uuid: UUID(), completed: false)
+    //    ], progress: WeeklyProgress(completed: 0, target: 0, error: nil, categories: []), activePomodoro: nil)
+    //    return ContentView()
+    // }
 #endif

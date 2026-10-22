@@ -27,7 +27,7 @@ struct PaceDetector: Sendable {
     /// Needs at least 3 intervals (4 completions) to return a non-nil summary.
     func pace(completions: [Date], now: Date = Date()) -> PaceSummary? {
         let intervals = zip(completions, completions.dropFirst())
-            .map { $1.timeIntervalSince($0) / 86_400 }
+            .map { $1.timeIntervalSince($0) / 86400 }
         guard intervals.count >= 3 else { return nil }
 
         let sorted = intervals.sorted()
@@ -39,9 +39,10 @@ struct PaceDetector: Sendable {
         }
 
         let mean = intervals.reduce(0, +) / Double(intervals.count)
-        let variance = intervals.reduce(0) { $0 + ($1 - mean) * ($1 - mean) } / Double(intervals.count)
+        let variance =
+            intervals.reduce(0) { $0 + ($1 - mean) * ($1 - mean) } / Double(intervals.count)
         let cv = mean > 0 ? variance.squareRoot() / mean : 0
-        let daysSince = now.timeIntervalSince(completions.last ?? now) / 86_400
+        let daysSince = now.timeIntervalSince(completions.last ?? now) / 86400
         return PaceSummary(
             medianIntervalDays: median,
             coefficientOfVariation: cv,

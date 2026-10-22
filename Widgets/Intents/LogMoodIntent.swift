@@ -12,29 +12,33 @@ enum PomodoroMood: String, AppEnum, CaseIterable {
 
     static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Mood")
     static let caseDisplayRepresentations: [PomodoroMood: DisplayRepresentation] = [
-        .excited:    DisplayRepresentation(title: "Excited",     image: .init(systemName: "face.smiling")),
-        .happy:      DisplayRepresentation(title: "Happy",       image: .init(systemName: "face.smiling")),
-        .calm:       DisplayRepresentation(title: "Calm",        image: .init(systemName: "face.smiling")),
-        .stressed:   DisplayRepresentation(title: "Stressed",    image: .init(systemName: "face.smiling")),
-        .discouraged:DisplayRepresentation(title: "Discouraged", image: .init(systemName: "face.smiling")),
+        .excited: DisplayRepresentation(title: "Excited", image: .init(systemName: "face.smiling")),
+        .happy: DisplayRepresentation(title: "Happy", image: .init(systemName: "face.smiling")),
+        .calm: DisplayRepresentation(title: "Calm", image: .init(systemName: "face.smiling")),
+        .stressed: DisplayRepresentation(
+            title: "Stressed", image: .init(systemName: "face.smiling")
+        ),
+        .discouraged: DisplayRepresentation(
+            title: "Discouraged", image: .init(systemName: "face.smiling")
+        ),
     ]
 
     var emoji: String {
         switch self {
-        case .excited:     return "🤩"
-        case .happy:       return "😄"
-        case .calm:        return "😶"
-        case .stressed:    return "😓"
+        case .excited: return "🤩"
+        case .happy: return "😄"
+        case .calm: return "😶"
+        case .stressed: return "😓"
         case .discouraged: return "😞"
         }
     }
 
     var valence: Double {
         switch self {
-        case .excited:     return  0.9
-        case .happy:       return  0.7
-        case .calm:        return  0.3
-        case .stressed:    return -0.4
+        case .excited: return 0.9
+        case .happy: return 0.7
+        case .calm: return 0.3
+        case .stressed: return -0.4
         case .discouraged: return -0.7
         }
     }

@@ -5,13 +5,12 @@
 //  Unit tests for the habit creation/editing form state.
 //
 
+@testable import Clarity
 import Foundation
 import Testing
-@testable import Clarity
 
 @MainActor
 struct HabitFormStateTests {
-
     private func state() -> HabitFormState {
         HabitFormState()
     }
@@ -49,7 +48,7 @@ struct HabitFormStateTests {
 
     @Test func targetOutOfRangeWhenExceedsHealthKitCap() {
         let s = healthState(identifier: "water")
-        s.incrementStep = 10_000
+        s.incrementStep = 10000
         s.incrementCount = 10
         #expect(s.dailyTarget == 100_000)
         #expect(s.isTargetOutOfRange == true)
@@ -123,11 +122,11 @@ struct HabitFormStateTests {
     @Test func makeDTOClampsTargetAndStep() {
         let s = state()
         s.name = "Clamp Test"
-        s.incrementStep = 50_000
+        s.incrementStep = 50000
         s.incrementCount = 1
         let dto = s.makeDTO(existing: nil)
-        #expect(dto.dailyTarget == 10_000)
-        #expect(dto.incrementStep == 10_000)
+        #expect(dto.dailyTarget == 10000)
+        #expect(dto.incrementStep == 10000)
     }
 
     @Test func makeDTONilsUnitLabelForHealthLinkedHabit() {

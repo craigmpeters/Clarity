@@ -5,15 +5,15 @@ struct CategorySelectionView: View {
     @Binding var selectedCategories: [CategoryDTO]
     @Query private var allCategories: [Category]
     @State private var showingAddCategory = false
-    
+
     var body: some View {
         HStack {
             Image(systemName: "tag")
                 .foregroundColor(.blue)
             Text("Categories")
-                
+
             Spacer()
-                
+
             Button(action: { showingAddCategory = true }) {
                 Image(systemName: "plus")
                     .font(.subheadline)
@@ -22,8 +22,8 @@ struct CategorySelectionView: View {
         }
         .sheet(isPresented: $showingAddCategory) {
             AddCategoryView(onCategoryCreated: { newCategory in
-                    selectedCategories.append(CategoryDTO(from: newCategory))
-                })
+                selectedCategories.append(CategoryDTO(from: newCategory))
+            })
         }
         if !allCategories.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -55,7 +55,7 @@ struct CategoryChip: View {
     let category: Category
     let isSelected: Bool
     let onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 6) {
@@ -68,11 +68,11 @@ struct CategoryChip: View {
                         .fill(category.color!.SwiftUIColor)
                         .frame(width: 10, height: 10)
                 }
-                
+
                 Text(category.name!)
                     .font(.caption)
                     .lineLimit(1)
-                
+
                 if isSelected {
                     Image(systemName: "checkmark")
                         .font(.caption2)
@@ -83,7 +83,10 @@ struct CategoryChip: View {
             .padding(.vertical, 6)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? category.color!.SwiftUIColor.opacity(0.15) : Color(.systemGray6))
+                    .fill(
+                        isSelected
+                            ? category.color!.SwiftUIColor.opacity(0.15) : Color(.systemGray6)
+                    )
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(
@@ -98,19 +101,18 @@ struct CategoryChip: View {
     }
 }
 
-
 struct AddCategoryView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var name = ""
     @State private var selectedColor: Category.CategoryColor = .Red
     @State private var weeklyTarget: Int = 0
     @State private var selectedIcon: String? = nil
-    
-    // Callback to notify parent when category is created
+
+    /// Callback to notify parent when category is created
     var onCategoryCreated: ((Category) -> Void)?
-    
+
     var body: some View {
         NavigationView {
             Form {
@@ -118,7 +120,7 @@ struct AddCategoryView: View {
                     TextField("Category Name", text: $name)
                         .textFieldStyle(.roundedBorder)
                 }
-                
+
                 Section("Weekly Target") {
                     HStack {
                         Image(systemName: "target")
@@ -132,9 +134,11 @@ struct AddCategoryView: View {
                         }
                     }
                 }
-                
+
                 Section("Color") {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 16) {
+                    LazyVGrid(
+                        columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 16
+                    ) {
                         ForEach(Category.CategoryColor.allCases, id: \.self) { color in
                             Button(action: {
                                 withAnimation(.easeInOut(duration: 0.15)) {
@@ -156,10 +160,12 @@ struct AddCategoryView: View {
                                                 .opacity(selectedColor == color ? 1 : 0)
                                         )
                                         .scaleEffect(selectedColor == color ? 1.1 : 1.0)
-                                    
+
                                     Text(color.rawValue)
                                         .font(.caption2)
-                                        .foregroundColor(selectedColor == color ? color.SwiftUIColor : .secondary)
+                                        .foregroundColor(
+                                            selectedColor == color ? color.SwiftUIColor : .secondary
+                                        )
                                 }
                             }
                             .buttonStyle(PlainButtonStyle())
@@ -181,7 +187,7 @@ struct AddCategoryView: View {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         saveCategory()
@@ -192,7 +198,7 @@ struct AddCategoryView: View {
             }
         }
     }
-    
+
     private func saveCategory() {
         let newCategory = Category(
             name: name,
@@ -200,15 +206,15 @@ struct AddCategoryView: View {
             weeklyTarget: weeklyTarget,
             iconName: selectedIcon
         )
-        
+
         modelContext.insert(newCategory)
-        
+
         do {
             try modelContext.save()
-            
+
             // Call the callback to notify parent and auto-select
             onCategoryCreated?(newCategory)
-            
+
             dismiss()
         } catch {
             print("Failed to save category: \(error)")
@@ -218,14 +224,14 @@ struct AddCategoryView: View {
 
 #if DEBUG
 
-#Preview {
-    @Previewable @State var selectedCategories: [CategoryDTO] = []
-    Form {
-        Section{
-            CategorySelectionView(selectedCategories: .constant(selectedCategories))
-                .modelContainer(PreviewData.shared.previewContainer)
+    #Preview {
+        @Previewable @State var selectedCategories: [CategoryDTO] = []
+        Form {
+            Section {
+                CategorySelectionView(selectedCategories: .constant(selectedCategories))
+                    .modelContainer(PreviewData.shared.previewContainer)
+            }
         }
     }
-}
 
 #endif

@@ -19,9 +19,9 @@ final class ChatMessage {
     var timestamp: Date = Date()
     var senderRaw: String = ChatSender.companion.rawValue
     var text: String = ""
-    var emotionRaw: String? = nil
-    var suggestedTaskUUID: UUID? = nil
-    var suggestedTaskName: String? = nil
+    var emotionRaw: String?
+    var suggestedTaskUUID: UUID?
+    var suggestedTaskName: String?
 
     init(
         timestamp: Date = Date(),
@@ -32,9 +32,9 @@ final class ChatMessage {
         suggestedTaskName: String? = nil
     ) {
         self.timestamp = timestamp
-        self.senderRaw = sender.rawValue
+        senderRaw = sender.rawValue
         self.text = text
-        self.emotionRaw = emotion
+        emotionRaw = emotion
         self.suggestedTaskUUID = suggestedTaskUUID
         self.suggestedTaskName = suggestedTaskName
     }

@@ -5,12 +5,11 @@
 //  Created by OpenCode on 09/08/2026.
 //
 
+@testable import Clarity
 import Foundation
 import Testing
-@testable import Clarity
 
 struct ConnectivityWireTests {
-
     private func makeEncoder() -> JSONEncoder {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -58,14 +57,14 @@ struct ConnectivityWireTests {
             .requestSnapshot,
             .sendLogs(Data([0xAB, 0xCD])),
             .logHabitProgress(UUID(), amount: 12.5),
-            .logHabitProgress(UUID(), amount: nil)
+            .logHabitProgress(UUID(), amount: nil),
         ]
 
         for command in commands {
             let message = WireMessage.command(command)
             let data = try makeEncoder().encode(message)
             let decoded = try makeDecoder().decode(WireMessage.self, from: data)
-            if case .command(let roundTripped) = decoded {
+            if case let .command(roundTripped) = decoded {
                 #expect(commandMatches(roundTripped, command))
             } else {
                 Issue.record("Decoded message was not a command")
@@ -76,17 +75,22 @@ struct ConnectivityWireTests {
     @Test func phoneEventRoundTrip() throws {
         let fixedNow = Date(timeIntervalSince1970: 1_000_000)
         let events: [PhoneEvent] = [
-            .pomodoroStarted(PomodoroDTO(startTime: fixedNow, endTime: fixedNow.addingTimeInterval(600), toDoTask: task(name: "Focus", due: fixedNow))),
+            .pomodoroStarted(
+                PomodoroDTO(
+                    startTime: fixedNow, endTime: fixedNow.addingTimeInterval(600),
+                    toDoTask: task(name: "Focus", due: fixedNow)
+                )
+            ),
             .pomodoroStopped(taskID: UUID()),
             .pomodoroStopped(taskID: nil),
-            .habitCommandFailed(uuid: UUID())
+            .habitCommandFailed(uuid: UUID()),
         ]
 
         for event in events {
             let message = WireMessage.event(event)
             let data = try makeEncoder().encode(message)
             let decoded = try makeDecoder().decode(WireMessage.self, from: data)
-            if case .event(let roundTripped) = decoded {
+            if case let .event(roundTripped) = decoded {
                 #expect(eventMatches(roundTripped, event))
             } else {
                 Issue.record("Decoded message was not an event")
@@ -99,7 +103,7 @@ struct ConnectivityWireTests {
         let message = WireMessage.snapshot(original)
         let data = try makeEncoder().encode(message)
         let decoded = try makeDecoder().decode(WireMessage.self, from: data)
-        if case .snapshot(let roundTripped) = decoded {
+        if case let .snapshot(roundTripped) = decoded {
             #expect(roundTripped.revision == original.revision)
             #expect(roundTripped.tasks.count == original.tasks.count)
             #expect(roundTripped.habitOccurrences.count == original.habitOccurrences.count)
@@ -113,7 +117,7 @@ struct ConnectivityWireTests {
         let message = WireMessage.complicationSnapshot(original)
         let data = try makeEncoder().encode(message)
         let decoded = try makeDecoder().decode(WireMessage.self, from: data)
-        if case .complicationSnapshot(let roundTripped) = decoded {
+        if case let .complicationSnapshot(roundTripped) = decoded {
             #expect(roundTripped.revision == original.revision)
         } else {
             Issue.record("Decoded message was not a complication snapshot")
@@ -132,7 +136,7 @@ struct ConnectivityWireTests {
     }
 
     @Test func snapshotDecodeWithMissingFieldsUsesDefaults() throws {
-        let json = """
+        let json = try #require("""
         {
             "revision": 5,
             "tasks": [],
@@ -142,7 +146,7 @@ struct ConnectivityWireTests {
                 "categories": []
             }
         }
-        """.data(using: .utf8)!
+        """.data(using: .utf8))
         let decoded = try makeDecoder().decode(Snapshot.self, from: json)
         #expect(decoded.revision == 5)
         #expect(decoded.habits.isEmpty)
@@ -156,7 +160,7 @@ struct ConnectivityWireTests {
             tasks: [
                 task(name: "Done", due: Date().addingTimeInterval(-100), completed: true),
                 task(name: "Soon", due: Date().addingTimeInterval(100)),
-                task(name: "Later", due: Date().addingTimeInterval(200))
+                task(name: "Later", due: Date().addingTimeInterval(200)),
             ],
             habits: [],
             habitOccurrences: [:],
@@ -189,7 +193,9 @@ struct ConnectivityWireTests {
             habits: [],
             habitOccurrences: [:],
             progress: WeeklyProgress(completed: 0, target: 0, error: nil, categories: []),
-            activePomodoro: PomodoroDTO(startTime: Date(), endTime: Date(), toDoTask: task(name: "Focus", due: Date()))
+            activePomodoro: PomodoroDTO(
+                startTime: Date(), endTime: Date(), toDoTask: task(name: "Focus", due: Date())
+            )
         )
         let projection = ComplicationProjection(snapshot: snap)
         #expect(projection.isPomodoroActive == true)
@@ -206,17 +212,22 @@ struct ConnectivityWireTests {
 
 private func commandMatches(_ lhs: WatchCommand, _ rhs: WatchCommand) -> Bool {
     switch (lhs, rhs) {
-    case (.completeTask(let a), .completeTask(let b)),
-         (.uncompleteTask(let a), .uncompleteTask(let b)),
-         (.startPomodoro(let a), .startPomodoro(let b)):
+    case let (.completeTask(a), .completeTask(b)),
+         let (.uncompleteTask(a), .uncompleteTask(b)),
+         let (.startPomodoro(a), .startPomodoro(b)):
         return a == b
     case (.stopPomodoro, .stopPomodoro),
          (.requestSnapshot, .requestSnapshot):
         return true
-    case (.sendLogs(let a), .sendLogs(let b)):
+    case let (.sendLogs(a), .sendLogs(b)):
         return a == b
-    case (.logHabitProgress(let a, amount: let b), .logHabitProgress(let c, amount: let d)):
+    case let (.logHabitProgress(a, amount: b), .logHabitProgress(c, amount: d)):
         return a == c && b == d
+    case let (
+        .logHabitProgressAt(a, amount: b, timestamp: t1),
+        .logHabitProgressAt(c, amount: d, timestamp: t2)
+    ):
+        return a == c && b == d && t1 == t2
     default:
         return false
     }
@@ -224,11 +235,11 @@ private func commandMatches(_ lhs: WatchCommand, _ rhs: WatchCommand) -> Bool {
 
 private func eventMatches(_ lhs: PhoneEvent, _ rhs: PhoneEvent) -> Bool {
     switch (lhs, rhs) {
-    case (.pomodoroStarted(let a), .pomodoroStarted(let b)):
+    case let (.pomodoroStarted(a), .pomodoroStarted(b)):
         return pomodoroMatches(a, b)
-    case (.pomodoroStopped(taskID: let a), .pomodoroStopped(taskID: let b)):
+    case let (.pomodoroStopped(taskID: a), .pomodoroStopped(taskID: b)):
         return a == b
-    case (.habitCommandFailed(uuid: let a), .habitCommandFailed(uuid: let b)):
+    case let (.habitCommandFailed(uuid: a), .habitCommandFailed(uuid: b)):
         return a == b
     default:
         return false
@@ -236,8 +247,6 @@ private func eventMatches(_ lhs: PhoneEvent, _ rhs: PhoneEvent) -> Bool {
 }
 
 private func pomodoroMatches(_ lhs: PomodoroDTO, _ rhs: PomodoroDTO) -> Bool {
-    lhs.startTime == rhs.startTime &&
-    lhs.endTime == rhs.endTime &&
-    lhs.toDoTask.uuid == rhs.toDoTask.uuid &&
-    lhs.toDoTask.name == rhs.toDoTask.name
+    lhs.startTime == rhs.startTime && lhs.endTime == rhs.endTime
+        && lhs.toDoTask.uuid == rhs.toDoTask.uuid && lhs.toDoTask.name == rhs.toDoTask.name
 }

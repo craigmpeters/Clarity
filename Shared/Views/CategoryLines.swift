@@ -7,12 +7,10 @@
 
 import SwiftUI
 
-
 struct CategoryLines: View {
     var categories: [Category] = []
     var body: some View {
-        HStack(spacing: 0)
-        {
+        HStack(spacing: 0) {
             ForEach(categories, id: \.self) { category in
                 Rectangle()
                     .fill(category.color!.SwiftUIColor)
@@ -21,9 +19,9 @@ struct CategoryLines: View {
     }
 }
 
-//#Preview {
+// #Preview {
 //    CategoryLines(
 //        categories: PreviewData.shared.getCategories()
 //    )
 //    .modelContainer(PreviewData.shared.previewContainer)
-//}
+// }

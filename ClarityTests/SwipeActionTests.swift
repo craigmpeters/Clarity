@@ -6,12 +6,12 @@
 //
 
 import Foundation
-import Testing
 import SwiftUI
+import Testing
+
 @testable import Clarity
 
 struct SwipeActionTests {
-
     @Test func allCasesArePresent() {
         #expect(SwipeAction.allCases.count == 5)
         #expect(SwipeAction.allCases.contains(.none))

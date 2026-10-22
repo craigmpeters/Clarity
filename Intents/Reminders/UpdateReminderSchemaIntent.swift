@@ -29,7 +29,7 @@ struct UpdateReminderSchemaIntent {
     @Parameter(title: "List")
     var list: ReminderListEntity?
 
-    // Required schema properties that Clarity does not persist.
+    /// Required schema properties that Clarity does not persist.
     @Parameter(title: "Note")
     var note: AttributedString?
 
@@ -66,16 +66,25 @@ struct UpdateReminderSchemaIntent {
             let existing = try await store.fetchTaskByUuidIncludingCompleted(uuid)
             guard var dto = existing else { throw ReminderSchemaError.unresolvableReminder }
 
-            if let title { dto.name = title }
-            if let dueDate { dto.due = ReminderSchemaDate.date(from: dueDate) }
+            if let title {
+                dto.name = title
+            }
+            if let dueDate {
+                dto.due = ReminderSchemaDate.date(from: dueDate)
+            }
             if let recurrence {
-                let (interval, customDays, specificDay) = ReminderSchemaRecurrence.recurrenceInterval(from: recurrence)
+                let (interval, customDays, specificDay) =
+                    ReminderSchemaRecurrence.recurrenceInterval(
+                        from: recurrence
+                    )
                 dto.repeating = true
                 dto.recurrenceInterval = interval
                 dto.customRecurrenceDays = customDays
                 dto.everySpecificDayDay = specificDay ?? 0
             }
-            if let category { dto.categories = [category] }
+            if let category {
+                dto.categories = [category]
+            }
 
             if title != nil || dueDate != nil || recurrence != nil || category != nil {
                 dto = try await store.updateTask(dto)
@@ -102,8 +111,12 @@ struct UpdateReminderSchemaIntent {
             let existing = try await store.fetchHabit(uuid)
             guard var dto = existing else { throw ReminderSchemaError.unresolvableReminder }
 
-            if let title { dto.name = title }
-            if let category { dto.categories = [category] }
+            if let title {
+                dto.name = title
+            }
+            if let category {
+                dto.categories = [category]
+            }
 
             if let isCompleted {
                 let amount = isCompleted ? dto.dailyTarget : 0
@@ -113,7 +126,8 @@ struct UpdateReminderSchemaIntent {
             }
 
             let startOfDay = Calendar.current.startOfDay(for: .now)
-            let occurrence = try? await store.fetchHabitHistory(uuid, from: startOfDay, to: .now).first
+            let occurrence = try? await store.fetchHabitHistory(uuid, from: startOfDay, to: .now)
+                .first
             return .result(
                 value: ReminderEntity(
                     habit: dto,

@@ -22,6 +22,7 @@ struct CompanionSettingsView: View {
     var body: some View {
         Form {
             // MARK: Header preview
+
             Section {
                 HStack {
                     Spacer()
@@ -43,6 +44,7 @@ struct CompanionSettingsView: View {
             }
 
             // MARK: Enable + rename
+
             Section("Companion") {
                 Toggle(isOn: $companionEnabled) {
                     HStack {
@@ -70,6 +72,7 @@ struct CompanionSettingsView: View {
             }
 
             // MARK: Character picker
+
             if companionEnabled {
                 Section("Character") {
                     ForEach(freePersonalities, id: \.id) { p in
@@ -94,6 +97,7 @@ struct CompanionSettingsView: View {
                 }
 
                 // MARK: Apple Intelligence status
+
                 Section("Apple Intelligence") {
                     if companion.modelAvailability.isAvailable {
                         Label("Apple Intelligence active", systemImage: "checkmark.circle.fill")
@@ -101,15 +105,21 @@ struct CompanionSettingsView: View {
                             .font(.subheadline)
                     } else {
                         VStack(alignment: .leading, spacing: 6) {
-                            Label("Apple Intelligence unavailable", systemImage: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange)
-                                .font(.subheadline)
+                            Label(
+                                "Apple Intelligence unavailable",
+                                systemImage: "exclamationmark.triangle.fill"
+                            )
+                            .foregroundStyle(.orange)
+                            .font(.subheadline)
                             Text(companion.modelAvailability.userFacingReason)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             if companion.modelAvailability == .appleIntelligenceNotEnabled {
-                                Link("Open Settings", destination: URL(string: UIApplication.openSettingsURLString)!)
-                                    .font(.caption)
+                                Link(
+                                    "Open Settings",
+                                    destination: URL(string: UIApplication.openSettingsURLString)!
+                                )
+                                .font(.caption)
                             }
                         }
                         .padding(.vertical, 4)
@@ -117,9 +127,11 @@ struct CompanionSettingsView: View {
                 }
 
                 Section("About") {
-                    Text("Your companion uses Apple Intelligence (on-device) to offer personalised encouragement, habit suggestions, and emotional support based on your activity. All processing happens privately on your device.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text(
+                        "Your companion uses Apple Intelligence (on-device) to offer personalised encouragement, habit suggestions, and emotional support based on your activity. All processing happens privately on your device."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 }
 
                 Section {
@@ -163,8 +175,11 @@ struct CompanionSettingsView: View {
 
         HStack(spacing: 16) {
             ZStack(alignment: .bottomTrailing) {
-                CompanionFaceView(emotion: .idle, size: 48, assetPrefix: p.assetPrefix, fallbackEmoji: p.fallbackEmoji)
-                    .opacity(isLocked ? 0.5 : 1)
+                CompanionFaceView(
+                    emotion: .idle, size: 48, assetPrefix: p.assetPrefix,
+                    fallbackEmoji: p.fallbackEmoji
+                )
+                .opacity(isLocked ? 0.5 : 1)
 
                 if isLocked {
                     Image(systemName: "lock.fill")

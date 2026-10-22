@@ -19,7 +19,7 @@ enum ReminderKind: String, AppEnum, Sendable {
 
     static let caseDisplayRepresentations: [ReminderKind: DisplayRepresentation] = [
         .task: DisplayRepresentation(title: "Task"),
-        .habit: DisplayRepresentation(title: "Habit")
+        .habit: DisplayRepresentation(title: "Habit"),
     ]
 }
 
@@ -75,7 +75,9 @@ enum ReminderSchemaDate {
 @available(iOS 27, macOS 27, *)
 enum ReminderSchemaRecurrence {
     /// Map a Clarity `RecurrenceInterval` to a schema `Calendar.RecurrenceRule`.
-    static func recurrenceRule(from interval: ToDoTask.RecurrenceInterval, customDays: Int, specificDay: Int?) -> Calendar.RecurrenceRule? {
+    static func recurrenceRule(
+        from interval: ToDoTask.RecurrenceInterval, customDays: Int, specificDay: Int?
+    ) -> Calendar.RecurrenceRule? {
         switch interval {
         case .daily:
             return Calendar.RecurrenceRule(calendar: .current, frequency: .daily, interval: 1)
@@ -121,7 +123,9 @@ enum ReminderSchemaRecurrence {
 
     /// Map a schema `Calendar.RecurrenceRule` back to a Clarity `RecurrenceInterval`.
     /// Defaults to `.daily` when the rule is nil or cannot be matched.
-    static func recurrenceInterval(from rule: Calendar.RecurrenceRule?) -> (interval: ToDoTask.RecurrenceInterval, customDays: Int, specificDay: Int?) {
+    static func recurrenceInterval(from rule: Calendar.RecurrenceRule?) -> (
+        interval: ToDoTask.RecurrenceInterval, customDays: Int, specificDay: Int?
+    ) {
         guard let rule else { return (.daily, 1, nil) }
         switch rule.frequency {
         case .daily:
@@ -175,7 +179,9 @@ enum ReminderSchemaRecurrence {
 @available(iOS 27, macOS 27, *)
 enum ReminderSchemaList {
     /// Build a schema list entity from the given category, falling back to the first available category.
-    static func entity(for category: CategoryDTO?, allCategories: [CategoryDTO]) -> ReminderListEntity {
+    static func entity(for category: CategoryDTO?, allCategories: [CategoryDTO])
+        -> ReminderListEntity
+    {
         let resolved = category ?? allCategories.first
         return ReminderListEntity(
             id: resolved?.uuid?.uuidString ?? "default",
@@ -187,7 +193,9 @@ enum ReminderSchemaList {
 @available(iOS 27, macOS 27, *)
 enum ReminderSchemaCategory {
     /// Find a category matching the schema list entity, or return the first available category.
-    static func resolve(_ entity: ReminderListEntity, from categories: [CategoryDTO]) -> CategoryDTO? {
+    static func resolve(_ entity: ReminderListEntity, from categories: [CategoryDTO])
+        -> CategoryDTO?
+    {
         if let match = categories.first(where: { $0.uuid?.uuidString == entity.id }) {
             return match
         }
