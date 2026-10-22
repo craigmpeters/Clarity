@@ -54,8 +54,9 @@ struct CompanionSidebarView: View {
                 }
                 .onChange(of: companion.chatHistory.count) { _, _ in
                     if let last = companion.chatHistory.last,
-                       last.sender == .companion,
-                       companion.isVisible {
+                        last.sender == .companion,
+                        companion.isVisible
+                    {
                         let id = last.persistentModelID
                         flashMessageID = id
                         Task { @MainActor in
@@ -132,12 +133,14 @@ struct CompanionSidebarView: View {
             HStack(spacing: 12) {
                 summaryPill(
                     icon: "checkmark.circle.fill",
-                    title: todayCompletedTaskCount == 1 ? "1 task" : "\(todayCompletedTaskCount) tasks",
+                    title: todayCompletedTaskCount == 1
+                        ? "1 task" : "\(todayCompletedTaskCount) tasks",
                     tint: .accentColor
                 )
                 summaryPill(
                     icon: "flame.fill",
-                    title: todayCompletedHabitCount == 1 ? "1 habit" : "\(todayCompletedHabitCount) habits",
+                    title: todayCompletedHabitCount == 1
+                        ? "1 habit" : "\(todayCompletedHabitCount) habits",
                     tint: .orange
                 )
             }
@@ -264,12 +267,16 @@ struct CompanionSidebarView: View {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 26))
                     .foregroundStyle(
-                        companion.chatDraft.trimmingCharacters(in: .whitespaces).isEmpty || companion.isGenerating
+                        companion.chatDraft.trimmingCharacters(in: .whitespaces).isEmpty
+                            || companion.isGenerating
                             ? Color.secondary
                             : Color.accentColor
                     )
             }
-            .disabled(companion.chatDraft.trimmingCharacters(in: .whitespaces).isEmpty || companion.isGenerating)
+            .disabled(
+                companion.chatDraft.trimmingCharacters(in: .whitespaces).isEmpty
+                    || companion.isGenerating
+            )
             .accessibilityLabel("Send")
         }
         .padding(.horizontal, 12)
@@ -322,7 +329,9 @@ struct CompanionSidebarView: View {
                     from: today,
                     to: now
                 )
-                if let todayOccurrence = history.first(where: { calendar.isDate($0.periodStart, inSameDayAs: now) }) {
+                if let todayOccurrence = history.first(where: {
+                    calendar.isDate($0.periodStart, inSameDayAs: now)
+                }) {
                     newOccurrences[habit.uuid] = todayOccurrence
                 }
                 newDTOs[habit.uuid] = habit
@@ -392,24 +401,25 @@ private struct SidebarHabitRow: View {
         .onTapGesture(perform: onIncrement)
     }
 }
+#if DEBUG
+    #Preview {
+        CompanionSidebarView()
+            .modelContainer(PreviewData.shared.previewContainer)
+            .environment(CompanionService.shared)
+    }
 
-#Preview {
-    CompanionSidebarView()
-        .modelContainer(PreviewData.shared.previewContainer)
-        .environment(CompanionService.shared)
-}
+    #Preview("Sidebar — Narrow + AX5") {
+        CompanionSidebarView()
+            .modelContainer(PreviewData.shared.previewContainer)
+            .environment(CompanionService.shared)
+            .frame(width: 300)
+            .dynamicTypeSize(.accessibility5)
+    }
 
-#Preview("Sidebar — Narrow + AX5") {
-    CompanionSidebarView()
-        .modelContainer(PreviewData.shared.previewContainer)
-        .environment(CompanionService.shared)
-        .frame(width: 300)
-        .dynamicTypeSize(.accessibility5)
-}
-
-#Preview("Sidebar — Min Width") {
-    CompanionSidebarView()
-        .modelContainer(PreviewData.shared.previewContainer)
-        .environment(CompanionService.shared)
-        .frame(width: 300, height: 800)
-}
+    #Preview("Sidebar — Min Width") {
+        CompanionSidebarView()
+            .modelContainer(PreviewData.shared.previewContainer)
+            .environment(CompanionService.shared)
+            .frame(width: 300, height: 800)
+    }
+#endif
