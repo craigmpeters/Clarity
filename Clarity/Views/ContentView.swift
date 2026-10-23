@@ -129,7 +129,6 @@ struct ContentView: View {
         .overlay {
             if hSizeClass != .regular {
                 CompanionOverlayView(companion: companion)
-                    .ignoresSafeArea()
             }
         }
         .toast(

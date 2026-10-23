@@ -3,6 +3,90 @@
 
 import SwiftUI
 
+// MARK: - Layout math (pure, testable)
+
+/// Valid bounds for the bubble's center point within a given container size.
+/// The overlay no longer ignores the safe area, so `containerSize` already excludes
+/// unsafe regions (notch, home indicator, Duo hinge). We keep the historical
+/// `tabBarAllowance` so the bubble rests above the tab bar rather than over it.
+enum CompanionBubbleLayout {
+    static let tabBarAllowance: Double = 80
+
+    struct CenterRange: Equatable {
+        var minX: Double
+        var maxX: Double
+        var minY: Double
+        var maxY: Double
+
+        func contains(_ point: CGPoint) -> Bool {
+            point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY
+        }
+
+        /// Clamp `value` into `[lower, upper]`. If the range is degenerate
+        /// (lower > upper), returns the midpoint of the two bounds so the
+        /// bubble stays deterministic rather than exploding.
+        private static func clamped(_ value: Double, _ lower: Double, _ upper: Double) -> Double {
+            if lower > upper { return (lower + upper) / 2 }
+            return Swift.min(Swift.max(value, lower), upper)
+        }
+
+        func clampedPoint(_ point: CGPoint) -> CGPoint {
+            CGPoint(
+                x: CenterRange.clamped(point.x, minX, maxX),
+                y: CenterRange.clamped(point.y, minY, maxY)
+            )
+        }
+
+        func nearestCorner(to point: CGPoint) -> CGPoint {
+            let corners: [CGPoint] = [
+                CGPoint(x: minX, y: minY),
+                CGPoint(x: maxX, y: minY),
+                CGPoint(x: minX, y: maxY),
+                CGPoint(x: maxX, y: maxY),
+            ]
+            var best = corners[0]
+            var bestDist = Double.greatestFiniteMagnitude
+            for c in corners {
+                let dx = c.x - point.x
+                let dy = c.y - point.y
+                let d = dx * dx + dy * dy
+                if d < bestDist {
+                    bestDist = d
+                    best = c
+                }
+            }
+            return best
+        }
+    }
+
+    static func centerRange(bubbleSize: Double, containerSize: CGSize) -> CenterRange {
+        let r = bubbleSize / 2
+        return CenterRange(
+            minX: r,
+            maxX: Double(containerSize.width) - r,
+            minY: r,
+            maxY: Double(containerSize.height) - r - tabBarAllowance
+        )
+    }
+
+    /// Given a stored offset (which may be stale after a posture change),
+    /// return the point it should be healed to. If the stored point is
+    /// outside the valid range, snap to the *nearest* of the range's four
+    /// corners — this keeps the bubble in the user's preferred screen
+    /// quadrant across span/rotation transitions on Duo.
+    static func healedOffset(
+        stored: CGPoint,
+        bubbleSize: Double,
+        containerSize: CGSize
+    ) -> CGPoint {
+        // (0, 0) means "never moved" — preserve the default anchor.
+        guard stored.x != 0 || stored.y != 0 else { return stored }
+        let range = centerRange(bubbleSize: bubbleSize, containerSize: containerSize)
+        guard !range.contains(stored) else { return stored }
+        return range.nearestCorner(to: stored)
+    }
+}
+
 // MARK: - Floating overlay
 
 struct CompanionOverlayView: View {
@@ -76,24 +160,41 @@ struct CompanionOverlayView: View {
                 }
                 .onEnded { value in
                     isDragging = false
-                    let newX = clamp(
-                        offsetX + Double(value.translation.width),
-                        min: Double(bubbleSize / 2),
-                        max: Double(geo.size.width - bubbleSize / 2)
+                    let range = CompanionBubbleLayout.centerRange(
+                        bubbleSize: Double(bubbleSize),
+                        containerSize: geo.size
                     )
-                    let newY = clamp(
-                        offsetY + Double(value.translation.height),
-                        min: Double(bubbleSize / 2),
-                        max: Double(geo.size.height - bubbleSize / 2 - 80)
+                    let healed = range.clampedPoint(
+                        CGPoint(
+                            x: offsetX + Double(value.translation.width),
+                            y: offsetY + Double(value.translation.height)
+                        )
                     )
-                    offsetX = newX
-                    offsetY = newY
+                    offsetX = Double(healed.x)
+                    offsetY = Double(healed.y)
                     dragOffset = .zero
                 }
         )
         .onTapGesture {
             guard !isDragging else { return }
             showingChat = true
+        }
+        .onAppear { healPersistedOffset(in: geo.size) }
+        .onChange(of: geo.size) { _, newSize in healPersistedOffset(in: newSize) }
+    }
+
+    /// After a posture change (e.g. Duo span ↔ single-screen, or rotation),
+    /// a previously persisted offset may land in an unsafe/off-screen region.
+    /// Snap it to the nearest valid corner so the bubble is never lost.
+    private func healPersistedOffset(in containerSize: CGSize) {
+        let healed = CompanionBubbleLayout.healedOffset(
+            stored: CGPoint(x: offsetX, y: offsetY),
+            bubbleSize: Double(bubbleSize),
+            containerSize: containerSize
+        )
+        if healed.x != offsetX || healed.y != offsetY {
+            offsetX = Double(healed.x)
+            offsetY = Double(healed.y)
         }
     }
 
