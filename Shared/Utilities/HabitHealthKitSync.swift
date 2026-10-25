@@ -28,21 +28,28 @@ final class HabitHealthKitSync {
         #if !canImport(HealthKit)
             return []
         #else
-            guard HealthKitService.shared.isAvailable, let store = try? await ClarityServices.store(), let habits = try? await store.fetchHabits() else { return [] }
+            guard HealthKitService.shared.isAvailable,
+                let store = try? await ClarityServices.store(),
+                let habits = try? await store.fetchHabits()
+            else { return [] }
+
+            let identifiers = habits.compactMap(\.healthKitIdentifier)
+            await HealthKitService.shared.requestAuthorizationIfNeeded(for: identifiers)
 
             let calendar = Calendar.current
             let now = Date()
             let today = calendar.startOfDay(for: now)
             var lastSyncDates =
                 UserDefaults.standard.dictionary(forKey: lastSyncDatesKey)
-                    as? [String: TimeInterval]
-                    ?? [:]
+                as? [String: TimeInterval]
+                ?? [:]
 
             var updated: [HabitOccurrenceDTO] = []
 
             for habit in habits where habit.healthKitIdentifier != nil {
                 guard let identifier = habit.healthKitIdentifier else { continue }
 
+                // Read access is private; write authorization must not gate these queries.
                 // Determine which days need data: from the day after the last successful sync
                 // (or habit creation, bounded by maxBackfillDays) through today.
                 let habitKey = habit.uuid.uuidString
@@ -95,7 +102,7 @@ final class HabitHealthKitSync {
     func requestAuthorizationIfNeeded(for identifier: String?) {
         guard let identifier = identifier, !identifier.isEmpty else { return }
         Task {
-            await HealthKitService.shared.requestAuthorization(for: [identifier])
+            await HealthKitService.shared.requestAuthorizationIfNeeded(for: [identifier])
         }
     }
 

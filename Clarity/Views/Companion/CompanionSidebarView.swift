@@ -34,24 +34,22 @@ struct CompanionSidebarView: View {
         VStack(spacing: 0) {
             header
             Divider()
-
+            LazyVStack(alignment: .leading, spacing: 12) {
+                todaySummarySection
+                Divider().padding(.vertical, 4)
+                habitQuickLogSection
+                Color.clear.frame(height: 1).id(bottomID)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 12) {
-                        todaySummarySection
+                    if !companion.chatHistory.isEmpty {
                         Divider().padding(.vertical, 4)
-                        habitQuickLogSection
-
-                        if !companion.chatHistory.isEmpty {
-                            Divider().padding(.vertical, 4)
-                            chatSection
-                        }
-
-                        Color.clear.frame(height: 1).id(bottomID)
+                        chatSection
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
                 }
+                .defaultScrollAnchor(.bottom)
                 .onChange(of: companion.chatHistory.count) { _, _ in
                     if let last = companion.chatHistory.last,
                         last.sender == .companion,

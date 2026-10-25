@@ -19,56 +19,27 @@ struct HabitsIndexView: View {
 
     var body: some View {
         List {
-            if !atRiskHabits.isEmpty {
-                Section("Streak at Risk") {
-                    ForEach(atRiskHabits, id: \.uuid) { habit in
-                        HabitRowView(
-                            habit: habit,
-                            occurrence: occurrences[habit.uuid],
-                            recentOccurrences: recentOccurrences[habit.uuid] ?? [],
-                            streak: streaks[habit.uuid]
-                                ?? HabitStreakResult(
-                                    current: 0, longest: 0, freezesEarned: 0, atRisk: false,
-                                    missedPeriod: nil
-                                ),
-                            onIncrement: { increment(habit) },
-                            onLogAmount: { loggingHabit = habit },
-                            onEdit: { editingHabit = habit },
-                            onArchive: { archive(habit) },
-                            onDelete: { habitToDelete = habit },
-                            onCompleteAnyway: { completeAnyway(habit) },
-                            onUseFreeze: { useFreeze(habit) },
-                            onGenerateArt: { generateArt(habit) },
-                            isGeneratingArt: generatingArtHabitIDs.contains(habit.uuid),
-                            isImagePlaygroundAvailable: isImagePlaygroundAvailable
-                        )
-                    }
-                }
-            }
-
-            Section("Today") {
-                ForEach(todayHabits, id: \.uuid) { habit in
-                    HabitRowView(
-                        habit: habit,
-                        occurrence: occurrences[habit.uuid],
-                        recentOccurrences: recentOccurrences[habit.uuid] ?? [],
-                        streak: streaks[habit.uuid]
-                            ?? HabitStreakResult(
-                                current: 0, longest: 0, freezesEarned: 0, atRisk: false,
-                                missedPeriod: nil
-                            ),
-                        onIncrement: { increment(habit) },
-                        onLogAmount: { loggingHabit = habit },
-                        onEdit: { editingHabit = habit },
-                        onArchive: { archive(habit) },
-                        onDelete: { habitToDelete = habit },
-                        onCompleteAnyway: { completeAnyway(habit) },
-                        onUseFreeze: { useFreeze(habit) },
-                        onGenerateArt: { generateArt(habit) },
-                        isGeneratingArt: generatingArtHabitIDs.contains(habit.uuid),
-                        isImagePlaygroundAvailable: isImagePlaygroundAvailable
-                    )
-                }
+            ForEach(activeHabits, id: \.uuid) { habit in
+                HabitRowView(
+                    habit: habit,
+                    occurrence: occurrences[habit.uuid],
+                    recentOccurrences: recentOccurrences[habit.uuid] ?? [],
+                    streak: streaks[habit.uuid]
+                        ?? HabitStreakResult(
+                            current: 0, longest: 0, freezesEarned: 0, atRisk: false,
+                            missedPeriod: nil
+                        ),
+                    onIncrement: { increment(habit) },
+                    onLogAmount: { loggingHabit = habit },
+                    onEdit: { editingHabit = habit },
+                    onArchive: { archive(habit) },
+                    onDelete: { habitToDelete = habit },
+                    onCompleteAnyway: { completeAnyway(habit) },
+                    onUseFreeze: { useFreeze(habit) },
+                    onGenerateArt: { generateArt(habit) },
+                    isGeneratingArt: generatingArtHabitIDs.contains(habit.uuid),
+                    isImagePlaygroundAvailable: isImagePlaygroundAvailable
+                )
             }
         }
         .navigationTitle("Habits")
@@ -163,14 +134,6 @@ struct HabitsIndexView: View {
 
     private var activeHabits: [HabitDTO] {
         habitDTOs.filter { !$0.isArchived }
-    }
-
-    private var atRiskHabits: [HabitDTO] {
-        activeHabits.filter { streaks[$0.uuid]?.atRisk ?? false }
-    }
-
-    private var todayHabits: [HabitDTO] {
-        activeHabits.filter { !(streaks[$0.uuid]?.atRisk ?? false) }
     }
 
     private func refresh() async {

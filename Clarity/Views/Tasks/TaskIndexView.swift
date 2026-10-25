@@ -32,6 +32,7 @@ struct TaskIndexView: View {
                 }
             )
         }
+        .listStyle(.insetGrouped)
         .id(viewModel.refreshTrigger)
         .accessibilityIdentifier("task-list")
         .toolbar {

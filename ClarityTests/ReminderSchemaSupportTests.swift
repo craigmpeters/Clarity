@@ -23,8 +23,8 @@ struct ReminderSchemaSupportTests {
         #expect(taskID == "task-\(uuid.uuidString)")
         #expect(habitID == "habit-\(uuid.uuidString)")
 
-        #expect(ReminderSchemaID.decode(taskID) == (kind: .task, uuid: uuid))
-        #expect(ReminderSchemaID.decode(habitID) == (kind: .habit, uuid: uuid))
+        #expect(ReminderSchemaID.decode(taskID)! == (kind: .task, uuid: uuid))
+        #expect(ReminderSchemaID.decode(habitID)! == (kind: .habit, uuid: uuid))
     }
 
     @available(iOS 27, macOS 27, *)
