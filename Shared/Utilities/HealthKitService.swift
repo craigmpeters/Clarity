@@ -41,63 +41,71 @@ final class HealthKitService {
     func requestAuthorization() async {
         guard isAvailable else { return }
         #if canImport(HealthKit)
-            do {
-                try await store.requestAuthorization(
-                    toShare: [stateOfMindType],
-                    read: [stateOfMindType]
-                )
-            } catch {
-                LogManager.shared.log.error(
-                    "HealthKit authorization failed: \(error.localizedDescription)"
-                )
-            }
+            await requestAuthorizationIfNeeded(
+                toShare: [stateOfMindType], read: [stateOfMindType]
+            )
         #endif
     }
 
-    func checkAuthorized(for identifier: String) async -> Bool? {
-        guard isAvailable else { return nil }
-
-        #if canImport(HealthKit)
-
-            if let type = objectType(for: identifier) {
-                let status = store.authorizationStatus(for: type)
-
-                switch status {
-                case .notDetermined:
-                    // Request Access
-                    await requestAuthorization(for: [identifier])
-
-                case .sharingAuthorized:
-                    return true
-
-                case .sharingDenied:
-                    return false
-                default:
-                    return nil
-                }
-            }
-            return nil
-        #endif
-    }
-
-    func requestAuthorization(for identifiers: [String]) async {
+    /// Requests all linked habit permissions together, only when HealthKit needs a decision.
+    /// Completion does not indicate whether read access was granted; HealthKit keeps that private.
+    func requestAuthorizationIfNeeded(for identifiers: [String]) async {
         guard isAvailable else { return }
         #if canImport(HealthKit)
+            let identifiers = Set(identifiers)
             let readTypes = identifiers.compactMap { objectType(for: $0) }
             let writeTypes = identifiers.compactMap { sampleType(for: $0) }
             guard !readTypes.isEmpty || !writeTypes.isEmpty else { return }
-            do {
-                try await store.requestAuthorization(
-                    toShare: Set(writeTypes + [stateOfMindType]),
-                    read: Set(readTypes + [stateOfMindType])
-                )
-            } catch {
-                LogManager.shared.log.error(
-                    "HealthKit authorization failed: \(error.localizedDescription)"
-                )
-            }
+            await requestAuthorizationIfNeeded(
+                toShare: Set(writeTypes + [stateOfMindType]),
+                read: Set(readTypes + [stateOfMindType])
+            )
         #endif
     }
+
+    #if canImport(HealthKit)
+        private var authorizationTask: Task<Void, Never>?
+
+        private func requestAuthorizationIfNeeded(
+            toShare writeTypes: Set<HKSampleType>, read readTypes: Set<HKObjectType>
+        ) async {
+            // Main-actor methods can overlap across awaits. Wait for any active sheet,
+            // then recheck this caller's full set before presenting another one.
+            while let authorizationTask {
+                await authorizationTask.value
+            }
+            guard !Task.isCancelled else { return }
+
+            let task = Task {
+                defer { authorizationTask = nil }
+                do {
+                    let status = try await store.statusForAuthorizationRequest(
+                        toShare: writeTypes, read: readTypes
+                    )
+                    switch status {
+                    case .shouldRequest:
+                        try await store.requestAuthorization(
+                            toShare: writeTypes, read: readTypes
+                        )
+                    case .unnecessary:
+                        break
+                    case .unknown:
+                        LogManager.shared.log.error(
+                            "HealthKit authorization request status is unknown")
+                    @unknown default:
+                        LogManager.shared.log.error(
+                            "HealthKit authorization request status is unsupported")
+                    }
+                } catch {
+                    LogManager.shared.log.error(
+                        "HealthKit authorization failed: \(error.localizedDescription)"
+                    )
+                }
+            }
+            authorizationTask = task
+            await task.value
+        }
+    #endif
 
     // MARK: - Writing
 

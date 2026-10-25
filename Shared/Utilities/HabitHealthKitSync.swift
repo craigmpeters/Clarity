@@ -33,6 +33,9 @@ final class HabitHealthKitSync {
                 let habits = try? await store.fetchHabits()
             else { return [] }
 
+            let identifiers = habits.compactMap(\.healthKitIdentifier)
+            await HealthKitService.shared.requestAuthorizationIfNeeded(for: identifiers)
+
             let calendar = Calendar.current
             let now = Date()
             let today = calendar.startOfDay(for: now)
@@ -46,13 +49,7 @@ final class HabitHealthKitSync {
             for habit in habits where habit.healthKitIdentifier != nil {
                 guard let identifier = habit.healthKitIdentifier else { continue }
 
-                guard
-                    let authorisationStatus = await HealthKitService.shared.checkAuthorized(
-                        for: identifier)
-                else { continue }
-
-                if !authorisationStatus { continue }
-
+                // Read access is private; write authorization must not gate these queries.
                 // Determine which days need data: from the day after the last successful sync
                 // (or habit creation, bounded by maxBackfillDays) through today.
                 let habitKey = habit.uuid.uuidString
@@ -105,7 +102,7 @@ final class HabitHealthKitSync {
     func requestAuthorizationIfNeeded(for identifier: String?) {
         guard let identifier = identifier, !identifier.isEmpty else { return }
         Task {
-            await HealthKitService.shared.requestAuthorization(for: [identifier])
+            await HealthKitService.shared.requestAuthorizationIfNeeded(for: [identifier])
         }
     }
 
