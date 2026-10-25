@@ -15,6 +15,8 @@ struct TabRootContainer<Content: View>: View {
                 if #available(iOS 27.1, *), hSizeClass == .regular {
                     ArrangementView {
                         content()
+                            .padding(.trailing, 16)
+                            .background(Color(uiColor: .systemGroupedBackground))
                     } secondary: {
                         CompanionSidebarView()
                             .splitArrangementLayoutSize(
