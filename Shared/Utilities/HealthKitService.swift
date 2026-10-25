@@ -54,6 +54,32 @@ final class HealthKitService {
         #endif
     }
 
+    func checkAuthorized(for identifier: String) async -> Bool? {
+        guard isAvailable else { return nil }
+
+        #if canImport(HealthKit)
+
+            if let type = objectType(for: identifier) {
+                let status = store.authorizationStatus(for: type)
+
+                switch status {
+                case .notDetermined:
+                    // Request Access
+                    await requestAuthorization(for: [identifier])
+
+                case .sharingAuthorized:
+                    return true
+
+                case .sharingDenied:
+                    return false
+                default:
+                    return nil
+                }
+            }
+            return nil
+        #endif
+    }
+
     func requestAuthorization(for identifiers: [String]) async {
         guard isAvailable else { return }
         #if canImport(HealthKit)

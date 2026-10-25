@@ -28,20 +28,30 @@ final class HabitHealthKitSync {
         #if !canImport(HealthKit)
             return []
         #else
-            guard HealthKitService.shared.isAvailable, let store = try? await ClarityServices.store(), let habits = try? await store.fetchHabits() else { return [] }
+            guard HealthKitService.shared.isAvailable,
+                let store = try? await ClarityServices.store(),
+                let habits = try? await store.fetchHabits()
+            else { return [] }
 
             let calendar = Calendar.current
             let now = Date()
             let today = calendar.startOfDay(for: now)
             var lastSyncDates =
                 UserDefaults.standard.dictionary(forKey: lastSyncDatesKey)
-                    as? [String: TimeInterval]
-                    ?? [:]
+                as? [String: TimeInterval]
+                ?? [:]
 
             var updated: [HabitOccurrenceDTO] = []
 
             for habit in habits where habit.healthKitIdentifier != nil {
                 guard let identifier = habit.healthKitIdentifier else { continue }
+
+                guard
+                    let authorisationStatus = await HealthKitService.shared.checkAuthorized(
+                        for: identifier)
+                else { continue }
+
+                if !authorisationStatus { continue }
 
                 // Determine which days need data: from the day after the last successful sync
                 // (or habit creation, bounded by maxBackfillDays) through today.
