@@ -18,7 +18,8 @@ struct TabRootContainer<Content: View>: View {
         NavigationStack {
             GeometryReader { geometry in
                 let showSidebar =
-                    hSizeClass == .regular && vSizeClass == .regular
+                    /// Geometry detection fix due to PIP on portrait making it show as .regular / .regular view with a larger width aspect ratio which looks odd
+                    hSizeClass == .regular && geometry.size.width >= 800
 
                 Group {
                     if #available(iOS 27.1, *), showSidebar {
@@ -41,14 +42,14 @@ struct TabRootContainer<Content: View>: View {
                         content()
                     }
                 }
-                .onChange(of: geometry.size, initial: true) { _, size in
-                    logger.debug(
-                        """
-                        Window: \(size.width) × \(size.height)
-                        Horizontal: \(String(describing: hSizeClass))
-                        Vertical: \(String(describing: vSizeClass))
-                        """)
-                }
+                //                .onChange(of: geometry.size, initial: true) { _, size in
+                //                    logger.debug(
+                //                        """
+                //                        Window: \(size.width) × \(size.height)
+                //                        Horizontal: \(String(describing: hSizeClass))
+                //                        Vertical: \(String(describing: vSizeClass))
+                //                        """)
+                //                }
             }
 
         }
