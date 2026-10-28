@@ -6,6 +6,7 @@ import SwiftUI
 
 struct CompanionSidebarView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(CompanionService.self) private var companion
     @FocusState private var inputFocused: Bool
     @State private var flashMessageID: PersistentIdentifier? = nil
@@ -24,16 +25,19 @@ struct CompanionSidebarView: View {
     @Query(filter: #Predicate<Habit> { !$0.isArchived })
     private var activeHabits: [Habit]
 
+    @Query(sort: \HabitOccurrence.periodStart, order: .reverse)
+    private var habitOccurrences: [HabitOccurrence]
+
     @State private var store: ClarityModelActor? = nil
-    @State private var todayOccurrences: [UUID: HabitOccurrenceDTO] = [:]
+    @State private var referenceDate = Date()
     @State private var habitDTOs: [UUID: HabitDTO] = [:]
 
     private let bottomID = "sidebar-bottom"
 
     var body: some View {
         VStack(spacing: 0) {
-            header
-            Divider()
+            //header
+            //Divider()
             LazyVStack(alignment: .leading, spacing: 12) {
                 todaySummarySection
                 Divider().padding(.vertical, 4)
@@ -41,7 +45,7 @@ struct CompanionSidebarView: View {
                 Color.clear.frame(height: 1).id(bottomID)
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.bottom, 8)
             ScrollViewReader { proxy in
                 ScrollView {
                     if !companion.chatHistory.isEmpty {
@@ -79,10 +83,19 @@ struct CompanionSidebarView: View {
             if store == nil {
                 store = await ClarityModelActorFactory.makeBackground(container: context.container)
             }
-            await refreshHabitOccurrences()
+            referenceDate = Date()
+            await refreshHabitDetails()
         }
         .onChange(of: activeHabits) { _, _ in
-            Task { await refreshHabitOccurrences() }
+            Task { await refreshHabitDetails() }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                referenceDate = Date()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+            referenceDate = Date()
         }
     }
 
@@ -110,6 +123,22 @@ struct CompanionSidebarView: View {
     }
 
     // MARK: - Today summary
+
+    private var todayOccurrences: [UUID: HabitOccurrenceDTO] {
+        let calendar = HabitStreakCalculator.streakCalendar()
+        let activeIDs = Set(activeHabits.map(\.uuid))
+        var result: [UUID: HabitOccurrenceDTO] = [:]
+        for occurrence in habitOccurrences
+        where calendar.isDate(occurrence.periodStart, inSameDayAs: referenceDate) {
+            guard let habitID = occurrence.habit?.uuid,
+                activeIDs.contains(habitID),
+                result[habitID] == nil,
+                let dto = HabitOccurrenceDTO(from: occurrence)
+            else { continue }
+            result[habitID] = dto
+        }
+        return result
+    }
 
     private var todayCompletedTaskCount: Int {
         let calendar = Calendar.current
@@ -305,41 +334,26 @@ struct CompanionSidebarView: View {
                     companion.recordEvent("Habit completed: \(habit.name)")
                     companion.triggerHabitCompleted(habit: habit, completedOccurrence: dto)
                 }
-                await refreshHabitOccurrences()
+                await refreshHabitDetails()
             } catch {
                 LogManager.shared.log.error("Sidebar logHabit failed: \(error)")
             }
         }
     }
 
-    private func refreshHabitOccurrences() async {
+    private func refreshHabitDetails() async {
         guard let store else { return }
         do {
             let habits = try await store.fetchHabits()
-            let calendar = HabitStreakCalculator.streakCalendar()
-            let now = Date()
-            let today = calendar.startOfDay(for: now)
-            var newOccurrences: [UUID: HabitOccurrenceDTO] = [:]
             var newDTOs: [UUID: HabitDTO] = [:]
             for habit in habits where !habit.isArchived {
-                let history = try await store.fetchHabitHistory(
-                    habit.uuid,
-                    from: today,
-                    to: now
-                )
-                if let todayOccurrence = history.first(where: {
-                    calendar.isDate($0.periodStart, inSameDayAs: now)
-                }) {
-                    newOccurrences[habit.uuid] = todayOccurrence
-                }
                 newDTOs[habit.uuid] = habit
             }
             await MainActor.run {
-                todayOccurrences = newOccurrences
                 habitDTOs = newDTOs
             }
         } catch {
-            LogManager.shared.log.error("Sidebar refreshHabitOccurrences failed: \(error)")
+            LogManager.shared.log.error("Sidebar refreshHabitDetails failed: \(error)")
         }
     }
 }
