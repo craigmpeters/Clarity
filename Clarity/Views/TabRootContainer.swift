@@ -1,18 +1,24 @@
 import SwiftUI
+import XCGLogger
 
 struct TabRootContainer<Content: View>: View {
     @Environment(\.horizontalSizeClass)
     private var hSizeClass
+
+    @Environment(\.verticalSizeClass)
+    private var vSizeClass
+
+    private var logger: XCGLogger {
+        LogManager.shared.log
+    }
 
     @ViewBuilder let content: () -> Content
 
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
-                let size = geometry.size
-
                 let showSidebar =
-                    hSizeClass == .regular && size.width > size.height && size.height >= 600
+                    hSizeClass == .regular && vSizeClass == .regular
 
                 Group {
                     if #available(iOS 27.1, *), showSidebar {
@@ -35,11 +41,16 @@ struct TabRootContainer<Content: View>: View {
                         content()
                     }
                 }
-                .frame(
-                    maxWidth: .infinity,
-                    maxHeight: .infinity
-                )
+                .onChange(of: geometry.size, initial: true) { _, size in
+                    logger.debug(
+                        """
+                        Window: \(size.width) × \(size.height)
+                        Horizontal: \(String(describing: hSizeClass))
+                        Vertical: \(String(describing: vSizeClass))
+                        """)
+                }
             }
+
         }
     }
 }
