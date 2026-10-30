@@ -49,6 +49,13 @@ struct ClarityAppShellTests {
         #expect(testDefaults?.string(forKey: pendingKey) == nil)
     }
 
+    @Test func pendingStartDoesNotRestartTheSameActiveTask() {
+        let id = UUID()
+        #expect(!ClarityApp.shouldStartPendingPomodoro(requested: id, activeTask: id))
+        #expect(ClarityApp.shouldStartPendingPomodoro(requested: id, activeTask: nil))
+        #expect(ClarityApp.shouldStartPendingPomodoro(requested: id, activeTask: UUID()))
+    }
+
     @Test func migrationHasRunAndMarkRunRoundTrip() {
         defer { cleanup() }
         let build = "1.3.0"
