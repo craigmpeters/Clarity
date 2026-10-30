@@ -11,7 +11,7 @@ import SwiftData
 import SwiftUI
 
 @Model
-class Category {
+nonisolated class Category {
     // TODO: Guard against existing categories on create
     var name: String?
     var color: CategoryColor?
