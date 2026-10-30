@@ -49,6 +49,13 @@ struct StartPomodoroIntent: AppIntent {
         let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
         defaults?.set(taskId.uuidString, forKey: "pendingStartTimerTaskId")
 
+        CFNotificationCenterPostNotification(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            CFNotificationName("me.craigpeters.clarity.pendingPomodoroStart" as CFString),
+            nil,
+            nil,
+            true
+        )
         LogManager.shared.log.debug("pendingStartTimerTaskId: \(taskId.uuidString)")
         // The app should read the incoming AppIntent parameters to navigate to the Timer screen
         return .result()
