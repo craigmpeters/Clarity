@@ -34,6 +34,7 @@ struct ClarityAppShellTests {
 
         let consumed = ClarityApp.consumePendingStartTimerTaskId(appGroup: appGroup)
         #expect(consumed == id)
+        #expect(ClarityApp.consumePendingStartTimerTaskId(appGroup: appGroup) == nil)
         #expect(testDefaults?.string(forKey: pendingKey) == nil)
     }
 
