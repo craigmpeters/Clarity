@@ -194,54 +194,47 @@ struct ClarityApp: App {
                     }
                 }
                 .task {
-                    if let id = Self.consumePendingStartTimerTaskId() {
-                        appState.pomodoroUuid = id
-                        LogManager.shared.log.debug(
-                            "Starting Pomodero (.task) for \(id.uuidString)"
-                        )
-                        let store = ClarityModelActor(modelContainer: container)
-                        do {
-                            if let taskDTO = try await store.fetchTaskByUuid(id) {
-                                PomodoroService.shared.startPomodoro(
-                                    for: taskDTO, container: container, device: .iPhone
-                                )
-                                appState.showingPomodoro = true
-                            }
-                        } catch {
-                            // Log and swallow the error to keep the .task closure non-throwing
-                            LogManager.shared.log.error("Failed to fetch task by UUID: \(error)")
-                        }
-                    }
+                    await startPendingPomodoro()
                 }
                 .onChange(of: scenePhase) { _, newPhase in
                     guard newPhase == .active else { return }
-                    // Keep the App Group category snapshot fresh for widgets / intents.
                     ClarityServices.writeCategorySnapshot()
-                    // Sync any Pomodoro state that was changed by a widget / Live Activity intent.
                     PomodoroService.shared.syncIfStoppedExternally()
-                    if let id = Self.consumePendingStartTimerTaskId() {
-                        LogManager.shared.log.debug(
-                            "Starting Pomodero (.onChange Active) for \(id.uuidString)"
-                        )
-                        appState.pomodoroUuid = id
-                        let store = ClarityModelActor(modelContainer: container)
-                        Task {
-                            do {
-                                if let taskDTO = try await store.fetchTaskByUuid(id) {
-                                    PomodoroService.shared.startPomodoro(
-                                        for: taskDTO, container: container, device: .iPhone
-                                    )
-                                    appState.showingPomodoro = true
-                                }
-                            } catch {
-                                LogManager.shared.log.error(
-                                    "Failed to fetch task by UUID (resume): \(error)"
-                                )
-                            }
-                        }
-                    }
+                    Task { await startPendingPomodoro() }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .pendingPomodoroStart)) { _ in
+                    Task { await startPendingPomodoro() }
                 }
         }
+    }
+
+    @MainActor
+    private func startPendingPomodoro() async {
+        guard let id = Self.consumePendingStartTimerTaskId() else { return }
+        do {
+            let store = ClarityModelActor(modelContainer: container)
+            guard let task = try await store.fetchTaskByUuid(id) else {
+                LogManager.shared.log.error("Pending Pomodoro task not found: \(id)")
+                return
+            }
+            let service = PomodoroService.shared
+            guard Self.shouldStartPendingPomodoro(
+                requested: id,
+                activeTask: service.isActive ? service.toDoTask?.uuid : nil
+            ) else {
+                appState.showingPomodoro = true
+                return
+            }
+            appState.pomodoroUuid = id
+            service.startPomodoro(for: task, container: container, device: .iPhone)
+            appState.showingPomodoro = true
+        } catch {
+            LogManager.shared.log.error("Failed to fetch pending Pomodoro task: \(error)")
+        }
+    }
+
+    static func shouldStartPendingPomodoro(requested: UUID, activeTask: UUID?) -> Bool {
+        activeTask != requested
     }
 
     static var appShortcuts: AppShortcutsProvider.Type {
@@ -275,6 +268,10 @@ extension ClarityApp {
     }
 }
 
+private extension Notification.Name {
+    static let pendingPomodoroStart = Notification.Name("pendingPomodoroStart")
+}
+
 @MainActor
 class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency UNUserNotificationCenterDelegate
 {
@@ -301,6 +298,18 @@ class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency UNUserNotifi
                 PhoneConnectivityCoordinator.shared.broadcastSnapshot()
             }
         }
+        CFNotificationCenterAddObserver(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            nil,
+            { _, _, _, _, _ in
+                Task { @MainActor in
+                    NotificationCenter.default.post(name: .pendingPomodoroStart, object: nil)
+                }
+            },
+            "me.craigpeters.clarity.pendingPomodoroStart" as CFString,
+            nil,
+            .deliverImmediately
+        )
         _ = LogManager.shared
         // let url = LogManager.defaultLogFileURL()
         LogManager.shared.log.info("Clarity logger initialized in AppDelegate")
