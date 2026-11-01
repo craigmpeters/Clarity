@@ -13,13 +13,13 @@ import XCGLogger
 struct StartPomodoroIntent: AppIntent {
     static let title: LocalizedStringResource = "Start Timer"
     static let description = IntentDescription("Start a timer for a task")
-    static let openAppWhenRun: Bool = true // Foreground the app; navigation handled by intent-driven routing
+    static let openAppWhenRun: Bool = true  // Foreground the app; navigation handled by intent-driven routing
     private var taskUuid: String?
 
     @Parameter(title: "Task")
     var task: TaskEntity
 
-    init() {} // required
+    init() {}  // required
 
     init(task: TaskEntity) {
         self.task = task
@@ -49,6 +49,13 @@ struct StartPomodoroIntent: AppIntent {
         let defaults = UserDefaults(suiteName: "group.me.craigpeters.clarity")
         defaults?.set(taskId.uuidString, forKey: "pendingStartTimerTaskId")
 
+        CFNotificationCenterPostNotification(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            CFNotificationName("me.craigpeters.clarity.pendingPomodoroStart" as CFString),
+            nil,
+            nil,
+            true
+        )
         LogManager.shared.log.debug("pendingStartTimerTaskId: \(taskId.uuidString)")
         // The app should read the incoming AppIntent parameters to navigate to the Timer screen
         return .result()

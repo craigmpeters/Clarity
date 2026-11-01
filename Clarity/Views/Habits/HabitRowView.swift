@@ -30,7 +30,8 @@ struct HabitRowView: View {
                         Text(periodDescription)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
-                        rollingMeterLabel
+                        // This is not really needed
+                        //rollingMeterLabel
                     }
                     Spacer()
                     HStack(spacing: 4) {
