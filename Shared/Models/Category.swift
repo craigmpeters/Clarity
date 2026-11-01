@@ -11,7 +11,7 @@ import SwiftData
 import SwiftUI
 
 @Model
-class Category {
+nonisolated class Category {
     // TODO: Guard against existing categories on create
     var name: String?
     var color: CategoryColor?
@@ -24,7 +24,8 @@ class Category {
     @Relationship(inverse: \ToDoTask.categories) var tasks: [ToDoTask]? = []
     @Relationship(inverse: \Habit.categories) var habits: [Habit]? = []
 
-    init(name: String, color: CategoryColor = .Red, weeklyTarget: Int = 0, iconName: String? = nil) {
+    init(name: String, color: CategoryColor = .Red, weeklyTarget: Int = 0, iconName: String? = nil)
+    {
         self.name = name
         self.color = color
         self.weeklyTarget = weeklyTarget

@@ -34,6 +34,7 @@ struct ClarityAppShellTests {
 
         let consumed = ClarityApp.consumePendingStartTimerTaskId(appGroup: appGroup)
         #expect(consumed == id)
+        #expect(ClarityApp.consumePendingStartTimerTaskId(appGroup: appGroup) == nil)
         #expect(testDefaults?.string(forKey: pendingKey) == nil)
     }
 
@@ -47,6 +48,13 @@ struct ClarityAppShellTests {
         testDefaults?.set("not-a-uuid", forKey: pendingKey)
         #expect(ClarityApp.consumePendingStartTimerTaskId(appGroup: appGroup) == nil)
         #expect(testDefaults?.string(forKey: pendingKey) == nil)
+    }
+
+    @Test func pendingStartDoesNotRestartTheSameActiveTask() {
+        let id = UUID()
+        #expect(!ClarityApp.shouldStartPendingPomodoro(requested: id, activeTask: id))
+        #expect(ClarityApp.shouldStartPendingPomodoro(requested: id, activeTask: nil))
+        #expect(ClarityApp.shouldStartPendingPomodoro(requested: id, activeTask: UUID()))
     }
 
     @Test func migrationHasRunAndMarkRunRoundTrip() {
